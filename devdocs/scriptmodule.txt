@@ -1,0 +1,120 @@
+Simple assembly language scripting module based on a Java state machine
+
+State machine architecture (custom RISC 16 bit):
+	Instruction Set Architecture:
+		-Basic mode: 00 00000 0 0000 0000 - mode, opcode, unused, reg1, reg2
+		-Imm   mode: 10 00000 000000000   - mode, opcode, immediate value
+		-mode      - can be 00, 01, 10, or 11 for basic, conditional, immediate, or conditional immediate
+		-opcode    - supports up to 32 instructions
+		-unused    - this bit is unused in basic mode but is the ninth bit in the immediate value
+		-reg1/2    - the addresses of the argument registers. Can be 0 - 15
+		-immediate - a nine bit data field which can be used to directly pass a value without the use of a register
+	Registers:
+		-pc		   - program counter, incremented each processor cycle. Used to access the current program memory address
+		-acc	   - accumulator, output for logic and math instructions
+		-tmp	   - temporary, multiple use register often used for the second operator for logic and math instructions
+		-flg	   - flags, stores the state flags of the processor. Each bit corresponds to a flag
+		-io		   - input/output, is used in the same way as flg but stores logic IO states
+		-clk	   - clock, incremented every millisecond. Can be used for couontdown timers and other timed things
+		-g1 to g10 - 10 general purpose registers
+	Flags (replaces "fl" in the tfl instruction):
+		-eq  - if A is equal to B
+		-al  - if A is larger than B
+		-ze  - if A is equal to 0
+		-io  - if any bit in the io register is high
+		-lo  - if the logic input at A is high
+		-neq - if A is not equal to B
+		-nal - if A is not larger than B
+		-nze - if A is not equal to 0
+		-nio - if no bits in the io register are high
+		-nlo - if the logic input at A is low
+	Instructions: - needs more
+		(basic)
+			-nop - does nothing
+			-hlt - ends execution (may not need to be implemented? If implemented, the program will have to be manually run again for a restart anyways)
+		(memory)
+			-mov A, B - copies the contents of register A to B
+			-dat A    - copies the data from the next instruction address into register A and increments pc to skip the copied data
+		(math)
+			-add A, B - adds the contents of register A to B
+			-add imm  - adds the immediate value to tmp
+			-sub A, B - subtracts register B from A
+			-sub imm  - subtracts imm from tmp
+			-mul A, B - multiples A with B
+			-mul imm  - multiples imm with tmp
+			-div A, B - divides A by B
+			-div imm  - divides tmp by imm
+			-and A, B - bitwise AND of A and B
+			-and imm  - bitwise AND of tmp and imm
+			-or  A, B - bitwise OR of A and B
+			-or  imm  - bitwise OR of imm and tmp
+			-not A    - bit wise NOT of A
+			-xor A, B - bitwise XOR of A and B
+			-xor imm  - bitwise XOR of imm and tmp
+			-shl A, B - shifts the bits of A left by B bits
+			-shr A, B - shifts the bits of A right by B bits
+		(control)
+			-tfl A, B - tests if a flag is true by comparing register A with B, outputs to flg. Replace "fl" with the flag condition to test. flg is automatically cleared when called
+			-jmp A    - sets pc to register A and sets the internal system jump variable to true. Enable this instruction's conditional mode to use for conditional branching
+			-jmp imm  - sets pc to the immediate value. This is often used to jump to a label
+		(IO)
+			-slh A    - sets logic output A to 1
+			-sll A    - sets logic output A to 0
+			-glo A, B - sets B to logic input A (can probably be ommitted, tlo can be used to check if a connection is high)
+
+Language:
+	Syntax:
+		-#label:
+		-? instr A, B //comment
+		-? instr A
+		-? instr
+		-? instr imm
+		-instr; ? instr
+		-instr #label
+	Tokens:
+		-?         - enables conditional mode for the instruction. Must precede it
+		-instr     - the instruction to execute. Its supported argument formats must be followed
+		-A, B, imm - the input registers and immediate value
+		-;         - used to specify where instructions end. This is optional at the end of a line
+		-# label : - # begins the name of a label which marks an address in code. The label name can be anything. : marks the end of the label and is used to determine if the label is being
+						defined. ; is not required when "stacking"
+	Example code:
+		//comment
+		dat g1; 123
+		mov g1, tmp
+		add 1
+		dat g2; 0
+		teq acc, g1
+		? jmp #end
+		mov acc, g1
+		#end: hlt
+
+Implementation:
+	Execution steps:
+		1. load script from input
+		2. assemble temporary (or cached) binary
+		3. based on state machine settings, execute the assembled machine code
+	Sections:
+		-assembler
+		-ui manager
+		-core
+		-emulated processor
+		-emulated processor state instance manager (contains storage for registers and program data)
+		-settings (goes in core probably)
+	State machine settings:
+		-program data size (limits the size of programs)
+		-number of processors per structure? (hopefully not needed, but will limit the number of running processors on ships)
+		-execution period (limits the execution step for all processors to n ticks, milliseconds, cycles, or however this will be done)
+
+Notes:
+	-only needs to handle logic IO
+	-needs only a few instructions to handle basic math, logic, and conditionals
+	-needs an instruction to handle the IO itself
+	-a single register can be used to hold the IO states of each possible connection
+	-logic IO connections are simply standard c/v links with other blocks which support logic
+	-determining which connections are which will be difficult, so a UI tab may be necessary to list and map connections
+	-Conditionals will be executed similar to the ones used by the assembly language in Shenzhen IO
+	-the conditional mode bit enables conditional execution for the instruction. If any flag in the flag register is high, it will be executed. It will save execution cycles to only enable the bit
+		for jumps and small pieces of code
+	-jumping to a label will set the pc to the address of the instruction right after the label. The instruction is then executed during the next cycle
+	-it would probably perform better if implemented in C and called from Java, but this could cause security concerns and it would be harder to port
