@@ -16,42 +16,24 @@ package net.dovtech.logiscript.core;
 
 import java.util.ArrayList;
 
-class Instance {
-	Instance(int maxDataSize) {
-		jumped = false;
-		regs = new short[16];
-		rom = new byte[maxDataSize];
-	}
-	
-    private boolean jumped; //Used to determine if an instruction modified the pc (mov doesn't count)
-    private short[] regs; //Stores register values
-    private byte[] rom;  //Stores this instance's program
-
-	public byte[] getRom() {
-		return rom;
-	}
-
-	void setRom(byte[] rom) {
-		this.rom = rom;
-	}
-}
-
 public class Core {
+
 	private int maxDataSize = 512; //specifies how large a program can be. 512 bytes by default
-
-	private Assembler asm = new Assembler(); //Assembler functions
-	//UI	      ui  = new UI();        //Unimplemented module
-	
+	private Assembler asm; //Assembler functions
 	private ArrayList<Instance> insts = new ArrayList<>(); //contains instance data
-	private ArrayList<Integer> inst_alloc = new ArrayList<>();  //keep track of unused elements. Contains unused indices
-	private ArrayList<Integer> inst_queue = new ArrayList<>();  //loop through only the used array elements. Contains used indices
+	private ArrayList<Integer> inst_alloc = new ArrayList<>();  //keep track of unused elements. Contains unused indices. (These are integers right?)
+	private ArrayList<Integer> inst_queue = new ArrayList<>();  //loop through only the used array elements. Contains used indices. (These are integers right?)
 
-	public Core(int maxProgramDataSize) {
-		maxDataSize = maxProgramDataSize;
+	public Core(int maxDataSize) {
+		this.maxDataSize = maxDataSize; //Use "this." keyword to reference current object if local variable has the same name
+		asm = new Assembler(); //Moved asm assignment just in case
     }
 
     public void update() {
     	//ToDo: figure out a way to save performance by only updating instances which apply to structures in range?
+		//Note on above: could get every instance on server and see which ones have players in loading range of them and update
+		//those only; see StarRunnable on the StarLoader wiki: https://gitlab.com/generic-username/starloader/-/wikis/Events-&-Tasks
+
 		//update each instance
 		//0x00 = nop and 0x01 = hlt
 		//hlt automatically calls removeInstance
