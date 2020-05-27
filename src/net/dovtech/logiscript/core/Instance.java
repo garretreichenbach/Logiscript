@@ -7,7 +7,7 @@ public class Instance {
     private short[] regs; //Stores register values
     private byte[] rom;  //Stores this instance's program
 
-    Instance(int maxDataSize) {
+    public Instance(int maxDataSize) {
         jumped = false;
         regs = new short[16];
         rom = new byte[maxDataSize];
@@ -17,7 +17,7 @@ public class Instance {
         return rom;
     }
 
-    void setRom(byte[] rom) {
+    public void setRom(byte[] rom) {
         this.rom = rom;
     }
 }
