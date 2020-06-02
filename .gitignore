@@ -5,3 +5,5 @@
 *.iml
 .idea/Logiscript.iml
 .idea/misc.xml
+/out
+/out/*
