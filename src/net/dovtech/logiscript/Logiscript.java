@@ -16,11 +16,14 @@ import org.schema.game.common.data.element.ElementInformation;
 import org.schema.game.common.data.element.FactoryResource;
 import org.schema.schine.input.InputState;
 
+import java.io.File;
+
 public class Logiscript extends StarMod {
     static Logiscript inst;
     public Logiscript() {
         inst = this;
     }
+    private File lscriptsFolder = new File("../lscripts");
 
     public static void main(String[] args) {
         //Dont put anything in here, this is just for compilation purposes
@@ -32,6 +35,7 @@ public class Logiscript extends StarMod {
         this.modAuthor = "DovTech";
         this.modVersion = "0.2.5";
         this.modDescription = "Adds an assembly-based logic scripting language to StarMade.";
+        if(!lscriptsFolder.exists()) lscriptsFolder.mkdir();
     }
 
     @Override
