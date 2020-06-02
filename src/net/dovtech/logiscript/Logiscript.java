@@ -4,18 +4,17 @@ import api.DebugFile;
 import api.config.BlockConfig;
 import api.element.block.Blocks;
 import api.element.block.FactoryType;
-import api.entity.Player;
 import api.listener.Listener;
 import api.listener.events.Event;
-import api.listener.events.block.BlockActivateEvent;
+import api.listener.events.block.ClientActivateSegmentPieceEvent;
 import api.mod.StarLoader;
 import api.mod.StarMod;
 import net.dovtech.logiscript.blocks.Terminal;
-import org.schema.game.client.data.GameClientState;
+import net.dovtech.logiscript.gui.TerminalGUI;
+import org.schema.game.client.controller.manager.AbstractControlManager;
+import org.schema.game.client.controller.manager.ingame.PlayerInteractionControlManager;
 import org.schema.game.common.data.element.ElementInformation;
 import org.schema.game.common.data.element.FactoryResource;
-import org.schema.schine.input.InputState;
-
 import java.io.File;
 
 public class Logiscript extends StarMod {
@@ -43,7 +42,24 @@ public class Logiscript extends StarMod {
         super.onEnable();
         DebugFile.log("Enabled", this);
 
-        registerLisenters();
+        //Terminal Activate Event
+        StarLoader.registerListener(ClientActivateSegmentPieceEvent.class, new Listener() {
+            @Override
+            public void onEvent(Event e) {
+                ClientActivateSegmentPieceEvent event = (ClientActivateSegmentPieceEvent) e;
+                if(event.getPiece().getInfo().getId() == 3200) {
+                    PlayerInteractionControlManager controlManager = event.getPicm();
+                    AbstractControlManager terminalControlManager = new AbstractControlManager(controlManager.getState()) {
+                        @Override
+                        public void activate(AbstractControlManager abstractControlManager) {
+                            new TerminalGUI(getState(), 300, 300, "TERMINAL").draw();
+                        }
+                    };
+                    terminalControlManager.setActive(true);
+                    DebugFile.log("[DEBUG]: Activated Terminal", getMod());
+                }
+            }
+        });
     }
 
     @Override
@@ -58,22 +74,5 @@ public class Logiscript extends StarMod {
         };
         BlockConfig.addRecipe(terminalInfo, FactoryType.ADVANCED, 10, terminalRecipe);
         config.add(terminalInfo);
-    }
-
-    private void registerLisenters() {
-
-        //Terminal Activate Event
-        StarLoader.registerListener(BlockActivateEvent.class, new Listener() {
-            @Override
-            public void onEvent(Event e) {
-                BlockActivateEvent event = (BlockActivateEvent) e;
-                if(event.getBlockId() == 3200) { //3200 is the Terminal's block ID
-                    Player player = new Player(GameClientState.instance.getPlayer());
-                    InputState inputState = GameClientState.instance.getGUIController().getState();
-                    Terminal terminal = new Terminal();
-                    terminal.onBlockActivate(player, inputState);
-                }
-            }
-        });
     }
 }
