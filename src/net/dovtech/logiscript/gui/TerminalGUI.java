@@ -33,6 +33,7 @@ public class TerminalGUI extends GUIMainWindow implements GUIWindowInterface {
     public TerminalGUI(InputState inputState, int i, int i1, String s) {
         super(inputState, i, i1, s);
         createGUIWindow(inputState);
+        //Todo use tag system to get entered text from file
     }
 
     public void cleanUp() {
