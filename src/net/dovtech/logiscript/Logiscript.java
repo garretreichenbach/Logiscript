@@ -8,15 +8,12 @@ import api.entity.Player;
 import api.listener.Listener;
 import api.listener.events.Event;
 import api.listener.events.block.BlockActivateEvent;
-import api.main.GameClient;
 import api.mod.StarLoader;
 import api.mod.StarMod;
 import net.dovtech.logiscript.blocks.Terminal;
-import net.dovtech.logiscript.gui.TerminalGUI;
 import org.schema.game.client.data.GameClientState;
 import org.schema.game.common.data.element.ElementInformation;
 import org.schema.game.common.data.element.FactoryResource;
-import org.schema.game.common.data.player.PlayerState;
 import org.schema.schine.input.InputState;
 
 public class Logiscript extends StarMod {
@@ -67,10 +64,10 @@ public class Logiscript extends StarMod {
             public void onEvent(Event e) {
                 BlockActivateEvent event = (BlockActivateEvent) e;
                 if(event.getBlockId() == 3200) { //3200 is the Terminal's block ID
-                    PlayerState player = GameClientState.instance.getPlayer();
+                    Player player = new Player(GameClientState.instance.getPlayer());
                     InputState inputState = GameClientState.instance.getGUIController().getState();
-                    TerminalGUI terminalGUI = new TerminalGUI(inputState, 300, 300, "TERMINAL");
-                    terminalGUI.draw();
+                    Terminal terminal = new Terminal();
+                    terminal.onBlockActivate(player, inputState);
                 }
             }
         });
