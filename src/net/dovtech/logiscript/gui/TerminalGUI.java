@@ -5,73 +5,73 @@ import org.schema.schine.graphicsengine.forms.gui.newgui.config.WindowPaletteInt
 import org.schema.schine.input.InputState;
 
 public class TerminalGUI extends GUIResizableGrabbableWindow {
+
+    private WindowPaletteInterface windowPaletteInterface;
+    private int minWidth;
+    private int minHeight;
+    private int innerCornerDistX;
+    private int innerCornerTopDistY;
+    private int innerCornerBottomDistY;
+    private int innerHeight;
+    private int innerWidth;
+    private int innerOffsetX;
+    private int innerOffsetY;
+    private int inset;
+    private int topDist;
+
     public TerminalGUI(InputState inputState, int i, int i1, String s) {
         super(inputState, i, i1, s);
     }
 
-    @Override
     public WindowPaletteInterface getWindowPalette() {
-        return null;
+        return windowPaletteInterface;
     }
 
-    @Override
     protected int getMinWidth() {
-        return 0;
+        return minWidth;
     }
 
-    @Override
     protected int getMinHeight() {
-        return 0;
+        return minHeight;
     }
 
-    @Override
     public int getInnerCornerDistX() {
-        return 0;
+        return innerCornerDistX;
     }
 
-    @Override
     public int getInnerCornerTopDistY() {
-        return 0;
+        return innerCornerTopDistY;
     }
 
-    @Override
     public int getInnerCornerBottomDistY() {
-        return 0;
+        return innerCornerBottomDistY;
     }
 
-    @Override
     public int getInnerHeigth() {
-        return 0;
+        return innerHeight;
     }
 
-    @Override
     public int getInnerWidth() {
-        return 0;
+        return innerWidth;
     }
 
-    @Override
     public int getInnerOffsetX() {
-        return 0;
+        return innerOffsetX;
     }
 
-    @Override
     public int getInnerOffsetY() {
-        return 0;
+        return innerOffsetY;
     }
 
-    @Override
     public int getInset() {
-        return 0;
+        return inset;
     }
 
-    @Override
     public int getTopDist() {
-        return 0;
+        return topDist;
     }
 
-    @Override
     public void cleanUp() {
-
     }
 
     @Override
