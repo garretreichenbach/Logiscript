@@ -2,7 +2,16 @@ package net.dovtech.logiscript;
 
 import api.DebugFile;
 import api.config.BlockConfig;
+import api.element.block.Blocks;
+import api.element.block.FactoryType;
+import api.listener.Listener;
+import api.listener.events.Event;
+import api.listener.events.block.BlockActivateEvent;
+import api.mod.StarLoader;
 import api.mod.StarMod;
+import net.dovtech.logiscript.blocks.Terminal;
+import org.schema.game.common.data.element.ElementInformation;
+import org.schema.game.common.data.element.FactoryResource;
 
 public class Logiscript extends StarMod {
     static Logiscript inst;
@@ -26,9 +35,31 @@ public class Logiscript extends StarMod {
     public void onEnable() {
         super.onEnable();
         DebugFile.log("Enabled", this);
+
+        registerLisenters();
     }
 
+    @Override
     public void onBlockConfigLoad(BlockConfig config) {
+        Terminal terminal = new Terminal();
+        ElementInformation terminalInfo = terminal.getBlockInfo();
+        FactoryResource[] terminalRecipe = {
+            new FactoryResource(1, Blocks.DISPLAY_MODULE.getId()),
+            new FactoryResource(5, Blocks.ACTIVATION_MODULE.getId()),
+            new FactoryResource(2, Blocks.SENSOR.getId()),
+            new FactoryResource(1, Blocks.BOBBY_AI_MODULE.getId()),
+        };
+        BlockConfig.addRecipe(terminalInfo, FactoryType.ADVANCED, 10, terminalRecipe);
+        config.add(terminalInfo);
+    }
 
+    private void registerLisenters() {
+        StarLoader.registerListener(BlockActivateEvent.class, new Listener() {
+            @Override
+            public void onEvent(Event e) {
+                BlockActivateEvent event = (BlockActivateEvent) e;
+
+            }
+        });
     }
 }
