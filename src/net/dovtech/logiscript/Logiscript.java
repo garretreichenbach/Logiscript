@@ -10,13 +10,21 @@ public class Logiscript extends StarMod {
         inst = this;
     }
 
+    public static void main(String[] args) {
+        //Dont put anything in here, this is just for compilation purposes
+    }
+
+    @Override
+    public void onGameStart() {
+        this.modName = "Logiscript";
+        this.modAuthor = "DovTech";
+        this.modVersion = "0.2.5";
+        this.modDescription = "Adds an assembly-based logic scripting language to StarMade.";
+    }
+
     @Override
     public void onEnable() {
         super.onEnable();
-        this.modName = "Logiscript";
-        this.modAuthor = "DovTech";
-        this.modVersion = "0.2.1";
-        this.modDescription = "Adds an assembly-based logic scripting language to StarMade.";
         DebugFile.log("Enabled", this);
     }
 
