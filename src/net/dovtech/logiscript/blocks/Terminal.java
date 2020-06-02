@@ -31,6 +31,7 @@ public class Terminal {
         if(blockInfo.canActivate) {
             terminalGUI = new TerminalGUI(inputState, 300, 300, "TERMINAL");
             //Todo:Set the terminal's text to the last text inputted into it
+            terminalGUI.draw();
         }
     }
 }
