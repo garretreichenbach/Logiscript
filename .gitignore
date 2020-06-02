@@ -1,9 +1,8 @@
-.idea
-.idea/*
-.idea/Logiscript.iml
+/.idea
+/.idea/*
+/.idea/Logiscript.iml
 *.xml
 *.iml
-.idea/Logiscript.iml
-.idea/misc.xml
+/.idea/misc.xml
 /out
 /out/*
