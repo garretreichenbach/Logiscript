@@ -20,9 +20,9 @@ public class Core {
 
 	private int maxDataSize = 512; //specifies how large a program can be. 512 bytes by default
 	private Assembler asm; //Assembler functions
-	private ArrayList<Instance> insts = new ArrayList<>(); //contains instance data
-	private ArrayList<Integer> inst_alloc = new ArrayList<>();  //keep track of unused elements. Contains unused indices. (These are integers right?)
-	private ArrayList<Integer> inst_queue = new ArrayList<>();  //loop through only the used array elements. Contains used indices. (These are integers right?)
+	private ArrayList<Instance> insts = new ArrayList<Instance>(); //contains instance data
+	private ArrayList<Integer> inst_alloc = new ArrayList<Integer>();  //keep track of unused elements. Contains unused indices. (These are integers right?)
+	private ArrayList<Integer> inst_queue = new ArrayList<Integer>();  //loop through only the used array elements. Contains used indices. (These are integers right?)
 
 	public Core(int maxDataSize) {
 		this.maxDataSize = maxDataSize; //Use "this." keyword to reference current object if local variable has the same name
