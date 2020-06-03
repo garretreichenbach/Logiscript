@@ -55,8 +55,11 @@ public class Logiscript extends StarMod {
                             new TerminalGUI(event.getPiece(), getState(), 300, 300, "TERMINAL");
                         }
                     };
+                    controlManager.getControlManagers().add(terminalControlManager);
+                    terminalControlManager.activateAll(true);
+                    terminalControlManager.setActive(true);
                     controlManager.activate(terminalControlManager);
-                    DebugFile.log("[DEBUG]: Activated Terminal");
+                    DebugFile.log("[DEBUG]: Activated terminal control manager", getMod());
                 }
             }
         });
