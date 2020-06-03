@@ -1,5 +1,7 @@
 package net.dovtech.logiscript.gui;
 
+import api.DebugFile;
+import net.dovtech.logiscript.Logiscript;
 import net.dovtech.logiscript.interp.Assembler;
 import org.schema.game.client.view.gui.GUITextInputBar;
 import org.schema.game.client.view.mainmenu.FileChooserDialog;
@@ -60,6 +62,7 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
         String rawText = terminalTextTag.getString();
         createGUIWindow(inputState);
         setText(rawText.split(":"));
+        DebugFile.log("[DEBUG]: Created terminal GUI", Logiscript.getInstance());
     }
 
     private void createGUIWindow(final InputState inputState) {
