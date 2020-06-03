@@ -6,7 +6,7 @@ import org.schema.game.client.view.mainmenu.gui.FileChooserStats;
 import org.schema.schine.graphicsengine.core.MouseEvent;
 import org.schema.schine.graphicsengine.forms.gui.*;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIContentPane;
-import org.schema.schine.graphicsengine.forms.gui.newgui.GUIMainWindow;
+import org.schema.schine.graphicsengine.forms.gui.newgui.GUIPlainWindow;
 import org.schema.schine.input.InputState;
 import javax.swing.filechooser.FileFilter;
 import java.io.File;
@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 
-public class TerminalGUI extends GUIMainWindow {
+public class TerminalGUI extends GUIPlainWindow {
 
     private GUIContentPane window;
     private GUITextInput inputBox;
@@ -26,19 +26,13 @@ public class TerminalGUI extends GUIMainWindow {
     private GUITextButton loadButton;
     private GUITextButton saveButton;
     private GUIEnterableList inputsList;
-    private File scriptsFolder = new File("/lscripts/");
+    private File scriptsFolder = new File("/scripts/");
 
 
     public TerminalGUI(InputState inputState, int i, int i1, String s) {
         super(inputState, i, i1, s);
         createGUIWindow(inputState);
-        window.draw();
-        window.drawAttached();
         //Todo use tag system to get entered text from file
-    }
-
-    public void cleanUp() {
-        super.cleanUp();
     }
 
     private void createGUIWindow(final InputState inputState) {
