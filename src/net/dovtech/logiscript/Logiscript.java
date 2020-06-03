@@ -11,6 +11,7 @@ import api.mod.StarLoader;
 import api.mod.StarMod;
 import net.dovtech.logiscript.blocks.Terminal;
 import net.dovtech.logiscript.gui.TerminalGUI;
+import org.schema.game.client.controller.manager.AbstractControlManager;
 import org.schema.game.client.controller.manager.ingame.PlayerInteractionControlManager;
 import org.schema.game.common.data.element.ElementInformation;
 import org.schema.game.common.data.element.FactoryResource;
@@ -31,7 +32,7 @@ public class Logiscript extends StarMod {
     public void onGameStart() {
         this.modName = "Logiscript";
         this.modAuthor = "DovTech";
-        this.modVersion = "0.2.5";
+        this.modVersion = "0.2.6";
         this.modDescription = "Adds an assembly-based logic scripting language to StarMade.";
         if(!lscriptsFolder.exists()) lscriptsFolder.mkdir();
     }
@@ -48,15 +49,13 @@ public class Logiscript extends StarMod {
                 ClientActivateSegmentPieceEvent event = (ClientActivateSegmentPieceEvent) e;
                 if(event.getPiece().getInfo().getName().equals("Terminal")) {
                     PlayerInteractionControlManager controlManager = event.getPicm();
-                    new TerminalGUI(controlManager.getState(), 300, 300, "TERMINAL");
-                    /*AbstractControlManager terminalControlManager = new AbstractControlManager(controlManager.getState()) {
+                    AbstractControlManager terminalControlManager = new AbstractControlManager(controlManager.getState()) {
                         @Override
                         public void activate(AbstractControlManager abstractControlManager) {
                             new TerminalGUI(getState(), 300, 300, "TERMINAL");
                         }
                     };
-                    terminalControlManager.setActive(true);
-                     */
+                    controlManager.activate(terminalControlManager);
                     DebugFile.log("[DEBUG]: Activated Terminal");
                 }
             }
