@@ -1,4 +1,4 @@
-package interp;
+package net.dovtech.logiscript.interp;
 
 public class Programmable {
     public String src;
