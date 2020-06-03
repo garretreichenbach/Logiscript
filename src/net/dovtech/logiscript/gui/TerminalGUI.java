@@ -7,6 +7,7 @@ import org.schema.schine.graphicsengine.core.MouseEvent;
 import org.schema.schine.graphicsengine.forms.gui.*;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIContentPane;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIPlainWindow;
+import org.schema.schine.graphicsengine.forms.gui.newgui.GUIWindowInterface;
 import org.schema.schine.input.InputState;
 import javax.swing.filechooser.FileFilter;
 import java.io.File;
@@ -16,7 +17,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 
-public class TerminalGUI extends GUIPlainWindow {
+public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
 
     private GUIContentPane window;
     private GUITextInput inputBox;
@@ -25,6 +26,7 @@ public class TerminalGUI extends GUIPlainWindow {
     private GUITextButton inputsButton;
     private GUITextButton loadButton;
     private GUITextButton saveButton;
+    private GUITextButton runButton;
     private GUIEnterableList inputsList;
     private File scriptsFolder = new File("/scripts/");
 
@@ -138,17 +140,33 @@ public class TerminalGUI extends GUIPlainWindow {
             }
         });
 
+        //RunButton
+        runButton = new GUITextButton(inputState, 30, 10, "RUN SCRIPT", new GUICallback() {
+            @Override
+            public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
+                if(mouseEvent.pressedLeftMouse()) {
+                    runScript(getText());
+                }
+            }
+
+            @Override
+            public boolean isOccluded() {
+                return !isActive();
+            }
+        });
+
         //Buttons
         buttons = new GUIElementList(inputState);
         GUIListElement exitButtonElement = new GUIListElement(exitButton, inputState);
         GUIListElement inputsButtonElement = new GUIListElement(inputsButton, inputState);
         GUIListElement loadButtonElement = new GUIListElement(loadButton, inputState);
         GUIListElement saveButtonElement = new GUIListElement(saveButton, inputState);
+        GUIListElement runButtonElement = new GUIListElement(runButton, inputState);
         buttons.add(exitButtonElement);
         buttons.add(inputsButtonElement);
         buttons.add(loadButtonElement);
         buttons.add(saveButtonElement);
-        buttons.onInit();
+        buttons.add(runButtonElement);
         window.getContent(1).attach(buttons);
     }
 
@@ -163,6 +181,10 @@ public class TerminalGUI extends GUIPlainWindow {
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
+    }
+
+    private void runScript(String[] script) {
+
     }
 
     public String[] getText() {
