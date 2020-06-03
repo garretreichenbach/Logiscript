@@ -9,7 +9,7 @@ public class Terminal {
     private ElementInformation blockInfo;
 
     public Terminal() {
-        blockInfo = BlockConfig.newElement("Terminal", new short[] { 3200 });
+        blockInfo = BlockConfig.newElement("Terminal");
         blockInfo.fullName = "Terminal";
         blockInfo.description = "A terminal used to create logic scrips.";
         blockInfo.shoppable = true;
