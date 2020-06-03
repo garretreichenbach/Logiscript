@@ -46,13 +46,13 @@ public class Logiscript extends StarMod {
         StarLoader.registerListener(ClientActivateSegmentPieceEvent.class, new Listener() {
             @Override
             public void onEvent(Event e) {
-                ClientActivateSegmentPieceEvent event = (ClientActivateSegmentPieceEvent) e;
+                final ClientActivateSegmentPieceEvent event = (ClientActivateSegmentPieceEvent) e;
                 if(event.getPiece().getInfo().getName().equals("Terminal")) {
                     PlayerInteractionControlManager controlManager = event.getPicm();
                     AbstractControlManager terminalControlManager = new AbstractControlManager(controlManager.getState()) {
                         @Override
                         public void activate(AbstractControlManager abstractControlManager) {
-                            new TerminalGUI(getState(), 300, 300, "TERMINAL");
+                            new TerminalGUI(event.getPiece(), getState(), 300, 300, "TERMINAL");
                         }
                     };
                     controlManager.activate(terminalControlManager);
@@ -74,5 +74,9 @@ public class Logiscript extends StarMod {
         };
         BlockConfig.addRecipe(terminalInfo, FactoryType.ADVANCED, 10, terminalRecipe);
         config.add(terminalInfo);
+    }
+
+    public static Logiscript getInstance() {
+        return inst;
     }
 }
