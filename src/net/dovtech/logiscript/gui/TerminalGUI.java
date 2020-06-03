@@ -1,14 +1,17 @@
 package net.dovtech.logiscript.gui;
 
+import net.dovtech.logiscript.interp.Assembler;
 import org.schema.game.client.view.gui.GUITextInputBar;
 import org.schema.game.client.view.mainmenu.FileChooserDialog;
 import org.schema.game.client.view.mainmenu.gui.FileChooserStats;
+import org.schema.game.common.data.SegmentPiece;
 import org.schema.schine.graphicsengine.core.MouseEvent;
 import org.schema.schine.graphicsengine.forms.gui.*;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIContentPane;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIPlainWindow;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIWindowInterface;
 import org.schema.schine.input.InputState;
+import org.schema.schine.resource.tag.Tag;
 import javax.swing.filechooser.FileFilter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -19,6 +22,9 @@ import java.util.Scanner;
 
 public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
 
+    private File scriptsFolder = new File("/scripts/");
+    private Tag terminalTextTag;
+    private SegmentPiece terminalBlock;
     private GUIContentPane window;
     private GUITextInput inputBox;
     private GUIElementList buttons;
@@ -28,13 +34,32 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
     private GUITextButton saveButton;
     private GUITextButton runButton;
     private GUIEnterableList inputsList;
-    private File scriptsFolder = new File("/scripts/");
 
 
-    public TerminalGUI(InputState inputState, int i, int i1, String s) {
+    public TerminalGUI(SegmentPiece terminalBlock, InputState inputState, int i, int i1, String s) {
         super(inputState, i, i1, s);
+        setCloseCallback(new GUICallback() {
+            @Override
+            public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
+                saveTextOnClose();
+            }
+
+            @Override
+            public boolean isOccluded() {
+                return !isActive();
+            }
+        });
+        this.terminalBlock = terminalBlock;
+
+        terminalTextTag = terminalBlock.getUniqueTag().findTagByName("TERMINAL_TEXT");
+        if(terminalTextTag == null) {
+            terminalTextTag = new Tag("TERMINAL_TEXT", Tag.Type.STRING);
+            terminalBlock.getUniqueTag().addTag(terminalTextTag);
+        }
+
+        String rawText = terminalTextTag.getString();
         createGUIWindow(inputState);
-        //Todo use tag system to get entered text from file
+        setText(rawText.split(":"));
     }
 
     private void createGUIWindow(final InputState inputState) {
@@ -170,6 +195,18 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
         window.getContent(1).attach(buttons);
     }
 
+    private void saveTextOnClose() {
+        StringBuilder rawTextBuilder = new StringBuilder();
+        String[] text = getText();
+        int i;
+        for(i = 0; i < text.length - 1; i ++) {
+            rawTextBuilder.append(text[i]).append(":");
+        }
+        rawTextBuilder.append(text[i]);
+        String rawText = rawTextBuilder.toString();
+        terminalTextTag.setValue(rawText);
+    }
+
     private void saveScript(String scriptName) {
         if(scriptName.equals("")) scriptName = "Unnamed Script";
         try {
@@ -184,7 +221,7 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
     }
 
     private void runScript(String[] script) {
-
+        byte[] assembledData = Assembler.assemble(script);
     }
 
     public String[] getText() {
