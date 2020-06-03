@@ -16,7 +16,7 @@ package net.dovtech.logiscript.interp;
  */
 
 public class Assembler {
-    public static byte[] assemble(String src) {
+    public static byte[] assemble(String[] src) {
         return null;
     }
 }
