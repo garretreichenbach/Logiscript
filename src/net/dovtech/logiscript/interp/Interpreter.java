@@ -1,4 +1,4 @@
-package interp;
+package net.dovtech.logiscript.interp;
 //32 bit ISA
 
 /*modes:
