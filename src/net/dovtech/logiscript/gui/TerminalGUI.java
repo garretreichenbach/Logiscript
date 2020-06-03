@@ -7,7 +7,6 @@ import org.schema.schine.graphicsengine.core.MouseEvent;
 import org.schema.schine.graphicsengine.forms.gui.*;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIContentPane;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIMainWindow;
-import org.schema.schine.graphicsengine.forms.gui.newgui.GUIWindowInterface;
 import org.schema.schine.input.InputState;
 import javax.swing.filechooser.FileFilter;
 import java.io.File;
@@ -17,7 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 
-public class TerminalGUI extends GUIMainWindow implements GUIWindowInterface {
+public class TerminalGUI extends GUIMainWindow {
 
     private GUIContentPane window;
     private GUITextInput inputBox;
@@ -27,12 +26,14 @@ public class TerminalGUI extends GUIMainWindow implements GUIWindowInterface {
     private GUITextButton loadButton;
     private GUITextButton saveButton;
     private GUIEnterableList inputsList;
-    private File scriptsFolder = new File("../lscripts/");
+    private File scriptsFolder = new File("/lscripts/");
 
 
     public TerminalGUI(InputState inputState, int i, int i1, String s) {
         super(inputState, i, i1, s);
         createGUIWindow(inputState);
+        window.draw();
+        window.drawAttached();
         //Todo use tag system to get entered text from file
     }
 
@@ -42,7 +43,8 @@ public class TerminalGUI extends GUIMainWindow implements GUIWindowInterface {
 
     private void createGUIWindow(final InputState inputState) {
         window = new GUIContentPane(inputState, this, "TERMINAL");
-        window.addNewTextBox(280);
+        window.addNewTextBox(0, 0);
+        window.addNewTextBox(0, 280);
 
         //InputBox
         inputBox = new GUITextInput((int) (window.getWidth()) -5, (int) (window.getHeight()) - 5, inputState);
@@ -152,7 +154,8 @@ public class TerminalGUI extends GUIMainWindow implements GUIWindowInterface {
         buttons.add(inputsButtonElement);
         buttons.add(loadButtonElement);
         buttons.add(saveButtonElement);
-        window.getContent(0, 1).attach(buttons);
+        buttons.onInit();
+        window.getContent(1).attach(buttons);
     }
 
     private void saveScript(String scriptName) {
