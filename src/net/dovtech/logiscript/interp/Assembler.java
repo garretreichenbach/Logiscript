@@ -1,4 +1,4 @@
-package interp;
+package net.dovtech.logiscript.interp;
 
 /*example code:
  * 0x00 = in //gets state of logic input
