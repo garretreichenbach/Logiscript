@@ -21,7 +21,7 @@ public class Logiscript extends StarMod {
     public Logiscript() {
         inst = this;
     }
-    private File lscriptsFolder = new File("lscripts");
+    private File lscriptsFolder = new File("scripts");
 
     public static void main(String[] args) {
         //Dont put anything in here, this is just for compilation purposes
