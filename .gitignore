@@ -6,3 +6,6 @@
 /.idea/misc.xml
 /out
 /out/*
+/src/META-INF/
+/.idea/
+/out/
