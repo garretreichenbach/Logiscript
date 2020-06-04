@@ -1,6 +1,7 @@
 package net.dovtech.logiscript.gui;
 
 import api.DebugFile;
+import api.main.GameClient;
 import net.dovtech.logiscript.Logiscript;
 import net.dovtech.logiscript.interp.Assembler;
 import org.schema.game.client.view.gui.GUITextInputBar;
@@ -26,7 +27,7 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
     private File scriptsFolder = new File("/scripts/");
     private SegmentPiece terminalBlock;
     private GUIContentPane window;
-    private GUITextInput inputBox;
+    private GUITextBox inputBox;
     private GUIElementList buttons;
     private GUITextButton exitButton;
     private GUITextButton inputsButton;
@@ -42,20 +43,24 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
         this.terminalBlock = terminalBlock;
         onInit();
         createGUIWindow(inputState);
-        attach(window);
-        window.draw();
         draw();
         DebugFile.log("Drew TerminalGUI", Logiscript.getInstance());
     }
 
+    @Override
+    public void draw() {
+        super.draw();
+        drawAttached();
+    }
+
     private void createGUIWindow(final InputState inputState) {
+        //GUIWindow
         window = new GUIContentPane(inputState, this, "TERMINAL");
         window.addNewTextBox(0, 0);
         window.addNewTextBox(0, 280);
 
         //InputBox
-        inputBox = new GUITextInput((int) (window.getWidth()) -5, (int) (window.getHeight()) - 5, inputState);
-        window.getContent(0).attach(inputBox);
+        inputBox = new GUITextBox(260, 260, 260, 260, GameClient.getClientState());
 
         //ExitButton
         exitButton = new GUITextButton(inputState, 30, 10, "EXIT", new GUICallback() {
@@ -178,7 +183,9 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
         buttons.add(loadButtonElement);
         buttons.add(saveButtonElement);
         buttons.add(runButtonElement);
+        window.getContent(0).attach(inputBox);
         window.getContent(1).attach(buttons);
+        attach(window);
         windowCreated = true;
         DebugFile.log("Created TerminalGUIWindow", Logiscript.getInstance());
     }
@@ -207,11 +214,10 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
     }
 
     public String[] getText() {
-        return (String[]) inputBox.getInputBox().getText().toArray();
+        return (String[]) inputBox.getText().toArray();
     }
 
     public void setText(String[] textInput) {
-        inputBox.getTextInput().clear();
-        inputBox.getInputBox().setText(new ArrayList<Object>(Arrays.asList(textInput)));
+        inputBox.setText(Arrays.asList(textInput));
     }
 }
