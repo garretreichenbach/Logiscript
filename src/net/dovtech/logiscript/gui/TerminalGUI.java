@@ -24,6 +24,7 @@ import java.util.Scanner;
 public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
 
     private File scriptsFolder = new File("/scripts/");
+    private InputState inputState;
     private SegmentPiece terminalBlock;
     private GUIContentPane window;
     private GUITextInput inputBox;
@@ -39,12 +40,14 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
     public TerminalGUI(SegmentPiece terminalBlock, InputState inputState, int i, int i1, String s) {
         super(inputState, i, i1, s);
         this.terminalBlock = terminalBlock;
-        createGUIWindow(inputState);
-        draw();
+        this.inputState = inputState;
+        this.draw();
     }
 
     @Override
     public void draw() {
+        createGUIWindow(inputState);
+        this.attach(window);
         super.draw();
         DebugFile.log("[DEBUG]: Drew Terminal GUI", Logiscript.getInstance());
     }
@@ -180,8 +183,6 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
         buttons.add(saveButtonElement);
         buttons.add(runButtonElement);
         window.getContent(1).attach(buttons);
-        this.attach(window);
-        this.setLoaded(true);
     }
 
     private void saveScript(String scriptName) {
