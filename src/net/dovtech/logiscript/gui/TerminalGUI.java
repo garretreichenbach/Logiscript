@@ -180,6 +180,8 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
         buttons.add(saveButtonElement);
         buttons.add(runButtonElement);
         window.getContent(1).attach(buttons);
+        this.attach(window);
+        this.setLoaded(true);
     }
 
     private void saveScript(String scriptName) {
