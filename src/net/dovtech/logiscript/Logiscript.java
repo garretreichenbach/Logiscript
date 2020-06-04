@@ -30,7 +30,7 @@ public class Logiscript extends StarMod {
     public void onGameStart() {
         this.modName = "Logiscript";
         this.modAuthor = "DovTech";
-        this.modVersion = "0.2.7";
+        this.modVersion = "0.2.8";
         this.modDescription = "Adds an assembly-based logic scripting language to StarMade.";
         if(!scriptsFolder.exists()) scriptsFolder.mkdir();
     }
