@@ -209,7 +209,11 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
     }
 
     private void runScript(String[] script) {
-        byte[] assembledData = Assembler.assemble(script);
+        StringBuilder scriptString = new StringBuilder();
+        for(String s : script) {
+            scriptString.append(s).append("\n");
+        }
+        byte[] assembledData = Assembler.assemble(scriptString.toString());
     }
 
     public String[] getText() {
