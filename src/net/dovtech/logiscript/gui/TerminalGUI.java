@@ -35,21 +35,27 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
     private GUITextButton saveButton;
     private GUITextButton runButton;
     private GUIEnterableList inputsList;
+    private boolean windowCreated = false;
 
 
     public TerminalGUI(SegmentPiece terminalBlock, InputState inputState, int i, int i1, String s) {
         super(inputState, i, i1, s);
         this.terminalBlock = terminalBlock;
         this.inputState = inputState;
-        this.draw();
+        if(!windowCreated)  {
+            createGUIWindow(inputState);
+            this.attach(window);
+        }
     }
 
     @Override
     public void draw() {
-        createGUIWindow(inputState);
-        this.attach(window);
+        if(!windowCreated)  {
+            createGUIWindow(inputState);
+            this.attach(window);
+        }
         super.draw();
-        DebugFile.log("[DEBUG]: Drew Terminal GUI", Logiscript.getInstance());
+        DebugFile.log("Drew TerminalGUI", Logiscript.getInstance());
     }
 
     private void createGUIWindow(final InputState inputState) {
@@ -183,6 +189,8 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
         buttons.add(saveButtonElement);
         buttons.add(runButtonElement);
         window.getContent(1).attach(buttons);
+        windowCreated = true;
+        DebugFile.log("Created TerminalGUIWindow", Logiscript.getInstance());
     }
 
     private void saveScript(String scriptName) {
@@ -193,8 +201,10 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
                 printWriter.println(s);
             }
             printWriter.close();
+            DebugFile.log("Successfully saved script " + scriptName + " to local", Logiscript.getInstance());
         } catch (FileNotFoundException e) {
             e.printStackTrace();
+            DebugFile.log("[ERROR]: Something went wrong trying to save script " + scriptName + " to local", Logiscript.getInstance());
         }
     }
 
