@@ -6,16 +6,19 @@ import api.element.block.Blocks;
 import api.element.block.FactoryType;
 import api.listener.Listener;
 import api.listener.events.Event;
+import api.listener.events.block.BlockModifyEvent;
 import api.listener.events.block.ClientActivateSegmentPieceEvent;
 import api.mod.StarLoader;
 import api.mod.StarMod;
 import net.dovtech.logiscript.blocks.Terminal;
 import net.dovtech.logiscript.gui.TerminalGUI;
-import org.schema.game.client.controller.manager.AbstractControlManager;
-import org.schema.game.client.controller.manager.ingame.PlayerInteractionControlManager;
+import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementInformation;
 import org.schema.game.common.data.element.FactoryResource;
+import org.schema.schine.resource.tag.Tag;
+
 import java.io.File;
+import java.util.Arrays;
 
 public class Logiscript extends StarMod {
     static Logiscript inst;
@@ -48,18 +51,7 @@ public class Logiscript extends StarMod {
             public void onEvent(Event e) {
                 final ClientActivateSegmentPieceEvent event = (ClientActivateSegmentPieceEvent) e;
                 if(event.getPiece().getInfo().getName().equals("Terminal")) {
-                    PlayerInteractionControlManager controlManager = event.getPicm();
-                    AbstractControlManager terminalControlManager = new AbstractControlManager(controlManager.getState()) {
-                        @Override
-                        public void activate(AbstractControlManager abstractControlManager) {
-                            new TerminalGUI(event.getPiece(), getState(), 300, 300, "TERMINAL");
-                        }
-                    };
-                    controlManager.getControlManagers().add(terminalControlManager);
-                    terminalControlManager.activateAll(true);
-                    terminalControlManager.setActive(true);
-                    controlManager.activate(terminalControlManager);
-                    DebugFile.log("[DEBUG]: Activated terminal control manager", getMod());
+                    new TerminalGUI(event.getPiece(), event.getPicm().getState(), 300, 300, "TERMINAL");
                 }
             }
         });
