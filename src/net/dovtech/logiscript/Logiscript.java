@@ -6,19 +6,14 @@ import api.element.block.Blocks;
 import api.element.block.FactoryType;
 import api.listener.Listener;
 import api.listener.events.Event;
-import api.listener.events.block.BlockModifyEvent;
 import api.listener.events.block.ClientActivateSegmentPieceEvent;
 import api.mod.StarLoader;
 import api.mod.StarMod;
 import net.dovtech.logiscript.blocks.Terminal;
 import net.dovtech.logiscript.gui.TerminalGUI;
-import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementInformation;
 import org.schema.game.common.data.element.FactoryResource;
-import org.schema.schine.resource.tag.Tag;
-
 import java.io.File;
-import java.util.Arrays;
 
 public class Logiscript extends StarMod {
     static Logiscript inst;
@@ -35,7 +30,7 @@ public class Logiscript extends StarMod {
     public void onGameStart() {
         this.modName = "Logiscript";
         this.modAuthor = "DovTech";
-        this.modVersion = "0.2.6";
+        this.modVersion = "0.2.7";
         this.modDescription = "Adds an assembly-based logic scripting language to StarMade.";
         if(!lscriptsFolder.exists()) lscriptsFolder.mkdir();
     }
