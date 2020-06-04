@@ -20,7 +20,7 @@ public class Logiscript extends StarMod {
     public Logiscript() {
         inst = this;
     }
-    private File lscriptsFolder = new File("scripts");
+    private File scriptsFolder = new File("scripts");
 
     public static void main(String[] args) {
         //Dont put anything in here, this is just for compilation purposes
@@ -32,7 +32,7 @@ public class Logiscript extends StarMod {
         this.modAuthor = "DovTech";
         this.modVersion = "0.2.7";
         this.modDescription = "Adds an assembly-based logic scripting language to StarMade.";
-        if(!lscriptsFolder.exists()) lscriptsFolder.mkdir();
+        if(!scriptsFolder.exists()) scriptsFolder.mkdir();
     }
 
     @Override
@@ -45,8 +45,10 @@ public class Logiscript extends StarMod {
             @Override
             public void onEvent(Event e) {
                 final ClientActivateSegmentPieceEvent event = (ClientActivateSegmentPieceEvent) e;
-                if(event.getPiece().getInfo().getName().equals("Terminal")) {
+                Terminal terminal = new Terminal();
+                if(event.getPiece().getInfo().getId() == terminal.getBlockInfo().getId()) {
                     new TerminalGUI(event.getPiece(), event.getPicm().getState(), 300, 300, "TERMINAL");
+                    DebugFile.log("Created new TerminalGUI", getMod());
                 }
             }
         });
