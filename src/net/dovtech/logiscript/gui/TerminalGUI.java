@@ -13,7 +13,6 @@ import org.schema.schine.graphicsengine.forms.gui.newgui.GUIContentPane;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIPlainWindow;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIWindowInterface;
 import org.schema.schine.input.InputState;
-import org.schema.schine.resource.tag.Tag;
 import javax.swing.filechooser.FileFilter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -25,7 +24,6 @@ import java.util.Scanner;
 public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
 
     private File scriptsFolder = new File("/scripts/");
-    private Tag terminalTextTag;
     private SegmentPiece terminalBlock;
     private GUIContentPane window;
     private GUITextInput inputBox;
@@ -40,29 +38,15 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
 
     public TerminalGUI(SegmentPiece terminalBlock, InputState inputState, int i, int i1, String s) {
         super(inputState, i, i1, s);
-        setCloseCallback(new GUICallback() {
-            @Override
-            public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
-                saveTextOnClose();
-            }
-
-            @Override
-            public boolean isOccluded() {
-                return !isActive();
-            }
-        });
         this.terminalBlock = terminalBlock;
-
-        terminalTextTag = terminalBlock.getUniqueTag().findTagByName("TERMINAL_TEXT");
-        if(terminalTextTag == null) {
-            terminalTextTag = new Tag("TERMINAL_TEXT", Tag.Type.STRING);
-            terminalBlock.getUniqueTag().addTag(terminalTextTag);
-        }
-
-        String rawText = terminalTextTag.getString();
         createGUIWindow(inputState);
-        setText(rawText.split(":"));
-        DebugFile.log("[DEBUG]: Created terminal GUI", Logiscript.getInstance());
+        draw();
+    }
+
+    @Override
+    public void draw() {
+        super.draw();
+        DebugFile.log("[DEBUG]: Drew Terminal GUI", Logiscript.getInstance());
     }
 
     private void createGUIWindow(final InputState inputState) {
@@ -196,18 +180,6 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
         buttons.add(saveButtonElement);
         buttons.add(runButtonElement);
         window.getContent(1).attach(buttons);
-    }
-
-    private void saveTextOnClose() {
-        StringBuilder rawTextBuilder = new StringBuilder();
-        String[] text = getText();
-        int i;
-        for(i = 0; i < text.length - 1; i ++) {
-            rawTextBuilder.append(text[i]).append(":");
-        }
-        rawTextBuilder.append(text[i]);
-        String rawText = rawTextBuilder.toString();
-        terminalTextTag.setValue(rawText);
     }
 
     private void saveScript(String scriptName) {
