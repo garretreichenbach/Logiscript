@@ -42,14 +42,11 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface {
         super(inputState, i, i1, s);
         this.terminalBlock = terminalBlock;
         this.inputState = inputState;
-        if(!windowCreated)  {
-            createGUIWindow(inputState);
-            this.attach(window);
-        }
     }
 
     @Override
     public void draw() {
+        this.onInit();
         if(!windowCreated)  {
             createGUIWindow(inputState);
             this.attach(window);
