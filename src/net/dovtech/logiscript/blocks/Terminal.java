@@ -6,7 +6,7 @@ import org.schema.game.common.data.element.ElementInformation;
 
 public class Terminal {
 
-    private ElementInformation blockInfo;
+    public static ElementInformation blockInfo;
 
     public Terminal() {
         blockInfo = BlockConfig.newElement("Terminal");
@@ -17,9 +17,6 @@ public class Terminal {
         blockInfo.volume = Blocks.BOBBY_AI_MODULE.getInfo().volume;
         blockInfo.mass = Blocks.BOBBY_AI_MODULE.getInfo().mass;
         blockInfo.canActivate = true;
-    }
-
-    public ElementInformation getBlockInfo() {
-        return blockInfo;
+        blockInfo.systemBlock = true;
     }
 }
