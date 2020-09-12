@@ -1,23 +1,13 @@
-package net.dovtech.logiscript.gui;
+package net.dovtech.logiscript.gui.terminal;
 
 import api.DebugFile;
-import api.main.GameClient;
 import net.dovtech.logiscript.Logiscript;
 import net.dovtech.logiscript.interp.Assembler;
-import org.schema.game.client.view.gui.GUITextAreaInputPanel;
+import org.schema.game.client.data.GameClientState;
 import org.schema.game.client.view.gui.GUITextInputBar;
-import org.schema.schine.common.TextAreaInput;
-import org.schema.schine.common.TextCallback;
-import org.schema.schine.graphicsengine.core.Drawable;
-import org.schema.schine.graphicsengine.core.GlUtil;
 import org.schema.schine.graphicsengine.core.MouseEvent;
-import org.schema.schine.graphicsengine.core.settings.PrefixNotFoundException;
-import org.schema.schine.graphicsengine.forms.font.FontLibrary;
 import org.schema.schine.graphicsengine.forms.gui.*;
-import org.schema.schine.graphicsengine.forms.gui.newgui.GUIActiveInterface;
-import org.schema.schine.graphicsengine.forms.gui.newgui.GUIContentPane;
-import org.schema.schine.graphicsengine.forms.gui.newgui.GUIPlainWindow;
-import org.schema.schine.graphicsengine.forms.gui.newgui.GUIWindowInterface;
+import org.schema.schine.graphicsengine.forms.gui.newgui.*;
 import org.schema.schine.input.InputState;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -26,99 +16,43 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 
-public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface, GUIActiveInterface, Drawable {
+public class TerminalGUI {
 
     private File scriptsFolder = new File("/scripts/");
-    private GUIContentPane window;
-    private GUITextAreaInputPanel inputBox;
-    private GUIElementList buttons;
-    private GUITextButton inputsButton;
-    private GUITextButton loadButton;
-    private GUITextButton saveButton;
-    private GUITextButton runButton;
-    private GUIEnterableList inputsList;
 
-    public TerminalGUI(InputState inputState, int i, int i1, String s) {
-        super(inputState, i, i1, s);
-        onInit();
-        createGUIWindow(inputState);
-        DebugFile.log("Drew TerminalGUI", Logiscript.getInstance());
+    private TerminalInputBox terminalInputBox;
+
+    public TerminalGUI(InputState inputState) {
+        terminalInputBox = new TerminalInputBox(GameClientState.instance);
     }
 
-    @Override
-    public void draw() {
-        GlUtil.glPushMatrix();
+    public void activate() {
 
-        window.draw();
-        window.drawAttached();
-        inputBox.draw();
-        buttons.draw();
-        buttons.drawAttached();
-        super.draw();
 
-        GlUtil.glPopMatrix();
+        DebugFile.log("Activated TerminalGUI", Logiscript.getInstance());
     }
 
     private void createGUIWindow(final InputState inputState) {
-        //GUIWindow
-        window = new GUIContentPane(inputState, this, "TERMINAL");
-        window.addNewTextBox(0, 0);
-        window.addNewTextBox(0, 450);
-
-        //InputBox
-        GUICallback inputBoxCallback = new GUICallback() {
-            @Override
-            public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
-
-            }
-
-            @Override
-            public boolean isOccluded() {
-                return false;
-            }
-        };
-
-        TextAreaInput inputBoxInput = new TextAreaInput(500, 500, new TextCallback() {
-            @Override
-            public String[] getCommandPrefixes() {
-                return new String[0];
-            }
-
-            @Override
-            public String handleAutoComplete(String s, TextCallback textCallback, String s1) throws PrefixNotFoundException {
-                return null;
-            }
-
-            @Override
-            public void onFailedTextCheck(String s) {
-
-            }
-
-            @Override
-            public void onTextEnter(String s, boolean b, boolean b1) {
-
-            }
-
-            @Override
-            public void newLine() {
-
-            }
-        });
-
-        inputBox = new GUITextAreaInputPanel("TERMINAL", GameClient.getClientState(), 500, 500, inputBoxCallback, 500, 500, inputBoxInput, FontLibrary.FontSize.SMALL, true);
-        inputBox.onInit();
         //InputsButton
         inputsButton = new GUITextButton(inputState, 30, 10, "INPUT SETTINGS", new GUICallback() {
             @Override
             public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
-                //if(mouseEvent.pressedLeftMouse()) inputsList.draw();
+                if(mouseEvent.pressedLeftMouse()) {
+                    //inputsList.draw();
+                    GameClientState.instance.getController().queueUIAudio("0022_action - buttons push medium");
+                }
             }
 
             @Override
             public boolean isOccluded() {
                 return false;
             }
-        });
+        }) {
+            public void draw() {
+                this.setPos(textInput.getInputPanel().getButtonCancel().getPos().x + textInput.getInputPanel().getButtonCancel().getWidth() + 10.0F, textInput.getInputPanel().getButtonCancel().getPos().y, 0.0F);
+                super.draw();
+            }
+        };
 
         //Loadbutton
         loadButton = new GUITextButton(inputState, 30, 10, "LOAD SCRIPT", new GUICallback() {
@@ -154,6 +88,7 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface, G
                                         } catch (FileNotFoundException e) {
                                             e.printStackTrace();
                                         }
+                                        GameClientState.instance.getController().queueUIAudio("0022_action - buttons push medium");
                                     }
                                 }
 
@@ -165,8 +100,7 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface, G
                             scriptsListElement.add(scriptElement);
                         }
                     }
-
-                    scriptsListElement.draw();
+                    GameClientState.instance.getController().queueUIAudio("0022_action - buttons push medium");
                 }
             }
 
@@ -174,7 +108,12 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface, G
             public boolean isOccluded() {
                 return false;
             }
-        });
+        }) {
+            public void draw() {
+                this.setPos(textInput.getInputPanel().getButtonCancel().getPos().x + textInput.getInputPanel().getButtonCancel().getWidth() + 10.0F, textInput.getInputPanel().getButtonCancel().getPos().y, 0.0F);
+                super.draw();
+            }
+        };
 
         //SaveButton
         saveButton = new GUITextButton(inputState, 30, 10, "SAVE SCRIPT", new GUICallback() {
@@ -193,6 +132,7 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface, G
                             return !guiElement.isActive();
                         }
                     }, 30);
+                    GameClientState.instance.getController().queueUIAudio("0022_action - buttons push medium");
                 }
             }
 
@@ -200,7 +140,12 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface, G
             public boolean isOccluded() {
                 return false;
             }
-        });
+        }) {
+            public void draw() {
+                this.setPos(textInput.getInputPanel().getButtonCancel().getPos().x + textInput.getInputPanel().getButtonCancel().getWidth() + 10.0F, textInput.getInputPanel().getButtonCancel().getPos().y, 0.0F);
+                super.draw();
+            }
+        };
 
         //RunButton
         runButton = new GUITextButton(inputState, 30, 10, "RUN SCRIPT", new GUICallback() {
@@ -208,6 +153,7 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface, G
             public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
                 if(mouseEvent.pressedLeftMouse()) {
                     //runScript(getText());
+                    GameClientState.instance.getController().queueUIAudio("0022_action - buttons push medium");
                 }
             }
 
@@ -215,21 +161,26 @@ public class TerminalGUI extends GUIPlainWindow implements GUIWindowInterface, G
             public boolean isOccluded() {
                 return false;
             }
-        });
+        }) {
+            public void draw() {
+                this.setPos(textInput.getInputPanel().getButtonCancel().getPos().x + textInput.getInputPanel().getButtonCancel().getWidth() + 10.0F, textInput.getInputPanel().getButtonCancel().getPos().y, 0.0F);
+                super.draw();
+            }
+        };
 
-        //Buttons
-        buttons = new GUIElementList(inputState);
-        GUIListElement inputsButtonElement = new GUIListElement(inputsButton, inputState);
-        GUIListElement loadButtonElement = new GUIListElement(loadButton, inputState);
-        GUIListElement saveButtonElement = new GUIListElement(saveButton, inputState);
-        GUIListElement runButtonElement = new GUIListElement(runButton, inputState);
-        buttons.add(inputsButtonElement);
-        buttons.add(loadButtonElement);
-        buttons.add(saveButtonElement);
-        buttons.add(runButtonElement);
-        window.getContent(0).attach(inputBox);
-        window.getContent(1).attach(buttons);
-        attach(window);
+        textInput.getInputPanel().onInit();
+        saveButton.setPos(300.0F, -40.0F, 0.0F);
+        ((GUIDialogWindow)textInput.getInputPanel().background).getMainContentPane().getContent(0).attach(saveButton);
+
+        loadButton.setPos(320.0F, -40.0F, 0.0F);
+        ((GUIDialogWindow)textInput.getInputPanel().background).getMainContentPane().getContent(0).attach(loadButton);
+
+        runButton.setPos(340.0F, -40.0F, 0.0F);
+        ((GUIDialogWindow)textInput.getInputPanel().background).getMainContentPane().getContent(0).attach(runButton);
+
+        inputsButton.setPos(360.0F, -40.0F, 0.0F);
+        ((GUIDialogWindow)textInput.getInputPanel().background).getMainContentPane().getContent(0).attach(inputsButton);
+
         DebugFile.log("Created TerminalGUIWindow", Logiscript.getInstance());
     }
 
