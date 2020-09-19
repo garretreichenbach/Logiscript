@@ -3,35 +3,22 @@ package net.dovtech.logiscript;
 import api.DebugFile;
 import api.config.BlockConfig;
 import api.element.block.Blocks;
-import api.element.block.FactoryType;
 import api.listener.Listener;
-import api.listener.events.Event;
-import api.listener.events.block.ClientActivateSegmentPieceEvent;
+import api.listener.events.block.*;
 import api.mod.StarLoader;
 import api.mod.StarMod;
-import net.dovtech.logiscript.blocks.Terminal;
-import net.dovtech.logiscript.gui.terminal.TerminalGUI;
-import org.schema.game.client.controller.PlayerTextAreaInput;
-import org.schema.game.client.data.GameClientState;
-import org.schema.game.common.data.element.ElementInformation;
+import net.dovtech.logiscript.block.MicroController;
 import org.schema.game.common.data.element.FactoryResource;
-import org.schema.schine.graphicsengine.forms.gui.*;
-import org.schema.schine.input.InputState;
+import org.schema.game.common.data.player.PlayerState;
 import java.io.File;
 
 public class Logiscript extends StarMod {
+
     static Logiscript inst;
     public Logiscript() {
         inst = this;
     }
-    private File scriptsFolder;
-    private File scriptsLocation;
-    private PlayerTextAreaInput textInput;
-    private GUITextButton inputsButton;
-    private GUITextButton loadButton;
-    private GUITextButton saveButton;
-    private GUITextButton runButton;
-    private GUIEnterableList inputsList;
+    public File scriptsFolder;
 
     public static void main(String[] args) {
         //Dont put anything in here, this is just for compilation purposes
@@ -39,82 +26,116 @@ public class Logiscript extends StarMod {
 
     @Override
     public void onGameStart() {
-        this.modName = "Logiscript";
-        this.modAuthor = "DovTech";
-        this.modVersion = "0.2.11";
+        setModName("Logiscript");
+        setModAuthor("CaptainSkwidz, TheDerpGamer");
+        setModVersion("0.3.4");
         this.modDescription = "Adds an assembly-based logic scripting language to StarMade.";
+
         scriptsFolder = new File("scripts");
         if(!scriptsFolder.exists()) scriptsFolder.mkdir();
-        scriptsLocation = new File("/scripts/");
     }
 
     @Override
     public void onEnable() {
         super.onEnable();
+
+        registerListeners();
+
         DebugFile.log("Enabled", this);
 
-        //Terminal Activate Event
-        StarLoader.registerListener(ClientActivateSegmentPieceEvent.class, new Listener() {
+    }
+
+    @Override
+    public void onBlockConfigLoad(BlockConfig config) {
+        /* Factory Types:
+        0 = NONE
+        1 = CAPSULE REFINERY
+        2 = MICRO ASSEMBLER
+        3 = BASIC FACTORY
+        4 = STANDARD FACTORY
+        5 = ADVANCED FACTORY
+         */
+
+        //Create Blocks
+        //Texture ID Places: { FRONT, BACK, TOP, BOTTOM, LEFT, RIGHT }
+        MicroController.blockInfo = config.newElement("Micro Controller", new short[] { 0, 0, 0, 0, 0, 0 });
+
+        //Initialize Blocks
+        new MicroController();
+
+        //Add Recipes
+        FactoryResource[] microControllerRecipe = {
+                new FactoryResource(1000, Blocks.ALLOYED_METAL_MESH.getId()),
+                new FactoryResource(1000, Blocks.CRYSTAL_COMPOSITE.getId()),
+                new FactoryResource(5, Blocks.ACTIVATION_MODULE.getId()),
+                new FactoryResource(3, Blocks.BUTTON.getId()),
+                new FactoryResource(3, Blocks.NOT_SIGNAL.getId()),
+                new FactoryResource(3, Blocks.AND_SIGNAL.getId()),
+                new FactoryResource(3, Blocks.OR_SIGNAL.getId())
+        };
+        BlockConfig.addRecipe(MicroController.blockInfo, 4, 650, microControllerRecipe);
+
+        //Register Blocks
+        config.add(MicroController.blockInfo);
+
+        DebugFile.log("[DEBUG]: Registered block");
+    }
+
+    private void registerListeners() {
+        //Placed Block
+        StarLoader.registerListener(SegmentPieceAddEvent.class, new Listener<SegmentPieceAddEvent>() {
             @Override
-            public void onEvent(Event e) {
-                final ClientActivateSegmentPieceEvent event = (ClientActivateSegmentPieceEvent) e;
-                if(event.getPiece().getInfo().getId() == Terminal.blockInfo.getId()) {
-                    final InputState inputState = GameClientState.instance.getWorldDrawer().getGuiDrawer().getPlayerPanel().getInventoryPanel().inventoryPanel.getState();
-                    TerminalGUI terminalGUI = new TerminalGUI(inputState);
-                    terminalGUI.activate();
+            public void onEvent(SegmentPieceAddEvent event) {
 
-                    /*
-                    (textInput = new PlayerTextAreaInput("EDIT_DISPLAY_BLOCK_POPUP", GameClientState.instance, 500, 450, 300, 12, Lng.ORG_SCHEMA_GAME_CLIENT_CONTROLLER_MANAGER_INGAME_PLAYERINTERACTIONCONTROLMANAGER_28, "", , FontLibrary.FontSize.SMALL) {
-                        public void onDeactivate() {
-                            event.getPicm().suspend(false);
-                        }
+            }
+        });
 
-                        public String[] getCommandPrefixes() {
-                            return null;
-                        }
+        //Removed Block
+        StarLoader.registerListener(SegmentPieceRemoveEvent.class, new Listener<SegmentPieceRemoveEvent>() {
+            @Override
+            public void onEvent(SegmentPieceRemoveEvent event) {
+                if(event.getType() == MicroController.blockInfo.getId()) removeDataBlock(event.getType(), new int[] {event.getX(), event.getY(), event.getZ()});
+            }
+        });
+        StarLoader.registerListener(SegmentPieceKillEvent.class, new Listener<SegmentPieceKillEvent>() {
+            @Override
+            public void onEvent(SegmentPieceKillEvent event) {
+                if(event.getPiece().getType() == MicroController.blockInfo.getId()) removeDataBlock(event.getPiece().getType(), new int[] {event.getPiece().getType(), event.getPiece().getType(), event.getPiece().getType()});
+            }
+        });
+        StarLoader.registerListener(SegmentPieceSalvageEvent.class, new Listener<SegmentPieceSalvageEvent>() {
+            @Override
+            public void onEvent(SegmentPieceSalvageEvent event) {
+                if(event.getBlockInternal().getType() == MicroController.blockInfo.getId()) removeDataBlock(event.getBlockInternal().getType(), new int[] {event.getBlockInternal().x, event.getBlockInternal().y, event.getBlockInternal().z});
+            }
+        });
 
-                        public boolean onInput(String input) {
-                            SendableSegmentProvider segmentProvider = ((ClientSegmentProvider)event.getPiece().getSegment().getSegmentController().getSegmentProvider()).getSendableSegmentProvider();
-                            TextBlockPair textBlock;
-                            (textBlock = new TextBlockPair()).block = ElementCollection.getIndex4(event.getPiece().getAbsoluteIndex(), (short)event.getPiece().getOrientation());
-                            textBlock.text = input;
-                            System.err.println("[CLIENT]Text entry:\n\"" + textBlock.text + "\"");
-                            segmentProvider.getNetworkObject().textBlockResponsesAndChangeRequests.add(new RemoteTextBlockPair(textBlock, false));
-                            return true;
-                        }
+        //Player Activated Block
+        StarLoader.registerListener(SegmentPieceActivateByPlayer.class, new Listener<SegmentPieceActivateByPlayer>() {
+            @Override
+            public void onEvent(SegmentPieceActivateByPlayer event) {
+                short id = event.getSegmentPiece().getType();
+                PlayerState player = event.getPlayer();
+                if(id == MicroController.blockInfo.getId()) {
+                    //Todo
+                }
+            }
+        });
 
-                        public String handleAutoComplete(String input, TextCallback textCallback, String var3) throws PrefixNotFoundException {
-                            return null;
-                        }
-
-                        public boolean isOccluded() {
-                            return false;
-                        }
-
-                        public void onFailedTextCheck(String var1x) {
-                        }
-                    }).getTextInput().setAllowEmptyEntry(true);
-                    createGUIWindow(inputState);
-                    textInput.activate();
-                     */
+        //Logic Activated Block
+        StarLoader.registerListener(SegmentPieceActivateEvent.class, new Listener<SegmentPieceActivateEvent>() {
+            @Override
+            public void onEvent(SegmentPieceActivateEvent event) {
+                short id = event.getSegmentPiece().getType();
+                if(id == MicroController.blockInfo.getId()) {
+                    //Todo
                 }
             }
         });
     }
 
-    @Override
-    public void onBlockConfigLoad(BlockConfig config) {
-        Terminal terminal = new Terminal();
-        ElementInformation terminalInfo = Terminal.blockInfo;
-        FactoryResource[] terminalRecipe = {
-            new FactoryResource(4, Blocks.DISPLAY_MODULE.getId()),
-            new FactoryResource(5, Blocks.ACTIVATION_MODULE.getId()),
-            new FactoryResource(5, Blocks.NOT_SIGNAL.getId()),
-            new FactoryResource(3, Blocks.SENSOR.getId()),
-            new FactoryResource(1, Blocks.BOBBY_AI_MODULE.getId()),
-        };
-        BlockConfig.addRecipe(terminalInfo, FactoryType.ADVANCED, 10, terminalRecipe);
-        config.add(terminalInfo);
+    private void removeDataBlock(short id, int[] position) {
+        //Todo
     }
 
     public static Logiscript getInstance() {
