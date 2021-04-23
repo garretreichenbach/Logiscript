@@ -16,32 +16,41 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/../../Game Files/StarMade Modded/StarMade/StarMade.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/../../Programming/starloader/out/artifacts/starloader/starloader.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="file://$MODULE_DIR$/../../Game Files/StarMade Modded/StarMade/lib" />
+          <root url="file://$MODULE_DIR$/../../Game Files/StarMade-Modded/StarMade/lib" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="file://$MODULE_DIR$/../../Game Files/StarMade Modded/StarMade/lib" />
+          <root url="file://$MODULE_DIR$/../../Game Files/StarMade-Modded/StarMade/lib" />
         </SOURCES>
-        <jarDirectory url="file://$MODULE_DIR$/../../Game Files/StarMade Modded/StarMade/lib" recursive="false" />
-        <jarDirectory url="file://$MODULE_DIR$/../../Game Files/StarMade Modded/StarMade/lib" recursive="false" type="SOURCES" />
+        <jarDirectory url="file://$MODULE_DIR$/../../Game Files/StarMade-Modded/StarMade/lib" recursive="false" />
+        <jarDirectory url="file://$MODULE_DIR$/../../Game Files/StarMade-Modded/StarMade/lib" recursive="false" type="SOURCES" />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../../Game Files/StarMade-Modded/StarMade/StarMade.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../starloader/build/libs/starloader.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../star-api/build/libs/star-api.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
       </library>
     </orderEntry>
   </component>
