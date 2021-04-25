@@ -1,11 +1,2 @@
-/.idea
-/.idea/*
-/.idea/Logiscript.iml
-*.xml
-*.iml
-/.idea/misc.xml
-/out
-/out/*
 /src/META-INF/
 /.idea/
-/out/

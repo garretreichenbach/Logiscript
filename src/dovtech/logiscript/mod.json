@@ -1,0 +1,17 @@
+{
+  "name": "LogiScript",
+  "author": "TheDerpGamer, Captain Skwidz",
+  "description": "Adds lua-based logical scripting to StarMade.",
+  "version": "1.1.5",
+  "starmade_version": "0.202.110",
+  "client_mod": false,
+  "server_mod": false,
+  "main_class": "dovtech.logiscript.LogiScript",
+  "smd_resource_id": 9999,
+  "dependencies": [
+    -1
+  ],
+  "core_mod": true,
+  "requires_class_resize": true,
+  "hard_load_all_classes": true
+}

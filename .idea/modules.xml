@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Logiscript.iml" filepath="$PROJECT_DIR$/.idea/Logiscript.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/LogiScript.iml" filepath="$PROJECT_DIR$/.idea/LogiScript.iml" />
     </modules>
   </component>
 </project>
