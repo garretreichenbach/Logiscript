@@ -2,7 +2,10 @@ package dovtech.logiscript.elements;
 
 import api.config.BlockConfig;
 import dovtech.logiscript.elements.blocks.Block;
+import dovtech.logiscript.elements.blocks.Factory;
+import dovtech.logiscript.elements.items.Item;
 import org.apache.commons.lang3.StringUtils;
+import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementCategory;
 import org.schema.game.common.data.element.ElementInformation;
 import org.schema.game.common.data.element.ElementKeyMap;
@@ -21,13 +24,25 @@ public class ElementManager {
     public enum FactoryType {NONE, CAPSULE_REFINERY, MICRO_ASSEMBLER, BASIC_FACTORY, STANDARD_FACTORY, ADVANCED_FACTORY}
 
     private static final ArrayList<Block> blockList = new ArrayList<>();
+    private static final ArrayList<Factory> factoryList = new ArrayList<>();
+    private static final ArrayList<Item> itemList = new ArrayList<>();
 
-    public static void initializeBlocks() {
-        for(Block blockElement : blockList) blockElement.initialize();
+    public static void initialize() {
+        for(Block block : blockList) block.initialize();
+        for(Factory factory : factoryList) factory.initialize();
+        for(Item item : itemList) item.initialize();
     }
 
     public static ArrayList<Block> getAllBlocks() {
         return blockList;
+    }
+
+    public static ArrayList<Factory> getAllFactories() {
+        return factoryList;
+    }
+
+    public static ArrayList<Item> getAllItems() {
+        return itemList;
     }
 
     public static Block getBlock(short id) {
@@ -42,8 +57,40 @@ public class ElementManager {
         return null;
     }
 
+    public static Block getBlock(SegmentPiece segmentPiece) {
+        for(Block block : getAllBlocks()) if(block.getId() == segmentPiece.getType()) return block;
+        return null;
+    }
+
+    public static Factory getFactory(String factoryName) {
+        for(Factory factory : getAllFactories()) {
+            if(factory.getBlockInfo().getName().equalsIgnoreCase(factoryName)) return factory;
+        }
+        return null;
+    }
+
+    public static Factory getFactory(SegmentPiece segmentPiece) {
+        for(Factory factory : getAllFactories()) if(factory.getId() == segmentPiece.getType()) return factory;
+        return null;
+    }
+
+    public static Item getItem(String itemName) {
+        for(Item item : getAllItems()) {
+            if(item.getItemInfo().getName().equalsIgnoreCase(itemName)) return item;
+        }
+        return null;
+    }
+
     public static void addBlock(Block block) {
         blockList.add(block);
+    }
+
+    public static void addFactory(Factory factory) {
+        factoryList.add(factory);
+    }
+
+    public static void addItem(Item item) {
+        itemList.add(item);
     }
 
     public static ElementCategory getCategory(String path) {
@@ -69,8 +116,16 @@ public class ElementManager {
         Block block = getBlock(name);
         if(block != null) return block.getBlockInfo();
         else {
-            for(ElementInformation elementInfo : ElementKeyMap.getInfoArray()) {
-                if(elementInfo.getName().equalsIgnoreCase(name)) return elementInfo;
+            Factory factory = getFactory(name);
+            if(factory != null) return factory.getBlockInfo();
+            else {
+                Item item = getItem(name);
+                if(item != null) return item.getItemInfo();
+                else {
+                    for(ElementInformation elementInfo : ElementKeyMap.getInfoArray()) {
+                        if(elementInfo.getName().equalsIgnoreCase(name)) return elementInfo;
+                    }
+                }
             }
         }
         return null;

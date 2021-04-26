@@ -19,8 +19,11 @@ public class TextureManager implements ResourceManager {
     }
 
     private HashMap<String, StarLoaderTexture> resourceMap;
-    private final String resourcePath = "dovtech/logiscript/resources/textures/";
-    private final String[] resourceNames = {
+    private final String texturePath = "dovtech/logiscript/resources/textures/";
+    private final String[] textureNames = {
+
+    };
+    private final String[] iconNames = {
 
     };
 
@@ -28,8 +31,11 @@ public class TextureManager implements ResourceManager {
     public void initialize() {
         instance = this;
         resourceMap = new HashMap<>();
-        for(String resourceName : resourceNames) {
-            resourceMap.put(resourceName, StarLoaderTexture.newBlockTexture(LogiScript.getInstance().getJarBufferedImage(resourcePath + resourceName + ".png")));
+        for(String textureName : textureNames) {
+            resourceMap.put(textureName, StarLoaderTexture.newBlockTexture(LogiScript.getInstance().getJarBufferedImage(texturePath + "blocks/" + textureName + ".png")));
+        }
+        for(String iconName : iconNames) {
+            resourceMap.put(iconName, StarLoaderTexture.newIconTexture(LogiScript.getInstance().getJarBufferedImage(texturePath + "icons/" + iconName + ".png")));
         }
     }
 
