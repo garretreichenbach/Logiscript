@@ -17,7 +17,7 @@ import java.util.zip.ZipInputStream;
  * LogiWorks mod main class.
  *
  * @author TheDerpGamer, Captain Skwidz
- * @since ${MONTH}/${DAY}/${YEAR}
+ * @since 07/13/2021
  */
 public class LogiWorks extends StarMod {
 
