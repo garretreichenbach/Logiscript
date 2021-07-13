@@ -10,6 +10,7 @@
       <excludeFolder url="file://$MODULE_DIR$/devdocs" />
       <excludeFolder url="file://$MODULE_DIR$/logiscript-interpreter" />
       <excludeFolder url="file://$MODULE_DIR$/out" />
+      <excludeFolder url="file://$MODULE_DIR$/old" />
     </content>
     <orderEntry type="jdk" jdkName="1.7" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
@@ -29,25 +30,10 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/../../Game Files/StarMade Modded/StarMade/starloader.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES>
-          <root url="jar://$MODULE_DIR$/../../Game Files/StarMade Modded/StarMade/starloader.jar!/" />
-          <root url="jar://$MODULE_DIR$/../../Game Files/StarMade Modded/StarMade/starloader.jar!/" />
-        </SOURCES>
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
           <root url="jar://$MODULE_DIR$/../../Game Files/StarMade Modded/StarMade/StarMade.jar!/" />
         </CLASSES>
         <JAVADOC />
-        <SOURCES>
-          <root url="jar://$MODULE_DIR$/../../Game Files/StarMade Modded/StarMade/StarMade.jar!/" />
-          <root url="jar://$MODULE_DIR$/../../Game Files/StarMade Modded/StarMade/StarMade.jar!/" />
-        </SOURCES>
+        <SOURCES />
       </library>
     </orderEntry>
   </component>

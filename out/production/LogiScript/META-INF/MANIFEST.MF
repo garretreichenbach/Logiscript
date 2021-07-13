@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Main-Class: dovtech.logiscript.LogiScript
+Main-Class: dovtech.logiworks.LogiWorks
 Class-Path: StarMade.jar lwjgl.jar slick.jar hsqldb.jar jinput.jar jbull
  et.jar jgraphx.jar pircbot.jar vecmath.jar CodecWav.jar gson-2.1.jar po
  i-3.16.jar proguard.jar tera-ovr.jar uuid-3.4.jar CodecJOgg.jar javassi
@@ -17,5 +17,5 @@ Class-Path: StarMade.jar lwjgl.jar slick.jar hsqldb.jar jinput.jar jbull
  ar commons-logging-1.1.3.jar ws-commons-util-1.0.2.jar httpclient-cache
  -4.3.3.jar indiespot-media-0.8.09.jar poi-ooxml-schemas-3.16.jar common
  s-collections4-4.1.jar java-image-scaling-0.8.6.jar validation-api-1.1.
- 0.Final.jar reflections-0.9.9-RC1-uberjar.jar starloader.jar
+ 0.Final.jar reflections-0.9.9-RC1-uberjar.jar
 
