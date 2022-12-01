@@ -1,0 +1,17 @@
+{
+  "name": "Logiscript",
+  "author": "TheDerpGamer",
+  "description": "Adds logic-based scripting to StarMade.",
+  "version": "1.0.0 - Logical",
+  "starmade_version": "0.203.133",
+  "client_mod": false,
+  "server_mod": false,
+  "main_class": "thederpgamer.logiscript.Logiscript",
+  "smd_resource_id": 9999,
+  "dependencies": [
+	-1
+  ],
+  "core_mod": true,
+  "requires_class_resize": true,
+  "hard_load_all_classes": true
+}
