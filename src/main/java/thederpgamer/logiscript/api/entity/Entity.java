@@ -5,6 +5,7 @@ import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.schema.game.common.controller.SegmentController;
 import thederpgamer.logiscript.api.LuaInterface;
+import thederpgamer.logiscript.api.element.block.Block;
 
 /**
  * [Description]
@@ -30,7 +31,7 @@ public class Entity extends LuaTable implements LuaInterface {
 
 	@Override
 	public String[] getMethods() {
-		return new String[] {"getName", "setName"};
+		return new String[] {"getName", "setName", "getBlockAt"};
 	}
 
 	@Override
@@ -51,6 +52,13 @@ public class Entity extends LuaTable implements LuaInterface {
 						return LuaValue.NIL;
 					}
 				};
+			case "getBlockAt":
+				return new LuaFunction() {
+					@Override
+					public LuaValue call(LuaValue x, LuaValue y, LuaValue z) {
+						return getBlockAt(new int[] {x.checkint(), y.checkint(), z.checkint()});
+					}
+				};
 			default:
 				return null;
 		}
@@ -67,5 +75,9 @@ public class Entity extends LuaTable implements LuaInterface {
 
 	public void setName(String name) {
 		segmentController.setRealName(name);
+	}
+
+	public Block getBlockAt(int[] pos) {
+		return new Block(segmentController.getSegmentBuffer().getPointUnsave(pos[0], pos[1], pos[2]));
 	}
 }
