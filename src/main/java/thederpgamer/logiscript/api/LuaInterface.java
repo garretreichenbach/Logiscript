@@ -12,5 +12,6 @@ public interface LuaInterface {
 	String getName();
 
 	String[] getMethods();
+
 	LuaFunction getMethod(String name);
 }
