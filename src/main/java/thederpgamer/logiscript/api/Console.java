@@ -23,6 +23,7 @@ public class Console extends LuaTable implements LuaInterface {
 	@Override
 	public void initialize(Globals globals) {
 		globals.set(getName(), this);
+		setmetatable(this);
 		for(String method : getMethods()) {
 			LuaFunction luaFunction = getMethod(method);
 			if(luaFunction != null) set(method, luaFunction);

@@ -27,6 +27,7 @@ public class BlockInfo extends LuaTable implements LuaInterface {
 
 	@Override
 	public void initialize(Globals globals) {
+		setmetatable(this);
 		for(String method : getMethods()) {
 			LuaFunction luaFunction = getMethod(method);
 			if(luaFunction != null) set(method, luaFunction);

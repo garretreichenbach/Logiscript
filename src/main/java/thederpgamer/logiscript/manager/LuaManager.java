@@ -1,7 +1,7 @@
 package thederpgamer.logiscript.manager;
 
 import org.luaj.vm2.Globals;
-import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.LuaFunction;
 import org.luaj.vm2.lib.jse.JsePlatform;
 import org.schema.game.common.data.SegmentPiece;
 import thederpgamer.logiscript.api.Console;
@@ -49,9 +49,13 @@ public class LuaManager {
 		}
 	}
 
-	public static void run(String script, Object[] output, SegmentPiece segmentPiece) {
-		Globals globals = newInstance(segmentPiece);
-		LuaValue chunk = globals.load(script, segmentPiece.toString());
-		output[0] = chunk.call();
+	public static void run(String script, SegmentPiece segmentPiece) {
+		try {
+			Globals globals = newInstance(segmentPiece);
+			LuaFunction chunk = (LuaFunction) globals.load(script.trim(), segmentPiece.toString());
+			chunk.call();
+		} catch(Exception exception) {
+			exception.printStackTrace();
+		}
 	}
 }

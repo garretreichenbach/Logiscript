@@ -43,7 +43,7 @@ public class EventManager {
 										String lua;
 										lua = text.substring(start + 5, end);
 										Object[] output = new Object[] {""};
-										LuaManager.run(lua, output, piece);
+										LuaManager.run(lua, piece);
 									} catch(Exception exception) {
 										Logiscript.log.log(Level.WARNING, exception.getMessage(), exception);
 										RaisingIndication raisingIndication = new RaisingIndication(transform, exception.getLocalizedMessage(), 1.0f, 0.1f, 0.1f, 1.0f);
