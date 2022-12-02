@@ -48,7 +48,7 @@ public class EventManager {
 										String lua;
 										lua = text.substring(start + 4, end).split(">")[1].split("</lua>")[0];
 										Object[] output = new Object[] {""};
-										LuaLauncher.runLua(lua, output);
+										LuaManager.run(lua, output);
 
 										String error = "";
 										if(out != null) {
