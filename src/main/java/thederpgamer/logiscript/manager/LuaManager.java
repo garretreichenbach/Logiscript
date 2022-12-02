@@ -5,6 +5,10 @@ import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.JsePlatform;
 import org.schema.game.common.data.SegmentPiece;
 import thederpgamer.logiscript.api.Console;
+import thederpgamer.logiscript.api.LuaInterface;
+import thederpgamer.logiscript.api.element.block.Block;
+import thederpgamer.logiscript.api.element.block.BlockInfo;
+import thederpgamer.logiscript.api.entity.Entity;
 
 /**
  * [Description]
@@ -12,6 +16,13 @@ import thederpgamer.logiscript.api.Console;
  * @author TheDerpGamer (TheDerpGamer#0027)
  */
 public class LuaManager {
+
+	private static final Class[] libs = new Class[] {
+		Console.class,
+		Entity.class,
+		Block.class,
+		BlockInfo.class
+	};
 
 	public static Globals newInstance(SegmentPiece segmentPiece) {
 		Globals globals = JsePlatform.standardGlobals();
@@ -22,6 +33,14 @@ public class LuaManager {
 	private static void loadLibs(Globals globals, SegmentPiece segmentPiece) {
 		Console console = new Console(segmentPiece);
 		console.initialize(globals);
+		for(Class lib : libs) {
+			try {
+				LuaInterface luaInterface = (LuaInterface) lib.getConstructors()[0].newInstance();
+				luaInterface.initialize(globals);
+			} catch(Exception exception) {
+				exception.printStackTrace();
+			}
+		}
 	}
 
 	public static void run(String script, Object[] output, SegmentPiece segmentPiece) {

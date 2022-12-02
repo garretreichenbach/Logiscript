@@ -15,14 +15,14 @@ import thederpgamer.logiscript.api.LuaInterface;
  */
 public class BlockInfo extends LuaTable implements LuaInterface {
 
-	private final ElementInformation elementInfo;
+	private ElementInformation elementInfo;
+
+	public BlockInfo() {
+
+	}
 
 	public BlockInfo(SegmentPiece segmentPiece) {
 		elementInfo = segmentPiece.getInfo();
-	}
-
-	public BlockInfo(ElementInformation elementInfo) {
-		this.elementInfo = elementInfo;
 	}
 
 	@Override
