@@ -1,5 +1,6 @@
 package thederpgamer.logiscript.api.entity;
 
+import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaFunction;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
@@ -22,6 +23,14 @@ public class Entity extends LuaTable implements LuaInterface {
 
 	public SegmentController getSegmentController() {
 		return segmentController;
+	}
+
+	@Override
+	public void initialize(Globals globals) {
+		for(String method : getMethods()) {
+			LuaFunction luaFunction = getMethod(method);
+			if(luaFunction != null) set(method, luaFunction);
+		}
 	}
 
 	@Override

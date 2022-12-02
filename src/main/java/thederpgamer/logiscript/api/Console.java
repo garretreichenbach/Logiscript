@@ -1,5 +1,6 @@
 package thederpgamer.logiscript.api;
 
+import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaFunction;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
@@ -17,6 +18,15 @@ public class Console extends LuaTable implements LuaInterface {
 
 	public Console(SegmentPiece segmentPiece) {
 		this.segmentPiece = segmentPiece;
+	}
+
+	@Override
+	public void initialize(Globals globals) {
+		globals.set(getName(), this);
+		for(String method : getMethods()) {
+			LuaFunction luaFunction = getMethod(method);
+			if(luaFunction != null) set(method, luaFunction);
+		}
 	}
 
 	@Override

@@ -1,11 +1,10 @@
 package thederpgamer.logiscript.manager;
 
 import org.luaj.vm2.Globals;
-import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.JsePlatform;
+import org.schema.game.common.data.SegmentPiece;
 import thederpgamer.logiscript.api.Console;
-import thederpgamer.logiscript.api.LuaInterface;
 
 /**
  * [Description]
@@ -14,31 +13,20 @@ import thederpgamer.logiscript.api.LuaInterface;
  */
 public class LuaManager {
 
-	private static final Class[] libClasses = {
-			Console.class
-	};
-
-	public static Globals newInstance() {
+	public static Globals newInstance(SegmentPiece segmentPiece) {
 		Globals globals = JsePlatform.standardGlobals();
-		loadLibs(globals);
+		loadLibs(globals, segmentPiece);
 		return globals;
 	}
 
-	private static void loadLibs(Globals globals) {
-		for(Class cls : libClasses) {
-			try {
-				LuaTable lib = (LuaTable) cls.newInstance();
-				LuaInterface luaInterface = (LuaInterface) lib;
-				globals.set(luaInterface.getName(), lib);
-			} catch(InstantiationException | IllegalAccessException exception) {
-				exception.printStackTrace();
-			}
-		}
+	private static void loadLibs(Globals globals, SegmentPiece segmentPiece) {
+		Console console = new Console(segmentPiece);
+		console.initialize(globals);
 	}
 
-	public static void run(String script, Object[] output) {
-		Globals globals = newInstance();
-		LuaValue chunk = globals.load(script, "main");
+	public static void run(String script, Object[] output, SegmentPiece segmentPiece) {
+		Globals globals = newInstance(segmentPiece);
+		LuaValue chunk = globals.load(script, segmentPiece.toString());
 		output[0] = chunk.call();
 	}
 }

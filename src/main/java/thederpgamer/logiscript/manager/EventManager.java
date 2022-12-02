@@ -4,8 +4,6 @@ import api.listener.Listener;
 import api.listener.events.block.SegmentPieceActivateEvent;
 import api.mod.StarLoader;
 import com.bulletphysics.linearmath.Transform;
-import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.schema.game.client.view.effects.RaisingIndication;
 import org.schema.game.client.view.gui.shiphud.HudIndicatorOverlay;
 import org.schema.game.common.data.SegmentPiece;
@@ -39,44 +37,13 @@ public class EventManager {
 								int start = text.indexOf("<lua");
 								int end = text.indexOf("</lua>");
 								if(start != -1 && end != -1) {
-									//If starting tag specifies an output, get the output
-									String out = null;
-									if(text.substring(start + 4, end).contains("out=")) out = text.substring(start + 4, end).split("out=")[1].split(">")[0].replaceAll("\"", "");
 									Transform transform = new Transform();
 									piece.getTransform(transform);
 									try {
 										String lua;
-										lua = text.substring(start + 4, end).split(">")[1].split("</lua>")[0];
+										lua = text.substring(start + 5, end);
 										Object[] output = new Object[] {""};
-										LuaManager.run(lua, output);
-
-										String error = "";
-										if(out != null) {
-											SegmentPiece segmentPiece = SegmentPieceUtils.getAdjacentDir(piece, out.toLowerCase().trim());
-											if(segmentPiece != null) {
-												if(output[0] != null) {
-													if(NumberUtils.isNumber(output[0].toString())) {
-														if(output[0].toString().contains(".")) {
-															float value = Float.parseFloat(output[0].toString());
-															error = SegmentPieceUtils.setValue(segmentPiece, value);
-														} else {
-															int value = Integer.parseInt(output[0].toString());
-															error = SegmentPieceUtils.setValue(segmentPiece, value);
-														}
-													} else if(output[0].toString().toLowerCase().trim().equals("true") || output[0].toString().toLowerCase().trim().equals("false")) {
-														boolean value = BooleanUtils.toBoolean(output[0].toString());
-														error = SegmentPieceUtils.setValue(segmentPiece, value);
-													} else error = SegmentPieceUtils.setValue(segmentPiece, output[0].toString());
-												}
-											}
-										}
-
-										if(!error.isEmpty()) {
-											RaisingIndication raisingIndication = new RaisingIndication(transform, error, 1.0f, 1.0f, 1.0f, 1.0f);
-											raisingIndication.speed = 0.03f;
-											raisingIndication.lifetime = 30.0f;
-											HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
-										}
+										LuaManager.run(lua, output, piece);
 									} catch(Exception exception) {
 										Logiscript.log.log(Level.WARNING, exception.getMessage(), exception);
 										RaisingIndication raisingIndication = new RaisingIndication(transform, exception.getLocalizedMessage(), 1.0f, 0.1f, 0.1f, 1.0f);

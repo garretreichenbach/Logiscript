@@ -23,6 +23,14 @@ public class Block extends LuaTable implements LuaInterface {
 	}
 
 	@Override
+	public void initialize(Globals globals) {
+		for(String method : getMethods()) {
+			LuaFunction luaFunction = getMethod(method);
+			if(luaFunction != null) set(method, luaFunction);
+		}
+	}
+
+	@Override
 	public String getName() {
 		return "block";
 	}
