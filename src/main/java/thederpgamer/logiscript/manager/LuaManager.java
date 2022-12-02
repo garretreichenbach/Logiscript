@@ -10,6 +10,8 @@ import thederpgamer.logiscript.api.element.block.Block;
 import thederpgamer.logiscript.api.element.block.BlockInfo;
 import thederpgamer.logiscript.api.entity.Entity;
 
+import java.lang.reflect.Constructor;
+
 /**
  * [Description]
  *
@@ -18,9 +20,9 @@ import thederpgamer.logiscript.api.entity.Entity;
 public class LuaManager {
 
 	private static final Class[] libs = new Class[] {
-		Entity.class,
-		Block.class,
-		BlockInfo.class
+			Entity.class,
+			BlockInfo.class,
+			Block.class
 	};
 
 	public static Globals newInstance(SegmentPiece segmentPiece) {
@@ -34,8 +36,13 @@ public class LuaManager {
 		console.initialize(globals);
 		for(Class lib : libs) {
 			try {
-				LuaInterface luaInterface = (LuaInterface) lib.getConstructors()[0].newInstance();
-				luaInterface.initialize(globals);
+				for(Constructor constructor : lib.getConstructors()) {
+					if(constructor.getParameters().length == 0) {
+						LuaInterface luaInterface = (LuaInterface) constructor.newInstance();
+						luaInterface.initialize(globals);
+						break;
+					}
+				}
 			} catch(Exception exception) {
 				exception.printStackTrace();
 			}
