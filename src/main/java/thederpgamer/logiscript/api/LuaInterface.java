@@ -1,5 +1,7 @@
 package thederpgamer.logiscript.api;
 
+import org.luaj.vm2.LuaFunction;
+
 /**
  * [Description]
  *
@@ -8,4 +10,7 @@ package thederpgamer.logiscript.api;
 public interface LuaInterface {
 
 	String getName();
+
+	String[] getMethods();
+	LuaFunction getMethod(String name);
 }

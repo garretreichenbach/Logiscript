@@ -1,6 +1,7 @@
 package thederpgamer.logiscript.manager;
 
 import org.luaj.vm2.Globals;
+import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.JsePlatform;
 import thederpgamer.logiscript.api.ConsoleInterface;
@@ -27,6 +28,8 @@ public class LuaManager {
 		for(Class cls : libClasses) {
 			try {
 				LuaInterface lib = (LuaInterface) cls.newInstance();
+				globals.set(lib.getName(), new LuaTable());
+				for(String method : lib.getMethods()) globals.get(lib.getName()).set(method, lib.getMethod(method));
 			} catch(InstantiationException | IllegalAccessException exception) {
 				exception.printStackTrace();
 			}

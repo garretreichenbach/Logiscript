@@ -1,5 +1,7 @@
 package thederpgamer.logiscript.api;
 
+import org.luaj.vm2.LuaFunction;
+import org.luaj.vm2.LuaValue;
 import org.schema.game.common.data.SegmentPiece;
 import thederpgamer.logiscript.api.element.block.Block;
 
@@ -8,9 +10,9 @@ import thederpgamer.logiscript.api.element.block.Block;
  *
  * @author TheDerpGamer (TheDerpGamer#0027)
  */
-public class Console implements ConsoleInterface {
+public class Console extends LuaFunction implements LuaInterface {
 
-	private final transient SegmentPiece segmentPiece;
+	private final SegmentPiece segmentPiece;
 
 	public Console(SegmentPiece segmentPiece) {
 		this.segmentPiece = segmentPiece;
@@ -22,7 +24,26 @@ public class Console implements ConsoleInterface {
 	}
 
 	@Override
+	public String[] getMethods() {
+		return new String[] {"getBlock"};
+	}
+
+	@Override
+	public LuaFunction getMethod(String name) {
+		switch(name) {
+			case "getBlock":
+				return new LuaFunction() {
+					@Override
+					public LuaValue call() {
+						return getBlock();
+					}
+				};
+			default:
+				return null;
+		}
+	}
+
 	public Block getBlock() {
-		return new Block(segmentPiece);
+		return new Block(segmentPiece); //Block is basically a wrapper class for SegmentPiece
 	}
 }
