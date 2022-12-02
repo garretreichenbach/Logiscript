@@ -4,7 +4,7 @@ import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.JsePlatform;
-import thederpgamer.logiscript.api.ConsoleInterface;
+import thederpgamer.logiscript.api.Console;
 import thederpgamer.logiscript.api.LuaInterface;
 
 /**
@@ -15,7 +15,7 @@ import thederpgamer.logiscript.api.LuaInterface;
 public class LuaManager {
 
 	private static final Class[] libClasses = {
-		ConsoleInterface.class,
+			Console.class
 	};
 
 	public static Globals newInstance() {

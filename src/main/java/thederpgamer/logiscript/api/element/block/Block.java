@@ -12,7 +12,11 @@ import thederpgamer.logiscript.api.LuaInterface;
  */
 public class Block extends LuaTable implements LuaInterface {
 
-	private final SegmentPiece segmentPiece;
+	private SegmentPiece segmentPiece;
+
+	public Block() {
+
+	}
 
 	public Block(SegmentPiece segmentPiece) {
 		this.segmentPiece = segmentPiece;
@@ -24,7 +28,7 @@ public class Block extends LuaTable implements LuaInterface {
 
 	@Override
 	public String getName() {
-		return null;
+		return "block";
 	}
 
 	@Override
