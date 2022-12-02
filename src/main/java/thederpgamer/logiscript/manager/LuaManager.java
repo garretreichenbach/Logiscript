@@ -18,7 +18,6 @@ import thederpgamer.logiscript.api.entity.Entity;
 public class LuaManager {
 
 	private static final Class[] libs = new Class[] {
-		Console.class,
 		Entity.class,
 		Block.class,
 		BlockInfo.class
