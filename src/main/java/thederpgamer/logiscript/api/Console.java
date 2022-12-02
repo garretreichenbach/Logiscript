@@ -1,6 +1,7 @@
 package thederpgamer.logiscript.api;
 
 import org.luaj.vm2.LuaFunction;
+import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.schema.game.common.data.SegmentPiece;
 import thederpgamer.logiscript.api.element.block.Block;
@@ -10,7 +11,7 @@ import thederpgamer.logiscript.api.element.block.Block;
  *
  * @author TheDerpGamer (TheDerpGamer#0027)
  */
-public class Console extends LuaFunction implements LuaInterface {
+public class Console extends LuaTable implements LuaInterface {
 
 	private final SegmentPiece segmentPiece;
 
@@ -41,6 +42,11 @@ public class Console extends LuaFunction implements LuaInterface {
 			default:
 				return null;
 		}
+	}
+
+	@Override
+	public LuaValue call(String name) {
+		return getMethod(name).call();
 	}
 
 	public Block getBlock() {

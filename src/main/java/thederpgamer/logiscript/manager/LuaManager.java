@@ -27,9 +27,9 @@ public class LuaManager {
 	private static void loadLibs(Globals globals) {
 		for(Class cls : libClasses) {
 			try {
-				LuaInterface lib = (LuaInterface) cls.newInstance();
-				globals.set(lib.getName(), new LuaTable());
-				for(String method : lib.getMethods()) globals.get(lib.getName()).set(method, lib.getMethod(method));
+				LuaTable lib = (LuaTable) cls.newInstance();
+				LuaInterface luaInterface = (LuaInterface) lib;
+				globals.set(luaInterface.getName(), lib);
 			} catch(InstantiationException | IllegalAccessException exception) {
 				exception.printStackTrace();
 			}
