@@ -74,4 +74,24 @@ public class Entity {
 		}
 		return entities.toArray(new RemoteEntity[0]);
 	}
+
+	public RemoteEntity[] getNearbyEntities(int radius) {
+		ArrayList<RemoteEntity> entities = new ArrayList<>();
+		Vector3i thisSector = segmentController.getSector(new Vector3i());
+		for(Sendable sendable : segmentController.getState().getLocalAndRemoteObjectContainer().getLocalObjects().values()) {
+			if(sendable instanceof SegmentController) {
+				SegmentController controller = (SegmentController) sendable;
+				if(controller instanceof Ship) {
+					Ship ship = (Ship) controller;
+					if(ship.getManagerContainer().isJamming() || ship.getManagerContainer().isCloaked()) continue;
+				}
+				Vector3i sector = controller.getSector(new Vector3i());
+				Vector3i diff = new Vector3i(thisSector);
+				diff.sub(sector);
+				diff.absolute();
+				if(diff.x <= radius && diff.y <= radius && diff.z <= radius && controller.getId() != getId()) entities.add(new RemoteEntity(controller));
+			}
+		}
+		return entities.toArray(new RemoteEntity[0]);
+	}
 }
