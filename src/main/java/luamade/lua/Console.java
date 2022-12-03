@@ -30,7 +30,7 @@ public class Console {
 		segmentPiece.getTransform(transform);
 		RaisingIndication raisingIndication = new RaisingIndication(transform, string, 1.0f, 1.0f, 1.0f, 1.0f);
 		raisingIndication.speed = 0.1f;
-		raisingIndication.lifetime = 4.6f;
+		raisingIndication.lifetime = 15.0f;
 		HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
 	}
 
@@ -40,7 +40,7 @@ public class Console {
 		segmentPiece.getTransform(transform);
 		RaisingIndication raisingIndication = new RaisingIndication(transform, string, 1.0f, 0.3f, 0.3f, 1.0f);
 		raisingIndication.speed = 0.1f;
-		raisingIndication.lifetime = 4.6f;
+		raisingIndication.lifetime = 15.0f;
 		HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
 	}
 
