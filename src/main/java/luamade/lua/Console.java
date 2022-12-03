@@ -1,7 +1,10 @@
 package luamade.lua;
 
-import org.schema.game.common.data.SegmentPiece;
+import com.bulletphysics.linearmath.Transform;
 import luamade.lua.element.block.Block;
+import org.schema.game.client.view.effects.RaisingIndication;
+import org.schema.game.client.view.gui.shiphud.HudIndicatorOverlay;
+import org.schema.game.common.data.SegmentPiece;
 
 /**
  * [Description]
@@ -20,7 +23,23 @@ public class Console {
 		return new Block(segmentPiece); //Block is basically a wrapper class for SegmentPiece
 	}
 
-	public Block getLuaBlock() {
-		return new Block(segmentPiece);
+	public void print(String string) {
+		System.out.println(string);
+		Transform transform = new Transform();
+		segmentPiece.getTransform(transform);
+		RaisingIndication raisingIndication = new RaisingIndication(transform, string, 1.0f, 1.0f, 1.0f, 1.0f);
+		raisingIndication.speed = 0.1f;
+		raisingIndication.lifetime = 4.6f;
+		HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
+	}
+
+	public void err(String string) {
+		System.err.println(string);
+		Transform transform = new Transform();
+		segmentPiece.getTransform(transform);
+		RaisingIndication raisingIndication = new RaisingIndication(transform, string, 1.0f, 0.3f, 0.3f, 1.0f);
+		raisingIndication.speed = 0.1f;
+		raisingIndication.lifetime = 4.6f;
+		HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
 	}
 }
