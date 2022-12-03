@@ -1,7 +1,7 @@
-package thederpgamer.logiscript.api;
+package luamade.api;
 
 import org.schema.game.common.data.SegmentPiece;
-import thederpgamer.logiscript.api.element.block.Block;
+import luamade.api.element.block.Block;
 
 /**
  * [Description]

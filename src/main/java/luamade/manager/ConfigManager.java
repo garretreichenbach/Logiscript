@@ -1,7 +1,7 @@
-package thederpgamer.logiscript.manager;
+package luamade.manager;
 
 import api.mod.config.FileConfiguration;
-import thederpgamer.logiscript.Logiscript;
+import luamade.LuaMade;
 
 public class ConfigManager {
 
@@ -12,7 +12,7 @@ public class ConfigManager {
 			"generate-shipwrecks-from-combat: true"
 	};
 
-	public static void initialize(Logiscript instance) {
+	public static void initialize(LuaMade instance) {
 		mainConfig = instance.getConfig("config");
 		mainConfig.saveDefault(defaultMainConfig);
 	}

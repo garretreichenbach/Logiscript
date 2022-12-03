@@ -1,12 +1,12 @@
-package thederpgamer.logiscript;
+package luamade;
 
 import api.listener.events.controller.ClientInitializeEvent;
 import api.listener.fastevents.FastListenerCommon;
 import api.mod.StarMod;
-import thederpgamer.logiscript.listener.TextBlockDrawListener;
-import thederpgamer.logiscript.manager.ConfigManager;
-import thederpgamer.logiscript.manager.EventManager;
-import thederpgamer.logiscript.utils.DataUtils;
+import luamade.listener.TextBlockDrawListener;
+import luamade.manager.ConfigManager;
+import luamade.manager.EventManager;
+import luamade.utils.DataUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,14 +14,14 @@ import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
-public class Logiscript extends StarMod {
+public class LuaMade extends StarMod {
 
 	//Instance
-	private static Logiscript instance;
-	public Logiscript() {
+	private static LuaMade instance;
+	public LuaMade() {
 
 	}
-	public static Logiscript getInstance() {
+	public static LuaMade getInstance() {
 		return instance;
 	}
 	public static void main(String[] args) {

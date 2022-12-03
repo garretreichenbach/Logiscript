@@ -9,9 +9,9 @@ sourceCompatibility = 1.7
 targetCompatibility = 1.7
 
 def starmadeDirectory = 'C:/Program Files (x86)/Steam/steamapps/common/StarMade/StarMade/'
-def jarName = 'Logiscript'
-mainClassName = 'thederpgamer.logiscript.Logiscript'
-group 'thederpgamer.logiscript'
+def jarName = 'LuaMade'
+mainClassName = 'luamade.LuaMade'
+group 'luamade'
 version '1.0.0 - Logical'
 
 repositories {

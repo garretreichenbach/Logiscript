@@ -1,4 +1,4 @@
-package thederpgamer.logiscript.listener;
+package luamade.listener;
 
 import api.listener.fastevents.TextBoxDrawListener;
 import org.schema.game.client.view.SegmentDrawer;

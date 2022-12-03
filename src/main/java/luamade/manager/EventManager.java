@@ -1,4 +1,4 @@
-package thederpgamer.logiscript.manager;
+package luamade.manager;
 
 import api.listener.Listener;
 import api.listener.events.block.SegmentPieceActivateEvent;
@@ -7,9 +7,9 @@ import com.bulletphysics.linearmath.Transform;
 import org.schema.game.client.view.effects.RaisingIndication;
 import org.schema.game.client.view.gui.shiphud.HudIndicatorOverlay;
 import org.schema.game.common.data.SegmentPiece;
-import thederpgamer.logiscript.Logiscript;
-import thederpgamer.logiscript.listener.TextBlockDrawListener;
-import thederpgamer.logiscript.utils.SegmentPieceUtils;
+import luamade.LuaMade;
+import luamade.listener.TextBlockDrawListener;
+import luamade.utils.SegmentPieceUtils;
 
 import java.util.ArrayList;
 import java.util.logging.Level;
@@ -21,7 +21,7 @@ import java.util.logging.Level;
  */
 public class EventManager {
 
-	public static void initialize(Logiscript instance) {
+	public static void initialize(LuaMade instance) {
 		StarLoader.registerListener(SegmentPieceActivateEvent.class, new Listener<SegmentPieceActivateEvent>() {
 			@Override
 			public void onEvent(SegmentPieceActivateEvent event) {
@@ -44,7 +44,7 @@ public class EventManager {
 										lua = text.substring(start + 5, end);
 										LuaManager.run(lua, piece);
 									} catch(Exception exception) {
-										Logiscript.log.log(Level.WARNING, exception.getMessage(), exception);
+										LuaMade.log.log(Level.WARNING, exception.getMessage(), exception);
 										RaisingIndication raisingIndication = new RaisingIndication(transform, exception.getLocalizedMessage(), 1.0f, 0.1f, 0.1f, 1.0f);
 										raisingIndication.speed = 0.03f;
 										raisingIndication.lifetime = 6.6f;

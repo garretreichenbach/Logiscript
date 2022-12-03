@@ -1,12 +1,12 @@
 {
-  "name": "Logiscript",
-  "author": "TheDerpGamer",
-  "description": "Adds logic-based scripting to StarMade.",
+  "name": "LuaMade",
+  "author": "TheDerpGamer, LupoCani",
+  "description": "Adds lua scripting to StarMade.",
   "version": "1.0.0 - Logical",
   "starmade_version": "0.203.133",
   "client_mod": false,
   "server_mod": false,
-  "main_class": "thederpgamer.logiscript.Logiscript",
+  "main_class": "luamade.LuaMade",
   "smd_resource_id": 9999,
   "dependencies": [
 	-1

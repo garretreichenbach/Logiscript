@@ -1,4 +1,4 @@
-package thederpgamer.logiscript.utils;
+package luamade.utils;
 
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.PositionControl;

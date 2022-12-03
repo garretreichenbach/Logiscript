@@ -1,11 +1,11 @@
-package thederpgamer.logiscript.manager;
+package luamade.manager;
 
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 import org.luaj.vm2.lib.jse.JsePlatform;
 import org.schema.game.common.data.SegmentPiece;
-import thederpgamer.logiscript.api.Console;
+import luamade.api.Console;
 
 /**
  * [Description]

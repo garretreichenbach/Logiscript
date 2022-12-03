@@ -1,7 +1,7 @@
-package thederpgamer.logiscript.api.entity;
+package luamade.api.entity;
 
 import org.schema.game.common.controller.SegmentController;
-import thederpgamer.logiscript.api.element.block.Block;
+import luamade.api.element.block.Block;
 
 public class Entity {
     private final SegmentController segmentController;
