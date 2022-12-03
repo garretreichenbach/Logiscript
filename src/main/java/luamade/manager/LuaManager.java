@@ -5,7 +5,7 @@ import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 import org.luaj.vm2.lib.jse.JsePlatform;
 import org.schema.game.common.data.SegmentPiece;
-import luamade.api.Console;
+import luamade.lua.Console;
 
 /**
  * [Description]

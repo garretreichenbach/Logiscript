@@ -1,7 +1,7 @@
-package luamade.api;
+package luamade.lua;
 
 import org.schema.game.common.data.SegmentPiece;
-import luamade.api.element.block.Block;
+import luamade.lua.element.block.Block;
 
 /**
  * [Description]

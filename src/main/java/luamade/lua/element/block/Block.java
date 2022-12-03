@@ -1,7 +1,7 @@
-package luamade.api.element.block;
+package luamade.lua.element.block;
 
 import org.schema.game.common.data.SegmentPiece;
-import luamade.api.entity.Entity;
+import luamade.lua.entity.Entity;
 
 public class Block {
     private final SegmentPiece segmentPiece;

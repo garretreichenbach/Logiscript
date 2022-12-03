@@ -1,7 +1,7 @@
-package luamade.api.entity;
+package luamade.lua.entity;
 
 import org.schema.game.common.controller.SegmentController;
-import luamade.api.element.block.Block;
+import luamade.lua.element.block.Block;
 
 public class Entity {
     private final SegmentController segmentController;

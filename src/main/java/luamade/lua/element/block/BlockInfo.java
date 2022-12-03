@@ -1,4 +1,4 @@
-package luamade.api.element.block;
+package luamade.lua.element.block;
 
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementInformation;
