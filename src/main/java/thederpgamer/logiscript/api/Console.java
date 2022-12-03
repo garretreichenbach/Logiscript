@@ -16,7 +16,8 @@ public class Console extends LuaTable implements LuaInterface {
 
 	private final SegmentPiece segmentPiece;
 
-	public Console(SegmentPiece segmentPiece) {
+	public Console(Globals globals, SegmentPiece segmentPiece) {
+		initialize(globals);
 		this.segmentPiece = segmentPiece;
 	}
 

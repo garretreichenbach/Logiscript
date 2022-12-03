@@ -42,7 +42,6 @@ public class EventManager {
 									try {
 										String lua;
 										lua = text.substring(start + 5, end);
-										Object[] output = new Object[] {""};
 										LuaManager.run(lua, piece);
 									} catch(Exception exception) {
 										Logiscript.log.log(Level.WARNING, exception.getMessage(), exception);

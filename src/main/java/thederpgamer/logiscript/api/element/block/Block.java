@@ -12,13 +12,10 @@ import thederpgamer.logiscript.api.entity.Entity;
  */
 public class Block extends LuaTable implements LuaInterface {
 
-	private SegmentPiece segmentPiece;
-
-	public Block() {
-
-	}
+	private final SegmentPiece segmentPiece;
 
 	public Block(SegmentPiece segmentPiece) {
+		initialize(null);
 		this.segmentPiece = segmentPiece;
 	}
 

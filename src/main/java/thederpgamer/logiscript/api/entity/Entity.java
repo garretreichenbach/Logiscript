@@ -15,13 +15,10 @@ import thederpgamer.logiscript.api.element.block.Block;
  */
 public class Entity extends LuaTable implements LuaInterface {
 
-	private SegmentController segmentController;
-
-	public Entity() {
-
-	}
+	private final SegmentController segmentController;
 
 	public Entity(SegmentController segmentController) {
+		initialize(null);
 		this.segmentController = segmentController;
 	}
 
@@ -69,8 +66,8 @@ public class Entity extends LuaTable implements LuaInterface {
 			case "getBlockAt":
 				return new LuaFunction() {
 					@Override
-					public LuaValue call(LuaValue x, LuaValue y, LuaValue z) {
-						return getBlockAt(new int[] {x.checkint(), y.checkint(), z.checkint()});
+					public LuaValue call(LuaValue pos) {
+						return getBlockAt(new int[] {pos.get("x").checkint(), pos.get("y").checkint(), pos.get("z").checkint()});
 					}
 				};
 			default:
