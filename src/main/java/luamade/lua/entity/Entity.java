@@ -1,5 +1,6 @@
 package luamade.lua.entity;
 
+import luamade.lua.Faction;
 import luamade.lua.element.block.Block;
 import luamade.lua.entity.ai.EntityAI;
 import org.schema.common.util.linAlg.Vector3i;
@@ -10,6 +11,10 @@ public class Entity {
 
 	public Entity(SegmentController controller) {
 		this.segmentController = controller;
+	}
+
+	public int getId() {
+		return segmentController.getId();
 	}
 
 	public String getName() {
@@ -40,5 +45,9 @@ public class Entity {
 	public int[] getSystem() {
 		Vector3i system = segmentController.getSystem(new Vector3i());
 		return new int[] {system.x, system.y, system.z};
+	}
+
+	public Faction getFaction() {
+		return new Faction(segmentController.getFactionId());
 	}
 }
