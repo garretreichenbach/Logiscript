@@ -4,8 +4,10 @@ import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaFunction;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 import org.schema.game.common.data.SegmentPiece;
 import thederpgamer.logiscript.api.element.block.Block;
+import thederpgamer.logiscript.api.element.block.LuaBlock;
 
 /**
  * [Description]
@@ -38,7 +40,7 @@ public class Console extends LuaTable implements LuaInterface {
 
 	@Override
 	public String[] getMethods() {
-		return new String[] {"getBlock"};
+		return new String[] {"getBlock", "getLuaBlock"};
 	}
 
 	@Override
@@ -49,6 +51,14 @@ public class Console extends LuaTable implements LuaInterface {
 					@Override
 					public LuaValue call() {
 						return getBlock();
+					}
+				};
+			case "getLuaBlock":
+				return new LuaFunction() {
+					@Override
+					public LuaValue call() {
+						System.err.println("Getting Lua block.");
+						return CoerceJavaToLua.coerce(getLuaBlock());
 					}
 				};
 			default:
@@ -63,5 +73,9 @@ public class Console extends LuaTable implements LuaInterface {
 
 	public Block getBlock() {
 		return new Block(segmentPiece); //Block is basically a wrapper class for SegmentPiece
+	}
+
+	public LuaBlock getLuaBlock() {
+		return new LuaBlock(segmentPiece);
 	}
 }
