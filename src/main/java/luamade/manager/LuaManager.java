@@ -1,11 +1,16 @@
 package luamade.manager;
 
+import api.mod.config.PersistentObjectUtil;
+import luamade.LuaMade;
+import luamade.lua.Channel;
+import luamade.lua.Console;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 import org.luaj.vm2.lib.jse.JsePlatform;
 import org.schema.game.common.data.SegmentPiece;
-import luamade.lua.Console;
+
+import java.util.HashMap;
 
 /**
  * [Description]
@@ -13,6 +18,15 @@ import luamade.lua.Console;
  * @author TheDerpGamer (TheDerpGamer#0027)
  */
 public class LuaManager {
+
+	private static final HashMap<String, Channel> channels = new HashMap<>();
+
+	public static void initialize(LuaMade instance) {
+		for(Object obj : PersistentObjectUtil.getObjects(instance.getSkeleton(), Channel.class)) {
+			Channel channel = (Channel) obj;
+			channels.put(channel.getName(), channel);
+		}
+	}
 
 	public static void run(String script, SegmentPiece segmentPiece) {
 		try {
@@ -24,5 +38,26 @@ public class LuaManager {
 		} catch(Exception exception) {
 			exception.printStackTrace();
 		}
+	}
+
+	public static Channel getChannel(String name) {
+		return channels.get(name);
+	}
+
+	public static Channel createChannel(String name, String password) {
+		if(channels.containsKey(name)) return null;
+		Channel channel = new Channel(name, password);
+		channels.put(name, channel);
+		PersistentObjectUtil.addObject(LuaMade.getInstance().getSkeleton(), channel);
+		PersistentObjectUtil.save(LuaMade.getInstance().getSkeleton());
+		return channel;
+	}
+
+	public static void removeChannel(String name) {
+		if(!channels.containsKey(name)) return;
+		Channel channel = channels.get(name);
+		channels.remove(name);
+		PersistentObjectUtil.removeObject(LuaMade.getInstance().getSkeleton(), channel);
+		PersistentObjectUtil.save(LuaMade.getInstance().getSkeleton());
 	}
 }

@@ -6,6 +6,7 @@ import api.mod.StarMod;
 import luamade.listener.TextBlockDrawListener;
 import luamade.manager.ConfigManager;
 import luamade.manager.EventManager;
+import luamade.manager.LuaManager;
 import luamade.utils.DataUtils;
 
 import java.io.File;
@@ -36,6 +37,7 @@ public class LuaMade extends StarMod {
 		ConfigManager.initialize(this);
 		initLogger();
 		EventManager.initialize(this);
+		LuaManager.initialize(this);
 		registerListeners();
 	}
 

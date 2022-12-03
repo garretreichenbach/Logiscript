@@ -2,6 +2,7 @@ package luamade.lua;
 
 import com.bulletphysics.linearmath.Transform;
 import luamade.lua.element.block.Block;
+import luamade.manager.LuaManager;
 import org.schema.game.client.view.effects.RaisingIndication;
 import org.schema.game.client.view.gui.shiphud.HudIndicatorOverlay;
 import org.schema.game.common.data.SegmentPiece;
@@ -41,5 +42,13 @@ public class Console {
 		raisingIndication.speed = 0.1f;
 		raisingIndication.lifetime = 4.6f;
 		HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
+	}
+
+	public Channel getChannel(String name) {
+		return LuaManager.getChannel(name);
+	}
+
+	public Channel createChannel(String name, String password) {
+		return LuaManager.createChannel(name, password);
 	}
 }
