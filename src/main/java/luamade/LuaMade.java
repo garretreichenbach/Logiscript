@@ -2,12 +2,14 @@ package luamade;
 
 import api.config.BlockConfig;
 import api.mod.StarMod;
+import api.network.packets.PacketUtil;
 import luamade.element.ElementManager;
 import luamade.element.block.ComputerBlock;
 import luamade.manager.ConfigManager;
 import luamade.manager.EventManager;
 import luamade.manager.LuaManager;
 import luamade.manager.ResourceManager;
+import luamade.network.client.RunScriptPacket;
 import luamade.utils.DataUtils;
 import org.schema.schine.resource.ResourceLoader;
 
@@ -40,6 +42,7 @@ public class LuaMade extends StarMod {
 		initLogger();
 		EventManager.initialize(this);
 		LuaManager.initialize(this);
+		registerPackets();
 	}
 
 	@Override
@@ -106,5 +109,9 @@ public class LuaMade extends StarMod {
 		} catch(IOException exception) {
 			exception.printStackTrace();
 		}
+	}
+
+	private void registerPackets() {
+		PacketUtil.registerPacket(RunScriptPacket.class);
 	}
 }

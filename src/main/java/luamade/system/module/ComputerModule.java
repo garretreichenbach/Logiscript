@@ -76,6 +76,7 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 	}
 
 	public void runScript(SegmentPiece segmentPiece) {
+		if(!segmentPiece.getSegmentController().isOnServer()) return;
 		try {
 			LuaManager.run(getScript(segmentPiece), segmentPiece);
 		} catch(Exception exception) {
@@ -88,6 +89,7 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 		try {
 			ComputerDialog dialog = new ComputerDialog();
 			dialog.getInputPanel().setValues(segmentPiece, getScript(segmentPiece), this);
+			dialog.deactivate();
 			dialog.getInputPanel().onInit();
 			dialog.activate();
 		} catch(Exception exception) {

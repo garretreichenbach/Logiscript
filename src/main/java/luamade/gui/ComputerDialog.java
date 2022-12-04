@@ -1,10 +1,12 @@
 package luamade.gui;
 
 import api.common.GameClient;
+import api.network.packets.PacketUtil;
 import api.utils.gui.GUIInputDialog;
 import api.utils.gui.GUIInputDialogPanel;
 import api.utils.gui.SimplePlayerTextInput;
 import luamade.manager.ConfigManager;
+import luamade.network.client.RunScriptPacket;
 import luamade.system.module.ComputerModule;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.schine.common.OnInputChangedCallback;
@@ -66,7 +68,7 @@ public class ComputerDialog extends GUIInputDialog {
 		private GUIActivatableTextBar textBar;
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback) {
-			super(inputState, "COMPUTER_PANEL", "", "", 1000, 700, guiCallback);
+			super(inputState, "COMPUTER_PANEL", "", "", 1000, 630, guiCallback);
 			setCancelButton(false);
 			setOkButton(false);
 		}
@@ -75,9 +77,9 @@ public class ComputerDialog extends GUIInputDialog {
 		public void onInit() {
 			super.onInit();
 			GUIContentPane contentPane = ((GUIDialogWindow) background).getMainContentPane();
-			contentPane.setTextBoxHeightLast(670);
+			contentPane.setTextBoxHeightLast(600);
 
-			GUIScrollablePanel scrollablePanel = new GUIScrollablePanel(getWidth(), 670, contentPane.getContent(0), getState());
+			GUIScrollablePanel scrollablePanel = new GUIScrollablePanel(getWidth(), 600, contentPane.getContent(0), getState());
 			textBar = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.SMALL, ConfigManager.getMainConfig().getConfigurableInt("script-character-limit", 30000), ConfigManager.getMainConfig().getConfigurableInt("script-line-limit", 1000), "", contentPane.getContent(0), new TextCallback() {
 				@Override
 				public String[] getCommandPrefixes() {
@@ -148,7 +150,7 @@ public class ComputerDialog extends GUIInputDialog {
 				@Override
 				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
 					if(mouseEvent.pressedLeftMouse()) {
-						script = textBar.getText();
+						script = textBar.getTextArea().getCache();
 						computerModule.setScript(segmentPiece, script);
 					}
 				}
@@ -172,10 +174,10 @@ public class ComputerDialog extends GUIInputDialog {
 			buttonPane.addButton(2, 0, "RUN", GUIHorizontalArea.HButtonColor.BLUE, new GUICallback() {
 				@Override
 				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
-					if(mouseEvent.pressedLeftMouse()) {
-						script = textBar.getText();
+					if(mouseEvent.pressedLeftMouse() && segmentPiece != null) {
+						script = textBar.getTextArea().getCache();
 						computerModule.setScript(segmentPiece, script);
-						computerModule.runScript(segmentPiece);
+						PacketUtil.sendPacketToServer(new RunScriptPacket(segmentPiece.getSegmentController(), segmentPiece.getAbsoluteIndex(), script));
 					}
 				}
 
@@ -230,7 +232,6 @@ public class ComputerDialog extends GUIInputDialog {
 				}
 			});
 			contentPane.getContent(1).attach(buttonPane);
-			contentPane.setTextBoxHeightLast(30);
 			if(computerModule != null && script != null) textBar.setText(script);
 		}
 
