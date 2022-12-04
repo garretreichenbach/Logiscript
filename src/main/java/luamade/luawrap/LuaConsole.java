@@ -1,4 +1,4 @@
-package luamade.lua;
+package luamade.luawrap;
 
 import luamade.lua.element.block.Block;
 import org.luaj.vm2.LuaFunction;

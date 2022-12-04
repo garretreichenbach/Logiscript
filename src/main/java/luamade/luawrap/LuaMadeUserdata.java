@@ -1,4 +1,4 @@
-package luamade.lua;
+package luamade.luawrap;
 
 import org.luaj.vm2.LuaFunction;
 import org.luaj.vm2.LuaTable;
