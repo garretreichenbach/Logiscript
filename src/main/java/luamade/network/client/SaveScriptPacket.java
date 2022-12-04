@@ -58,6 +58,8 @@ public class SaveScriptPacket extends Packet {
 			ManagedSegmentController<?> controller = (ManagedSegmentController<?>) segmentController;
 			ComputerModule module = (ComputerModule) controller.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId());
 			SegmentPiece segmentPiece = segmentController.getSegmentBuffer().getPointUnsave(index);
+			script = script.replaceAll("\\|", "");
+			script = script.replaceAll("/", "");
 			if(segmentPiece != null) module.setScript(segmentPiece, script);
 		} catch(Exception exception) {
 			exception.printStackTrace();

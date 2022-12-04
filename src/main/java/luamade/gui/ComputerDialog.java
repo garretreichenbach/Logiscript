@@ -152,7 +152,6 @@ public class ComputerDialog extends GUIInputDialog {
 				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
 					if(mouseEvent.pressedLeftMouse()) {
 						script = textBar.getText();
-						sanitize();
 						computerModule.setScript(segmentPiece, script);
 						PacketUtil.sendPacketToServer(new SaveScriptPacket(segmentPiece.getSegmentController(), segmentPiece.getAbsoluteIndex(), script));
 					}
@@ -179,7 +178,6 @@ public class ComputerDialog extends GUIInputDialog {
 				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
 					if(mouseEvent.pressedLeftMouse() && segmentPiece != null) {
 						script = textBar.getText();
-						sanitize();
 						computerModule.setScript(segmentPiece, script);
 						PacketUtil.sendPacketToServer(new RunScriptPacket(segmentPiece.getSegmentController(), segmentPiece.getAbsoluteIndex(), script));
 					}
@@ -211,7 +209,6 @@ public class ComputerDialog extends GUIInputDialog {
 								if(s == null || s.isEmpty()) return false;
 								else {
 									script = computerModule.getScriptFromWeb(segmentPiece, s);
-									sanitize();
 									textBar.setText(script);
 									deactivate();
 									return true;
@@ -237,17 +234,7 @@ public class ComputerDialog extends GUIInputDialog {
 				}
 			});
 			contentPane.getContent(1).attach(buttonPane);
-			if(computerModule != null && script != null) {
-				textBar.setText(script);
-				sanitize();
-			}
-		}
-
-		private void sanitize() {
-			//Replace all : with \\:
-			script = script.replaceAll(":", "\\\\:");
-			//Replace all ; with \\;
-			script = script.replaceAll(";", "\\\\;");
+			if(computerModule != null && script != null) textBar.setText(script);
 		}
 
 		public void setValues(SegmentPiece segmentPiece, String script, ComputerModule computerModule) {

@@ -51,10 +51,10 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 	private HashMap<Long, String> getComputerMap() {
 		HashMap<Long, String> computerMap = new HashMap<>();
 		if(data instanceof String && !((String) data).isEmpty()) {
-			String[] computers = ((String) data).split(";");
+			String[] computers = ((String) data).split("\\|");
 			for(String computer : computers) {
 				if(computer.contains(":")) {
-					String[] computerData = computer.split(":");
+					String[] computerData = computer.split("/");
 					computerMap.put(Long.parseLong(computerData[0]), computerData[1]);
 				}
 			}
@@ -64,7 +64,7 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 
 	private void setComputerMap(HashMap<Long, String> computerMap) {
 		StringBuilder computerString = new StringBuilder();
-		for(Long id : computerMap.keySet()) computerString.append(id).append(":").append(computerMap.get(id)).append(";");
+		for(Long id : computerMap.keySet()) computerString.append(id).append("|").append(computerMap.get(id)).append("/");
 		data = computerString.toString();
 	}
 
