@@ -66,7 +66,7 @@ public class ComputerDialog extends GUIInputDialog {
 		private GUIActivatableTextBar textBar;
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback) {
-			super(inputState, "COMPUTER_PANEL", "", "", 800, 650, guiCallback);
+			super(inputState, "COMPUTER_PANEL", "", "", 1000, 600, guiCallback);
 			setCancelButton(false);
 			setOkButton(false);
 		}
@@ -75,9 +75,9 @@ public class ComputerDialog extends GUIInputDialog {
 		public void onInit() {
 			super.onInit();
 			GUIContentPane contentPane = ((GUIDialogWindow) background).getMainContentPane();
-			contentPane.setTextBoxHeightLast(630);
+			contentPane.setTextBoxHeightLast(600);
 
-			GUIScrollablePanel scrollablePanel = new GUIScrollablePanel(630, getWidth(), contentPane.getContent(0), getState());
+			GUIScrollablePanel scrollablePanel = new GUIScrollablePanel(570, getWidth(), contentPane.getContent(0), getState());
 			textBar = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.SMALL, ConfigManager.getMainConfig().getConfigurableInt("script-character-limit", 30000), ConfigManager.getMainConfig().getConfigurableInt("script-line-limit", 1000), "", contentPane.getContent(0), new TextCallback() {
 				@Override
 				public String[] getCommandPrefixes() {
@@ -155,7 +155,7 @@ public class ComputerDialog extends GUIInputDialog {
 
 				@Override
 				public boolean isOccluded() {
-					return script == null || script.isEmpty();
+					return false;
 				}
 			}, new GUIActivationCallback() {
 				@Override
@@ -165,7 +165,7 @@ public class ComputerDialog extends GUIInputDialog {
 
 				@Override
 				public boolean isActive(InputState inputState) {
-					return script != null && !script.isEmpty();
+					return true;
 				}
 			});
 
@@ -206,6 +206,7 @@ public class ComputerDialog extends GUIInputDialog {
 								else {
 									script = computerModule.getScriptFromWeb(segmentPiece, s);
 									textBar.setText(script);
+									deactivate();
 									return true;
 								}
 							}
@@ -229,7 +230,7 @@ public class ComputerDialog extends GUIInputDialog {
 				}
 			});
 			contentPane.getContent(1).attach(buttonPane);
-
+			contentPane.setTextBoxHeightLast(30);
 			if(computerModule != null && script != null) textBar.setText(script);
 		}
 

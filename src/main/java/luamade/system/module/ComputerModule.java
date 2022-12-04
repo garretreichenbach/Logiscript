@@ -50,7 +50,7 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 
 	private HashMap<Long, String> getComputerMap() {
 		HashMap<Long, String> computerMap = new HashMap<>();
-		if(data instanceof String) {
+		if(data instanceof String && !((String) data).isEmpty()) {
 			String[] computers = ((String) data).split(";");
 			for(String computer : computers) {
 				String[] computerData = computer.split(":");
@@ -86,6 +86,7 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 		try {
 			ComputerDialog dialog = new ComputerDialog();
 			dialog.getInputPanel().setValues(segmentPiece, getScript(segmentPiece), this);
+			dialog.getInputPanel().onInit();
 			dialog.activate();
 		} catch(Exception exception) {
 			exception.printStackTrace();
