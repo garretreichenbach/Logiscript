@@ -1,0 +1,231 @@
+package luamade.gui;
+
+import api.utils.gui.GUIInputDialog;
+import api.utils.gui.GUIInputDialogPanel;
+import api.utils.gui.SimplePlayerTextInput;
+import luamade.manager.ConfigManager;
+import luamade.system.module.ComputerModule;
+import org.schema.game.common.data.SegmentPiece;
+import org.schema.schine.common.OnInputChangedCallback;
+import org.schema.schine.common.TextCallback;
+import org.schema.schine.graphicsengine.core.MouseEvent;
+import org.schema.schine.graphicsengine.forms.font.FontLibrary;
+import org.schema.schine.graphicsengine.forms.gui.GUIActivationCallback;
+import org.schema.schine.graphicsengine.forms.gui.GUICallback;
+import org.schema.schine.graphicsengine.forms.gui.GUIElement;
+import org.schema.schine.graphicsengine.forms.gui.newgui.*;
+import org.schema.schine.input.InputState;
+
+/**
+ * [Description]
+ *
+ * @author TheDerpGamer (TheDerpGamer#0027)
+ */
+public class ComputerDialog extends GUIInputDialog {
+
+	@Override
+	public ComputerPanel createPanel() {
+		return new ComputerPanel(getState(), this);
+	}
+
+	@Override
+	public ComputerPanel getInputPanel() {
+		return (ComputerPanel) super.getInputPanel();
+	}
+
+	@Override
+	public void callback(GUIElement callingElement, MouseEvent mouseEvent) {
+		if(!isOccluded() && mouseEvent.pressedLeftMouse()) {
+			if(callingElement.getUserPointer() != null) {
+				switch((String) callingElement.getUserPointer()) {
+					case "X":
+					case "CANCEL":
+						deactivate();
+						break;
+					case "OK":
+						deactivate();
+						break;
+				}
+			}
+		}
+	}
+
+
+	public static class ComputerPanel extends GUIInputDialogPanel {
+
+		private ComputerModule computerModule;
+		private SegmentPiece segmentPiece;
+		private String script;
+		private GUIActivatableTextBar textBar;
+
+		public ComputerPanel(InputState inputState, GUICallback guiCallback) {
+			super(inputState, "COMPUTER_PANEL", "", "", 800, 650, guiCallback);
+		}
+
+		@Override
+		public void onInit() {
+			super.onInit();
+			GUIContentPane contentPane = ((GUIDialogWindow) background).getMainContentPane();
+			contentPane.setTextBoxHeightLast(630);
+			textBar = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.SMALL, ConfigManager.getMainConfig().getConfigurableInt("script-character-limit", 30000), ConfigManager.getMainConfig().getConfigurableInt("script-line-limit", 1000), "", contentPane.getContent(0), new TextCallback() {
+				@Override
+				public String[] getCommandPrefixes() {
+					return new String[0];
+				}
+
+				@Override
+				public String handleAutoComplete(String s, TextCallback textCallback, String s1) {
+					return null;
+				}
+
+				@Override
+				public void onFailedTextCheck(String s) {
+
+				}
+
+				@Override
+				public void onTextEnter(String s, boolean b, boolean b1) {
+
+				}
+
+				@Override
+				public void newLine() {
+
+				}
+			}, contentPane.getTextboxes().get(0), new OnInputChangedCallback() {
+				@Override
+				public String onInputChanged(String s) {
+					return s;
+				}
+			});
+			textBar.onInit();
+			textBar.getTextArea().getChatLog().clear();
+			textBar.setText("");
+			contentPane.getContent(0).attach(textBar);
+
+			contentPane.addNewTextBox(30);
+			GUIHorizontalButtonTablePane buttonPane = new GUIHorizontalButtonTablePane(getState(), 4, 1, contentPane.getContent(1));
+			buttonPane.onInit();
+
+			buttonPane.addButton(0, 0, "CLEAR", GUIHorizontalArea.HButtonColor.RED, new GUICallback() {
+				@Override
+				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
+					if(mouseEvent.pressedLeftMouse()) {
+						script = "";
+						textBar.setText(script);
+					}
+				}
+
+				@Override
+				public boolean isOccluded() {
+					return script == null || script.isEmpty();
+				}
+			}, new GUIActivationCallback() {
+				@Override
+				public boolean isVisible(InputState inputState) {
+					return true;
+				}
+
+				@Override
+				public boolean isActive(InputState inputState) {
+					return script != null && !script.isEmpty();
+				}
+			});
+
+			buttonPane.addButton(1, 0, "SAVE", GUIHorizontalArea.HButtonColor.GREEN, new GUICallback() {
+				@Override
+				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
+					if(mouseEvent.pressedLeftMouse()) {
+						script = textBar.getText();
+						computerModule.setScript(segmentPiece, script);
+					}
+				}
+
+				@Override
+				public boolean isOccluded() {
+					return script == null || script.isEmpty();
+				}
+			}, new GUIActivationCallback() {
+				@Override
+				public boolean isVisible(InputState inputState) {
+					return true;
+				}
+
+				@Override
+				public boolean isActive(InputState inputState) {
+					return script != null && !script.isEmpty();
+				}
+			});
+
+			buttonPane.addButton(2, 0, "RUN", GUIHorizontalArea.HButtonColor.BLUE, new GUICallback() {
+				@Override
+				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
+					if(mouseEvent.pressedLeftMouse()) {
+						script = textBar.getText();
+						computerModule.setScript(segmentPiece, script);
+						computerModule.runScript(segmentPiece);
+					}
+				}
+
+				@Override
+				public boolean isOccluded() {
+					return script == null || script.isEmpty();
+				}
+			}, new GUIActivationCallback() {
+				@Override
+				public boolean isVisible(InputState inputState) {
+					return true;
+				}
+
+				@Override
+				public boolean isActive(InputState inputState) {
+					return script != null && !script.isEmpty();
+				}
+			});
+
+			buttonPane.addButton(3, 0, "GET FROM WEB", GUIHorizontalArea.HButtonColor.YELLOW, new GUICallback() {
+				@Override
+				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
+					if(mouseEvent.pressedLeftMouse()) {
+						(new SimplePlayerTextInput("ENTER URL", "Enter the URL of the script you want to download") {
+							@Override
+							public boolean onInput(String s) {
+								if(s == null || s.isEmpty()) return false;
+								else {
+									script = s;
+									computerModule.setScript(segmentPiece, script);
+									textBar.setText(script);
+									return true;
+								}
+							}
+						}).activate();
+					}
+				}
+
+				@Override
+				public boolean isOccluded() {
+					return false;
+				}
+			}, new GUIActivationCallback() {
+				@Override
+				public boolean isVisible(InputState inputState) {
+					return true;
+				}
+
+				@Override
+				public boolean isActive(InputState inputState) {
+					return true;
+				}
+			});
+			contentPane.getContent(1).attach(buttonPane);
+
+			if(computerModule != null && script != null) textBar.setText(script);
+		}
+
+		public void setValues(SegmentPiece segmentPiece, String script, ComputerModule computerModule) {
+			this.segmentPiece = segmentPiece;
+			this.script = script;
+			this.computerModule = computerModule;
+		}
+	}
+}

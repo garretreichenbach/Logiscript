@@ -34,7 +34,7 @@ public class Console {
 		HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
 	}
 
-	public void err(String string) {
+	public void error(String string) {
 		System.err.println(string);
 		Transform transform = new Transform();
 		segmentPiece.getTransform(transform);

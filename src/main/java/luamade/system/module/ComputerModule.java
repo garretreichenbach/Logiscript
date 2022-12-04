@@ -3,8 +3,13 @@ package luamade.system.module;
 import api.utils.game.module.util.SimpleDataStorageMCModule;
 import luamade.LuaMade;
 import luamade.element.ElementManager;
+import luamade.gui.ComputerDialog;
+import luamade.manager.LuaManager;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.elements.ManagerContainer;
+import org.schema.game.common.data.SegmentPiece;
+
+import java.util.HashMap;
 
 /**
  * [Description]
@@ -22,7 +27,7 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 		return "Computer";
 	}
 
-	public String getScriptFromWeb(String link) {
+	public String getScriptFromWeb(SegmentPiece segmentPiece, String link) {
 		try {
 			StringBuilder script = new StringBuilder();
 			java.net.URL url = new java.net.URL(link);
@@ -32,20 +37,58 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 			String line;
 			while((line = bufferedReader.readLine()) != null) script.append(line).append("\n");
 			bufferedReader.close();
-			setCurrentScript(script.toString());
+			setScript(segmentPiece, script.toString());
 		} catch(Exception exception) {
 			exception.printStackTrace();
 		}
-		return getCurrentScript();
+		return getScript(segmentPiece);
 	}
 
-	public String getCurrentScript() {
-		if(!(data instanceof String)) setCurrentScript("");
-		return (String) data;
+	public String getScript(SegmentPiece segmentPiece) {
+		return getComputerMap().get(segmentPiece.getAbsoluteIndex());
 	}
 
-	public void setCurrentScript(String script) {
-		data = script;
+	private HashMap<Long, String> getComputerMap() {
+		HashMap<Long, String> computerMap = new HashMap<>();
+		if(data instanceof String) {
+			String[] computers = ((String) data).split(";");
+			for(String computer : computers) {
+				String[] computerData = computer.split(":");
+				computerMap.put(Long.parseLong(computerData[0]), computerData[1]);
+			}
+		}
+		return computerMap;
+	}
+
+	private void setComputerMap(HashMap<Long, String> computerMap) {
+		StringBuilder computerString = new StringBuilder();
+		for(Long id : computerMap.keySet()) computerString.append(id).append(":").append(computerMap.get(id)).append(";");
+		data = computerString.toString();
+	}
+
+	public void setScript(SegmentPiece segmentPiece, String script) {
+		HashMap<Long, String> computerMap = getComputerMap();
+		computerMap.put(segmentPiece.getAbsoluteIndex(), script);
+		setComputerMap(computerMap);
 		flagUpdatedData();
+	}
+
+	public void runScript(SegmentPiece segmentPiece) {
+		try {
+			LuaManager.run(getScript(segmentPiece), segmentPiece);
+		} catch(Exception exception) {
+			exception.printStackTrace();
+			LuaManager.run("console.error(" + exception.getMessage() + ")", segmentPiece);
+		}
+	}
+
+	public void openGUI(SegmentPiece segmentPiece) {
+		try {
+			ComputerDialog dialog = new ComputerDialog();
+			dialog.getInputPanel().setValues(segmentPiece, getScript(segmentPiece), this);
+			dialog.activate();
+		} catch(Exception exception) {
+			exception.printStackTrace();
+		}
 	}
 }
