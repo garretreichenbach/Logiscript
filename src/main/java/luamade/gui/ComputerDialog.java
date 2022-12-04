@@ -77,10 +77,11 @@ public class ComputerDialog extends GUIInputDialog {
 		@Override
 		public void onInit() {
 			super.onInit();
+			if(computerModule == null) return;
 			GUIContentPane contentPane = ((GUIDialogWindow) background).getMainContentPane();
-			contentPane.setTextBoxHeightLast(600);
+			contentPane.setTextBoxHeightLast(580);
 
-			GUIScrollablePanel scrollablePanel = new GUIScrollablePanel(getWidth(), 600, contentPane.getContent(0), getState());
+			GUIScrollablePanel scrollablePanel = new GUIScrollablePanel(getWidth(), 580, contentPane.getContent(0), getState());
 			textBar = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.SMALL, ConfigManager.getMainConfig().getConfigurableInt("script-character-limit", 30000), ConfigManager.getMainConfig().getConfigurableInt("script-line-limit", 1000), "", contentPane.getContent(0), new TextCallback() {
 				@Override
 				public String[] getCommandPrefixes() {
@@ -114,7 +115,7 @@ public class ComputerDialog extends GUIInputDialog {
 			});
 			scrollablePanel.setContent(textBar);
 			textBar.getTextArea().getChatLog().clear();
-			textBar.setText("");
+			textBar.setText(script);
 			scrollablePanel.onInit();
 			contentPane.getContent(0).attach(scrollablePanel);
 			scrollablePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);
@@ -234,7 +235,6 @@ public class ComputerDialog extends GUIInputDialog {
 				}
 			});
 			contentPane.getContent(1).attach(buttonPane);
-			if(computerModule != null && script != null) textBar.setText(script);
 		}
 
 		public void setValues(SegmentPiece segmentPiece, String script, ComputerModule computerModule) {
