@@ -53,7 +53,7 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 		if(data instanceof String && !((String) data).isEmpty()) {
 			String[] computers = ((String) data).split(";");
 			for(String computer : computers) {
-				if(!computer.isEmpty()) {
+				if(computer.contains(":")) {
 					String[] computerData = computer.split(":");
 					computerMap.put(Long.parseLong(computerData[0]), computerData[1]);
 				}
