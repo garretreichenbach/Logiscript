@@ -3,7 +3,6 @@ package luamade.element.block;
 import api.config.BlockConfig;
 import api.listener.events.block.SegmentPieceActivateByPlayer;
 import api.listener.events.block.SegmentPieceActivateEvent;
-import luamade.manager.ResourceManager;
 import luamade.system.module.ComputerModule;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.data.SegmentPiece;
@@ -43,9 +42,10 @@ public class ComputerBlock extends Block implements ActivationInterface {
 
 		if(GraphicsContext.initialized) {
 			try {
-				blockInfo.setBuildIconNum(ResourceManager.getTexture("computer-block-icon").getTextureId());
+				//Todo: Make icon and textures
+				//blockInfo.setBuildIconNum(ResourceManager.getTexture("computer-block-icon").getTextureId());
 				blockInfo.setTextureId(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).getTextureIds());
-				blockInfo.setTextureId(0, (short) ResourceManager.getTexture("computer-block-front").getTextureId());
+				//blockInfo.setTextureId(0, (short) ResourceManager.getTexture("computer-block-front").getTextureId());
 			} catch(Exception ignored) {}
 		}
 

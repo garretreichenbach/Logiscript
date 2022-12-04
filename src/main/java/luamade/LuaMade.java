@@ -2,10 +2,8 @@ package luamade;
 
 import api.config.BlockConfig;
 import api.listener.events.controller.ClientInitializeEvent;
-import api.listener.fastevents.FastListenerCommon;
 import api.mod.StarMod;
 import luamade.element.ElementManager;
-import luamade.listener.TextBlockDrawListener;
 import luamade.manager.ConfigManager;
 import luamade.manager.EventManager;
 import luamade.manager.LuaManager;
@@ -42,7 +40,6 @@ public class LuaMade extends StarMod {
 		initLogger();
 		EventManager.initialize(this);
 		LuaManager.initialize(this);
-		registerListeners();
 	}
 
 	@Override
@@ -114,9 +111,5 @@ public class LuaMade extends StarMod {
 		} catch(IOException exception) {
 			exception.printStackTrace();
 		}
-	}
-
-	private void registerListeners() {
-		FastListenerCommon.textBoxListeners.add(new TextBlockDrawListener());
 	}
 }
