@@ -1,15 +1,16 @@
 package luamade;
 
 import api.config.BlockConfig;
-import api.listener.events.controller.ClientInitializeEvent;
-import api.listener.fastevents.FastListenerCommon;
 import api.mod.StarMod;
+import api.network.packets.PacketUtil;
 import luamade.element.ElementManager;
-import luamade.listener.TextBlockDrawListener;
+import luamade.element.block.ComputerBlock;
 import luamade.manager.ConfigManager;
 import luamade.manager.EventManager;
 import luamade.manager.LuaManager;
 import luamade.manager.ResourceManager;
+import luamade.network.client.RunScriptPacket;
+import luamade.network.client.SaveScriptPacket;
 import luamade.utils.DataUtils;
 import org.schema.schine.resource.ResourceLoader;
 
@@ -42,17 +43,12 @@ public class LuaMade extends StarMod {
 		initLogger();
 		EventManager.initialize(this);
 		LuaManager.initialize(this);
-		registerListeners();
-	}
-
-	@Override
-	public void onClientCreated(ClientInitializeEvent event) {
-		super.onClientCreated(event);
+		registerPackets();
 	}
 
 	@Override
 	public void onBlockConfigLoad(BlockConfig config) {
-
+		ElementManager.addBlock(new ComputerBlock());
 		ElementManager.initialize();
 	}
 
@@ -116,7 +112,8 @@ public class LuaMade extends StarMod {
 		}
 	}
 
-	private void registerListeners() {
-		FastListenerCommon.textBoxListeners.add(new TextBlockDrawListener());
+	private void registerPackets() {
+		PacketUtil.registerPacket(RunScriptPacket.class);
+		PacketUtil.registerPacket(SaveScriptPacket.class);
 	}
 }

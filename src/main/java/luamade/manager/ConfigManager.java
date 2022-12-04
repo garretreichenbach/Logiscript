@@ -9,7 +9,8 @@ public class ConfigManager {
 	private static final String[] defaultMainConfig = {
 			"debug-mode: false",
 			"max-world-logs: 5",
-			"generate-shipwrecks-from-combat: true"
+			"script-character-limit: 30000",
+			"script-line-limit: 1000",
 	};
 
 	public static void initialize(LuaMade instance) {

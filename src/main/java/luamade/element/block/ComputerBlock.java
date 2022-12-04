@@ -1,10 +1,11 @@
 package luamade.element.block;
 
+import api.common.GameClient;
 import api.config.BlockConfig;
 import api.listener.events.block.SegmentPieceActivateByPlayer;
 import api.listener.events.block.SegmentPieceActivateEvent;
-import luamade.manager.ResourceManager;
 import luamade.system.module.ComputerModule;
+import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementKeyMap;
 import org.schema.game.common.data.element.FactoryResource;
@@ -42,9 +43,10 @@ public class ComputerBlock extends Block implements ActivationInterface {
 
 		if(GraphicsContext.initialized) {
 			try {
-				blockInfo.setBuildIconNum(ResourceManager.getTexture("computer-block-icon").getTextureId());
+				//Todo: Make icon and textures
+				//blockInfo.setBuildIconNum(ResourceManager.getTexture("computer-block-icon").getTextureId());
 				blockInfo.setTextureId(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).getTextureIds());
-				blockInfo.setTextureId(0, (short) ResourceManager.getTexture("computer-block-front").getTextureId());
+				//blockInfo.setTextureId(0, (short) ResourceManager.getTexture("computer-block-front").getTextureId());
 			} catch(Exception ignored) {}
 		}
 
@@ -54,15 +56,35 @@ public class ComputerBlock extends Block implements ActivationInterface {
 
 	@Override
 	public void onPlayerActivation(SegmentPieceActivateByPlayer event) {
-
+		try {
+			ComputerModule computerModule = getModule(event.getSegmentPiece());
+			assert computerModule != null;
+			computerModule.openGUI(event.getSegmentPiece());
+			if(GameClient.getClientState() != null) GameClient.getClientState().getGlobalGameControlManager().getIngameControlManager().getPlayerGameControlManager().getPlayerIntercationManager().suspend(true);
+		} catch(Exception exception) {
+			exception.printStackTrace();
+		}
 	}
 
 	@Override
 	public void onLogicActivation(SegmentPieceActivateEvent event) {
-
+		if(event.getSegmentPiece().isActive()) {
+			try {
+				ComputerModule computerModule = getModule(event.getSegmentPiece());
+				if(computerModule != null && !computerModule.getScript(event.getSegmentPiece()).isEmpty()) computerModule.runScript(event.getSegmentPiece());
+			} catch(Exception exception) {
+				exception.printStackTrace();
+			}
+		}
 	}
 
 	private ComputerModule getModule(SegmentPiece segmentPiece) {
-
+		try {
+			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentPiece.getSegmentController();
+			return (ComputerModule) controller.getManagerContainer().getModMCModule(getId());
+		} catch(Exception exception) {
+			exception.printStackTrace();
+			return null;
+		}
 	}
 }
