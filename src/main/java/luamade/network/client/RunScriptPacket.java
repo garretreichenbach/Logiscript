@@ -54,8 +54,7 @@ public class RunScriptPacket extends Packet {
 	public void processPacketOnServer(PlayerState playerState) {
 		try {
 			SegmentPiece segmentPiece = segmentController.getSegmentBuffer().getPointUnsave(index);
-			script = script.replaceAll("\\|", "");
-			script = script.replaceAll("/", "");
+			script = script.replaceAll("__", "_");
 			if(segmentPiece != null) LuaManager.run(script, segmentPiece);
 		} catch(Exception exception) {
 			exception.printStackTrace();
