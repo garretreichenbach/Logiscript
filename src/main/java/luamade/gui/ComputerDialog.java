@@ -1,5 +1,6 @@
 package luamade.gui;
 
+import api.common.GameClient;
 import api.utils.gui.GUIInputDialog;
 import api.utils.gui.GUIInputDialogPanel;
 import api.utils.gui.SimplePlayerTextInput;
@@ -13,6 +14,7 @@ import org.schema.schine.graphicsengine.forms.font.FontLibrary;
 import org.schema.schine.graphicsengine.forms.gui.GUIActivationCallback;
 import org.schema.schine.graphicsengine.forms.gui.GUICallback;
 import org.schema.schine.graphicsengine.forms.gui.GUIElement;
+import org.schema.schine.graphicsengine.forms.gui.GUIScrollablePanel;
 import org.schema.schine.graphicsengine.forms.gui.newgui.*;
 import org.schema.schine.input.InputState;
 
@@ -50,6 +52,11 @@ public class ComputerDialog extends GUIInputDialog {
 		}
 	}
 
+	@Override
+	public void onDeactivate() {
+		super.onDeactivate();
+		GameClient.getClientState().getGlobalGameControlManager().getIngameControlManager().getPlayerGameControlManager().getPlayerIntercationManager().suspend(false);
+	}
 
 	public static class ComputerPanel extends GUIInputDialogPanel {
 
@@ -60,6 +67,8 @@ public class ComputerDialog extends GUIInputDialog {
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback) {
 			super(inputState, "COMPUTER_PANEL", "", "", 800, 650, guiCallback);
+			setCancelButton(false);
+			setOkButton(false);
 		}
 
 		@Override
@@ -67,6 +76,8 @@ public class ComputerDialog extends GUIInputDialog {
 			super.onInit();
 			GUIContentPane contentPane = ((GUIDialogWindow) background).getMainContentPane();
 			contentPane.setTextBoxHeightLast(630);
+
+			GUIScrollablePanel scrollablePanel = new GUIScrollablePanel(630, getWidth(), contentPane.getContent(0), getState());
 			textBar = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.SMALL, ConfigManager.getMainConfig().getConfigurableInt("script-character-limit", 30000), ConfigManager.getMainConfig().getConfigurableInt("script-line-limit", 1000), "", contentPane.getContent(0), new TextCallback() {
 				@Override
 				public String[] getCommandPrefixes() {
@@ -75,7 +86,7 @@ public class ComputerDialog extends GUIInputDialog {
 
 				@Override
 				public String handleAutoComplete(String s, TextCallback textCallback, String s1) {
-					return null;
+					return "";
 				}
 
 				@Override
@@ -92,17 +103,18 @@ public class ComputerDialog extends GUIInputDialog {
 				public void newLine() {
 
 				}
-			}, contentPane.getTextboxes().get(0), new OnInputChangedCallback() {
+			}, new OnInputChangedCallback() {
 				@Override
 				public String onInputChanged(String s) {
 					return s;
 				}
 			});
-			textBar.onInit();
+			scrollablePanel.setContent(textBar);
 			textBar.getTextArea().getChatLog().clear();
 			textBar.setText("");
-			contentPane.getContent(0).attach(textBar);
-
+			scrollablePanel.onInit();
+			contentPane.getContent(0).attach(scrollablePanel);
+			scrollablePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);
 			contentPane.addNewTextBox(30);
 			GUIHorizontalButtonTablePane buttonPane = new GUIHorizontalButtonTablePane(getState(), 4, 1, contentPane.getContent(1));
 			buttonPane.onInit();
@@ -192,8 +204,7 @@ public class ComputerDialog extends GUIInputDialog {
 							public boolean onInput(String s) {
 								if(s == null || s.isEmpty()) return false;
 								else {
-									script = s;
-									computerModule.setScript(segmentPiece, script);
+									script = computerModule.getScriptFromWeb(segmentPiece, s);
 									textBar.setText(script);
 									return true;
 								}

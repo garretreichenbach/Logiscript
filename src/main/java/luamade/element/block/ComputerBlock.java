@@ -1,5 +1,6 @@
 package luamade.element.block;
 
+import api.common.GameClient;
 import api.config.BlockConfig;
 import api.listener.events.block.SegmentPieceActivateByPlayer;
 import api.listener.events.block.SegmentPieceActivateEvent;
@@ -59,6 +60,7 @@ public class ComputerBlock extends Block implements ActivationInterface {
 			ComputerModule computerModule = getModule(event.getSegmentPiece());
 			assert computerModule != null;
 			computerModule.openGUI(event.getSegmentPiece());
+			if(GameClient.getClientState() != null) GameClient.getClientState().getGlobalGameControlManager().getIngameControlManager().getPlayerGameControlManager().getPlayerIntercationManager().suspend(true);
 		} catch(Exception exception) {
 			exception.printStackTrace();
 		}

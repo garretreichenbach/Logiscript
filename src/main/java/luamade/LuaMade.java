@@ -1,7 +1,6 @@
 package luamade;
 
 import api.config.BlockConfig;
-import api.listener.events.controller.ClientInitializeEvent;
 import api.mod.StarMod;
 import luamade.element.ElementManager;
 import luamade.element.block.ComputerBlock;
@@ -41,11 +40,6 @@ public class LuaMade extends StarMod {
 		initLogger();
 		EventManager.initialize(this);
 		LuaManager.initialize(this);
-	}
-
-	@Override
-	public void onClientCreated(ClientInitializeEvent event) {
-		super.onClientCreated(event);
 	}
 
 	@Override
