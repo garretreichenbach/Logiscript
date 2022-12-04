@@ -27,7 +27,7 @@ public class Block {
 
     public void setActive(boolean bool) {
         segmentPiece.setActive(bool);
-        segmentPiece.applyToSegment(true);
+        segmentPiece.applyToSegment(segmentPiece.getSegmentController().isOnServer());
     }
 
     public Entity getEntity() {

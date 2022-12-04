@@ -1,7 +1,7 @@
 package luamade.element.block;
 
 import api.listener.events.block.SegmentPieceActivateByPlayer;
-import api.listener.events.block.SegmentPieceActivateEvent;
+import org.schema.game.common.data.SegmentPiece;
 
 /**
  * <Description>
@@ -12,5 +12,5 @@ public interface ActivationInterface {
 
   void onPlayerActivation(SegmentPieceActivateByPlayer event);
 
-  void onLogicActivation(SegmentPieceActivateEvent event);
+  void onLogicActivation(SegmentPiece target, boolean active);
 }

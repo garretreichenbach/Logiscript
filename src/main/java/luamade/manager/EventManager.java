@@ -10,6 +10,8 @@ import luamade.element.ElementManager;
 import luamade.element.block.ActivationInterface;
 import luamade.element.block.Block;
 import luamade.system.module.ComputerModule;
+import luamade.utils.SegmentPieceUtils;
+import org.schema.game.common.data.SegmentPiece;
 
 /**
  * [Description]
@@ -41,10 +43,12 @@ public class EventManager {
 		StarLoader.registerListener(SegmentPieceActivateEvent.class, new Listener<SegmentPieceActivateEvent>() {
 			@Override
 			public void onEvent(SegmentPieceActivateEvent event) {
-				for(Block block : ElementManager.getAllBlocks()) {
-					if(block instanceof ActivationInterface && block.getId() == event.getSegmentPiece().getType()) {
-						((ActivationInterface) block).onLogicActivation(event);
-						return;
+				for(SegmentPiece segmentPiece : SegmentPieceUtils.getControlledPieces(event.getSegmentPiece())) {
+					for(Block block : ElementManager.getAllBlocks()) {
+						if(block instanceof ActivationInterface && segmentPiece.getType() == block.getId()) {
+							((ActivationInterface) block).onLogicActivation(segmentPiece, event.getSegmentPiece().isActive());
+							break;
+						}
 					}
 				}
 			}
