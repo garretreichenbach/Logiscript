@@ -9,6 +9,7 @@ import org.schema.game.common.controller.elements.power.reactor.tree.ReactorElem
 import org.schema.game.common.data.element.ElementInformation;
 import org.schema.game.common.data.element.ElementKeyMap;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 /**
@@ -51,6 +52,15 @@ public class Chamber {
 				return;
 			}
 		}
+	}
+
+	public String[] getValidSpecifications() {
+		ArrayList<String> validSpecifications = new ArrayList<>();
+		for(short id : reactorElement.getPossibleSpecifications()) {
+			ElementInformation info = ElementKeyMap.getInfo(id);
+			if(info.isChamberPermitted(controller.getType()) && (getReactor().getChamberCapacity() + info.chamberCapacity <= 1.0f)) validSpecifications.add(info.getName());
+		}
+		return validSpecifications.toArray(new String[0]);
 	}
 
 	public void deactivate() {

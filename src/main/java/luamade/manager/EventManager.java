@@ -43,14 +43,14 @@ public class EventManager {
 		StarLoader.registerListener(SegmentPieceActivateEvent.class, new Listener<SegmentPieceActivateEvent>() {
 			@Override
 			public void onEvent(SegmentPieceActivateEvent event) {
-				if(!event.getSegmentPiece().getSegmentController().isOnServer()) return;
-				for(SegmentPiece segmentPiece : SegmentPieceUtils.getControlledPieces(event.getSegmentPiece())) {
-					for(Block block : ElementManager.getAllBlocks()) {
+				for(Block block : ElementManager.getAllBlocks()) {
+					for(SegmentPiece segmentPiece : SegmentPieceUtils.getControlledPieces(event.getSegmentPiece())) {
 						if(block instanceof ActivationInterface && segmentPiece.getType() == block.getId()) {
 							((ActivationInterface) block).onLogicActivation(segmentPiece, event.getSegmentPiece().isActive());
 							break;
 						}
 					}
+
 				}
 			}
 		}, instance);

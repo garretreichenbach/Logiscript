@@ -136,4 +136,8 @@ public class Entity {
 		}
 		return docked.toArray(new Entity[0]);
 	}
+
+	public float getSpeed() {
+		return segmentController.getSpeedCurrent();
+	}
 }
