@@ -4,6 +4,7 @@ import api.config.BlockConfig;
 import api.listener.events.controller.ClientInitializeEvent;
 import api.mod.StarMod;
 import luamade.element.ElementManager;
+import luamade.element.block.ComputerBlock;
 import luamade.manager.ConfigManager;
 import luamade.manager.EventManager;
 import luamade.manager.LuaManager;
@@ -49,7 +50,7 @@ public class LuaMade extends StarMod {
 
 	@Override
 	public void onBlockConfigLoad(BlockConfig config) {
-
+		ElementManager.addBlock(new ComputerBlock());
 		ElementManager.initialize();
 	}
 
