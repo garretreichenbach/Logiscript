@@ -18,7 +18,7 @@ public class Block {
     }
 
     public BlockInfo getInfo() {
-        return new BlockInfo(segmentPiece);
+        return new BlockInfo(segmentPiece.getInfo());
     }
 
     public boolean isActive() {

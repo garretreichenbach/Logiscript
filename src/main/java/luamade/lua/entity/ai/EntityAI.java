@@ -3,6 +3,7 @@ package luamade.lua.entity.ai;
 import api.common.GameCommon;
 import luamade.lua.entity.RemoteEntity;
 import org.schema.common.util.linAlg.Vector3i;
+import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.Ship;
 import org.schema.game.common.data.SimpleGameObject;
@@ -20,6 +21,10 @@ public class EntityAI {
 
 	public EntityAI(SegmentController segmentController) {
 		this.segmentController = segmentController;
+	}
+
+	public void setActive(boolean active) {
+		if(segmentController instanceof ManagedUsableSegmentController) ((ManagedUsableSegmentController<?>) segmentController).activateAI(active, true);
 	}
 
 	public void moveToSector(int[] sector) {

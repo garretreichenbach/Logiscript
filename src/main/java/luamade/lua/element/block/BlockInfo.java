@@ -1,17 +1,16 @@
 package luamade.lua.element.block;
 
-import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementInformation;
 
 public class BlockInfo {
 
     private final ElementInformation elementInfo;
 
-    public BlockInfo(SegmentPiece segmentPiece) {
-        elementInfo = segmentPiece.getInfo();
+    public BlockInfo(ElementInformation elementInfo) {
+       this.elementInfo = elementInfo;
     }
 
-    public String getElementName() {
+    public String getName() {
         return elementInfo.getName();
     }
 

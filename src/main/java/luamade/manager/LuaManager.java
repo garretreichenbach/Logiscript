@@ -28,16 +28,21 @@ public class LuaManager {
 		}
 	}
 
-	public static void run(String script, SegmentPiece segmentPiece) {
-		try {
-			Globals globals = JsePlatform.debugGlobals();
-			LuaValue console = CoerceJavaToLua.coerce(new Console(segmentPiece));
-			globals.set("console", console);
-			LuaValue chunk = globals.load(script.trim());
-			chunk.call();
-		} catch(Exception exception) {
-			exception.printStackTrace();
-		}
+	public static void run(final String script, final SegmentPiece segmentPiece) {
+		new Thread(segmentPiece.toString()) {
+			@Override
+			public void run() {
+				try {
+					Globals globals = JsePlatform.debugGlobals();
+					LuaValue console = CoerceJavaToLua.coerce(new Console(segmentPiece));
+					globals.set("console", console);
+					LuaValue chunk = globals.load(script.trim());
+					chunk.call();
+				} catch(Exception exception) {
+					exception.printStackTrace();
+				}
+			}
+		}.start();
 	}
 
 	public static Channel getChannel(String name) {

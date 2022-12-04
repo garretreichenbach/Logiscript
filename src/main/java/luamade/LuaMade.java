@@ -1,13 +1,17 @@
 package luamade;
 
+import api.config.BlockConfig;
 import api.listener.events.controller.ClientInitializeEvent;
 import api.listener.fastevents.FastListenerCommon;
 import api.mod.StarMod;
+import luamade.element.ElementManager;
 import luamade.listener.TextBlockDrawListener;
 import luamade.manager.ConfigManager;
 import luamade.manager.EventManager;
 import luamade.manager.LuaManager;
+import luamade.manager.ResourceManager;
 import luamade.utils.DataUtils;
+import org.schema.schine.resource.ResourceLoader;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,6 +48,17 @@ public class LuaMade extends StarMod {
 	@Override
 	public void onClientCreated(ClientInitializeEvent event) {
 		super.onClientCreated(event);
+	}
+
+	@Override
+	public void onBlockConfigLoad(BlockConfig config) {
+
+		ElementManager.initialize();
+	}
+
+	@Override
+	public void onResourceLoad(ResourceLoader loader) {
+		ResourceManager.loadResources(this, loader);
 	}
 
 	private void initLogger() {

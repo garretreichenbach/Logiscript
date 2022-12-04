@@ -2,6 +2,8 @@ package luamade.lua.entity;
 
 import luamade.lua.Faction;
 import luamade.lua.element.block.Block;
+import luamade.lua.element.system.module.ThrustModule;
+import luamade.lua.element.system.reactor.Reactor;
 import luamade.lua.entity.ai.EntityAI;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.SegmentController;
@@ -93,5 +95,45 @@ public class Entity {
 			}
 		}
 		return entities.toArray(new RemoteEntity[0]);
+	}
+
+	public boolean hasReactor() {
+		return getMaxReactorHP() > 0;
+	}
+
+	public Reactor getReactor() {
+		return new Reactor(segmentController);
+	}
+
+	public double getMaxReactorHP() {
+		return getReactor().getMaxHP();
+	}
+
+	public double getReactorHP() {
+		return getReactor().getHP();
+	}
+
+	public ThrustModule getThrustModule() {
+		return new ThrustModule(segmentController);
+	}
+
+	public Entity[] getTurrets() {
+		ArrayList<Entity> turrets = new ArrayList<>();
+		ArrayList<SegmentController> docked = new ArrayList<>();
+		segmentController.railController.getDockedRecusive(docked);
+		for(SegmentController controller : docked) {
+			if(controller.railController.isChildDock(segmentController) && controller.railController.isTurretDocked()) turrets.add(new Entity(controller));
+		}
+		return turrets.toArray(new Entity[0]);
+	}
+
+	public Entity[] getDocked() {
+		ArrayList<Entity> docked = new ArrayList<>();
+		ArrayList<SegmentController> dockedControllers = new ArrayList<>();
+		segmentController.railController.getDockedRecusive(dockedControllers);
+		for(SegmentController controller : dockedControllers) {
+			if(controller.railController.isChildDock(segmentController)) docked.add(new Entity(controller));
+		}
+		return docked.toArray(new Entity[0]);
 	}
 }
