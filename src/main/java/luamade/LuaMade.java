@@ -10,6 +10,7 @@ import luamade.manager.EventManager;
 import luamade.manager.LuaManager;
 import luamade.manager.ResourceManager;
 import luamade.network.client.RunScriptPacket;
+import luamade.network.client.SaveScriptPacket;
 import luamade.utils.DataUtils;
 import org.schema.schine.resource.ResourceLoader;
 
@@ -113,5 +114,6 @@ public class LuaMade extends StarMod {
 
 	private void registerPackets() {
 		PacketUtil.registerPacket(RunScriptPacket.class);
+		PacketUtil.registerPacket(SaveScriptPacket.class);
 	}
 }

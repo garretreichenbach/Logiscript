@@ -7,6 +7,7 @@ import api.utils.gui.GUIInputDialogPanel;
 import api.utils.gui.SimplePlayerTextInput;
 import luamade.manager.ConfigManager;
 import luamade.network.client.RunScriptPacket;
+import luamade.network.client.SaveScriptPacket;
 import luamade.system.module.ComputerModule;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.schine.common.OnInputChangedCallback;
@@ -150,8 +151,9 @@ public class ComputerDialog extends GUIInputDialog {
 				@Override
 				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
 					if(mouseEvent.pressedLeftMouse()) {
-						script = textBar.getTextArea().getCache();
+						script = textBar.getText();
 						computerModule.setScript(segmentPiece, script);
+						PacketUtil.sendPacketToServer(new SaveScriptPacket(segmentPiece.getSegmentController(), segmentPiece.getAbsoluteIndex(), script));
 					}
 				}
 
@@ -175,7 +177,7 @@ public class ComputerDialog extends GUIInputDialog {
 				@Override
 				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
 					if(mouseEvent.pressedLeftMouse() && segmentPiece != null) {
-						script = textBar.getTextArea().getCache();
+						script = textBar.getText();
 						computerModule.setScript(segmentPiece, script);
 						PacketUtil.sendPacketToServer(new RunScriptPacket(segmentPiece.getSegmentController(), segmentPiece.getAbsoluteIndex(), script));
 					}

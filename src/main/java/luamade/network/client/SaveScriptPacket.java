@@ -3,8 +3,10 @@ package luamade.network.client;
 import api.network.Packet;
 import api.network.PacketReadBuffer;
 import api.network.PacketWriteBuffer;
-import luamade.manager.LuaManager;
+import luamade.element.ElementManager;
+import luamade.system.module.ComputerModule;
 import org.schema.game.common.controller.SegmentController;
+import org.schema.game.common.data.ManagedSegmentController;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.player.PlayerState;
 
@@ -15,17 +17,17 @@ import java.io.IOException;
  *
  * @author TheDerpGamer (TheDerpGamer#0027)
  */
-public class RunScriptPacket extends Packet {
+public class SaveScriptPacket extends Packet {
 
 	private SegmentController segmentController;
 	private long index;
 	private String script;
 
-	public RunScriptPacket() {
+	public SaveScriptPacket() {
 
 	}
 
-	public RunScriptPacket(SegmentController segmentController, long index, String script) {
+	public SaveScriptPacket(SegmentController segmentController, long index, String script) {
 		this.segmentController = segmentController;
 		this.index = index;
 		this.script = script;
@@ -53,8 +55,10 @@ public class RunScriptPacket extends Packet {
 	@Override
 	public void processPacketOnServer(PlayerState playerState) {
 		try {
+			ManagedSegmentController<?> controller = (ManagedSegmentController<?>) segmentController;
+			ComputerModule module = (ComputerModule) controller.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId());
 			SegmentPiece segmentPiece = segmentController.getSegmentBuffer().getPointUnsave(index);
-			if(segmentPiece != null) LuaManager.run(script, segmentPiece);
+			if(segmentPiece != null) module.setScript(segmentPiece, script);
 		} catch(Exception exception) {
 			exception.printStackTrace();
 		}
