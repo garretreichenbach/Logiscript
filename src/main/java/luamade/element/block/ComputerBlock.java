@@ -28,6 +28,7 @@ public class ComputerBlock extends Block implements ActivationInterface {
 		blockInfo.setShoppable(true);
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price);
 		blockInfo.setOrientatable(true);
+		blockInfo.setCanActivate(true);
 
 		blockInfo.controlledBy.add((short) 405);
 		blockInfo.controlledBy.add((short) 993);
