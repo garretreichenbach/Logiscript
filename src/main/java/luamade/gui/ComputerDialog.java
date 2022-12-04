@@ -66,7 +66,7 @@ public class ComputerDialog extends GUIInputDialog {
 		private GUIActivatableTextBar textBar;
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback) {
-			super(inputState, "COMPUTER_PANEL", "", "", 1000, 600, guiCallback);
+			super(inputState, "COMPUTER_PANEL", "", "", 1000, 700, guiCallback);
 			setCancelButton(false);
 			setOkButton(false);
 		}
@@ -75,9 +75,9 @@ public class ComputerDialog extends GUIInputDialog {
 		public void onInit() {
 			super.onInit();
 			GUIContentPane contentPane = ((GUIDialogWindow) background).getMainContentPane();
-			contentPane.setTextBoxHeightLast(600);
+			contentPane.setTextBoxHeightLast(670);
 
-			GUIScrollablePanel scrollablePanel = new GUIScrollablePanel(570, getWidth(), contentPane.getContent(0), getState());
+			GUIScrollablePanel scrollablePanel = new GUIScrollablePanel(getWidth(), 670, contentPane.getContent(0), getState());
 			textBar = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.SMALL, ConfigManager.getMainConfig().getConfigurableInt("script-character-limit", 30000), ConfigManager.getMainConfig().getConfigurableInt("script-line-limit", 1000), "", contentPane.getContent(0), new TextCallback() {
 				@Override
 				public String[] getCommandPrefixes() {
@@ -199,7 +199,7 @@ public class ComputerDialog extends GUIInputDialog {
 				@Override
 				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
 					if(mouseEvent.pressedLeftMouse()) {
-						(new SimplePlayerTextInput("ENTER URL", "Enter the URL of the script you want to download") {
+						new SimplePlayerTextInput("ENTER URL", "Enter the URL of the script you want to download") {
 							@Override
 							public boolean onInput(String s) {
 								if(s == null || s.isEmpty()) return false;
@@ -210,7 +210,7 @@ public class ComputerDialog extends GUIInputDialog {
 									return true;
 								}
 							}
-						}).activate();
+						};
 					}
 				}
 
