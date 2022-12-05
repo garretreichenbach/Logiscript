@@ -24,13 +24,14 @@ public class LuaConsole extends LuaMadeUserdata {
             return CoerceJavaToLua.coerce(((LuaConsole) self).getBlock());
         }
     };
-    @Override
-    public LuaFunction luaInterface(String fname) {
-        switch (fname) {
-            case "getBlock":
-                return lua_getBlock;
-            default:
-                return null;
-        }
+
+    @LuaMadeCallable
+    public LuaValue getIntInc(Integer a) {
+        return LuaValue.valueOf(a+1);
+    }
+
+    @LuaMadeCallable
+    public LuaValue getIntInc(Integer a, String b) {
+        return LuaValue.valueOf(a+b.length()+1);
     }
 }
