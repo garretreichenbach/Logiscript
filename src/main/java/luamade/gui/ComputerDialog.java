@@ -11,6 +11,8 @@ import luamade.network.client.SaveScriptPacket;
 import luamade.system.module.ComputerModule;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.schine.common.OnInputChangedCallback;
+import org.schema.schine.common.TabCallback;
+import org.schema.schine.common.TextAreaInput;
 import org.schema.schine.common.TextCallback;
 import org.schema.schine.graphicsengine.core.MouseEvent;
 import org.schema.schine.graphicsengine.forms.font.FontLibrary;
@@ -82,7 +84,7 @@ public class ComputerDialog extends GUIInputDialog {
 			contentPane.setTextBoxHeightLast(580);
 
 			GUIScrollablePanel scrollablePanel = new GUIScrollablePanel(getWidth(), 580, contentPane.getContent(0), getState());
-			textBar = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.SMALL, ConfigManager.getMainConfig().getConfigurableInt("script-character-limit", 30000), ConfigManager.getMainConfig().getConfigurableInt("script-line-limit", 1000), "", contentPane.getContent(0), new TextCallback() {
+			textBar = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.MEDIUM, ConfigManager.getMainConfig().getConfigurableInt("script-character-limit", 30000), ConfigManager.getMainConfig().getConfigurableInt("script-line-limit", 1000), "", contentPane.getContent(0), new TextCallback() {
 				@Override
 				public String[] getCommandPrefixes() {
 					return new String[0];
@@ -116,6 +118,17 @@ public class ComputerDialog extends GUIInputDialog {
 			scrollablePanel.setContent(textBar);
 			textBar.getTextArea().getChatLog().clear();
 			if(script != null) textBar.setText(script);
+			textBar.getTextArea().onTabCallback = new TabCallback() {
+				@Override
+				public boolean catchTab(TextAreaInput textAreaInput) {
+					return true;
+				}
+
+				@Override
+				public void onEnter() {
+
+				}
+			};
 			scrollablePanel.onInit();
 			contentPane.getContent(0).attach(scrollablePanel);
 			scrollablePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);
