@@ -188,13 +188,13 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public void activateJamming(LuaBoolean active) {
+	public void activateJamming(boolean active) {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;
 			PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_JAM);
 			if(playerUsable instanceof StealthAddOn) {
 				StealthAddOn stealth = (StealthAddOn) playerUsable;
-				if(active.v) if(stealth.canExecute()) stealth.executeModule();
+				if(active) if(stealth.canExecute()) stealth.executeModule();
 				else if(stealth.isActive()) stealth.onRevealingAction();
 			}
 		}
@@ -223,13 +223,13 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public void activateCloaking(LuaBoolean active) {
+	public void activateCloaking(boolean active) {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;
 			PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_CLOAK);
 			if(playerUsable instanceof StealthAddOn) {
 				StealthAddOn stealth = (StealthAddOn) playerUsable;
-				if(active.v) if(stealth.canExecute()) stealth.executeModule();
+				if(active) if(stealth.canExecute()) stealth.executeModule();
 				else if(stealth.isActive()) stealth.onRevealingAction();
 			}
 		}
