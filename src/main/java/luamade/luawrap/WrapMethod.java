@@ -14,13 +14,13 @@ import java.util.Map;
 public class WrapMethod extends VarArgFunction {
     public final String name;
     private final Class<?> clazz;
-    private final Map<Integer, VarArgFunction> methods = new HashMap<>();
+    private final Map<LuaInteger, VarArgFunction> methods = new HashMap<>();
 
     public WrapMethod(String name_in, Class<?> clazz_in) {
         this.name = name_in;
         this.clazz = clazz_in;
 
-        Map<Integer, Method> ms = new HashMap<>();
+        Map<LuaInteger, Method> ms = new HashMap<>();
 
         for (Method m : this.clazz.getMethods()) {
             if (m.getName().equals(name) && m.isAnnotationPresent(LuaMadeCallable.class))
