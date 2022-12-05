@@ -2,6 +2,7 @@ package luamade.lua;
 
 import com.bulletphysics.linearmath.Transform;
 import luamade.lua.element.block.Block;
+import luamade.luawrap.LuaConsole;
 import luamade.manager.LuaManager;
 import org.schema.game.client.view.effects.RaisingIndication;
 import org.schema.game.client.view.gui.shiphud.HudIndicatorOverlay;
@@ -23,6 +24,10 @@ public class Console {
 
 	public Block getBlock() {
 		return new Block(segmentPiece); //Block is basically a wrapper class for SegmentPiece
+	}
+
+	public LuaConsole getLuaConsole() {
+		return new LuaConsole(segmentPiece);
 	}
 
 	public void print(String string) {
