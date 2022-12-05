@@ -56,7 +56,7 @@ public class Chamber extends LuaMadeUserdata {
 		for(short id : reactorElement.getPossibleSpecifications()) {
 			ElementInformation info = ElementKeyMap.getInfo(id);
 			LuaString compare = LuaString.valueOf(info.getName().toLowerCase().trim());
-			if(compare.equals(n) && id != thisInfo.getId() && info.isChamberPermitted(controller.getType()) && (getReactor().getChamberCapacity().tofloat() + info.chamberCapacity <= 1.0f)) {
+			if(compare.equals(n) && id != thisInfo.getId() && info.isChamberPermitted(controller.getType()) && (getReactor().getChamberCapacity() + info.chamberCapacity <= 1.0f)) {
 				reactorElement.convertToClientRequest(id);
 				controller.getManagerContainer().getPowerInterface().requestRecalibrate();
 				return;
@@ -69,7 +69,7 @@ public class Chamber extends LuaMadeUserdata {
 		ArrayList<LuaString> validSpecifications = new ArrayList<>();
 		for(short id : reactorElement.getPossibleSpecifications()) {
 			ElementInformation info = ElementKeyMap.getInfo(id);
-			if(info.isChamberPermitted(controller.getType()) && (getReactor().getChamberCapacity().tofloat() + info.chamberCapacity <= 1.0f)) validSpecifications.add(LuaString.valueOf(info.getName()));
+			if(info.isChamberPermitted(controller.getType()) && (getReactor().getChamberCapacity() + info.chamberCapacity <= 1.0f)) validSpecifications.add(LuaString.valueOf(info.getName()));
 		}
 		return validSpecifications.toArray(new LuaString[0]);
 	}
