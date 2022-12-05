@@ -2,7 +2,7 @@ package luamade.lua.entity.ai;
 
 import api.common.GameCommon;
 import luamade.lua.entity.RemoteEntity;
-import luamade.luawrap.LuaCallable;
+import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
@@ -25,12 +25,12 @@ public class EntityAI extends LuaMadeUserdata {
 		this.segmentController = segmentController;
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public void setActive(Boolean active) {
 		if(segmentController instanceof ManagedUsableSegmentController) ((ManagedUsableSegmentController<?>) segmentController).activateAI(active, true);
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public void moveToSector(Integer[] sector) {
 		if(segmentController instanceof Ship) {
 			try {
@@ -41,7 +41,7 @@ public class EntityAI extends LuaMadeUserdata {
 		}
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Integer[] getTargetSector() {
 		Vector3i sector = segmentController.getSector(new Vector3i());
 		if(segmentController instanceof Ship) {
@@ -54,7 +54,7 @@ public class EntityAI extends LuaMadeUserdata {
 		return new Integer[] {sector.x, sector.y, sector.z};
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public void setTarget(RemoteEntity entity) {
 		int id = entity.getId();
 		Sendable sendable = GameCommon.getGameObject(id);
@@ -77,7 +77,7 @@ public class EntityAI extends LuaMadeUserdata {
 		}
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public RemoteEntity getTarget() {
 		SimpleGameObject target = null;
 		if(segmentController instanceof Ship) {

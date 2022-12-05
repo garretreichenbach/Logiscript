@@ -1,6 +1,6 @@
 package luamade.lua;
 
-import luamade.luawrap.LuaCallable;
+import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.manager.LuaManager;
 
@@ -20,24 +20,24 @@ public class Channel extends LuaMadeUserdata {
 		this.password = password;
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public String getName() {
 		return name;
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public String[] getMessages(String password) {
 		if(password.equals(this.password)) return messages;
 		else return new String[] {"Invalid password!"};
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public String getLatestMessage(String password) {
 		if(password.equals(this.password)) return messages[messages.length - 1];
 		else return "Invalid password!";
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public void sendMessage(String password, String message) {
 		if(password.equals(this.password)) {
 			//message = "[" + (new Date()) + "] " + message;
@@ -49,7 +49,7 @@ public class Channel extends LuaMadeUserdata {
 		}
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public void removeChannel(String password) {
 		if(password.equals(this.password)) LuaManager.removeChannel(name);
 	}

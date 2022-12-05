@@ -1,7 +1,7 @@
 package luamade.lua.entity;
 
 import luamade.lua.Faction;
-import luamade.luawrap.LuaCallable;
+import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.controller.SegmentController;
 
@@ -19,22 +19,22 @@ public class RemoteEntity extends LuaMadeUserdata {
 		this.segmentController = segmentController;
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Integer getId() {
 		return segmentController.getId();
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public String getName() {
 		return segmentController.getRealName();
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Faction getFaction() {
 		return new Faction(segmentController.getFactionId());
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Float getSpeed() {
 		return segmentController.getSpeedCurrent();
 	}

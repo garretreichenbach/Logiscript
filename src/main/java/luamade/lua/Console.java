@@ -2,7 +2,7 @@ package luamade.lua;
 
 import com.bulletphysics.linearmath.Transform;
 import luamade.lua.element.block.Block;
-import luamade.luawrap.LuaCallable;
+import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.manager.LuaManager;
 import org.schema.game.client.view.effects.RaisingIndication;
@@ -23,12 +23,12 @@ public class Console extends LuaMadeUserdata {
 		this.segmentPiece = segmentPiece;
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Block getBlock() {
 		return new Block(segmentPiece); //Block is basically a wrapper class for SegmentPiece
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public void print(String string) {
 		//Only allow printing every 2 seconds
 		if(System.currentTimeMillis() - timer > 2000) {
@@ -43,7 +43,7 @@ public class Console extends LuaMadeUserdata {
 		}
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public void print(String string, float[] color) {
 		//Only allow printing every 2 seconds
 		if(System.currentTimeMillis() - timer > 2000) {
@@ -58,7 +58,7 @@ public class Console extends LuaMadeUserdata {
 		}
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public void printError(String string) {
 		//Only allow printing every 2 seconds
 		if(System.currentTimeMillis() - timer > 2000) {
@@ -73,12 +73,12 @@ public class Console extends LuaMadeUserdata {
 		}
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Channel getChannel(String name) {
 		return LuaManager.getChannel(name);
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Channel createChannel(String name, String password) {
 		return LuaManager.createChannel(name, password);
 	}

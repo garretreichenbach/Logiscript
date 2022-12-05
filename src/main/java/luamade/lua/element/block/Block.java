@@ -1,7 +1,7 @@
 package luamade.lua.element.block;
 
 import luamade.lua.entity.Entity;
-import luamade.luawrap.LuaCallable;
+import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.data.SegmentPiece;
 
@@ -11,33 +11,33 @@ public class Block extends LuaMadeUserdata {
         this.segmentPiece = piece;
     }
 
-    @LuaCallable
+    @LuaMadeCallable
     public Integer[] getPos() {
         return new Integer[] {segmentPiece.getAbsolutePosX(), segmentPiece.getAbsolutePosY(), segmentPiece.getAbsolutePosZ()};
     }
 
-    @LuaCallable
+    @LuaMadeCallable
     public Short getId() {
         return segmentPiece.getType();
     }
 
-    @LuaCallable
+    @LuaMadeCallable
     public BlockInfo getInfo() {
         return new BlockInfo(segmentPiece.getInfo());
     }
 
-    @LuaCallable
+    @LuaMadeCallable
     public Boolean isActive() {
         return segmentPiece.isActive();
     }
 
-    @LuaCallable
+    @LuaMadeCallable
     public void setActive(Boolean bool) {
         segmentPiece.setActive(bool);
         segmentPiece.applyToSegment(segmentPiece.getSegmentController().isOnServer());
     }
 
-    @LuaCallable
+    @LuaMadeCallable
     public Entity getEntity() {
         return new Entity(segmentPiece.getSegmentController());
     }

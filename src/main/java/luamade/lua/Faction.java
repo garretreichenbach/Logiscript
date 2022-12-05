@@ -1,7 +1,7 @@
 package luamade.lua;
 
 import api.common.GameCommon;
-import luamade.luawrap.LuaCallable;
+import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 
 /**
@@ -17,28 +17,28 @@ public class Faction extends LuaMadeUserdata {
 		this.factionId = factionId;
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public String getName() {
 		if(factionId != 0) return GameCommon.getGameState().getFactionManager().getFactionName(factionId);
 		else return "Neutral";
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Boolean isSameFaction(Faction faction) {
 		return factionId == faction.factionId;
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Boolean isFriend(Faction faction) {
 		return GameCommon.getGameState().getFactionManager().isFriend(factionId, faction.factionId);
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Boolean isEnemy(Faction faction) {
 		return GameCommon.getGameState().getFactionManager().isEnemy(factionId, faction.factionId);
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Boolean isNeutral(Faction faction) {
 		return GameCommon.getGameState().getFactionManager().isNeutral(factionId, faction.factionId);
 	}

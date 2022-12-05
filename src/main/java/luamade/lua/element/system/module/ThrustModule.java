@@ -1,6 +1,6 @@
 package luamade.lua.element.system.module;
 
-import luamade.luawrap.LuaCallable;
+import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.Ship;
@@ -19,28 +19,28 @@ public class ThrustModule extends LuaMadeUserdata implements ModuleInterface {
 		this.segmentController = segmentController;
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Float getTMR() {
 		ShipManagerContainer managerContainer = getContainer();
 		if(managerContainer != null) return managerContainer.getThrusterElementManager().getThrustMassRatio();
 		else return 0.0f;
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Float getThrust() {
 		ShipManagerContainer managerContainer = getContainer();
 		if(managerContainer != null) return managerContainer.getThrusterElementManager().getActualThrust();
 		else return 0.0f;
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Float getMaxSpeed() {
 		ShipManagerContainer managerContainer = getContainer();
 		if(managerContainer != null) return managerContainer.getThrusterElementManager().getMaxSpeedAbsolute();
 		else return 0.0f;
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	@Override
 	public Integer getSize() {
 		ShipManagerContainer managerContainer = getContainer();

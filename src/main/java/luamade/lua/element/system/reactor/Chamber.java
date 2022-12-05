@@ -1,7 +1,7 @@
 package luamade.lua.element.system.reactor;
 
 import luamade.lua.element.block.BlockInfo;
-import luamade.luawrap.LuaCallable;
+import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.PlayerUsableInterface;
@@ -31,22 +31,22 @@ public class Chamber extends LuaMadeUserdata {
 		this.reactor = reactor;
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public String getName() {
 		return ElementKeyMap.getInfo(reactorElement.type).getName();
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public BlockInfo getBlockInfo() {
 		return new BlockInfo(ElementKeyMap.getInfo(reactorElement.type));
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Reactor getReactor() {
 		return reactor;
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public void specify(String name) {
 		name = name.trim().toLowerCase();
 		ElementInformation thisInfo = ElementKeyMap.getInfo(reactorElement.type);
@@ -60,7 +60,7 @@ public class Chamber extends LuaMadeUserdata {
 		}
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public String[] getValidSpecifications() {
 		ArrayList<String> validSpecifications = new ArrayList<>();
 		for(short id : reactorElement.getPossibleSpecifications()) {
@@ -70,13 +70,13 @@ public class Chamber extends LuaMadeUserdata {
 		return validSpecifications.toArray(new String[0]);
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public void deactivate() {
 		reactorElement.convertToClientRequest((short) ElementKeyMap.getInfo(reactorElement.type).chamberRoot);
 		controller.getManagerContainer().getPowerInterface().requestRecalibrate();
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Boolean canTrigger() {
 		for(PlayerUsableInterface usableInterface : controller.getManagerContainer().getPlayerUsable()) {
 			for(Map.Entry<Long, Short> entry : PlayerUsableInterface.ICONS.entrySet()) {
@@ -87,7 +87,7 @@ public class Chamber extends LuaMadeUserdata {
 		return false;
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Float getCharge() {
 		ManagerReloadInterface reloadInterface = getReloadInterface();
 		if(reloadInterface instanceof RecharchableSingleModule) {
@@ -96,7 +96,7 @@ public class Chamber extends LuaMadeUserdata {
 		} else return 0.0f;
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public void trigger() {
 		if(canTrigger()) {
 			ManagerReloadInterface reloadInterface = getReloadInterface();

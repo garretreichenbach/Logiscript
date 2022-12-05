@@ -23,7 +23,7 @@ public class WrapMethod extends VarArgFunction {
         Map<Integer, Method> ms = new HashMap<>();
 
         for (Method m : this.clazz.getMethods()) {
-            if (m.getName().equals(name) && m.isAnnotationPresent(LuaCallable.class))
+            if (m.getName().equals(name) && m.isAnnotationPresent(LuaMadeCallable.class))
                 ms.put(m.getParameters().length, m);
         }
 
@@ -36,7 +36,7 @@ public class WrapMethod extends VarArgFunction {
 
                     if (!clazz.isInstance(vargs.arg1())) throw new LuaError("Method must be called with self.");
 
-                    if (!m.isAnnotationPresent(LuaCallable.class)) throw new LuaError("Method not LuaMadeCallable.");
+                    if (!m.isAnnotationPresent(LuaMadeCallable.class)) throw new LuaError("Method not LuaMadeCallable.");
 
 
                     try {

@@ -1,7 +1,7 @@
 package luamade.lua.element.system.reactor;
 
 import api.utils.game.SegmentControllerUtils;
-import luamade.luawrap.LuaCallable;
+import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SegmentController;
@@ -22,7 +22,7 @@ public class Reactor extends LuaMadeUserdata {
 		this.segmentController = segmentController;
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Double getRecharge() {
 		try {
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
@@ -32,7 +32,7 @@ public class Reactor extends LuaMadeUserdata {
 		}
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Double getConsumption() {
 		try {
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
@@ -42,7 +42,7 @@ public class Reactor extends LuaMadeUserdata {
 		}
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Float getChamberCapacity() {
 		try {
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
@@ -52,7 +52,7 @@ public class Reactor extends LuaMadeUserdata {
 		}
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Chamber[] getChambers() {
 		try {
 			ArrayList<Chamber> chambers = new ArrayList<>();
@@ -64,7 +64,7 @@ public class Reactor extends LuaMadeUserdata {
 		}
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Chamber[] getActiveChambers() {
 		try {
 			ArrayList<Chamber> chambers = new ArrayList<>();
@@ -78,7 +78,7 @@ public class Reactor extends LuaMadeUserdata {
 		}
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Long getMaxHP() {
 		try {
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
@@ -88,7 +88,7 @@ public class Reactor extends LuaMadeUserdata {
 		}
 	}
 
-	@LuaCallable
+	@LuaMadeCallable
 	public Long getHP() {
 		try {
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
