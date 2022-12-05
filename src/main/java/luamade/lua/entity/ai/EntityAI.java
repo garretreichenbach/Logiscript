@@ -2,6 +2,8 @@ package luamade.lua.entity.ai;
 
 import api.common.GameCommon;
 import luamade.lua.entity.RemoteEntity;
+import luamade.luawrap.LuaCallable;
+import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SegmentController;
@@ -15,7 +17,7 @@ import org.schema.schine.network.objects.Sendable;
  *
  * @author TheDerpGamer (TheDerpGamer#0027)
  */
-public class EntityAI {
+public class EntityAI extends LuaMadeUserdata {
 
 	private final SegmentController segmentController;
 
@@ -23,11 +25,13 @@ public class EntityAI {
 		this.segmentController = segmentController;
 	}
 
-	public void setActive(boolean active) {
+	@LuaCallable
+	public void setActive(Boolean active) {
 		if(segmentController instanceof ManagedUsableSegmentController) ((ManagedUsableSegmentController<?>) segmentController).activateAI(active, true);
 	}
 
-	public void moveToSector(int[] sector) {
+	@LuaCallable
+	public void moveToSector(Integer[] sector) {
 		if(segmentController instanceof Ship) {
 			try {
 				((TargetProgram<?>) (((Ship) segmentController).getAiConfiguration().getAiEntityState().getCurrentProgram())).setSectorTarget(new Vector3i(sector[0], sector[1], sector[2]));
@@ -37,7 +41,8 @@ public class EntityAI {
 		}
 	}
 
-	public int[] getTargetSector() {
+	@LuaCallable
+	public Integer[] getTargetSector() {
 		Vector3i sector = segmentController.getSector(new Vector3i());
 		if(segmentController instanceof Ship) {
 			try {
@@ -46,9 +51,10 @@ public class EntityAI {
 				exception.printStackTrace();
 			}
 		}
-		return new int[] {sector.x, sector.y, sector.z};
+		return new Integer[] {sector.x, sector.y, sector.z};
 	}
 
+	@LuaCallable
 	public void setTarget(RemoteEntity entity) {
 		int id = entity.getId();
 		Sendable sendable = GameCommon.getGameObject(id);
@@ -71,6 +77,7 @@ public class EntityAI {
 		}
 	}
 
+	@LuaCallable
 	public RemoteEntity getTarget() {
 		SimpleGameObject target = null;
 		if(segmentController instanceof Ship) {

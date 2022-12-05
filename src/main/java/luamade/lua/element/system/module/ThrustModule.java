@@ -1,6 +1,7 @@
 package luamade.lua.element.system.module;
 
-import luamade.lua.element.system.module.ModuleInterface;
+import luamade.luawrap.LuaCallable;
+import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.Ship;
 import org.schema.game.common.controller.elements.ShipManagerContainer;
@@ -10,7 +11,7 @@ import org.schema.game.common.controller.elements.ShipManagerContainer;
  *
  * @author TheDerpGamer (TheDerpGamer#0027)
  */
-public class ThrustModule implements ModuleInterface {
+public class ThrustModule extends LuaMadeUserdata implements ModuleInterface {
 
 	private final SegmentController segmentController;
 
@@ -18,26 +19,30 @@ public class ThrustModule implements ModuleInterface {
 		this.segmentController = segmentController;
 	}
 
-	public double getTMR() {
+	@LuaCallable
+	public Float getTMR() {
 		ShipManagerContainer managerContainer = getContainer();
 		if(managerContainer != null) return managerContainer.getThrusterElementManager().getThrustMassRatio();
-		else return 0;
+		else return 0.0f;
 	}
 
-	public double getThrust() {
+	@LuaCallable
+	public Float getThrust() {
 		ShipManagerContainer managerContainer = getContainer();
 		if(managerContainer != null) return managerContainer.getThrusterElementManager().getActualThrust();
-		else return 0;
+		else return 0.0f;
 	}
 
-	public double getMaxSpeed() {
+	@LuaCallable
+	public Float getMaxSpeed() {
 		ShipManagerContainer managerContainer = getContainer();
 		if(managerContainer != null) return managerContainer.getThrusterElementManager().getMaxSpeedAbsolute();
-		else return 0;
+		else return 0.0f;
 	}
 
+	@LuaCallable
 	@Override
-	public int getSize() {
+	public Integer getSize() {
 		ShipManagerContainer managerContainer = getContainer();
 		if(managerContainer != null) return managerContainer.getThrust().getElementManager().totalSize;
 		else return 0;

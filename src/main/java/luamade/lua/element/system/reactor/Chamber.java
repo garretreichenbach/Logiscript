@@ -1,6 +1,8 @@
 package luamade.lua.element.system.reactor;
 
 import luamade.lua.element.block.BlockInfo;
+import luamade.luawrap.LuaCallable;
+import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.PlayerUsableInterface;
 import org.schema.game.common.controller.elements.ManagerReloadInterface;
@@ -17,7 +19,7 @@ import java.util.Map;
  *
  * @author TheDerpGamer (TheDerpGamer#0027)
  */
-public class Chamber {
+public class Chamber extends LuaMadeUserdata {
 
 	private final ReactorElement reactorElement;
 	private final ManagedUsableSegmentController<?> controller;
@@ -29,18 +31,22 @@ public class Chamber {
 		this.reactor = reactor;
 	}
 
+	@LuaCallable
 	public String getName() {
 		return ElementKeyMap.getInfo(reactorElement.type).getName();
 	}
 
+	@LuaCallable
 	public BlockInfo getBlockInfo() {
 		return new BlockInfo(ElementKeyMap.getInfo(reactorElement.type));
 	}
 
+	@LuaCallable
 	public Reactor getReactor() {
 		return reactor;
 	}
 
+	@LuaCallable
 	public void specify(String name) {
 		name = name.trim().toLowerCase();
 		ElementInformation thisInfo = ElementKeyMap.getInfo(reactorElement.type);
@@ -54,6 +60,7 @@ public class Chamber {
 		}
 	}
 
+	@LuaCallable
 	public String[] getValidSpecifications() {
 		ArrayList<String> validSpecifications = new ArrayList<>();
 		for(short id : reactorElement.getPossibleSpecifications()) {
@@ -63,12 +70,14 @@ public class Chamber {
 		return validSpecifications.toArray(new String[0]);
 	}
 
+	@LuaCallable
 	public void deactivate() {
 		reactorElement.convertToClientRequest((short) ElementKeyMap.getInfo(reactorElement.type).chamberRoot);
 		controller.getManagerContainer().getPowerInterface().requestRecalibrate();
 	}
 
-	public boolean canTrigger() {
+	@LuaCallable
+	public Boolean canTrigger() {
 		for(PlayerUsableInterface usableInterface : controller.getManagerContainer().getPlayerUsable()) {
 			for(Map.Entry<Long, Short> entry : PlayerUsableInterface.ICONS.entrySet()) {
 				if(entry.getValue() == reactorElement.type && usableInterface.isPlayerUsable() && (entry.getKey() == usableInterface.getUsableId())) return true;
@@ -78,7 +87,8 @@ public class Chamber {
 		return false;
 	}
 
-	public float getCharge() {
+	@LuaCallable
+	public Float getCharge() {
 		ManagerReloadInterface reloadInterface = getReloadInterface();
 		if(reloadInterface instanceof RecharchableSingleModule) {
 			RecharchableSingleModule recharchableSingleModule = (RecharchableSingleModule) reloadInterface;
@@ -86,6 +96,7 @@ public class Chamber {
 		} else return 0.0f;
 	}
 
+	@LuaCallable
 	public void trigger() {
 		if(canTrigger()) {
 			ManagerReloadInterface reloadInterface = getReloadInterface();

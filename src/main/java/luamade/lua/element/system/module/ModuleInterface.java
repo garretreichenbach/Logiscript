@@ -1,5 +1,7 @@
 package luamade.lua.element.system.module;
 
+import luamade.luawrap.LuaCallable;
+
 /**
  * [Description]
  *
@@ -7,5 +9,6 @@ package luamade.lua.element.system.module;
  */
 public interface ModuleInterface {
 
-	int getSize();
+	@LuaCallable
+	Integer getSize();
 }

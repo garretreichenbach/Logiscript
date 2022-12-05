@@ -5,6 +5,8 @@ import luamade.lua.element.block.Block;
 import luamade.lua.element.system.module.ThrustModule;
 import luamade.lua.element.system.reactor.Reactor;
 import luamade.lua.entity.ai.EntityAI;
+import luamade.luawrap.LuaCallable;
+import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.Ship;
@@ -12,51 +14,61 @@ import org.schema.schine.network.objects.Sendable;
 
 import java.util.ArrayList;
 
-public class Entity {
+public class Entity extends LuaMadeUserdata {
 	private final SegmentController segmentController;
 
 	public Entity(SegmentController controller) {
 		this.segmentController = controller;
 	}
 
-	public int getId() {
+	@LuaCallable
+	public Integer getId() {
 		return segmentController.getId();
 	}
 
+	@LuaCallable
 	public String getName() {
 		return segmentController.getRealName();
 	}
 
+	@LuaCallable
 	public void setName(String name) {
 		segmentController.setRealName(name);
 	}
 
-	public Block getBlockAt(int[] pos) {
+	@LuaCallable
+	public Block getBlockAt(Integer[] pos) {
 		return new Block(segmentController.getSegmentBuffer().getPointUnsave(pos[0], pos[1], pos[2]));
 	}
 
-	public Block getBlockAt(int x, int y, int z) {
+	@LuaCallable
+	public Block getBlockAt(Integer x, Integer y, Integer z) {
 		return new Block(segmentController.getSegmentBuffer().getPointUnsave(x, y, z));
 	}
 
+	@LuaCallable
 	public EntityAI getAI() {
 		return new EntityAI(segmentController);
 	}
 
-	public int[] getSector() {
+	@LuaCallable
+	public Integer[] getSector() {
 		Vector3i sector = segmentController.getSector(new Vector3i());
-		return new int[] {sector.x, sector.y, sector.z};
+		return new Integer[] {sector.x, sector.y, sector.z};
 	}
 
-	public int[] getSystem() {
+	@LuaCallable
+	public Integer[] getSystem() {
 		Vector3i system = segmentController.getSystem(new Vector3i());
-		return new int[] {system.x, system.y, system.z};
+		return new Integer[] {system.x, system.y, system.z};
 	}
 
+	@LuaCallable
 	public Faction getFaction() {
 		return new Faction(segmentController.getFactionId());
 	}
 
+	@LuaCallable
 	public RemoteEntity[] getNearbyEntities() {
 		ArrayList<RemoteEntity> entities = new ArrayList<>();
 		Vector3i thisSector = segmentController.getSector(new Vector3i());
@@ -77,6 +89,7 @@ public class Entity {
 		return entities.toArray(new RemoteEntity[0]);
 	}
 
+	@LuaCallable
 	public RemoteEntity[] getNearbyEntities(int radius) {
 		ArrayList<RemoteEntity> entities = new ArrayList<>();
 		Vector3i thisSector = segmentController.getSector(new Vector3i());
@@ -97,26 +110,32 @@ public class Entity {
 		return entities.toArray(new RemoteEntity[0]);
 	}
 
-	public boolean hasReactor() {
+	@LuaCallable
+	public Boolean hasReactor() {
 		return getMaxReactorHP() > 0;
 	}
 
+	@LuaCallable
 	public Reactor getReactor() {
 		return new Reactor(segmentController);
 	}
 
-	public double getMaxReactorHP() {
+	@LuaCallable
+	public Long getMaxReactorHP() {
 		return getReactor().getMaxHP();
 	}
 
-	public double getReactorHP() {
+	@LuaCallable
+	public Long getReactorHP() {
 		return getReactor().getHP();
 	}
 
+	@LuaCallable
 	public ThrustModule getThrustModule() {
 		return new ThrustModule(segmentController);
 	}
 
+	@LuaCallable
 	public Entity[] getTurrets() {
 		ArrayList<Entity> turrets = new ArrayList<>();
 		ArrayList<SegmentController> docked = new ArrayList<>();
@@ -127,6 +146,7 @@ public class Entity {
 		return turrets.toArray(new Entity[0]);
 	}
 
+	@LuaCallable
 	public Entity[] getDocked() {
 		ArrayList<Entity> docked = new ArrayList<>();
 		ArrayList<SegmentController> dockedControllers = new ArrayList<>();
@@ -137,7 +157,8 @@ public class Entity {
 		return docked.toArray(new Entity[0]);
 	}
 
-	public float getSpeed() {
+	@LuaCallable
+	public Float getSpeed() {
 		return segmentController.getSpeedCurrent();
 	}
 }

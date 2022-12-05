@@ -1,6 +1,8 @@
 package luamade.lua.element.system.reactor;
 
 import api.utils.game.SegmentControllerUtils;
+import luamade.luawrap.LuaCallable;
+import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.elements.power.reactor.tree.ReactorElement;
@@ -12,7 +14,7 @@ import java.util.ArrayList;
  *
  * @author TheDerpGamer (TheDerpGamer#0027)
  */
-public class Reactor {
+public class Reactor extends LuaMadeUserdata {
 
 	private final SegmentController segmentController;
 
@@ -20,33 +22,37 @@ public class Reactor {
 		this.segmentController = segmentController;
 	}
 
-	public double getRecharge() {
+	@LuaCallable
+	public Double getRecharge() {
 		try {
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
 			return controller.getManagerContainer().getPowerInterface().getRechargeRatePowerPerSec();
 		} catch(Exception exception) {
-			return 0;
+			return 0.0;
 		}
 	}
 
-	public double getConsumption() {
+	@LuaCallable
+	public Double getConsumption() {
 		try {
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
 			return controller.getManagerContainer().getPowerInterface().getCurrentConsumption();
 		} catch(Exception exception) {
-			return 0;
+			return 0.0;
 		}
 	}
 
-	public float getChamberCapacity() {
+	@LuaCallable
+	public Float getChamberCapacity() {
 		try {
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
 			return controller.getManagerContainer().getPowerInterface().getChamberCapacity();
 		} catch(Exception exception) {
-			return 0;
+			return 0.0f;
 		}
 	}
 
+	@LuaCallable
 	public Chamber[] getChambers() {
 		try {
 			ArrayList<Chamber> chambers = new ArrayList<>();
@@ -58,6 +64,7 @@ public class Reactor {
 		}
 	}
 
+	@LuaCallable
 	public Chamber[] getActiveChambers() {
 		try {
 			ArrayList<Chamber> chambers = new ArrayList<>();
@@ -71,21 +78,23 @@ public class Reactor {
 		}
 	}
 
-	public double getMaxHP() {
+	@LuaCallable
+	public Long getMaxHP() {
 		try {
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
 			return controller.getManagerContainer().getPowerInterface().getCurrentMaxHp();
 		} catch(Exception exception) {
-			return 0;
+			return 0L;
 		}
 	}
 
-	public double getHP() {
+	@LuaCallable
+	public Long getHP() {
 		try {
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
 			return controller.getManagerContainer().getPowerInterface().getCurrentHp();
 		} catch(Exception exception) {
-			return 0;
+			return 0L;
 		}
 	}
 }

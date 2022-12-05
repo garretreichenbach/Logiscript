@@ -6,7 +6,6 @@ import luamade.lua.Channel;
 import luamade.lua.Console;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaValue;
-import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 import org.luaj.vm2.lib.jse.JsePlatform;
 import org.schema.game.common.data.SegmentPiece;
 
@@ -40,7 +39,7 @@ public class LuaManager {
 			public void run() {
 				try {
 					Globals globals = JsePlatform.debugGlobals();
-					LuaValue console = CoerceJavaToLua.coerce(new Console(segmentPiece));
+					LuaValue console = new Console(segmentPiece);
 					globals.set("luajava", LuaValue.NIL);
 					globals.set("console", console);
 					LuaValue chunk = globals.load(script);

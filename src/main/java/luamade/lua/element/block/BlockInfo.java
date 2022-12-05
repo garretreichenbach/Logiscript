@@ -1,8 +1,10 @@
 package luamade.lua.element.block;
 
+import luamade.luawrap.LuaCallable;
+import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.data.element.ElementInformation;
 
-public class BlockInfo {
+public class BlockInfo extends LuaMadeUserdata {
 
     private final ElementInformation elementInfo;
 
@@ -10,11 +12,13 @@ public class BlockInfo {
        this.elementInfo = elementInfo;
     }
 
+    @LuaCallable
     public String getName() {
         return elementInfo.getName();
     }
 
-    public int getId() {
+    @LuaCallable
+    public Short getId() {
         return elementInfo.getId();
     }
 }
