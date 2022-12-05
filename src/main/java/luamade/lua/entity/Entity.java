@@ -8,8 +8,10 @@ import luamade.lua.entity.ai.EntityAI;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
+import org.schema.game.common.controller.PlayerUsableInterface;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.Ship;
+import org.schema.game.common.controller.elements.cloaking.StealthAddOn;
 import org.schema.schine.network.objects.Sendable;
 
 import java.util.ArrayList;
@@ -160,5 +162,75 @@ public class Entity extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public Float getSpeed() {
 		return segmentController.getSpeedCurrent();
+	}
+
+	@LuaMadeCallable
+	public Boolean isJamming() {
+		if(segmentController instanceof Ship) {
+			Ship ship = (Ship) segmentController;
+			PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_CLOAK);
+			return playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).isActive();
+		}
+		return false;
+	}
+
+	@LuaMadeCallable
+	public Boolean canJam() {
+		if(!isJamming()) {
+			if(segmentController instanceof Ship) {
+				Ship ship = (Ship) segmentController;
+				PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_CLOAK);
+				return playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).canExecute();
+			}
+		}
+		return false;
+	}
+
+	@LuaMadeCallable
+	public void activateJamming(Boolean active) {
+		if(segmentController instanceof Ship) {
+			Ship ship = (Ship) segmentController;
+			PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_JAM);
+			if(playerUsable instanceof StealthAddOn) {
+				StealthAddOn stealth = (StealthAddOn) playerUsable;
+				if(active) if(stealth.canExecute()) stealth.executeModule();
+				else if(stealth.isActive()) stealth.onRevealingAction();
+			}
+		}
+	}
+
+	@LuaMadeCallable
+	public Boolean isCloaking() {
+		if(segmentController instanceof Ship) {
+			Ship ship = (Ship) segmentController;
+			PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_JAM);
+			return playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).isActive();
+		}
+		return false;
+	}
+
+	@LuaMadeCallable
+	public Boolean canCloak() {
+		if(!isCloaking()) {
+			if(segmentController instanceof Ship) {
+				Ship ship = (Ship) segmentController;
+				PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_CLOAK);
+				return playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).canExecute();
+			}
+		}
+		return false;
+	}
+
+	@LuaMadeCallable
+	public void activateCloaking(Boolean active) {
+		if(segmentController instanceof Ship) {
+			Ship ship = (Ship) segmentController;
+			PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_CLOAK);
+			if(playerUsable instanceof StealthAddOn) {
+				StealthAddOn stealth = (StealthAddOn) playerUsable;
+				if(active) if(stealth.canExecute()) stealth.executeModule();
+				else if(stealth.isActive()) stealth.onRevealingAction();
+			}
+		}
 	}
 }
