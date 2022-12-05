@@ -92,7 +92,7 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public RemoteEntity[] getNearbyEntities(int radius) {
+	public RemoteEntity[] getNearbyEntities(Integer radius) {
 		ArrayList<RemoteEntity> entities = new ArrayList<>();
 		Vector3i thisSector = segmentController.getSector(new Vector3i());
 		for(Sendable sendable : segmentController.getState().getLocalAndRemoteObjectContainer().getLocalObjects().values()) {

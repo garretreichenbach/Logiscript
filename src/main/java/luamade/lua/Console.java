@@ -44,7 +44,7 @@ public class Console extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public void print(String string, float[] color) {
+	public void print(String string, Float[] color) {
 		//Only allow printing every 2 seconds
 		if(System.currentTimeMillis() - timer > 2000) {
 			System.out.println(string);
