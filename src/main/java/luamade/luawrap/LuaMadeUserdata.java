@@ -1,9 +1,6 @@
 package luamade.luawrap;
 
-import org.luaj.vm2.LuaFunction;
-import org.luaj.vm2.LuaTable;
-import org.luaj.vm2.LuaUserdata;
-import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.*;
 import org.luaj.vm2.lib.TwoArgFunction;
 
 import java.util.HashMap;
@@ -16,7 +13,8 @@ public abstract class LuaMadeUserdata extends LuaUserdata {
     private final static LuaFunction f = new TwoArgFunction() {
         @Override public LuaValue call(LuaValue ud, LuaValue key) {
             if (! (ud instanceof LuaMadeUserdata) || !key.isstring())
-                return NIL;
+                throw new LuaError("LuaMade userdatum must be indexed by string.");
+
             String methodName = key.tojstring();
 
             if (!methodWraps.containsKey(ud.getClass()))
@@ -26,7 +24,6 @@ public abstract class LuaMadeUserdata extends LuaUserdata {
 
             if (!methods.containsKey(methodName))
                 methods.put(methodName, new WrapMethod(methodName, ((LuaMadeUserdata) ud).getClass()));
-
 
             return methods.get(key.tojstring());
         }
