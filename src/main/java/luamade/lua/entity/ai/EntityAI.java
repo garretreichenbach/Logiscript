@@ -4,6 +4,8 @@ import api.common.GameCommon;
 import luamade.lua.entity.RemoteEntity;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import org.luaj.vm2.LuaBoolean;
+import org.luaj.vm2.LuaInteger;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SegmentController;
@@ -26,15 +28,15 @@ public class EntityAI extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public void setActive(Boolean active) {
-		if(segmentController instanceof ManagedUsableSegmentController) ((ManagedUsableSegmentController<?>) segmentController).activateAI(active, true);
+	public void setActive(LuaBoolean active) {
+		if(segmentController instanceof ManagedUsableSegmentController) ((ManagedUsableSegmentController<?>) segmentController).activateAI(active.v, true);
 	}
 
 	@LuaMadeCallable
-	public void moveToSector(Integer[] sector) {
+	public void moveToSector(LuaInteger[] sector) {
 		if(segmentController instanceof Ship) {
 			try {
-				((TargetProgram<?>) (((Ship) segmentController).getAiConfiguration().getAiEntityState().getCurrentProgram())).setSectorTarget(new Vector3i(sector[0], sector[1], sector[2]));
+				((TargetProgram<?>) (((Ship) segmentController).getAiConfiguration().getAiEntityState().getCurrentProgram())).setSectorTarget(new Vector3i(sector[0].v, sector[1].v, sector[2].v));
 			} catch(Exception exception) {
 				exception.printStackTrace();
 			}
@@ -42,7 +44,7 @@ public class EntityAI extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Integer[] getTargetSector() {
+	public LuaInteger[] getTargetSector() {
 		Vector3i sector = segmentController.getSector(new Vector3i());
 		if(segmentController instanceof Ship) {
 			try {
@@ -51,12 +53,12 @@ public class EntityAI extends LuaMadeUserdata {
 				exception.printStackTrace();
 			}
 		}
-		return new Integer[] {sector.x, sector.y, sector.z};
+		return new LuaInteger[] {LuaInteger.valueOf(sector.x), LuaInteger.valueOf(sector.y), LuaInteger.valueOf(sector.z)};
 	}
 
 	@LuaMadeCallable
 	public void setTarget(RemoteEntity entity) {
-		int id = entity.getId();
+		int id = entity.getId().v;
 		Sendable sendable = GameCommon.getGameObject(id);
 		if(sendable instanceof SegmentController) {
 			SegmentController target = (SegmentController) sendable;

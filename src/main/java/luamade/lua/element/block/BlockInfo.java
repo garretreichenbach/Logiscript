@@ -2,6 +2,8 @@ package luamade.lua.element.block;
 
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import org.luaj.vm2.LuaInteger;
+import org.luaj.vm2.LuaString;
 import org.schema.game.common.data.element.ElementInformation;
 
 public class BlockInfo extends LuaMadeUserdata {
@@ -13,12 +15,12 @@ public class BlockInfo extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
-    public String getName() {
-        return elementInfo.getName();
+    public LuaString getName() {
+        return LuaString.valueOf(elementInfo.getName());
     }
 
     @LuaMadeCallable
-    public Short getId() {
-        return elementInfo.getId();
+    public LuaInteger getId() {
+        return LuaInteger.valueOf(elementInfo.getId());
     }
 }

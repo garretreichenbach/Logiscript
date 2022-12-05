@@ -3,6 +3,9 @@ package luamade.lua.element.system.reactor;
 import luamade.lua.element.block.BlockInfo;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import org.luaj.vm2.LuaBoolean;
+import org.luaj.vm2.LuaDouble;
+import org.luaj.vm2.LuaString;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.PlayerUsableInterface;
 import org.schema.game.common.controller.elements.ManagerReloadInterface;
@@ -32,8 +35,8 @@ public class Chamber extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public String getName() {
-		return ElementKeyMap.getInfo(reactorElement.type).getName();
+	public LuaString getName() {
+		return LuaString.valueOf(ElementKeyMap.getInfo(reactorElement.type).getName());
 	}
 
 	@LuaMadeCallable
@@ -47,12 +50,13 @@ public class Chamber extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public void specify(String name) {
-		name = name.trim().toLowerCase();
+	public void specify(LuaString name) {
+		LuaString n = LuaString.valueOf(name.tojstring().toLowerCase().trim());
 		ElementInformation thisInfo = ElementKeyMap.getInfo(reactorElement.type);
 		for(short id : reactorElement.getPossibleSpecifications()) {
 			ElementInformation info = ElementKeyMap.getInfo(id);
-			if(info.getName().toLowerCase().equals(name) && id != thisInfo.getId() && info.isChamberPermitted(controller.getType()) && (getReactor().getChamberCapacity() + info.chamberCapacity <= 1.0f)) {
+			LuaString compare = LuaString.valueOf(info.getName().toLowerCase().trim());
+			if(compare.equals(n) && id != thisInfo.getId() && info.isChamberPermitted(controller.getType()) && (getReactor().getChamberCapacity() + info.chamberCapacity <= 1.0f)) {
 				reactorElement.convertToClientRequest(id);
 				controller.getManagerContainer().getPowerInterface().requestRecalibrate();
 				return;
@@ -61,13 +65,13 @@ public class Chamber extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public String[] getValidSpecifications() {
-		ArrayList<String> validSpecifications = new ArrayList<>();
+	public LuaString[] getValidSpecifications() {
+		ArrayList<LuaString> validSpecifications = new ArrayList<>();
 		for(short id : reactorElement.getPossibleSpecifications()) {
 			ElementInformation info = ElementKeyMap.getInfo(id);
-			if(info.isChamberPermitted(controller.getType()) && (getReactor().getChamberCapacity() + info.chamberCapacity <= 1.0f)) validSpecifications.add(info.getName());
+			if(info.isChamberPermitted(controller.getType()) && (getReactor().getChamberCapacity() + info.chamberCapacity <= 1.0f)) validSpecifications.add(LuaString.valueOf(info.getName()));
 		}
-		return validSpecifications.toArray(new String[0]);
+		return validSpecifications.toArray(new LuaString[0]);
 	}
 
 	@LuaMadeCallable
@@ -77,28 +81,28 @@ public class Chamber extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Boolean canTrigger() {
+	public LuaBoolean canTrigger() {
 		for(PlayerUsableInterface usableInterface : controller.getManagerContainer().getPlayerUsable()) {
 			for(Map.Entry<Long, Short> entry : PlayerUsableInterface.ICONS.entrySet()) {
-				if(entry.getValue() == reactorElement.type && usableInterface.isPlayerUsable() && (entry.getKey() == usableInterface.getUsableId())) return true;
+				if(entry.getValue() == reactorElement.type && usableInterface.isPlayerUsable() && (entry.getKey() == usableInterface.getUsableId())) return LuaBoolean.valueOf(true);
 			}
-			if(usableInterface.isPlayerUsable() && usableInterface.getUsableId() == reactorElement.type) return true;
+			if(usableInterface.isPlayerUsable() && usableInterface.getUsableId() == reactorElement.type) return LuaBoolean.valueOf(true);
 		}
-		return false;
+		return LuaBoolean.valueOf(false);
 	}
 
 	@LuaMadeCallable
-	public Float getCharge() {
+	public LuaDouble getCharge() {
 		ManagerReloadInterface reloadInterface = getReloadInterface();
 		if(reloadInterface instanceof RecharchableSingleModule) {
 			RecharchableSingleModule recharchableSingleModule = (RecharchableSingleModule) reloadInterface;
-			return recharchableSingleModule.getCharge();
-		} else return 0.0f;
+			return (LuaDouble) LuaDouble.valueOf(recharchableSingleModule.getCharge());
+		} else return (LuaDouble) LuaDouble.valueOf(0.0f);
 	}
 
 	@LuaMadeCallable
 	public void trigger() {
-		if(canTrigger()) {
+		if(canTrigger().v) {
 			ManagerReloadInterface reloadInterface = getReloadInterface();
 			if(reloadInterface instanceof RecharchableSingleModule) {
 				RecharchableSingleModule recharchableSingleModule = (RecharchableSingleModule) reloadInterface;

@@ -3,6 +3,8 @@ package luamade.lua.element.block;
 import luamade.lua.entity.Entity;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import org.luaj.vm2.LuaBoolean;
+import org.luaj.vm2.LuaInteger;
 import org.schema.game.common.data.SegmentPiece;
 
 public class Block extends LuaMadeUserdata {
@@ -12,13 +14,13 @@ public class Block extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
-    public Integer[] getPos() {
-        return new Integer[] {segmentPiece.getAbsolutePosX(), segmentPiece.getAbsolutePosY(), segmentPiece.getAbsolutePosZ()};
+    public LuaInteger[] getPos() {
+        return new LuaInteger[] {LuaInteger.valueOf(segmentPiece.getAbsolutePosX()), LuaInteger.valueOf(segmentPiece.getAbsolutePosY()), LuaInteger.valueOf(segmentPiece.getAbsolutePosZ())};
     }
 
     @LuaMadeCallable
-    public Short getId() {
-        return segmentPiece.getType();
+    public LuaInteger getId() {
+        return LuaInteger.valueOf(segmentPiece.getType());
     }
 
     @LuaMadeCallable
@@ -27,13 +29,13 @@ public class Block extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
-    public Boolean isActive() {
-        return segmentPiece.isActive();
+    public LuaBoolean isActive() {
+        return LuaBoolean.valueOf(segmentPiece.isActive());
     }
 
     @LuaMadeCallable
-    public void setActive(Boolean bool) {
-        segmentPiece.setActive(bool);
+    public void setActive(LuaBoolean bool) {
+        segmentPiece.setActive(bool.v);
         segmentPiece.applyToSegment(segmentPiece.getSegmentController().isOnServer());
     }
 

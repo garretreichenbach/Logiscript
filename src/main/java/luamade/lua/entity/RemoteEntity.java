@@ -3,6 +3,9 @@ package luamade.lua.entity;
 import luamade.lua.Faction;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import org.luaj.vm2.LuaDouble;
+import org.luaj.vm2.LuaInteger;
+import org.luaj.vm2.LuaString;
 import org.schema.game.common.controller.SegmentController;
 
 /**
@@ -20,13 +23,13 @@ public class RemoteEntity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Integer getId() {
-		return segmentController.getId();
+	public LuaInteger getId() {
+		return LuaInteger.valueOf(segmentController.getId());
 	}
 
 	@LuaMadeCallable
-	public String getName() {
-		return segmentController.getRealName();
+	public LuaString getName() {
+		return LuaString.valueOf(segmentController.getRealName());
 	}
 
 	@LuaMadeCallable
@@ -35,7 +38,7 @@ public class RemoteEntity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Float getSpeed() {
-		return segmentController.getSpeedCurrent();
+	public LuaDouble getSpeed() {
+		return (LuaDouble) LuaDouble.valueOf(segmentController.getSpeedCurrent());
 	}
 }

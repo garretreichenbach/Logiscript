@@ -7,6 +7,7 @@ import luamade.lua.element.system.reactor.Reactor;
 import luamade.lua.entity.ai.EntityAI;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import org.luaj.vm2.*;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.PlayerUsableInterface;
 import org.schema.game.common.controller.SegmentController;
@@ -24,28 +25,28 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Integer getId() {
-		return segmentController.getId();
+	public LuaInteger getId() {
+		return LuaInteger.valueOf(segmentController.getId());
 	}
 
 	@LuaMadeCallable
-	public String getName() {
-		return segmentController.getRealName();
+	public LuaString getName() {
+		return LuaString.valueOf(segmentController.getRealName());
 	}
 
 	@LuaMadeCallable
-	public void setName(String name) {
-		segmentController.setRealName(name);
+	public void setName(LuaString name) {
+		segmentController.setRealName(name.tojstring());
 	}
 
 	@LuaMadeCallable
-	public Block getBlockAt(Integer[] pos) {
-		return new Block(segmentController.getSegmentBuffer().getPointUnsave(pos[0], pos[1], pos[2]));
+	public Block getBlockAt(LuaInteger[] pos) {
+		return new Block(segmentController.getSegmentBuffer().getPointUnsave(pos[0].v, pos[1].v, pos[2].v));
 	}
 
 	@LuaMadeCallable
-	public Block getBlockAt(Integer x, Integer y, Integer z) {
-		return new Block(segmentController.getSegmentBuffer().getPointUnsave(x, y, z));
+	public Block getBlockAt(LuaInteger x, LuaInteger y, LuaInteger z) {
+		return new Block(segmentController.getSegmentBuffer().getPointUnsave(x.v, y.v, z.v));
 	}
 
 	@LuaMadeCallable
@@ -54,15 +55,15 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Integer[] getSector() {
+	public LuaInteger[] getSector() {
 		Vector3i sector = segmentController.getSector(new Vector3i());
-		return new Integer[] {sector.x, sector.y, sector.z};
+		return new LuaInteger[] {LuaInteger.valueOf(sector.x), LuaInteger.valueOf(sector.y), LuaInteger.valueOf(sector.z)};
 	}
 
 	@LuaMadeCallable
-	public Integer[] getSystem() {
+	public LuaInteger[] getSystem() {
 		Vector3i system = segmentController.getSystem(new Vector3i());
-		return new Integer[] {system.x, system.y, system.z};
+		return new LuaInteger[] {LuaInteger.valueOf(system.x), LuaInteger.valueOf(system.y), LuaInteger.valueOf(system.z)};
 	}
 
 	@LuaMadeCallable
@@ -85,14 +86,14 @@ public class Entity extends LuaMadeUserdata {
 				Vector3i diff = new Vector3i(thisSector);
 				diff.sub(sector);
 				diff.absolute();
-				if(diff.x <= 1 && diff.y <= 1 && diff.z <= 1 && controller.getId() != getId()) entities.add(new RemoteEntity(controller));
+				if(diff.x <= 1 && diff.y <= 1 && diff.z <= 1 && controller.getId() != getId().v) entities.add(new RemoteEntity(controller));
 			}
 		}
 		return entities.toArray(new RemoteEntity[0]);
 	}
 
 	@LuaMadeCallable
-	public RemoteEntity[] getNearbyEntities(Integer radius) {
+	public RemoteEntity[] getNearbyEntities(LuaInteger radius) {
 		ArrayList<RemoteEntity> entities = new ArrayList<>();
 		Vector3i thisSector = segmentController.getSector(new Vector3i());
 		for(Sendable sendable : segmentController.getState().getLocalAndRemoteObjectContainer().getLocalObjects().values()) {
@@ -106,15 +107,15 @@ public class Entity extends LuaMadeUserdata {
 				Vector3i diff = new Vector3i(thisSector);
 				diff.sub(sector);
 				diff.absolute();
-				if(diff.x <= radius && diff.y <= radius && diff.z <= radius && controller.getId() != getId()) entities.add(new RemoteEntity(controller));
+				if(diff.x <= radius.v && diff.y <= radius.v && diff.z <= radius.v && controller.getId() != getId().v) entities.add(new RemoteEntity(controller));
 			}
 		}
 		return entities.toArray(new RemoteEntity[0]);
 	}
 
 	@LuaMadeCallable
-	public Boolean hasReactor() {
-		return getMaxReactorHP() > 0;
+	public LuaBoolean hasReactor() {
+		return LuaBoolean.valueOf(getMaxReactorHP().v > 0);
 	}
 
 	@LuaMadeCallable
@@ -123,12 +124,12 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Long getMaxReactorHP() {
+	public LuaInteger getMaxReactorHP() {
 		return getReactor().getMaxHP();
 	}
 
 	@LuaMadeCallable
-	public Long getReactorHP() {
+	public LuaInteger getReactorHP() {
 		return getReactor().getHP();
 	}
 
@@ -160,75 +161,75 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Float getSpeed() {
-		return segmentController.getSpeedCurrent();
+	public LuaDouble getSpeed() {
+		return (LuaDouble) LuaDouble.valueOf(segmentController.getSpeedCurrent());
 	}
 
 	@LuaMadeCallable
-	public Boolean isJamming() {
+	public LuaBoolean isJamming() {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;
-			PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_CLOAK);
-			return playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).isActive();
+			PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_JAM);
+			return LuaBoolean.valueOf(playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).isActive());
 		}
-		return false;
+		return LuaBoolean.valueOf(false);
 	}
 
 	@LuaMadeCallable
-	public Boolean canJam() {
-		if(!isJamming()) {
+	public LuaBoolean canJam() {
+		if(!isJamming().v) {
 			if(segmentController instanceof Ship) {
 				Ship ship = (Ship) segmentController;
-				PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_CLOAK);
-				return playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).canExecute();
+				PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_JAM);
+				return LuaBoolean.valueOf(playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).canExecute());
 			}
 		}
-		return false;
+		return LuaBoolean.valueOf(false);
 	}
 
 	@LuaMadeCallable
-	public void activateJamming(Boolean active) {
+	public void activateJamming(LuaBoolean active) {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;
 			PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_JAM);
 			if(playerUsable instanceof StealthAddOn) {
 				StealthAddOn stealth = (StealthAddOn) playerUsable;
-				if(active) if(stealth.canExecute()) stealth.executeModule();
+				if(active.v) if(stealth.canExecute()) stealth.executeModule();
 				else if(stealth.isActive()) stealth.onRevealingAction();
 			}
 		}
 	}
 
 	@LuaMadeCallable
-	public Boolean isCloaking() {
+	public LuaBoolean isCloaking() {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;
-			PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_JAM);
-			return playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).isActive();
+			PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_CLOAK);
+			return LuaBoolean.valueOf(playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).isActive());
 		}
-		return false;
+		return LuaBoolean.valueOf(false);
 	}
 
 	@LuaMadeCallable
-	public Boolean canCloak() {
-		if(!isCloaking()) {
+	public LuaBoolean canCloak() {
+		if(!isCloaking().v) {
 			if(segmentController instanceof Ship) {
 				Ship ship = (Ship) segmentController;
 				PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_CLOAK);
-				return playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).canExecute();
+				return LuaBoolean.valueOf(playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).canExecute());
 			}
 		}
-		return false;
+		return LuaBoolean.valueOf(false);
 	}
 
 	@LuaMadeCallable
-	public void activateCloaking(Boolean active) {
+	public void activateCloaking(LuaBoolean active) {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;
 			PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_CLOAK);
 			if(playerUsable instanceof StealthAddOn) {
 				StealthAddOn stealth = (StealthAddOn) playerUsable;
-				if(active) if(stealth.canExecute()) stealth.executeModule();
+				if(active.v) if(stealth.canExecute()) stealth.executeModule();
 				else if(stealth.isActive()) stealth.onRevealingAction();
 			}
 		}

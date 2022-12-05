@@ -3,6 +3,8 @@ package luamade.lua.element.system.reactor;
 import api.utils.game.SegmentControllerUtils;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import org.luaj.vm2.LuaDouble;
+import org.luaj.vm2.LuaInteger;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.elements.power.reactor.tree.ReactorElement;
@@ -23,32 +25,32 @@ public class Reactor extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Double getRecharge() {
+	public LuaDouble getRecharge() {
 		try {
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
-			return controller.getManagerContainer().getPowerInterface().getRechargeRatePowerPerSec();
+			return (LuaDouble) LuaDouble.valueOf(controller.getManagerContainer().getPowerInterface().getRechargeRatePowerPerSec());
 		} catch(Exception exception) {
-			return 0.0;
+			return (LuaDouble) LuaDouble.valueOf(0.0);
 		}
 	}
 
 	@LuaMadeCallable
-	public Double getConsumption() {
+	public LuaDouble getConsumption() {
 		try {
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
-			return controller.getManagerContainer().getPowerInterface().getCurrentConsumption();
+			return (LuaDouble) LuaDouble.valueOf(controller.getManagerContainer().getPowerInterface().getCurrentConsumption());
 		} catch(Exception exception) {
-			return 0.0;
+			return (LuaDouble) LuaDouble.valueOf(0.0);
 		}
 	}
 
 	@LuaMadeCallable
-	public Float getChamberCapacity() {
+	public LuaDouble getChamberCapacity() {
 		try {
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
-			return controller.getManagerContainer().getPowerInterface().getChamberCapacity();
+			return (LuaDouble) LuaDouble.valueOf(controller.getManagerContainer().getPowerInterface().getChamberCapacity());
 		} catch(Exception exception) {
-			return 0.0f;
+			return (LuaDouble) LuaDouble.valueOf(0.0f);
 		}
 	}
 
@@ -79,22 +81,22 @@ public class Reactor extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Long getMaxHP() {
+	public LuaInteger getMaxHP() {
 		try {
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
-			return controller.getManagerContainer().getPowerInterface().getCurrentMaxHp();
+			return (LuaInteger) LuaInteger.valueOf(controller.getManagerContainer().getPowerInterface().getCurrentMaxHp());
 		} catch(Exception exception) {
-			return 0L;
+			return LuaInteger.valueOf(0);
 		}
 	}
 
 	@LuaMadeCallable
-	public Long getHP() {
+	public LuaInteger getHP() {
 		try {
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
-			return controller.getManagerContainer().getPowerInterface().getCurrentHp();
+			return (LuaInteger) LuaInteger.valueOf(controller.getManagerContainer().getPowerInterface().getCurrentHp());
 		} catch(Exception exception) {
-			return 0L;
+			return LuaInteger.valueOf(0);
 		}
 	}
 }

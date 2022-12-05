@@ -2,6 +2,8 @@ package luamade.lua.element.system.module;
 
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import org.luaj.vm2.LuaDouble;
+import org.luaj.vm2.LuaInteger;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.Ship;
 import org.schema.game.common.controller.elements.ShipManagerContainer;
@@ -20,32 +22,32 @@ public class ThrustModule extends LuaMadeUserdata implements ModuleInterface {
 	}
 
 	@LuaMadeCallable
-	public Float getTMR() {
+	public LuaDouble getTMR() {
 		ShipManagerContainer managerContainer = getContainer();
-		if(managerContainer != null) return managerContainer.getThrusterElementManager().getThrustMassRatio();
-		else return 0.0f;
+		if(managerContainer != null) return (LuaDouble) LuaDouble.valueOf(managerContainer.getThrusterElementManager().getThrustMassRatio());
+		else return (LuaDouble) LuaDouble.valueOf(0.0f);
 	}
 
 	@LuaMadeCallable
-	public Float getThrust() {
+	public LuaDouble getThrust() {
 		ShipManagerContainer managerContainer = getContainer();
-		if(managerContainer != null) return managerContainer.getThrusterElementManager().getActualThrust();
-		else return 0.0f;
+		if(managerContainer != null) return (LuaDouble) LuaDouble.valueOf(managerContainer.getThrusterElementManager().getActualThrust());
+		else return (LuaDouble) LuaDouble.valueOf(0.0f);
 	}
 
 	@LuaMadeCallable
-	public Float getMaxSpeed() {
+	public LuaDouble getMaxSpeed() {
 		ShipManagerContainer managerContainer = getContainer();
-		if(managerContainer != null) return managerContainer.getThrusterElementManager().getMaxSpeedAbsolute();
-		else return 0.0f;
+		if(managerContainer != null) return (LuaDouble) LuaDouble.valueOf(managerContainer.getThrusterElementManager().getMaxSpeedAbsolute());
+		else return (LuaDouble) LuaDouble.valueOf(0.0f);
 	}
 
 	@LuaMadeCallable
 	@Override
-	public Integer getSize() {
+	public LuaInteger getSize() {
 		ShipManagerContainer managerContainer = getContainer();
-		if(managerContainer != null) return managerContainer.getThrust().getElementManager().totalSize;
-		else return 0;
+		if(managerContainer != null) return LuaInteger.valueOf(managerContainer.getThrust().getElementManager().totalSize);
+		else return LuaInteger.valueOf(0);
 	}
 
 	private ShipManagerContainer getContainer() {

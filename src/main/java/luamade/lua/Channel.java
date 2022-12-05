@@ -3,6 +3,7 @@ package luamade.lua;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.manager.LuaManager;
+import org.luaj.vm2.LuaString;
 
 /**
  * [Description]
@@ -21,36 +22,39 @@ public class Channel extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public String getName() {
-		return name;
+	public LuaString getName() {
+		return LuaString.valueOf(name);
 	}
 
 	@LuaMadeCallable
-	public String[] getMessages(String password) {
-		if(password.equals(this.password)) return messages;
-		else return new String[] {"Invalid password!"};
+	public LuaString[] getMessages(LuaString password) {
+		if(password.tojstring().equals(this.password)) {
+			LuaString[] messages = new LuaString[this.messages.length];
+			for(int i = 0; i < this.messages.length; i ++) messages[i] = LuaString.valueOf(this.messages[i]);
+			return messages;
+		} else return new LuaString[] {LuaString.valueOf("Invalid password!")};
 	}
 
 	@LuaMadeCallable
-	public String getLatestMessage(String password) {
-		if(password.equals(this.password)) return messages[messages.length - 1];
-		else return "Invalid password!";
+	public LuaString getLatestMessage(LuaString password) {
+		if(password.tojstring().equals(this.password)) return getMessages(password)[messages.length - 1];
+		else return LuaString.valueOf("Invalid password!");
 	}
 
 	@LuaMadeCallable
-	public void sendMessage(String password, String message) {
-		if(password.equals(this.password)) {
+	public void sendMessage(LuaString password, LuaString message) {
+		if(password.tojstring().equals(this.password)) {
 			//message = "[" + (new Date()) + "] " + message;
 			String[] newMessages = new String[messages.length + 1];
 			System.arraycopy(messages, 0, newMessages, 0, messages.length);
-			newMessages[messages.length] = message;
+			newMessages[messages.length] = message.tojstring();
 			messages = newMessages;
 			System.out.println("[" + name + "] " + message);
 		}
 	}
 
 	@LuaMadeCallable
-	public void removeChannel(String password) {
-		if(password.equals(this.password)) LuaManager.removeChannel(name);
+	public void removeChannel(LuaString password) {
+		if(password.tojstring().equals(this.password)) LuaManager.removeChannel(name);
 	}
 }
