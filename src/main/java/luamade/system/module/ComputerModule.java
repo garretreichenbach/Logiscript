@@ -54,8 +54,10 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 			String[] computers = ((String) data).split("\\|");
 			for(String computer : computers) {
 				if(computer.contains("_,")) {
-					String[] computerData = computer.split("_,");
-					computerMap.put(Long.parseLong(computerData[0]), computerData[1]);
+					try {
+						String[] computerData = computer.split("_,");
+						computerMap.put(Long.parseLong(computerData[0]), computerData[1]);
+					} catch(Exception ignored) {}
 				}
 			}
 		}

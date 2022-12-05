@@ -15,6 +15,7 @@ import org.schema.game.common.data.SegmentPiece;
 public class Console {
 
 	private final SegmentPiece segmentPiece;
+	private long timer;
 
 	public Console(SegmentPiece segmentPiece) {
 		this.segmentPiece = segmentPiece;
@@ -25,23 +26,45 @@ public class Console {
 	}
 
 	public void print(String string) {
-		System.out.println(string);
-		Transform transform = new Transform();
-		segmentPiece.getTransform(transform);
-		RaisingIndication raisingIndication = new RaisingIndication(transform, string, 1.0f, 1.0f, 1.0f, 1.0f);
-		raisingIndication.speed = 0.1f;
-		raisingIndication.lifetime = 15.0f;
-		HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
+		//Only allow printing every 2 seconds
+		if(System.currentTimeMillis() - timer > 2000) {
+			System.out.println(string);
+			Transform transform = new Transform();
+			segmentPiece.getTransform(transform);
+			RaisingIndication raisingIndication = new RaisingIndication(transform, string, 1.0f, 1.0f, 1.0f, 1.0f);
+			raisingIndication.speed = 0.1f;
+			raisingIndication.lifetime = 15.0f;
+			HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
+			timer = System.currentTimeMillis();
+		}
+	}
+
+	public void print(String string, float[] color) {
+		//Only allow printing every 2 seconds
+		if(System.currentTimeMillis() - timer > 2000) {
+			System.out.println(string);
+			Transform transform = new Transform();
+			segmentPiece.getTransform(transform);
+			RaisingIndication raisingIndication = new RaisingIndication(transform, string, color[0], color[1], color[2], color[3]);
+			raisingIndication.speed = 0.1f;
+			raisingIndication.lifetime = 15.0f;
+			HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
+			timer = System.currentTimeMillis();
+		}
 	}
 
 	public void error(String string) {
-		System.err.println(string);
-		Transform transform = new Transform();
-		segmentPiece.getTransform(transform);
-		RaisingIndication raisingIndication = new RaisingIndication(transform, string, 1.0f, 0.3f, 0.3f, 1.0f);
-		raisingIndication.speed = 0.1f;
-		raisingIndication.lifetime = 15.0f;
-		HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
+		//Only allow printing every 2 seconds
+		if(System.currentTimeMillis() - timer > 2000) {
+			System.err.println(string);
+			Transform transform = new Transform();
+			segmentPiece.getTransform(transform);
+			RaisingIndication raisingIndication = new RaisingIndication(transform, string, 1.0f, 0.3f, 0.3f, 1.0f);
+			raisingIndication.speed = 0.1f;
+			raisingIndication.lifetime = 15.0f;
+			HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
+			timer = System.currentTimeMillis();
+		}
 	}
 
 	public Channel getChannel(String name) {

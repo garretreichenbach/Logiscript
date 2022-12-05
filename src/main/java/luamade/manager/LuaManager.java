@@ -11,6 +11,7 @@ import org.luaj.vm2.lib.jse.JsePlatform;
 import org.schema.game.common.data.SegmentPiece;
 
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * [Description]
@@ -19,6 +20,7 @@ import java.util.HashMap;
  */
 public class LuaManager {
 
+	private static final ConcurrentHashMap<SegmentPiece, Thread> threadMap = new ConcurrentHashMap<>();
 	private static final HashMap<String, Channel> channels = new HashMap<>();
 
 	public static void initialize(LuaMade instance) {
@@ -29,7 +31,11 @@ public class LuaManager {
 	}
 
 	public static void run(final String script, final SegmentPiece segmentPiece) {
-		new Thread(segmentPiece.toString()) {
+		if(threadMap.containsKey(segmentPiece)) {
+			threadMap.get(segmentPiece).interrupt();
+			threadMap.remove(segmentPiece);
+		}
+		threadMap.put(segmentPiece, new Thread(segmentPiece.toString()) {
 			@Override
 			public void run() {
 				try {
@@ -43,7 +49,8 @@ public class LuaManager {
 					exception.printStackTrace();
 				}
 			}
-		}.start();
+		});
+		threadMap.get(segmentPiece).start();
 	}
 
 	public static Channel getChannel(String name) {

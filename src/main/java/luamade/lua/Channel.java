@@ -2,8 +2,6 @@ package luamade.lua;
 
 import luamade.manager.LuaManager;
 
-import java.util.Date;
-
 /**
  * [Description]
  *
@@ -29,18 +27,19 @@ public class Channel {
 		else return new String[] {"Invalid password!"};
 	}
 
-	public String[] getLatestMessage(String password) {
-		if(password.equals(this.password)) return new String[] {messages[messages.length - 1]};
-		else return new String[] {"Invalid password!"};
+	public String getLatestMessage(String password) {
+		if(password.equals(this.password)) return messages[messages.length - 1];
+		else return "Invalid password!";
 	}
 
 	public void sendMessage(String password, String message) {
 		if(password.equals(this.password)) {
-			message = "[" + (new Date()) + "] " + message;
+			//message = "[" + (new Date()) + "] " + message;
 			String[] newMessages = new String[messages.length + 1];
 			System.arraycopy(messages, 0, newMessages, 0, messages.length);
 			newMessages[messages.length] = message;
 			messages = newMessages;
+			System.out.println("[" + name + "] " + message);
 		}
 	}
 

@@ -115,7 +115,7 @@ public class ComputerDialog extends GUIInputDialog {
 			});
 			scrollablePanel.setContent(textBar);
 			textBar.getTextArea().getChatLog().clear();
-			textBar.setText(script);
+			if(script != null) textBar.setText(script);
 			scrollablePanel.onInit();
 			contentPane.getContent(0).attach(scrollablePanel);
 			scrollablePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);

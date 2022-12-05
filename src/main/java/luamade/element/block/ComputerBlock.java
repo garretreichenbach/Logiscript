@@ -68,7 +68,7 @@ public class ComputerBlock extends Block implements ActivationInterface {
 	@Override
 	public void onLogicActivation(SegmentPiece target, boolean active) {
 		try {
-			if(!active) return;
+			if(!active || !target.isActive()) return;
 			ComputerModule computerModule = getModule(target);
 			if(computerModule != null && !computerModule.getScript(target).isEmpty()) computerModule.runScript(target);
 		} catch(Exception exception) {
