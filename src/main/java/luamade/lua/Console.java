@@ -5,8 +5,6 @@ import luamade.lua.element.block.Block;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.manager.LuaManager;
-import org.luaj.vm2.LuaDouble;
-import org.luaj.vm2.LuaString;
 import org.schema.game.client.view.effects.RaisingIndication;
 import org.schema.game.client.view.gui.shiphud.HudIndicatorOverlay;
 import org.schema.game.common.data.SegmentPiece;
@@ -31,13 +29,13 @@ public class Console extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public void print(LuaString string) {
+	public void print(String string) {
 		//Only allow printing every 2 seconds
 		if(System.currentTimeMillis() - timer > 2000) {
 			System.out.println(string);
 			Transform transform = new Transform();
 			segmentPiece.getTransform(transform);
-			RaisingIndication raisingIndication = new RaisingIndication(transform, string.tojstring(), 1.0f, 1.0f, 1.0f, 1.0f);
+			RaisingIndication raisingIndication = new RaisingIndication(transform, string, 1.0f, 1.0f, 1.0f, 1.0f);
 			raisingIndication.speed = 0.1f;
 			raisingIndication.lifetime = 15.0f;
 			HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
@@ -46,13 +44,13 @@ public class Console extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public void print(LuaString string, LuaDouble[] color) {
+	public void print(String string, Float[] color) {
 		//Only allow printing every 2 seconds
 		if(System.currentTimeMillis() - timer > 2000) {
 			System.out.println(string);
 			Transform transform = new Transform();
 			segmentPiece.getTransform(transform);
-			RaisingIndication raisingIndication = new RaisingIndication(transform, string.tojstring(), color[0].tofloat(), color[1].tofloat(), color[2].tofloat(), color[3].tofloat());
+			RaisingIndication raisingIndication = new RaisingIndication(transform, string, color[0], color[1], color[2], color[3]);
 			raisingIndication.speed = 0.1f;
 			raisingIndication.lifetime = 15.0f;
 			HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
@@ -61,13 +59,13 @@ public class Console extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public void printError(LuaString string) {
+	public void printError(String string) {
 		//Only allow printing every 2 seconds
 		if(System.currentTimeMillis() - timer > 2000) {
 			System.err.println(string);
 			Transform transform = new Transform();
 			segmentPiece.getTransform(transform);
-			RaisingIndication raisingIndication = new RaisingIndication(transform, string.tojstring(), 1.0f, 0.3f, 0.3f, 1.0f);
+			RaisingIndication raisingIndication = new RaisingIndication(transform, string, 1.0f, 0.3f, 0.3f, 1.0f);
 			raisingIndication.speed = 0.1f;
 			raisingIndication.lifetime = 15.0f;
 			HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
@@ -76,12 +74,12 @@ public class Console extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Channel getChannel(LuaString name) {
-		return LuaManager.getChannel(name.tojstring());
+	public Channel getChannel(String name) {
+		return LuaManager.getChannel(name);
 	}
 
 	@LuaMadeCallable
-	public Channel createChannel(LuaString name, LuaString password) {
-		return LuaManager.createChannel(name.tojstring(), password.tojstring());
+	public Channel createChannel(String name, String password) {
+		return LuaManager.createChannel(name, password);
 	}
 }

@@ -5,7 +5,6 @@ import luamade.LuaMade;
 import luamade.lua.Channel;
 import luamade.lua.Console;
 import org.luaj.vm2.Globals;
-import org.luaj.vm2.LuaString;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.JsePlatform;
 import org.schema.game.common.data.SegmentPiece;
@@ -26,7 +25,7 @@ public class LuaManager {
 	public static void initialize(LuaMade instance) {
 		for(Object obj : PersistentObjectUtil.getObjects(instance.getSkeleton(), Channel.class)) {
 			Channel channel = (Channel) obj;
-			channels.put(channel.getName().tojstring(), channel);
+			channels.put(channel.getName(), channel);
 		}
 	}
 
@@ -46,11 +45,6 @@ public class LuaManager {
 					LuaValue chunk = globals.load(script);
 					chunk.call();
 				} catch(Exception exception) {
-					Globals globals = JsePlatform.debugGlobals();
-					Console console = new Console(segmentPiece);
-					globals.set("luajava", LuaValue.NIL);
-					globals.set("console", console);
-					console.printError(LuaString.valueOf(exception.getMessage().split("stack traceback:")[0]));
 					exception.printStackTrace();
 				}
 			}

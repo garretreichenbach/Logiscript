@@ -91,7 +91,7 @@ public class LuaMade extends StarMod {
 				for(File logFile : trimmedLogFiles) {
 					if(logFile == null) continue;
 					String fileName = logFile.getName().replace(".txt", "");
-					int logNumber = LuaInteger.parseInt(fileName.substring(fileName.indexOf("log") + 3)) + 1;
+					int logNumber = Integer.parseInt(fileName.substring(fileName.indexOf("log") + 3)) + 1;
 					String newName = logFolderPath + "/log" + logNumber + ".txt";
 					if(logNumber < ConfigManager.getMainConfig().getInt("max-world-logs") - 1) logFile.renameTo(new File(newName));
 					else logFile.delete();

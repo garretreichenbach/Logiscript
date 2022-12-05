@@ -1,7 +1,6 @@
 package luamade.lua.element.system.module;
 
 import luamade.luawrap.LuaMadeCallable;
-import org.luaj.vm2.LuaInteger;
 
 /**
  * [Description]
@@ -11,5 +10,5 @@ import org.luaj.vm2.LuaInteger;
 public interface ModuleInterface {
 
 	@LuaMadeCallable
-	LuaInteger getSize();
+	Integer getSize();
 }
