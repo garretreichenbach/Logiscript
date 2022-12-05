@@ -53,6 +53,19 @@ public class Reactor extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public Chamber getChamber(String name) {
+		try {
+			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
+			for(ReactorElement element : SegmentControllerUtils.getAllChambers(controller)) {
+				if(element.getInfo().getName().toLowerCase().trim().equals(name.toLowerCase().trim())) return new Chamber(element, controller, this);
+			}
+		} catch(Exception exception) {
+			return null;
+		}
+		return null;
+	}
+
+	@LuaMadeCallable
 	public Chamber[] getChambers() {
 		try {
 			ArrayList<Chamber> chambers = new ArrayList<>();

@@ -168,7 +168,7 @@ public class Entity extends LuaMadeUserdata {
 	public Boolean isJamming() {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;
-			PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_CLOAK);
+			PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_JAM);
 			return playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).isActive();
 		}
 		return false;
@@ -179,7 +179,7 @@ public class Entity extends LuaMadeUserdata {
 		if(!isJamming()) {
 			if(segmentController instanceof Ship) {
 				Ship ship = (Ship) segmentController;
-				PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_CLOAK);
+				PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_JAM);
 				return playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).canExecute();
 			}
 		}
