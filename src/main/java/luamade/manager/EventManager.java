@@ -3,6 +3,7 @@ package luamade.manager;
 import api.listener.Listener;
 import api.listener.events.block.SegmentPieceActivateByPlayer;
 import api.listener.events.block.SegmentPieceActivateEvent;
+import api.listener.events.block.SegmentPieceAddByMetadataEvent;
 import api.listener.events.register.ManagerContainerRegisterEvent;
 import api.mod.StarLoader;
 import luamade.LuaMade;
@@ -11,6 +12,7 @@ import luamade.element.block.ActivationInterface;
 import luamade.element.block.Block;
 import luamade.system.module.ComputerModule;
 import luamade.utils.SegmentPieceUtils;
+import org.schema.game.common.data.ManagedSegmentController;
 import org.schema.game.common.data.SegmentPiece;
 
 /**
@@ -51,6 +53,20 @@ public class EventManager {
 						}
 					}
 
+				}
+			}
+		}, instance);
+
+		StarLoader.registerListener(SegmentPieceAddByMetadataEvent.class, new Listener<SegmentPieceAddByMetadataEvent>() {
+			@Override
+			public void onEvent(SegmentPieceAddByMetadataEvent event) {
+				try {
+					ManagedSegmentController<?> controller = (ManagedSegmentController<?>) event.getSegment().getSegmentController();
+					ComputerModule module = (ComputerModule) controller.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId());
+					SegmentPiece segmentPiece = event.getSegment().getSegmentController().getSegmentBuffer().getPointUnsave(event.getAbsIndex());
+					if(segmentPiece != null && module.isAutoRun(segmentPiece)) module.runScript(segmentPiece);
+				} catch(Exception exception) {
+					exception.printStackTrace();
 				}
 			}
 		}, instance);

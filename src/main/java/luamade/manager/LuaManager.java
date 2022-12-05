@@ -30,10 +30,7 @@ public class LuaManager {
 	}
 
 	public static void run(final String script, final SegmentPiece segmentPiece) {
-		if(threadMap.containsKey(segmentPiece)) {
-			threadMap.get(segmentPiece).interrupt();
-			threadMap.remove(segmentPiece);
-		}
+		terminate(segmentPiece);
 		threadMap.put(segmentPiece, new Thread(segmentPiece.toString()) {
 			@Override
 			public void run() {
@@ -71,5 +68,12 @@ public class LuaManager {
 		channels.remove(name);
 		PersistentObjectUtil.removeObject(LuaMade.getInstance().getSkeleton(), channel);
 		PersistentObjectUtil.save(LuaMade.getInstance().getSkeleton());
+	}
+
+	public static void terminate(SegmentPiece segmentPiece) {
+		if (threadMap.containsKey(segmentPiece)) {
+			threadMap.get(segmentPiece).interrupt();
+			threadMap.remove(segmentPiece);
+		}
 	}
 }

@@ -45,18 +45,34 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 	}
 
 	public String getScript(SegmentPiece segmentPiece) {
-		return getComputerMap().get(segmentPiece.getAbsoluteIndex());
+		return getComputerMap().get(segmentPiece.getAbsoluteIndex())[1];
 	}
 
-	private HashMap<Long, String> getComputerMap() {
-		HashMap<Long, String> computerMap = new HashMap<>();
+	public boolean isAutoRun(SegmentPiece segmentPiece) {
+		return getComputerMap().get(segmentPiece.getAbsoluteIndex())[0].equals("true");
+	}
+
+	public void setAutoRun(SegmentPiece segmentPiece, boolean autoRun) {
+		getComputerMap().get(segmentPiece.getAbsoluteIndex())[0] = String.valueOf(autoRun);
+	}
+
+	private HashMap<Long, String[]> getComputerMap() {
+		HashMap<Long, String[]> computerMap = new HashMap<>();
 		if(data instanceof String && !((String) data).isEmpty()) {
 			String[] computers = ((String) data).split("\\|");
 			for(String computer : computers) {
 				if(computer.contains("_,")) {
 					try {
-						String[] computerData = computer.split("_,");
-						computerMap.put(Long.parseLong(computerData[0]), computerData[1]);
+						//Format: index[autoRun, script]
+						//Find first [ and last ]
+						int firstBracket = computer.indexOf("[");
+						int lastBracket = computer.lastIndexOf("]");
+						//Get index
+						long index = Long.parseLong(computer.substring(0, firstBracket));
+						//Get autoRun and script
+						String[] autoRunAndScript = computer.substring(firstBracket + 1, lastBracket).split(",");
+						//Add to map
+						computerMap.put(index, autoRunAndScript);
 					} catch(Exception ignored) {}
 				}
 			}
@@ -64,16 +80,19 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 		return computerMap;
 	}
 
-	private void setComputerMap(HashMap<Long, String> computerMap) {
+	private void setComputerMap(HashMap<Long, String[]> computerMap) {
 		StringBuilder computerString = new StringBuilder();
-		for(Long id : computerMap.keySet()) computerString.append(id).append("_,").append(computerMap.get(id)).append("|");
+		for(Long id : computerMap.keySet()) {
+			//Format: index[autoRun, script]
+			computerString.append(id).append("[").append(computerMap.get(id)[0]).append(",").append(computerMap.get(id)[1]).append("]|");
+		}
 		data = computerString.toString();
 		flagUpdatedData();
 	}
 
 	public void setScript(SegmentPiece segmentPiece, String script) {
-		HashMap<Long, String> computerMap = getComputerMap();
-		computerMap.put(segmentPiece.getAbsoluteIndex(), script);
+		HashMap<Long, String[]> computerMap = getComputerMap();
+		computerMap.put(segmentPiece.getAbsoluteIndex(), new String[] {"false", script});
 		setComputerMap(computerMap);
 	}
 
@@ -90,7 +109,7 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 	public void openGUI(SegmentPiece segmentPiece) {
 		try {
 			ComputerDialog dialog = new ComputerDialog();
-			dialog.getInputPanel().setValues(segmentPiece, getScript(segmentPiece), this);
+			dialog.getInputPanel().setValues(segmentPiece, getScript(segmentPiece), this, isAutoRun(segmentPiece));
 			dialog.getInputPanel().onInit();
 			dialog.activate();
 		} catch(Exception exception) {

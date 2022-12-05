@@ -1,5 +1,6 @@
 package luamade.lua.entity;
 
+import api.utils.game.SegmentControllerUtils;
 import luamade.lua.Faction;
 import luamade.lua.element.block.Block;
 import luamade.lua.element.system.module.ThrustModule;
@@ -168,7 +169,7 @@ public class Entity extends LuaMadeUserdata {
 	public Boolean isJamming() {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;
-			PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_JAM);
+			PlayerUsableInterface playerUsable = SegmentControllerUtils.getAddon(ship, PlayerUsableInterface.USABLE_ID_JAM);
 			return playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).isActive();
 		}
 		return false;
@@ -179,7 +180,7 @@ public class Entity extends LuaMadeUserdata {
 		if(!isJamming()) {
 			if(segmentController instanceof Ship) {
 				Ship ship = (Ship) segmentController;
-				PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_JAM);
+				PlayerUsableInterface playerUsable = SegmentControllerUtils.getAddon(ship, PlayerUsableInterface.USABLE_ID_JAM);
 				return playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).canExecute();
 			}
 		}
@@ -190,7 +191,7 @@ public class Entity extends LuaMadeUserdata {
 	public void activateJamming(Boolean active) {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;
-			PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_JAM);
+			PlayerUsableInterface playerUsable = SegmentControllerUtils.getAddon(ship, PlayerUsableInterface.USABLE_ID_JAM);
 			if(playerUsable instanceof StealthAddOn) {
 				StealthAddOn stealth = (StealthAddOn) playerUsable;
 				if(active) if(stealth.canExecute()) stealth.executeModule();
@@ -203,7 +204,7 @@ public class Entity extends LuaMadeUserdata {
 	public Boolean isCloaking() {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;
-			PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_JAM);
+			PlayerUsableInterface playerUsable = SegmentControllerUtils.getAddon(ship, PlayerUsableInterface.USABLE_ID_CLOAK);
 			return playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).isActive();
 		}
 		return false;
@@ -214,7 +215,7 @@ public class Entity extends LuaMadeUserdata {
 		if(!isCloaking()) {
 			if(segmentController instanceof Ship) {
 				Ship ship = (Ship) segmentController;
-				PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_CLOAK);
+				PlayerUsableInterface playerUsable = SegmentControllerUtils.getAddon(ship, PlayerUsableInterface.USABLE_ID_CLOAK);
 				return playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).canExecute();
 			}
 		}
@@ -225,7 +226,7 @@ public class Entity extends LuaMadeUserdata {
 	public void activateCloaking(Boolean active) {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;
-			PlayerUsableInterface playerUsable = ship.getManagerContainer().getPlayerUsable(PlayerUsableInterface.USABLE_ID_CLOAK);
+			PlayerUsableInterface playerUsable = SegmentControllerUtils.getAddon(ship, PlayerUsableInterface.USABLE_ID_CLOAK);
 			if(playerUsable instanceof StealthAddOn) {
 				StealthAddOn stealth = (StealthAddOn) playerUsable;
 				if(active) if(stealth.canExecute()) stealth.executeModule();

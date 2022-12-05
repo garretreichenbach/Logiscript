@@ -8,6 +8,8 @@ import api.utils.gui.SimplePlayerTextInput;
 import luamade.manager.ConfigManager;
 import luamade.network.client.RunScriptPacket;
 import luamade.network.client.SaveScriptPacket;
+import luamade.network.client.SetAutoRunPacket;
+import luamade.network.client.TerminateScriptPacket;
 import luamade.system.module.ComputerModule;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.schine.common.OnInputChangedCallback;
@@ -68,6 +70,7 @@ public class ComputerDialog extends GUIInputDialog {
 		private ComputerModule computerModule;
 		private SegmentPiece segmentPiece;
 		private String script;
+		private boolean autoRun;
 		private GUIActivatableTextBar textBar;
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback) {
@@ -133,7 +136,7 @@ public class ComputerDialog extends GUIInputDialog {
 			contentPane.getContent(0).attach(scrollablePanel);
 			scrollablePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);
 			contentPane.addNewTextBox(30);
-			GUIHorizontalButtonTablePane buttonPane = new GUIHorizontalButtonTablePane(getState(), 4, 1, contentPane.getContent(1));
+			GUIHorizontalButtonTablePane buttonPane = new GUIHorizontalButtonTablePane(getState(), 6, 1, contentPane.getContent(1));
 			buttonPane.onInit();
 
 			buttonPane.addButton(0, 0, "CLEAR", GUIHorizontalArea.HButtonColor.RED, new GUICallback() {
@@ -213,7 +216,31 @@ public class ComputerDialog extends GUIInputDialog {
 				}
 			});
 
-			buttonPane.addButton(3, 0, "GET FROM WEB", GUIHorizontalArea.HButtonColor.YELLOW, new GUICallback() {
+			buttonPane.addButton(3, 0, "TERMINATE", GUIHorizontalArea.HButtonColor.ORANGE, new GUICallback() {
+				@Override
+				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
+					if(mouseEvent.pressedLeftMouse() && segmentPiece != null) {
+						PacketUtil.sendPacketToServer(new TerminateScriptPacket(segmentPiece.getSegmentController(), segmentPiece.getAbsoluteIndex()));
+					}
+				}
+
+				@Override
+				public boolean isOccluded() {
+					return true;
+				}
+			}, new GUIActivationCallback() {
+				@Override
+				public boolean isVisible(InputState inputState) {
+					return true;
+				}
+
+				@Override
+				public boolean isActive(InputState inputState) {
+					return true;
+				}
+			});
+
+			buttonPane.addButton(4, 0, "GET FROM WEB", GUIHorizontalArea.HButtonColor.YELLOW, new GUICallback() {
 				@Override
 				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
 					if(mouseEvent.pressedLeftMouse()) {
@@ -247,13 +274,40 @@ public class ComputerDialog extends GUIInputDialog {
 					return true;
 				}
 			});
+
+			buttonPane.addButton(5, 0, "AUTO-RUN", GUIHorizontalArea.HButtonColor.PINK, new GUICallback() {
+				@Override
+				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
+					if(mouseEvent.pressedLeftMouse()) {
+						autoRun = !autoRun;
+						PacketUtil.sendPacketToServer(new SetAutoRunPacket(segmentPiece.getSegmentController(), segmentPiece.getAbsoluteIndex(), autoRun));
+					}
+				}
+
+				@Override
+				public boolean isOccluded() {
+					return false;
+				}
+			}, new GUIActivationCallback() {
+				@Override
+				public boolean isVisible(InputState inputState) {
+					return true;
+				}
+
+				@Override
+				public boolean isActive(InputState inputState) {
+					return autoRun;
+				}
+			});
+
 			contentPane.getContent(1).attach(buttonPane);
 		}
 
-		public void setValues(SegmentPiece segmentPiece, String script, ComputerModule computerModule) {
+		public void setValues(SegmentPiece segmentPiece, String script, ComputerModule computerModule, boolean autoRun) {
 			this.segmentPiece = segmentPiece;
 			this.script = script;
 			this.computerModule = computerModule;
+			this.autoRun = autoRun;
 		}
 	}
 }
