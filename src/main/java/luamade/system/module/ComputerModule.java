@@ -53,8 +53,10 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 		if(data instanceof String && !((String) data).isEmpty()) {
 			String[] computers = ((String) data).split("\\|");
 			for(String computer : computers) {
-				String[] computerData = computer.split("_,");
-				computerMap.put(Long.parseLong(computerData[0]), computerData[1]);
+				if(computer.contains("_,")) {
+					String[] computerData = computer.split("_,");
+					computerMap.put(Long.parseLong(computerData[0]), computerData[1]);
+				}
 			}
 		}
 		return computerMap;
@@ -87,7 +89,6 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 		try {
 			ComputerDialog dialog = new ComputerDialog();
 			dialog.getInputPanel().setValues(segmentPiece, getScript(segmentPiece), this);
-			dialog.deactivate();
 			dialog.getInputPanel().onInit();
 			dialog.activate();
 		} catch(Exception exception) {

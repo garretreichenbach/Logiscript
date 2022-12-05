@@ -3,7 +3,6 @@ package luamade.element.block;
 import api.common.GameClient;
 import api.config.BlockConfig;
 import api.listener.events.block.SegmentPieceActivateByPlayer;
-import api.listener.events.block.SegmentPieceActivateEvent;
 import luamade.system.module.ComputerModule;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.data.SegmentPiece;
@@ -27,9 +26,9 @@ public class ComputerBlock extends Block implements ActivationInterface {
 		blockInfo.setDescription("A fully programmable computer utilizing the LUA language.\nCan save and load scripts from the client or via pastebin.");
 		blockInfo.setInRecipe(true);
 		blockInfo.setShoppable(true);
-		blockInfo.setCanActivate(true);
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price);
 		blockInfo.setOrientatable(true);
+		blockInfo.setCanActivate(true);
 
 		blockInfo.controlledBy.add((short) 405);
 		blockInfo.controlledBy.add((short) 993);
@@ -67,14 +66,13 @@ public class ComputerBlock extends Block implements ActivationInterface {
 	}
 
 	@Override
-	public void onLogicActivation(SegmentPieceActivateEvent event) {
-		if(event.getSegmentPiece().isActive()) {
-			try {
-				ComputerModule computerModule = getModule(event.getSegmentPiece());
-				if(computerModule != null && !computerModule.getScript(event.getSegmentPiece()).isEmpty()) computerModule.runScript(event.getSegmentPiece());
-			} catch(Exception exception) {
-				exception.printStackTrace();
-			}
+	public void onLogicActivation(SegmentPiece target, boolean active) {
+		try {
+			if(!active) return;
+			ComputerModule computerModule = getModule(target);
+			if(computerModule != null && !computerModule.getScript(target).isEmpty()) computerModule.runScript(target);
+		} catch(Exception exception) {
+			exception.printStackTrace();
 		}
 	}
 

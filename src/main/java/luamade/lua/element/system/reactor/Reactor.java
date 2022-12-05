@@ -1,7 +1,6 @@
 package luamade.lua.element.system.reactor;
 
 import api.utils.game.SegmentControllerUtils;
-import luamade.lua.element.system.reactor.Chamber;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.elements.power.reactor.tree.ReactorElement;

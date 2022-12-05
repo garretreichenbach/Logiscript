@@ -28,4 +28,8 @@ public class RemoteEntity {
 	public Faction getFaction() {
 		return new Faction(segmentController.getFactionId());
 	}
+
+	public float getSpeed() {
+		return segmentController.getSpeedCurrent();
+	}
 }
