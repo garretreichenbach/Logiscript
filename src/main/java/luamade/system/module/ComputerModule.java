@@ -49,6 +49,7 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 		if(getComputerMap().containsKey(segmentPiece.getAbsoluteIndex())) return getComputerMap().get(segmentPiece.getAbsoluteIndex());
 		else {
 			ComputerData computerData = new ComputerData(segmentPiece.getAbsoluteIndex(), false, "");
+			getComputerMap().remove(segmentPiece.getAbsoluteIndex());
 			getComputerMap().put(segmentPiece.getAbsoluteIndex(), computerData);
 			flagUpdatedData();
 			return computerData;
@@ -61,9 +62,9 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 		flagUpdatedData();
 	}
 
-	private HashMap<Long, ComputerData> getComputerMap() {
-		HashMap<Long, ComputerData> computerMap = new HashMap<>();
-		if(data != null) computerMap = (HashMap<Long, ComputerData>) data;
+	private ComputerDataMap getComputerMap() {
+		ComputerDataMap computerMap = new ComputerDataMap();
+		if(data != null) computerMap = (ComputerDataMap) data;
 		else data = computerMap;
 		return computerMap;
 	}
@@ -88,6 +89,8 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 			exception.printStackTrace();
 		}
 	}
+
+	public static class ComputerDataMap extends HashMap<Long, ComputerData> { }
 
 	public static class ComputerData {
 
