@@ -3,18 +3,18 @@ package luamade.lua;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 
-public class LuaVec extends LuaMadeUserdata {
+public class LuaVec3 extends LuaMadeUserdata {
     public int xx;
     public int yy;
     public int zz;
 
-    public LuaVec(int x, int y, int z) {
+    public LuaVec3(int x, int y, int z) {
         xx = x;
         yy = y;
         zz = z;
     }
 
-    public LuaVec(LuaVec vec) {
+    public LuaVec3(LuaVec3 vec) {
         xx = vec.xx;
         yy = vec.yy;
         zz = vec.zz;
@@ -46,7 +46,7 @@ public class LuaVec extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
-    public LuaVec inc(LuaVec vec) {
+    public LuaVec3 inc(LuaVec3 vec) {
         xx += vec.xx;
         yy += vec.yy;
         zz += vec.zz;
@@ -54,7 +54,7 @@ public class LuaVec extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
-    public LuaVec sum(LuaVec vec) {
-        return new LuaVec(this).inc(vec);
+    public LuaVec3 sum(LuaVec3 vec) {
+        return new LuaVec3(this).inc(vec);
     }
 }
