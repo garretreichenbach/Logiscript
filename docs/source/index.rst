@@ -32,7 +32,9 @@ To add LuaMade support to your mod, add the following to your mod's ``mod.json``
     SMD_ID
   ],
 Then add the Jar as a library to your project and that's it!
+
 Adding new Lua functions and objects is easy, just create a class that extends ``LuaMadeAPIObject`` and register it's definition in onEnable() using LuaModAPI.addDefinition(<LuaCodeToGetObjectInstance>, <ObjectClass>).
+
 For example, to add a new function ``printStatus`` to a new Lua Object ``CustomSystem``, you would do the following:
 ```
 public class CustomSystem extends LuaMadeAPIObject {
