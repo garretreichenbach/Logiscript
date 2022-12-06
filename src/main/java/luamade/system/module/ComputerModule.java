@@ -46,7 +46,13 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 	}
 
 	public ComputerData getData(SegmentPiece segmentPiece) {
-		return getComputerMap().get(segmentPiece.getAbsoluteIndex());
+		if(getComputerMap().containsKey(segmentPiece.getAbsoluteIndex())) return getComputerMap().get(segmentPiece.getAbsoluteIndex());
+		else {
+			ComputerData computerData = new ComputerData(segmentPiece.getAbsoluteIndex(), false, "");
+			getComputerMap().put(segmentPiece.getAbsoluteIndex(), computerData);
+			flagUpdatedData();
+			return computerData;
+		}
 	}
 
 	public void setData(SegmentPiece segmentPiece, ComputerData computerData) {
