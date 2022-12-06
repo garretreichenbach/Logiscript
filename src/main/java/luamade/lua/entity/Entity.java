@@ -41,8 +41,8 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Block getBlockAt(Integer[] pos) {
-		return new Block(segmentController.getSegmentBuffer().getPointUnsave(pos[0], pos[1], pos[2]));
+	public Block getBlockAt(LuaVec3 pos) {
+		return new Block(segmentController.getSegmentBuffer().getPointUnsave(pos.x(), pos.y(), pos.z()));
 	}
 
 	@LuaMadeCallable
