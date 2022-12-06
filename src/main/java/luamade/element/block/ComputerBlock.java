@@ -43,9 +43,8 @@ public class ComputerBlock extends Block implements ActivationInterface {
 		if(GraphicsContext.initialized) {
 			try {
 				//Todo: Make custom icon and textures
-				//blockInfo.setBuildIconNum(ResourceManager.getTexture("computer-block-icon").getTextureId());
+				blockInfo.setBuildIconNum(ElementKeyMap.getInfo(451).getBuildIconNum());
 				blockInfo.setTextureId(ElementKeyMap.getInfo(451).getTextureIds());
-				blockInfo.setTextureId(0, ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).getTextureId(0));
 			} catch(Exception ignored) {}
 		}
 
