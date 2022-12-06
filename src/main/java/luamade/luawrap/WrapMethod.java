@@ -42,11 +42,10 @@ public class WrapMethod extends VarArgFunction {
                         Object[] argv = new Object[argc];
                         for (int i = 0; i < argc; ++i) {
                             Class<?> argt = argst[i];
+                            argv[i] = WrapUtils.unwrap(vargs.arg(i + 2), argt);
 
-                            Object arg = WrapUtils.unwrap(vargs.arg(i + 2), argt);
-
-                            if (!argt.isInstance(arg))
-                                throw new LuaError(String.format("Got %s, expected %s.", arg.getClass(), argt));
+                            if (!argt.isInstance(argv[i]))
+                                throw new LuaError(String.format("Got %s, expected %s.", argv[i].getClass(), argt));
                         }
                         Object out = m.invoke(vargs.arg1(), argv);
                         return WrapUtils.wrap(out);
@@ -55,8 +54,11 @@ public class WrapMethod extends VarArgFunction {
                         //if (out instanceof LuaValue) return (LuaValue) out;
                         //else throw new LuaError("Return value was not LuaValue.");
 
-                    } catch (IllegalAccessException | InvocationTargetException | IllegalArgumentException e) {
+                    } catch (IllegalAccessException | IllegalArgumentException e) {
                         throw new LuaError("Got Java exception: " + e);
+                    }
+                    catch (InvocationTargetException e) {
+                        throw new LuaError("Java method threw exception: " + e.getCause());
                     }
                 }
             };
