@@ -18,10 +18,7 @@ import org.schema.schine.common.TextAreaInput;
 import org.schema.schine.common.TextCallback;
 import org.schema.schine.graphicsengine.core.MouseEvent;
 import org.schema.schine.graphicsengine.forms.font.FontLibrary;
-import org.schema.schine.graphicsengine.forms.gui.GUIActivationCallback;
-import org.schema.schine.graphicsengine.forms.gui.GUICallback;
-import org.schema.schine.graphicsengine.forms.gui.GUIElement;
-import org.schema.schine.graphicsengine.forms.gui.GUIScrollablePanel;
+import org.schema.schine.graphicsengine.forms.gui.*;
 import org.schema.schine.graphicsengine.forms.gui.newgui.*;
 import org.schema.schine.input.InputState;
 
@@ -67,10 +64,9 @@ public class ComputerDialog extends GUIInputDialog {
 
 	public static class ComputerPanel extends GUIInputDialogPanel {
 
-		private ComputerModule computerModule;
 		private SegmentPiece segmentPiece;
-		private String script;
-		private boolean autoRun;
+		private ComputerModule computerModule;
+		private ComputerModule.ComputerData computerData;
 		private GUIActivatableTextBar textBar;
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback) {
@@ -120,7 +116,8 @@ public class ComputerDialog extends GUIInputDialog {
 			});
 			scrollablePanel.setContent(textBar);
 			textBar.getTextArea().getChatLog().clear();
-			if(script != null) textBar.setText(script);
+			if(computerData != null && computerData.script != null) textBar.setText(computerData.script);
+			else textBar.setText("");
 			textBar.getTextArea().onTabCallback = new TabCallback() {
 				@Override
 				public boolean catchTab(TextAreaInput textAreaInput) {
@@ -143,14 +140,14 @@ public class ComputerDialog extends GUIInputDialog {
 				@Override
 				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
 					if(mouseEvent.pressedLeftMouse()) {
-						script = "";
-						textBar.setText(script);
+						computerData.script = "";
+						textBar.setText(computerData.script);
 					}
 				}
 
 				@Override
 				public boolean isOccluded() {
-					return script == null || script.isEmpty();
+					return computerData == null || computerData.script == null || computerData.script.isEmpty();
 				}
 			}, new GUIActivationCallback() {
 				@Override
@@ -160,7 +157,7 @@ public class ComputerDialog extends GUIInputDialog {
 
 				@Override
 				public boolean isActive(InputState inputState) {
-					return script != null && !script.isEmpty();
+					return computerData != null && computerData.script != null && !computerData.script.isEmpty();
 				}
 			});
 
@@ -168,9 +165,9 @@ public class ComputerDialog extends GUIInputDialog {
 				@Override
 				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
 					if(mouseEvent.pressedLeftMouse()) {
-						script = textBar.getText();
-						computerModule.setScript(segmentPiece, script);
-						PacketUtil.sendPacketToServer(new SaveScriptPacket(segmentPiece.getSegmentController(), segmentPiece.getAbsoluteIndex(), script));
+						computerData.script = textBar.getText();
+						computerModule.setData(segmentPiece, computerData);
+						PacketUtil.sendPacketToServer(new SaveScriptPacket(segmentPiece.getSegmentController(), segmentPiece.getAbsoluteIndex(), computerData.script));
 					}
 				}
 
@@ -194,15 +191,15 @@ public class ComputerDialog extends GUIInputDialog {
 				@Override
 				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
 					if(mouseEvent.pressedLeftMouse() && segmentPiece != null) {
-						script = textBar.getText();
-						computerModule.setScript(segmentPiece, script);
-						PacketUtil.sendPacketToServer(new RunScriptPacket(segmentPiece.getSegmentController(), segmentPiece.getAbsoluteIndex(), script));
+						computerData.script = textBar.getText();
+						computerModule.setData(segmentPiece, computerData);
+						PacketUtil.sendPacketToServer(new RunScriptPacket(segmentPiece.getSegmentController(), segmentPiece.getAbsoluteIndex(), computerData.script));
 					}
 				}
 
 				@Override
 				public boolean isOccluded() {
-					return script == null || script.isEmpty();
+					return computerData == null || computerData.script == null || computerData.script.isEmpty();
 				}
 			}, new GUIActivationCallback() {
 				@Override
@@ -212,7 +209,7 @@ public class ComputerDialog extends GUIInputDialog {
 
 				@Override
 				public boolean isActive(InputState inputState) {
-					return script != null && !script.isEmpty();
+					return computerData != null && computerData.script != null && !computerData.script.isEmpty();
 				}
 			});
 
@@ -249,8 +246,8 @@ public class ComputerDialog extends GUIInputDialog {
 							public boolean onInput(String s) {
 								if(s == null || s.isEmpty()) return false;
 								else {
-									script = computerModule.getScriptFromWeb(segmentPiece, s);
-									textBar.setText(script);
+									computerData.script = computerModule.getScriptFromWeb(segmentPiece, s);
+									textBar.setText(computerData.script);
 									deactivate();
 									return true;
 								}
@@ -279,8 +276,8 @@ public class ComputerDialog extends GUIInputDialog {
 				@Override
 				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
 					if(mouseEvent.pressedLeftMouse()) {
-						autoRun = !autoRun;
-						PacketUtil.sendPacketToServer(new SetAutoRunPacket(segmentPiece.getSegmentController(), segmentPiece.getAbsoluteIndex(), autoRun));
+						computerData.autoRun = !computerData.autoRun;
+						PacketUtil.sendPacketToServer(new SetAutoRunPacket(segmentPiece.getSegmentController(), segmentPiece.getAbsoluteIndex(), computerData.autoRun));
 					}
 				}
 
@@ -288,7 +285,12 @@ public class ComputerDialog extends GUIInputDialog {
 				public boolean isOccluded() {
 					return false;
 				}
-			}, new GUIActivationCallback() {
+			}, new GUIActivationHighlightCallback() {
+				@Override
+				public boolean isHighlighted(InputState inputState) {
+					return computerData != null && computerData.autoRun;
+				}
+
 				@Override
 				public boolean isVisible(InputState inputState) {
 					return true;
@@ -296,18 +298,17 @@ public class ComputerDialog extends GUIInputDialog {
 
 				@Override
 				public boolean isActive(InputState inputState) {
-					return autoRun;
+					return true;
 				}
 			});
 
 			contentPane.getContent(1).attach(buttonPane);
 		}
 
-		public void setValues(SegmentPiece segmentPiece, String script, ComputerModule computerModule, boolean autoRun) {
+		public void setValues(SegmentPiece segmentPiece, ComputerModule computerModule, ComputerModule.ComputerData computerData) {
 			this.segmentPiece = segmentPiece;
-			this.script = script;
 			this.computerModule = computerModule;
-			this.autoRun = autoRun;
+			this.computerData = computerData;
 		}
 	}
 }

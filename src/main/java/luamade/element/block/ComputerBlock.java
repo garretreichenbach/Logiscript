@@ -23,12 +23,13 @@ public class ComputerBlock extends Block implements ActivationInterface {
 
 	@Override
 	public void initialize() {
-		blockInfo.setDescription("A fully programmable computer utilizing the LUA language.\nCan save and load scripts from the client or via pastebin.");
+		blockInfo.setDescription("A fully programmable computer utilizing the LUA language.");
 		blockInfo.setInRecipe(true);
 		blockInfo.setShoppable(true);
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price);
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(true);
+		blockInfo.volume = 0.1f;
 
 		blockInfo.controlledBy.add((short) 405);
 		blockInfo.controlledBy.add((short) 993);
@@ -42,10 +43,9 @@ public class ComputerBlock extends Block implements ActivationInterface {
 
 		if(GraphicsContext.initialized) {
 			try {
-				//Todo: Make icon and textures
-				//blockInfo.setBuildIconNum(ResourceManager.getTexture("computer-block-icon").getTextureId());
-				blockInfo.setTextureId(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).getTextureIds());
-				//blockInfo.setTextureId(0, (short) ResourceManager.getTexture("computer-block-front").getTextureId());
+				//Todo: Make custom icon and textures
+				blockInfo.setBuildIconNum(ElementKeyMap.getInfo(451).getBuildIconNum());
+				blockInfo.setTextureId(ElementKeyMap.getInfo(451).getTextureIds());
 			} catch(Exception ignored) {}
 		}
 
@@ -70,7 +70,7 @@ public class ComputerBlock extends Block implements ActivationInterface {
 		try {
 			if(!active || !target.isActive()) return;
 			ComputerModule computerModule = getModule(target);
-			if(computerModule != null && !computerModule.getScript(target).isEmpty()) computerModule.runScript(target);
+			if(computerModule != null && !computerModule.getData(target).script.isEmpty()) computerModule.runScript(target);
 		} catch(Exception exception) {
 			exception.printStackTrace();
 		}

@@ -61,13 +61,13 @@ public class EventManager {
 			@Override
 			public void onEvent(SegmentPieceAddByMetadataEvent event) {
 				try {
-					ManagedSegmentController<?> controller = (ManagedSegmentController<?>) event.getSegment().getSegmentController();
-					ComputerModule module = (ComputerModule) controller.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId());
-					SegmentPiece segmentPiece = event.getSegment().getSegmentController().getSegmentBuffer().getPointUnsave(event.getAbsIndex());
-					if(segmentPiece != null && module.isAutoRun(segmentPiece)) module.runScript(segmentPiece);
-				} catch(Exception exception) {
-					exception.printStackTrace();
-				}
+					if(event.getSegment().getSegmentController() instanceof ManagedSegmentController) {
+						ManagedSegmentController<?> controller = (ManagedSegmentController<?>) event.getSegment().getSegmentController();
+						ComputerModule module = (ComputerModule) controller.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId());
+						SegmentPiece segmentPiece = event.getSegment().getSegmentController().getSegmentBuffer().getPointUnsave(event.getAbsIndex());
+						if(segmentPiece != null && module.getData(segmentPiece).autoRun) module.runScript(segmentPiece);
+					}
+				} catch(Exception ignored) {}
 			}
 		}, instance);
 	}
