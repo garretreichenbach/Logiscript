@@ -1,10 +1,8 @@
 package luamade.luawrap;
 
 import org.luaj.vm2.LuaError;
-import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
 import org.luaj.vm2.lib.VarArgFunction;
-import org.luaj.vm2.lib.jse.CoerceLuaToJava;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -44,35 +42,23 @@ public class WrapMethod extends VarArgFunction {
                         Object[] argv = new Object[argc];
                         for (int i = 0; i < argc; ++i) {
                             Class<?> argt = argst[i];
-                            Object arg = CoerceLuaToJava.coerce(vargs.arg(i + 2), argt);
-                            argv[i] = arg;
+                            argv[i] = WrapUtils.unwrap(vargs.arg(i + 2), argt);
 
-                            if (!argt.isInstance(arg)) throw new LuaError(String.format("Got %s, expected %s.", arg.getClass(), argt));
+                            if (!argt.isInstance(argv[i]))
+                                throw new LuaError(String.format("Got %s, expected %s.", argv[i].getClass(), argt));
                         }
                         Object out = m.invoke(vargs.arg1(), argv);
-                        if(out instanceof Boolean) {
-                            return LuaValue.valueOf((Boolean) out);
-                        } else if(out instanceof Integer) {
-                            return LuaValue.valueOf((Integer) out);
-                        } else if(out instanceof Double) {
-                            return LuaValue.valueOf((Double) out);
-                        } else if(out instanceof String) {
-                            return LuaValue.valueOf((String) out);
-                        } else if(out instanceof LuaValue) {
-                            return (LuaValue) out;
-                        } else if(out instanceof Varargs) {
-                            return (Varargs) out;
-                        } else if(out == null) {
-                            return LuaValue.NIL;
-                        } else {
-                            return LuaMadeUserdata.userdataOf(out);
-                        }
+                        return WrapUtils.wrap(out);
+
 
                         //if (out instanceof LuaValue) return (LuaValue) out;
                         //else throw new LuaError("Return value was not LuaValue.");
 
-                    } catch (IllegalAccessException | InvocationTargetException | IllegalArgumentException e) {
+                    } catch (IllegalAccessException | IllegalArgumentException e) {
                         throw new LuaError("Got Java exception: " + e);
+                    }
+                    catch (InvocationTargetException e) {
+                        throw new LuaError("Java method threw exception: " + e.getCause());
                     }
                 }
             };
