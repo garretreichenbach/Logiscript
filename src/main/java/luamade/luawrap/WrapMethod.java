@@ -1,11 +1,8 @@
 package luamade.luawrap;
 
-import org.luaj.vm2.Lua;
 import org.luaj.vm2.LuaError;
-import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
 import org.luaj.vm2.lib.VarArgFunction;
-import org.luaj.vm2.lib.jse.CoerceLuaToJava;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -46,13 +43,13 @@ public class WrapMethod extends VarArgFunction {
                         for (int i = 0; i < argc; ++i) {
                             Class<?> argt = argst[i];
 
-                            Object arg = WrapUtils.safeUnwrap(vargs.arg(i + 2), argt);
+                            Object arg = WrapUtils.unwrap(vargs.arg(i + 2), argt);
 
                             if (!argt.isInstance(arg))
                                 throw new LuaError(String.format("Got %s, expected %s.", arg.getClass(), argt));
                         }
                         Object out = m.invoke(vargs.arg1(), argv);
-                        return WrapUtils.safeWrap(out);
+                        return WrapUtils.wrap(out);
 
 
                         //if (out instanceof LuaValue) return (LuaValue) out;

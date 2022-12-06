@@ -6,9 +6,9 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 public class WrapUtils {
-    public static Varargs safeWrap(Object o) {
-        if(o instanceof Varargs)
-            return (Varargs) o;
+    public static LuaValue wrapSingle(Object o) {
+        if(o instanceof LuaValue)
+            return (LuaValue) o;
 
         else if(o instanceof Boolean)
             return LuaValue.valueOf((Boolean) o);
@@ -22,18 +22,34 @@ public class WrapUtils {
         else if(o instanceof String)
             return LuaValue.valueOf((String) o);
 
-        else
+        else if (o == null)
             return LuaValue.NIL;
+
+        throw new LuaError(String.format("Object %s not wrapable.", o.getClass()));
     }
 
-    public static Object safeUnwrapSingle(LuaValue o, Class<?> clazz) {
+    public static LuaTable wrapArray(Object[] o) {
+        LuaTable t = new LuaTable();
+        for (int i = 0; i < o.length; ++i)
+            t.rawset(i+1, wrapSingle(o[i]));
+        return t;
+    }
+
+    public static Varargs wrap(Object o) {
+        if (o instanceof Object[])
+            return wrapArray((Object[]) o);
+        else
+            return wrapSingle(o);
+    }
+
+    public static Object unwrapSingle(LuaValue o, Class<?> clazz) {
         if (clazz.isArray()) throw new LuaError("No arrays.");
 
         if (Varargs.class.isAssignableFrom(clazz)) {
             if (clazz.isInstance(o))
                 return o;
-            else
-                throw new LuaError(String.format("No automated Lua->Lua coercions (%s -> %s).", o.getClass(), clazz));
+
+            throw new LuaError(String.format("No automated Lua->Lua coercions (%s -> %s).", o.getClass(), clazz));
         }
 
         Object out;
@@ -59,37 +75,36 @@ public class WrapUtils {
         if (clazz.isInstance(out))
             return out;
 
-        return null;
+        throw new LuaError(String.format("Cannot unwrap %s to %s.", o.getClass(), clazz));
     }
 
-    public static Object[] safeUnwrapArray(LuaValue o, Class<?> clazz) {
-        LuaTable t = o.checktable();
+    public static Object[] unwrapArray(LuaValue o, Class<?> clazz) {
         if (!clazz.isArray()) throw new LuaError("Only conversions to arrays.");
         Class<?> et = clazz.getComponentType();
         if (et.isArray()) throw new LuaError("No nested arrays.");
+        LuaTable t = o.checktable();
 
         ArrayList<Object> arr = new ArrayList<>();
 
-        do {
-            Object entry = safeUnwrapSingle( t.rawget(arr.size()+1), et);
-            if (!et.isInstance(entry))
-                break;
-
-            arr.add(entry);
-        } while (true);
+        for (LuaValue e = t.rawget(1); !(e instanceof LuaNil); e = t.rawget(1+arr.size())) {
+            arr.add(WrapUtils.unwrapSingle(e, et));
+        }
 
         Object[] out = (Object[]) (Array.newInstance(et, arr.size()));
 
-        for (int i = 0; i < arr.size(); ++i)
+        for (int i = 0; i < out.length; ++i)
             out[i] = arr.get(i);
 
-        return out;
+        if (clazz.isInstance(out))
+            return out;
+
+        throw new LuaError(String.format("Could not unwrap to array of %s.", et));
     }
 
-    public static Object safeUnwrap(LuaValue o, Class<?> clazz) {
+    public static Object unwrap(LuaValue o, Class<?> clazz) {
         if (clazz.isArray())
-            return safeUnwrapArray(o, clazz);
+            return unwrapArray(o, clazz);
         else
-            return safeUnwrapSingle(o, clazz);
+            return unwrapSingle(o, clazz);
     }
 }
