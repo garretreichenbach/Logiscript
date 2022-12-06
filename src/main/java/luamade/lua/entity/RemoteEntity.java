@@ -1,8 +1,10 @@
 package luamade.lua.entity;
 
 import luamade.lua.Faction;
+import luamade.lua.LuaVec3;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.SegmentController;
 
 /**
@@ -38,4 +40,17 @@ public class RemoteEntity extends LuaMadeUserdata {
 	public Float getSpeed() {
 		return segmentController.getSpeedCurrent();
 	}
+
+	@LuaMadeCallable
+	public LuaVec3 getSector() {
+		Vector3i sector = segmentController.getSector(new Vector3i());
+		return new LuaVec3(sector.x, sector.y, sector.z);
+	}
+
+	@LuaMadeCallable
+	public LuaVec3 getSystem() {
+		Vector3i system = segmentController.getSystem(new Vector3i());
+		return new LuaVec3(system.x, system.y, system.z);
+	}
+
 }

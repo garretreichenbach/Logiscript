@@ -2,6 +2,7 @@ package luamade.lua.entity;
 
 import api.utils.game.SegmentControllerUtils;
 import luamade.lua.Faction;
+import luamade.lua.LuaVec3;
 import luamade.lua.element.block.Block;
 import luamade.lua.element.system.module.ThrustModule;
 import luamade.lua.element.system.reactor.Reactor;
@@ -55,15 +56,15 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Integer[] getSector() {
+	public LuaVec3 getSector() {
 		Vector3i sector = segmentController.getSector(new Vector3i());
-		return new Integer[] {sector.x, sector.y, sector.z};
+		return new LuaVec3(sector.x, sector.y, sector.z);
 	}
 
 	@LuaMadeCallable
-	public Integer[] getSystem() {
+	public LuaVec3 getSystem() {
 		Vector3i system = segmentController.getSystem(new Vector3i());
-		return new Integer[] {system.x, system.y, system.z};
+		return new LuaVec3(system.x, system.y, system.z);
 	}
 
 	@LuaMadeCallable
