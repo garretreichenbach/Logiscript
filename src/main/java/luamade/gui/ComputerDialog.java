@@ -116,7 +116,8 @@ public class ComputerDialog extends GUIInputDialog {
 			});
 			scrollablePanel.setContent(textBar);
 			textBar.getTextArea().getChatLog().clear();
-			if(computerData.script != null) textBar.setText(computerData.script);
+			if(computerData != null && computerData.script != null) textBar.setText(computerData.script);
+			else textBar.setText("");
 			textBar.getTextArea().onTabCallback = new TabCallback() {
 				@Override
 				public boolean catchTab(TextAreaInput textAreaInput) {
