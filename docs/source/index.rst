@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-LuaMade Documentation $project.version
+LuaMade Documentation 1.0.0
 ===================================
 
 .. toctree::
@@ -21,8 +21,8 @@ Authors
 
 Misc Info
 -----------------------------------
-- Issue Tracker: github.com/$project/$project/issues
-- Source Code: github.com/$project/$project
+- Issue Tracker: https://github.com/garretreichenbach/Logiscript/issues
+- Source Code: https://github.com/garretreichenbach/Logiscript
 
 For Modders
 ===================================
@@ -36,7 +36,7 @@ Adding new Lua functions and objects is easy, just create a class that extends `
 For example, to add a new function ``printStatus`` to a new Lua Object ``CustomSystem``, you would do the following:
 ```
 public class CustomSystem extends LuaMadeAPIObject {
-    
+
 }
 ```
 Then the following code would be added to onEnable():
