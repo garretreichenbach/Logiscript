@@ -1,5 +1,6 @@
 package luamade.luawrap;
 
+import org.luaj.vm2.Lua;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
@@ -44,29 +45,15 @@ public class WrapMethod extends VarArgFunction {
                         Object[] argv = new Object[argc];
                         for (int i = 0; i < argc; ++i) {
                             Class<?> argt = argst[i];
-                            Object arg = CoerceLuaToJava.coerce(vargs.arg(i + 2), argt);
-                            argv[i] = arg;
 
-                            if (!argt.isInstance(arg)) throw new LuaError(String.format("Got %s, expected %s.", arg.getClass(), argt));
+                            Object arg = WrapUtils.safeUnwrap(vargs.arg(i + 2), argt);
+
+                            if (!argt.isInstance(arg))
+                                throw new LuaError(String.format("Got %s, expected %s.", arg.getClass(), argt));
                         }
                         Object out = m.invoke(vargs.arg1(), argv);
-                        if(out instanceof Boolean) {
-                            return LuaValue.valueOf((Boolean) out);
-                        } else if(out instanceof Integer) {
-                            return LuaValue.valueOf((Integer) out);
-                        } else if(out instanceof Double) {
-                            return LuaValue.valueOf((Double) out);
-                        } else if(out instanceof String) {
-                            return LuaValue.valueOf((String) out);
-                        } else if(out instanceof LuaValue) {
-                            return (LuaValue) out;
-                        } else if(out instanceof Varargs) {
-                            return (Varargs) out;
-                        } else if(out == null) {
-                            return LuaValue.NIL;
-                        } else {
-                            return LuaMadeUserdata.userdataOf(out);
-                        }
+                        return WrapUtils.safeWrap(out);
+
 
                         //if (out instanceof LuaValue) return (LuaValue) out;
                         //else throw new LuaError("Return value was not LuaValue.");
