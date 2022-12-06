@@ -288,7 +288,7 @@ public class ComputerDialog extends GUIInputDialog {
 			}, new GUIActivationHighlightCallback() {
 				@Override
 				public boolean isHighlighted(InputState inputState) {
-					return computerData.autoRun;
+					return computerData != null && computerData.autoRun;
 				}
 
 				@Override
