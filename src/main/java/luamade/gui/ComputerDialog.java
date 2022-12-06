@@ -147,7 +147,7 @@ public class ComputerDialog extends GUIInputDialog {
 
 				@Override
 				public boolean isOccluded() {
-					return computerData.script == null || computerData.script.isEmpty();
+					return computerData == null || computerData.script == null || computerData.script.isEmpty();
 				}
 			}, new GUIActivationCallback() {
 				@Override
@@ -157,7 +157,7 @@ public class ComputerDialog extends GUIInputDialog {
 
 				@Override
 				public boolean isActive(InputState inputState) {
-					return computerData.script != null && !computerData.script.isEmpty();
+					return computerData != null && computerData.script != null && !computerData.script.isEmpty();
 				}
 			});
 
@@ -199,7 +199,7 @@ public class ComputerDialog extends GUIInputDialog {
 
 				@Override
 				public boolean isOccluded() {
-					return computerData.script == null || computerData.script.isEmpty();
+					return computerData == null || computerData.script == null || computerData.script.isEmpty();
 				}
 			}, new GUIActivationCallback() {
 				@Override
@@ -209,7 +209,7 @@ public class ComputerDialog extends GUIInputDialog {
 
 				@Override
 				public boolean isActive(InputState inputState) {
-					return computerData.script != null && !computerData.script.isEmpty();
+					return computerData != null && computerData.script != null && !computerData.script.isEmpty();
 				}
 			});
 
