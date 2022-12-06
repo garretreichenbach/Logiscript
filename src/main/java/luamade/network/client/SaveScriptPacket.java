@@ -59,7 +59,10 @@ public class SaveScriptPacket extends Packet {
 			ComputerModule module = (ComputerModule) controller.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId());
 			SegmentPiece segmentPiece = segmentController.getSegmentBuffer().getPointUnsave(index);
 			script = script.replaceAll("_,", ",");
-			if(segmentPiece != null) module.setScript(segmentPiece, script);
+			if(segmentPiece != null) {
+				module.getData(segmentPiece).script = script;
+				module.flagUpdatedData();
+			}
 		} catch(Exception exception) {
 			exception.printStackTrace();
 		}

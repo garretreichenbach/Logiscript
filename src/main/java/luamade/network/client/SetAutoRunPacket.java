@@ -58,7 +58,10 @@ public class SetAutoRunPacket extends Packet {
 			ManagedSegmentController<?> controller = (ManagedSegmentController<?>) segmentController;
 			ComputerModule module = (ComputerModule) controller.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId());
 			SegmentPiece segmentPiece = segmentController.getSegmentBuffer().getPointUnsave(index);
-			if(segmentPiece != null) module.setAutoRun(segmentPiece, autoRun);
+			if(segmentPiece != null) {
+				module.getData(segmentPiece).autoRun = autoRun;
+				module.flagUpdatedData();
+			}
 		} catch(Exception exception) {
 			exception.printStackTrace();
 		}

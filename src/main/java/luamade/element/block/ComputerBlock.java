@@ -70,7 +70,7 @@ public class ComputerBlock extends Block implements ActivationInterface {
 		try {
 			if(!active || !target.isActive()) return;
 			ComputerModule computerModule = getModule(target);
-			if(computerModule != null && !computerModule.getScript(target).isEmpty()) computerModule.runScript(target);
+			if(computerModule != null && !computerModule.getData(target).script.isEmpty()) computerModule.runScript(target);
 		} catch(Exception exception) {
 			exception.printStackTrace();
 		}

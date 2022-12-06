@@ -37,69 +37,35 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 			String line;
 			while((line = bufferedReader.readLine()) != null) script.append(line).append("\n");
 			bufferedReader.close();
-			setScript(segmentPiece, script.toString());
+			getData(segmentPiece).script = script.toString();
+			flagUpdatedData();
 		} catch(Exception exception) {
 			exception.printStackTrace();
 		}
-		return getScript(segmentPiece);
+		return getData(segmentPiece).script;
 	}
 
-	public String getScript(SegmentPiece segmentPiece) {
-		return getComputerMap().get(segmentPiece.getAbsoluteIndex())[1];
+	public ComputerData getData(SegmentPiece segmentPiece) {
+		return getComputerMap().get(segmentPiece.getAbsoluteIndex());
 	}
 
-	public boolean isAutoRun(SegmentPiece segmentPiece) {
-		return getComputerMap().get(segmentPiece.getAbsoluteIndex())[0].equals("true");
-	}
-
-	public void setAutoRun(SegmentPiece segmentPiece, boolean autoRun) {
-		getComputerMap().get(segmentPiece.getAbsoluteIndex())[0] = String.valueOf(autoRun);
-	}
-
-	private HashMap<Long, String[]> getComputerMap() {
-		HashMap<Long, String[]> computerMap = new HashMap<>();
-		if(data instanceof String && !((String) data).isEmpty()) {
-			String[] computers = ((String) data).split("\\|");
-			for(String computer : computers) {
-				if(computer.contains("_,")) {
-					try {
-						//Format: index[autoRun, script]
-						//Find first [ and last ]
-						int firstBracket = computer.indexOf("[");
-						int lastBracket = computer.lastIndexOf("]");
-						//Get index
-						long index = Long.parseLong(computer.substring(0, firstBracket));
-						//Get autoRun and script
-						String[] autoRunAndScript = computer.substring(firstBracket + 1, lastBracket).split(",");
-						//Add to map
-						computerMap.put(index, autoRunAndScript);
-					} catch(Exception ignored) {}
-				}
-			}
-		}
-		return computerMap;
-	}
-
-	private void setComputerMap(HashMap<Long, String[]> computerMap) {
-		StringBuilder computerString = new StringBuilder();
-		for(Long id : computerMap.keySet()) {
-			//Format: index[autoRun, script]
-			computerString.append(id).append("[").append(computerMap.get(id)[0]).append(",").append(computerMap.get(id)[1]).append("]|");
-		}
-		data = computerString.toString();
+	public void setData(SegmentPiece segmentPiece, ComputerData computerData) {
+		getComputerMap().remove(segmentPiece.getAbsoluteIndex());
+		getComputerMap().put(segmentPiece.getAbsoluteIndex(), computerData);
 		flagUpdatedData();
 	}
 
-	public void setScript(SegmentPiece segmentPiece, String script) {
-		HashMap<Long, String[]> computerMap = getComputerMap();
-		computerMap.put(segmentPiece.getAbsoluteIndex(), new String[] {"false", script});
-		setComputerMap(computerMap);
+	private HashMap<Long, ComputerData> getComputerMap() {
+		HashMap<Long, ComputerData> computerMap = new HashMap<>();
+		if(data != null) computerMap = (HashMap<Long, ComputerData>) data;
+		else data = computerMap;
+		return computerMap;
 	}
 
 	public void runScript(SegmentPiece segmentPiece) {
 		if(!segmentPiece.getSegmentController().isOnServer()) return;
 		try {
-			LuaManager.run(getScript(segmentPiece), segmentPiece);
+			LuaManager.run(getData(segmentPiece).script, segmentPiece);
 		} catch(Exception exception) {
 			exception.printStackTrace();
 			LuaManager.run("console.error(" + exception.getMessage() + ")", segmentPiece);
@@ -109,11 +75,24 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 	public void openGUI(SegmentPiece segmentPiece) {
 		try {
 			ComputerDialog dialog = new ComputerDialog();
-			dialog.getInputPanel().setValues(segmentPiece, getScript(segmentPiece), this, isAutoRun(segmentPiece));
+			dialog.getInputPanel().setValues(segmentPiece,this, getData(segmentPiece));
 			dialog.getInputPanel().onInit();
 			dialog.activate();
 		} catch(Exception exception) {
 			exception.printStackTrace();
+		}
+	}
+
+	public static class ComputerData {
+
+		public long index;
+		public boolean autoRun;
+		public String script;
+
+		public ComputerData(long index, boolean autoRun, String script) {
+			this.index = index;
+			this.autoRun = autoRun;
+			this.script = script;
 		}
 	}
 }
