@@ -5,10 +5,7 @@ import api.mod.StarMod;
 import api.network.packets.PacketUtil;
 import luamade.element.ElementManager;
 import luamade.element.block.ComputerBlock;
-import luamade.manager.ConfigManager;
-import luamade.manager.EventManager;
-import luamade.manager.LuaManager;
-import luamade.manager.ResourceManager;
+import luamade.manager.*;
 import luamade.network.client.RunScriptPacket;
 import luamade.network.client.SaveScriptPacket;
 import luamade.network.client.SetAutoRunPacket;
@@ -45,6 +42,7 @@ public class LuaMade extends StarMod {
 		initLogger();
 		EventManager.initialize(this);
 		LuaManager.initialize(this);
+		APIManager.initialize();
 		registerPackets();
 	}
 

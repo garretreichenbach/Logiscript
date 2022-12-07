@@ -11,11 +11,11 @@ import org.schema.game.common.controller.elements.ShipManagerContainer;
  *
  * @author TheDerpGamer (TheDerpGamer#0027)
  */
-public class ThrustModule extends LuaMadeUserdata implements ModuleInterface {
+public class ThrustSystem extends LuaMadeUserdata implements ModuleInterface {
 
 	private final SegmentController segmentController;
 
-	public ThrustModule(SegmentController segmentController) {
+	public ThrustSystem(SegmentController segmentController) {
 		this.segmentController = segmentController;
 	}
 

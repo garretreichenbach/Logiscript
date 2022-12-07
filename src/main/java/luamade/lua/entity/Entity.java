@@ -4,7 +4,7 @@ import api.utils.game.SegmentControllerUtils;
 import luamade.lua.Faction;
 import luamade.lua.LuaVec3;
 import luamade.lua.element.block.Block;
-import luamade.lua.element.system.module.ThrustModule;
+import luamade.lua.element.system.module.ThrustSystem;
 import luamade.lua.element.system.reactor.Reactor;
 import luamade.lua.entity.ai.EntityAI;
 import luamade.luawrap.LuaMadeCallable;
@@ -136,8 +136,8 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public ThrustModule getThrustModule() {
-		return new ThrustModule(segmentController);
+	public ThrustSystem getThrustModule() {
+		return new ThrustSystem(segmentController);
 	}
 
 	@LuaMadeCallable
