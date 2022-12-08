@@ -42,7 +42,6 @@ public class LuaMade extends StarMod {
 		initLogger();
 		EventManager.initialize(this);
 		LuaManager.initialize(this);
-		APIManager.initialize();
 		registerPackets();
 	}
 
