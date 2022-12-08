@@ -1,6 +1,8 @@
 package luamade.luawrap;
 
 import org.luaj.vm2.LuaError;
+import org.luaj.vm2.LuaNil;
+import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
 import org.luaj.vm2.lib.VarArgFunction;
 
@@ -13,12 +15,14 @@ public class WrapMethod extends VarArgFunction {
     public final String name;
     private final Class<?> clazz;
     private final Map<Integer, VarArgFunction> methods = new HashMap<>();
+    private VarArgFunction varadic = null;
 
     public WrapMethod(String name_in, Class<?> clazz_in) {
         this.name = name_in;
         this.clazz = clazz_in;
 
         Map<Integer, Method> ms = new HashMap<>();
+        VarArgFunction vm = null;
 
         for (Method m : this.clazz.getMethods()) {
             if (m.getName().equals(name) && m.isAnnotationPresent(LuaMadeCallable.class))
@@ -27,32 +31,37 @@ public class WrapMethod extends VarArgFunction {
 
         for (final int argc : ms.keySet()) {
             final Method m = ms.get(argc);
+            final Class<?>[] argst = m.getParameterTypes();
+            final boolean isVrad = argst[argc-1] == Varargs.class;
             VarArgFunction f = new VarArgFunction() {
                 @Override
                 public Varargs invoke(Varargs vargs) {
-                    if (argc != vargs.narg() - 1) throw new LuaError("Incorrect argument count.");
+                    //If the function isn't varadic, the argument count must match exactly
+                    //(+1 because vargs contains the object itsels too)
+                    //If the function is varadic, the final Vararg can be nil.
+                    if (!isVrad ? argc+1 != vargs.narg() : argc > vargs.narg())
+                        throw new LuaError("Incorrect argument count.");
 
                     if (!clazz.isInstance(vargs.arg1())) throw new LuaError("Method must be called with self.");
-
                     if (!m.isAnnotationPresent(LuaMadeCallable.class)) throw new LuaError("Method not LuaMadeCallable.");
 
 
                     try {
-                        Class<?>[] argst = m.getParameterTypes();
+                        
                         Object[] argv = new Object[argc];
+                        //
                         for (int i = 0; i < argc; ++i) {
                             Class<?> argt = argst[i];
-                            argv[i] = WrapUtils.unwrap(vargs.arg(i + 2), argt);
+                            if (i+1 == argc && argt == Varargs.class) //if we're at the last parameter and the method asks for a Vararg
+                                if (argc == vargs.narg()) {argv[i] = NIL; break;} //If we're out of arguments, give a nil
+                                else {argv[i] = vargs.subargs(i+2); break;} //Else pack remaining arguments in a Vararg.
 
+                            argv[i] = WrapUtils.unwrap(vargs.arg(i+2), argt);
                             if (!argt.isInstance(argv[i]))
                                 throw new LuaError(String.format("Got %s, expected %s.", argv[i].getClass(), argt));
                         }
                         Object out = m.invoke(vargs.arg1(), argv);
                         return WrapUtils.wrap(out);
-
-
-                        //if (out instanceof LuaValue) return (LuaValue) out;
-                        //else throw new LuaError("Return value was not LuaValue.");
 
                     } catch (IllegalAccessException | IllegalArgumentException e) {
                         throw new LuaError("Got Java exception: " + e);
@@ -63,7 +72,9 @@ public class WrapMethod extends VarArgFunction {
                 }
             };
             methods.put(argc, f);
+            if (isVrad) vm = f;
         }
+        varadic = vm;
     }
 
     @Override
@@ -73,9 +84,11 @@ public class WrapMethod extends VarArgFunction {
         if (argc < 0)
             throw new LuaError("Method must be supplied with 'self'.");
 
-        if (methods.containsKey(argc)) {
+        if (methods.containsKey(argc))
             return methods.get(argc).invoke(vargs);
-        }
+
+        if (varadic != null)
+            return varadic;
 
         throw new LuaError("No matching Java method.");
     }
