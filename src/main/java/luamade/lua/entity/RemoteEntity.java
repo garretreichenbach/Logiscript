@@ -42,6 +42,11 @@ public class RemoteEntity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public Float getMass() {
+		return segmentController.getMass();
+	}
+
+	@LuaMadeCallable
 	public LuaVec3 getSector() {
 		Vector3i sector = segmentController.getSector(new Vector3i());
 		return new LuaVec3(sector.x, sector.y, sector.z);
@@ -52,5 +57,4 @@ public class RemoteEntity extends LuaMadeUserdata {
 		Vector3i system = segmentController.getSystem(new Vector3i());
 		return new LuaVec3(system.x, system.y, system.z);
 	}
-
 }

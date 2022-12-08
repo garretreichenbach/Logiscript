@@ -168,6 +168,11 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public Float getMass() {
+		return segmentController.getMass();
+	}
+
+	@LuaMadeCallable
 	public Boolean isJamming() {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;
