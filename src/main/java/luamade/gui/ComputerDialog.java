@@ -223,7 +223,7 @@ public class ComputerDialog extends GUIInputDialog {
 
 				@Override
 				public boolean isOccluded() {
-					return true;
+					return false;
 				}
 			}, new GUIActivationCallback() {
 				@Override

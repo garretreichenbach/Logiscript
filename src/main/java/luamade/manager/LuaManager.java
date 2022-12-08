@@ -2,6 +2,7 @@ package luamade.manager;
 
 import api.mod.config.PersistentObjectUtil;
 import luamade.LuaMade;
+import luamade.element.ElementManager;
 import luamade.lua.Channel;
 import luamade.lua.Console;
 import org.luaj.vm2.Globals;
@@ -10,7 +11,7 @@ import org.luaj.vm2.lib.jse.JsePlatform;
 import org.schema.game.common.data.SegmentPiece;
 
 import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 
 /**
  * [Description]
@@ -19,13 +20,37 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class LuaManager {
 
-	private static final ConcurrentHashMap<SegmentPiece, Thread> threadMap = new ConcurrentHashMap<>();
+	private static final HashMap<SegmentPiece, Thread> threadMap = new HashMap<>();
 	private static final HashMap<String, Channel> channels = new HashMap<>();
+	private static Thread threadChecker;
 
 	public static void initialize(LuaMade instance) {
 		for(Object obj : PersistentObjectUtil.getObjects(instance.getSkeleton(), Channel.class)) {
 			Channel channel = (Channel) obj;
 			channels.put(channel.getName(), channel);
+		}
+
+		if(threadChecker == null || !threadChecker.isAlive() || threadChecker.isInterrupted()) {
+			if(threadChecker != null) {
+				threadChecker.stop();
+				LuaMade.log.log(Level.WARNING, "Lua thread checker was interrupted! Restarting...");
+			}
+			threadChecker = new Thread() {
+				@Override
+				public void run() {
+					while(true) {
+						try {
+							Thread.sleep(10000);
+							for(SegmentPiece segmentPiece : threadMap.keySet()) {
+								if(segmentPiece == null || segmentPiece.getSegmentController() == null || !segmentPiece.isAlive() || !segmentPiece.getSegmentController().getSegmentBuffer().existsPointUnsave(segmentPiece.getAbsoluteIndex()) || segmentPiece.getSegmentController().getSegmentBuffer().getPointUnsave(segmentPiece.getAbsoluteIndex()).getType() != ElementManager.getBlock("Computer").getId()) terminate(segmentPiece);
+							}
+						} catch(InterruptedException exception) {
+							exception.printStackTrace();
+						}
+					}
+				}
+			};
+			threadChecker.start();
 		}
 	}
 
@@ -71,9 +96,10 @@ public class LuaManager {
 	}
 
 	public static void terminate(SegmentPiece segmentPiece) {
-		if (threadMap.containsKey(segmentPiece)) {
-			threadMap.get(segmentPiece).interrupt();
+		if(threadMap.containsKey(segmentPiece)) {
+			threadMap.get(segmentPiece).stop();
 			threadMap.remove(segmentPiece);
+			System.out.println("Terminated script for " + segmentPiece);
 		}
 	}
 }

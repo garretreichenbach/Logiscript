@@ -8,6 +8,7 @@ import luamade.manager.LuaManager;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.elements.ManagerContainer;
 import org.schema.game.common.data.SegmentPiece;
+import org.schema.game.common.data.element.ElementCollection;
 
 import java.util.HashMap;
 
@@ -25,6 +26,14 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 	@Override
 	public String getName() {
 		return "Computer";
+	}
+
+	@Override
+	public void handleRemove(long indexAndOrientation) {
+		super.handleRemove(indexAndOrientation);
+		long index = ElementCollection.getPosIndexFrom4(indexAndOrientation);
+		SegmentPiece segmentPiece = segmentController.getSegmentBuffer().getPointUnsave(index);
+		if(segmentPiece != null) LuaManager.terminate(segmentPiece);
 	}
 
 	public String getScriptFromWeb(SegmentPiece segmentPiece, String link) {
