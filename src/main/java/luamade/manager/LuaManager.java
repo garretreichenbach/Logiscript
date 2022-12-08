@@ -11,6 +11,7 @@ import org.luaj.vm2.lib.jse.JsePlatform;
 import org.schema.game.common.data.SegmentPiece;
 
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 /**
@@ -20,7 +21,7 @@ import java.util.logging.Level;
  */
 public class LuaManager {
 
-	private static final HashMap<SegmentPiece, Thread> threadMap = new HashMap<>();
+	private static final ConcurrentHashMap<SegmentPiece, Thread> threadMap = new ConcurrentHashMap<>();
 	private static final HashMap<String, Channel> channels = new HashMap<>();
 	private static Thread threadChecker;
 
