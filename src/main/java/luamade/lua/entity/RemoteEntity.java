@@ -1,7 +1,7 @@
 package luamade.lua.entity;
 
 import luamade.lua.Faction;
-import luamade.lua.LuaVec3;
+import luamade.lua.LuaVec3i;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
@@ -47,14 +47,14 @@ public class RemoteEntity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public LuaVec3 getSector() {
+	public LuaVec3i getSector() {
 		Vector3i sector = segmentController.getSector(new Vector3i());
-		return new LuaVec3(sector.x, sector.y, sector.z);
+		return new LuaVec3i(sector.x, sector.y, sector.z);
 	}
 
 	@LuaMadeCallable
-	public LuaVec3 getSystem() {
+	public LuaVec3i getSystem() {
 		Vector3i system = segmentController.getSystem(new Vector3i());
-		return new LuaVec3(system.x, system.y, system.z);
+		return new LuaVec3i(system.x, system.y, system.z);
 	}
 }

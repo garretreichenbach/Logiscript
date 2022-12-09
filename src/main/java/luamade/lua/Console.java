@@ -51,7 +51,7 @@ public class Console extends LuaMadeUserdata {
 
 
 	@LuaMadeCallable
-	public void printColor(Double[] color, Varargs vargs) {
+	public void printColor(Float[] color, Varargs vargs) {
 		//Only allow printing every 2 seconds
 		if(System.currentTimeMillis() - timer > 2000) {
 			String string = "";

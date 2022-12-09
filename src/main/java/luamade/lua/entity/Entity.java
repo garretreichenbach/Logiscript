@@ -2,7 +2,7 @@ package luamade.lua.entity;
 
 import api.utils.game.SegmentControllerUtils;
 import luamade.lua.Faction;
-import luamade.lua.LuaVec3;
+import luamade.lua.LuaVec3i;
 import luamade.lua.element.block.Block;
 import luamade.lua.element.system.module.ThrustSystem;
 import luamade.lua.element.system.reactor.Reactor;
@@ -41,13 +41,8 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Block getBlockAt(LuaVec3 pos) {
+	public Block getBlockAt(LuaVec3i pos) {
 		return new Block(segmentController.getSegmentBuffer().getPointUnsave(pos.x(), pos.y(), pos.z()));
-	}
-
-	@LuaMadeCallable
-	public Block getBlockAt(Integer x, Integer y, Integer z) {
-		return new Block(segmentController.getSegmentBuffer().getPointUnsave(x, y, z));
 	}
 
 	@LuaMadeCallable
@@ -56,15 +51,13 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public LuaVec3 getSector() {
-		Vector3i sector = segmentController.getSector(new Vector3i());
-		return new LuaVec3(sector.x, sector.y, sector.z);
+	public LuaVec3i getSector() {
+		return new LuaVec3i(segmentController.getSector(new Vector3i()));
 	}
 
 	@LuaMadeCallable
-	public LuaVec3 getSystem() {
-		Vector3i system = segmentController.getSystem(new Vector3i());
-		return new LuaVec3(system.x, system.y, system.z);
+	public LuaVec3i getSystem() {
+		return new LuaVec3i(segmentController.getSystem(new Vector3i()));
 	}
 
 	@LuaMadeCallable
