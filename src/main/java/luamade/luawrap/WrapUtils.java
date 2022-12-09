@@ -19,6 +19,9 @@ public class WrapUtils {
         else if(o instanceof Integer)
             return LuaValue.valueOf((Integer) o);
 
+        else if(o instanceof Long)
+            return LuaValue.valueOf((Long) o);
+
         else if(o instanceof Double)
             return LuaValue.valueOf((Double) o);
 
@@ -55,28 +58,23 @@ public class WrapUtils {
             throw new LuaError(String.format("No automated Lua->Lua coercions (%s -> %s).", o.getClass(), clazz));
         }
 
-        Object out;
+        if (clazz == String.class)
+            return o.checkstring().tojstring();
 
-        if (o instanceof LuaString) {
-            out = ((LuaString) o).tojstring();
-        }
+        else if (clazz == boolean.class || clazz == Boolean.class)
+            return o.toboolean();
 
-        else if (o instanceof LuaBoolean) {
-            out = ((LuaBoolean) o).booleanValue();
-        }
+        else if (clazz == double.class || clazz == Double.class)
+            return o.checkdouble();
 
-        else if (o instanceof LuaDouble) {
-            out = ((LuaDouble) o).todouble();
-        }
+        else if (clazz == float.class || clazz == Float.class)
+            return (float) o.checkdouble();
 
-        else if (o instanceof LuaInteger) {
-            out = ((LuaInteger) o).toint();
-        }
-        else
-            out = null;
+        else if (clazz == int.class || clazz == Integer.class)
+            return o.checkint();
 
-        if (clazz.isInstance(out))
-            return out;
+        else if (clazz == long.class || clazz == Long.class)
+            return o.checkint();
 
         throw new LuaError(String.format("Cannot unwrap %s to %s.", o.getClass(), clazz));
     }
