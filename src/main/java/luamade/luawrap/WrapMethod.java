@@ -36,6 +36,7 @@ public class WrapMethod extends VarArgFunction {
             VarArgFunction f = new VarArgFunction() {
                 @Override
                 public Varargs invoke(Varargs vargs) {
+                    System.err.println("Calling method " + (isVrad ? "(varadic)" : ""));
                     //If the function isn't varadic, the argument count must match exactly
                     //(+1 because vargs contains the object itsels too)
                     //If the function is varadic, the final Vararg can be nil.
@@ -88,7 +89,7 @@ public class WrapMethod extends VarArgFunction {
             return methods.get(argc).invoke(vargs);
 
         if (varadic != null)
-            return varadic;
+            return varadic.invoke(vargs);
 
         throw new LuaError("No matching Java method.");
     }

@@ -5,6 +5,8 @@ import luamade.lua.element.block.Block;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.manager.LuaManager;
+import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.Varargs;
 import org.schema.game.client.view.effects.RaisingIndication;
 import org.schema.game.client.view.gui.shiphud.HudIndicatorOverlay;
 import org.schema.game.common.data.SegmentPiece;
@@ -29,9 +31,13 @@ public class Console extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public void print(String string) {
+	public void print(Varargs vargs) {
 		//Only allow printing every 2 seconds
 		if(System.currentTimeMillis() - timer > 2000) {
+			String string = "";
+			for (int i = 1; i <= vargs.narg() && i <= 16; ++i)
+				string += vargs.arg(i).toString() + "\n";
+
 			System.out.println(string);
 			Transform transform = new Transform();
 			segmentPiece.getTransform(transform);
@@ -43,14 +49,19 @@ public class Console extends LuaMadeUserdata {
 		}
 	}
 
+
 	@LuaMadeCallable
-	public void print(String string, Float[] color) {
+	public void printColor(Double[] color, Varargs vargs) {
 		//Only allow printing every 2 seconds
 		if(System.currentTimeMillis() - timer > 2000) {
+			String string = "";
+			for (int i = 1; i <= vargs.narg() && i <= 16; ++i)
+				string += vargs.arg(i).toString() + "\n";
+
 			System.out.println(string);
 			Transform transform = new Transform();
 			segmentPiece.getTransform(transform);
-			RaisingIndication raisingIndication = new RaisingIndication(transform, string, color[0], color[1], color[2], color[3]);
+			RaisingIndication raisingIndication = new RaisingIndication(transform, string, color[0].floatValue(), color[1].floatValue(), color[2].floatValue(), color[3].floatValue());
 			raisingIndication.speed = 0.1f;
 			raisingIndication.lifetime = 15.0f;
 			HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
