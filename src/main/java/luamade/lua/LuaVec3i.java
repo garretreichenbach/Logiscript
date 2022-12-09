@@ -2,6 +2,7 @@ package luamade.lua;
 
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import org.schema.common.util.linAlg.Vector3i;
 
 public class LuaVec3 extends LuaMadeUserdata {
     public int xx;
@@ -12,6 +13,10 @@ public class LuaVec3 extends LuaMadeUserdata {
         xx = x;
         yy = y;
         zz = z;
+    }
+
+    public LuaVec3(Vector3i v) {
+        this.LuaVec3(v.x, v.y, v.z);
     }
 
     public LuaVec3(LuaVec3 vec) {

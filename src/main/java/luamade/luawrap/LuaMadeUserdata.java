@@ -27,7 +27,7 @@ public abstract class LuaMadeUserdata extends LuaUserdata {
             if (apiMethod != null)
                 return apiMethod;
             else if (!methods.get(ud.getClass()).contains(methodName))
-                throw new LuaError("LuaMadeUserdata has no such method.");
+                throw new LuaError(String.format("LuaMadeUserdata '%s' has no such method '%s'.", udi.getClass(), methodName));
 
             Map<String, WrapMethod> methods = methodWraps.get(ud.getClass());
             if (!methods.containsKey(methodName))
