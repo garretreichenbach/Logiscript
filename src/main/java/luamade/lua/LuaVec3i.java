@@ -35,18 +35,34 @@ public class LuaVec3i extends LuaMadeUserdata {
     public Integer z() {
         return zz;
     }
+
     @LuaMadeCallable
-    public LuaVec3i incx(Integer x) {
+    public void setX(Integer x) {
+        xx = x;
+    }
+
+    @LuaMadeCallable
+    public void setY(Integer y) {
+        yy = y;
+    }
+
+    @LuaMadeCallable
+    public void setZ(Integer z) {
+        zz = z;
+    }
+
+    @LuaMadeCallable
+    public LuaVec3i incrementX(Integer x) {
         xx += x;
         return this;
     }
     @LuaMadeCallable
-    public LuaVec3i incy(Integer y) {
+    public LuaVec3i incrementY(Integer y) {
         yy += y;
         return this;
     }
     @LuaMadeCallable
-    public LuaVec3i incz(Integer z) {
+    public LuaVec3i incrementZ(Integer z) {
         zz += z;
         return this;
     }

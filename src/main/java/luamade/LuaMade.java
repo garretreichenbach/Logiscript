@@ -277,6 +277,9 @@ public class LuaMade extends StarMod {
 				"x() - Returns the x coordinate.\n" +
 				"y() - Returns the y coordinate.\n" +
 				"z() - Returns the z coordinate.\n" +
+				"setX(Integer) - Sets the x coordinate.\n" +
+				"setY(Integer) - Sets the y coordinate.\n" +
+				"setZ(Integer) - Sets the z coordinate.\n" +
 				"incrementX(Integer) - Increases the x coordinate by the given amount.\n" +
 				"incrementY(Integer) - Increases the y coordinate by the given amount.\n" +
 				"incrementZ(Integer) - Increases the z coordinate by the given amount.\n" +
