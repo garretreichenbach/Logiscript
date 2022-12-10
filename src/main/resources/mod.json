@@ -1,13 +1,13 @@
 {
   "name": "LuaMade",
   "author": "TheDerpGamer, LupoCani",
-  "description": "Adds lua scripting to StarMade.",
-  "version": "1.0.0 - Logical",
+  "description": "Adds Lua scriptable computers to StarMade.",
+  "version": "1.0.1 - Logical",
   "starmade_version": "0.203.133",
   "client_mod": false,
   "server_mod": false,
   "main_class": "luamade.LuaMade",
-  "smd_resource_id": 9999,
+  "smd_resource_id": 8501,
   "dependencies": [
 	-1
   ],
