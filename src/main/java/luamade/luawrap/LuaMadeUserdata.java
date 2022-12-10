@@ -6,6 +6,24 @@ import org.luaj.vm2.lib.TwoArgFunction;
 import java.lang.reflect.Method;
 import java.util.*;
 
+/** by lupoCani from 2022-12-07
+ * Provides the core of the LuaMade Java-Lua interface.
+ * The class is a valid LuaValue, and any subclass which with methods
+ * marked @LuaMadeCallable will, when passed as a LuaValue to Lua, automatically
+ * have those methods callable from within Lua.
+ * <p></p>
+ * Methods marked @LuaMadeCallable should only return (boxed) Java primitives,
+ * LuaJ's built-in LuaValue subclasses, and subclasses of LuaMadeUserdata.
+ * <p></p>
+ * Method calls from within Lua are routed to @LuaMadeCallable based on method
+ * name and parameter count, no two @LuaMadeCallable methods of a given class
+ * should have these properties in common (even if they're distinct from a Java
+ * point of view). If no method matching the name and argument count exists,
+ * the call will be passed to any correctly named @LuaMadeCallable method taking
+ * a Vararg as its last parameter. No two such methods of a given name should exist.
+ * <p></p>
+ * Other mods may add new methods via the API, this is documented separately.
+ */
 public abstract class LuaMadeUserdata extends LuaUserdata {
     private final static LuaTable metaTable = new LuaTable();
     private final static Map<Class<? extends LuaMadeUserdata>, Map<String, WrapMethod>> methodWraps = new HashMap<>();
