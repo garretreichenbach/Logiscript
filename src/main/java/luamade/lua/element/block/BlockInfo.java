@@ -18,6 +18,11 @@ public class BlockInfo extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
+    public String getDescription() {
+        return elementInfo.getDescription();
+    }
+
+    @LuaMadeCallable
     public Short getId() {
         return elementInfo.getId();
     }

@@ -4,17 +4,21 @@ import api.utils.game.SegmentControllerUtils;
 import luamade.lua.Faction;
 import luamade.lua.LuaVec3i;
 import luamade.lua.element.block.Block;
-import luamade.lua.element.system.module.ThrustSystem;
+import luamade.lua.element.system.module.Thrust;
 import luamade.lua.element.system.reactor.Reactor;
 import luamade.lua.element.system.shield.ShieldSystem;
+import luamade.lua.element.system.shipyard.Shipyard;
 import luamade.lua.entity.ai.EntityAI;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
+import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.PlayerUsableInterface;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.Ship;
+import org.schema.game.common.controller.elements.ElementCollectionManager;
 import org.schema.game.common.controller.elements.cloaking.StealthAddOn;
+import org.schema.game.common.controller.elements.shipyard.ShipyardCollectionManager;
 import org.schema.schine.network.objects.Sendable;
 
 import java.util.ArrayList;
@@ -130,8 +134,8 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public ThrustSystem getThrustModule() {
-		return new ThrustSystem(segmentController);
+	public Thrust getThrust() {
+		return new Thrust(segmentController);
 	}
 
 	@LuaMadeCallable
@@ -239,5 +243,14 @@ public class Entity extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public ShieldSystem getShieldSystem() {
 		return new ShieldSystem(segmentController);
+	}
+
+	@LuaMadeCallable
+	public Shipyard[] getShipyards() {
+		ArrayList<Shipyard> shipyards = new ArrayList<>();
+		if(segmentController instanceof ManagedUsableSegmentController<?>) {
+			for(ElementCollectionManager<?, ?, ?> manager : SegmentControllerUtils.getCollectionManagers((ManagedUsableSegmentController<?>) segmentController, ShipyardCollectionManager.class)) shipyards.add(new Shipyard(segmentController, (ShipyardCollectionManager) manager));
+		}
+		return shipyards.toArray(new Shipyard[0]);
 	}
 }

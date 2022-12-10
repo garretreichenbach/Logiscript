@@ -52,7 +52,7 @@ public class LuaVec3i extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
-    public LuaVec3i inc(LuaVec3i vec) {
+    public LuaVec3i add(LuaVec3i vec) {
         xx += vec.xx;
         yy += vec.yy;
         zz += vec.zz;
@@ -60,8 +60,40 @@ public class LuaVec3i extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
-    public LuaVec3i sum(LuaVec3i vec) {
-        return new LuaVec3i(this).inc(vec);
+    public LuaVec3i sub(LuaVec3i vec) {
+        xx -= vec.xx;
+        yy -= vec.yy;
+        zz -= vec.zz;
+        return this;
+    }
+
+    @LuaMadeCallable
+    public LuaVec3i mul(LuaVec3i vec) {
+        xx *= vec.xx;
+        yy *= vec.yy;
+        zz *= vec.zz;
+        return this;
+    }
+
+    @LuaMadeCallable
+    public LuaVec3i div(LuaVec3i vec) {
+        xx /= vec.xx;
+        yy /= vec.yy;
+        zz /= vec.zz;
+        return this;
+    }
+
+    @LuaMadeCallable
+    public LuaVec3i scale(Float scale) {
+        xx *= scale;
+        yy *= scale;
+        zz *= scale;
+        return this;
+    }
+
+    @LuaMadeCallable
+    public Float size() {
+        return (float) Math.sqrt(xx * xx + yy * yy + zz * zz);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package luamade.lua.entity.ai;
 
 import api.common.GameCommon;
+import luamade.lua.LuaVec3i;
 import luamade.lua.entity.RemoteEntity;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
@@ -31,10 +32,15 @@ public class EntityAI extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public void moveToSector(Integer[] sector) {
+	public Boolean isActive() {
+		return segmentController.isAIControlled();
+	}
+
+	@LuaMadeCallable
+	public void moveToSector(LuaVec3i sector) {
 		if(segmentController instanceof Ship) {
 			try {
-				((TargetProgram<?>) (((Ship) segmentController).getAiConfiguration().getAiEntityState().getCurrentProgram())).setSectorTarget(new Vector3i(sector[0], sector[1], sector[2]));
+				((TargetProgram<?>) (((Ship) segmentController).getAiConfiguration().getAiEntityState().getCurrentProgram())).setSectorTarget(new Vector3i(sector.x(), sector.y(), sector.z()));
 			} catch(Exception exception) {
 				exception.printStackTrace();
 			}
@@ -42,7 +48,7 @@ public class EntityAI extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Integer[] getTargetSector() {
+	public LuaVec3i getTargetSector() {
 		Vector3i sector = segmentController.getSector(new Vector3i());
 		if(segmentController instanceof Ship) {
 			try {
@@ -51,7 +57,7 @@ public class EntityAI extends LuaMadeUserdata {
 				exception.printStackTrace();
 			}
 		}
-		return new Integer[] {sector.x, sector.y, sector.z};
+		return new LuaVec3i(sector.x, sector.y, sector.z);
 	}
 
 	@LuaMadeCallable

@@ -21,8 +21,9 @@ public class Inventory extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Boolean isInventory() {
-		return inventory != null;
+	public String getName() {
+		if(isInventory()) return inventory.getCustomName();
+		else return null;
 	}
 
 	@LuaMadeCallable
@@ -35,5 +36,9 @@ public class Inventory extends LuaMadeUserdata {
 			}
 			return itemStacks;
 		} else return null;
+	}
+
+	private Boolean isInventory() {
+		return inventory != null;
 	}
 }

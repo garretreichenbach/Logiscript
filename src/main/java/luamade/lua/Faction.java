@@ -34,8 +34,24 @@ public class Faction extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public Faction[] getFriends() {
+		org.schema.game.common.data.player.faction.Faction[] friends = GameCommon.getGameState().getFactionManager().getFaction(factionId).getFriends().toArray(new org.schema.game.common.data.player.faction.Faction[0]);
+		Faction[] friendFactions = new Faction[friends.length];
+		for(int i = 0; i < friends.length; i++) friendFactions[i] = new Faction(friends[i].getIdFaction());
+		return friendFactions;
+	}
+
+	@LuaMadeCallable
 	public Boolean isEnemy(Faction faction) {
 		return GameCommon.getGameState().getFactionManager().isEnemy(factionId, faction.factionId);
+	}
+
+	@LuaMadeCallable
+	public Faction[] getEnemies() {
+		org.schema.game.common.data.player.faction.Faction[] enemies = GameCommon.getGameState().getFactionManager().getFaction(factionId).getEnemies().toArray(new org.schema.game.common.data.player.faction.Faction[0]);
+		Faction[] enemyFactions = new Faction[enemies.length];
+		for(int i = 0; i < enemies.length; i++) enemyFactions[i] = new Faction(enemies[i].getIdFaction());
+		return enemyFactions;
 	}
 
 	@LuaMadeCallable

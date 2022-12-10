@@ -23,7 +23,7 @@ public class ShieldSystem extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public boolean isShielded() {
+	public Boolean isShielded() {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;
 			return ship.getManagerContainer().getShieldCapacityManager().getTotalSize() > 0 && ship.getManagerContainer().getShieldRegenManager().getTotalSize() > 0;

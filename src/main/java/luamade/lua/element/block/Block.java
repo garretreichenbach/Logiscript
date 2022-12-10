@@ -1,9 +1,11 @@
 package luamade.lua.element.block;
 
 import luamade.lua.LuaVec3i;
+import luamade.lua.element.inventory.Inventory;
 import luamade.lua.entity.Entity;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import org.schema.game.common.data.ManagedSegmentController;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementCollection;
 
@@ -45,5 +47,20 @@ public class Block extends LuaMadeUserdata {
     @LuaMadeCallable
     public Entity getEntity() {
         return new Entity(segmentPiece.getSegmentController());
+    }
+
+    @LuaMadeCallable
+    public Boolean hasInventory() {
+        return getInventory() != null;
+    }
+
+    @LuaMadeCallable
+    public Inventory getInventory() {
+        long index = segmentPiece.getAbsoluteIndex();
+        if(segmentPiece.getSegmentController() instanceof ManagedSegmentController<?>) {
+            ManagedSegmentController<?> controller = (ManagedSegmentController<?>) segmentPiece.getSegmentController();
+            if(controller.getManagerContainer().getInventory(index) != null) return new Inventory(controller.getManagerContainer().getInventory(index), segmentPiece);
+        }
+        return null;
     }
 }

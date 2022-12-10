@@ -32,17 +32,12 @@ public class Shipyard extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Boolean isShipyard() {
-		return getManagedSegmentController() != null && getShipyardElementManager() != null;
-	}
-
-	@LuaMadeCallable
 	public Boolean isFinished() {
 		return isShipyard() && getCollectionManager().isFinished();
 	}
 
 	@LuaMadeCallable
-	public Double getCompletionPercentage() {
+	public Double getCompletion() {
 		return isShipyard() ? getCollectionManager().getCompletionOrderPercent() : 0;
 	}
 
@@ -126,6 +121,10 @@ public class Shipyard extends LuaMadeUserdata {
 			ShipyardCollectionManager.ShipyardCommandType type = ShipyardCollectionManager.ShipyardCommandType.valueOf(command.toUpperCase(Locale.ENGLISH).replaceAll(" ", "_"));
 			if(type.args.length == args.length) getCollectionManager().handleShipyardCommandOnServer(getManagedSegmentController().getFactionId(), type, args);
 		}
+	}
+
+	private Boolean isShipyard() {
+		return getManagedSegmentController() != null && getShipyardElementManager() != null;
 	}
 
 	protected ManagedUsableSegmentController<?> getManagedSegmentController() {
