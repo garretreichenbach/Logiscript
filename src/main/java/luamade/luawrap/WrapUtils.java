@@ -112,7 +112,8 @@ public class WrapUtils {
     public static Set<String> listMethods(Class<?> clazz) {
         Set<String> out = new HashSet<>();
         for (Method m : clazz.getMethods())
-            out.add(m.getName());
+            if (m.isAnnotationPresent(LuaMadeCallable.class))
+                out.add(m.getName());
         return out;
     }
 }
