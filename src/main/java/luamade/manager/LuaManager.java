@@ -64,6 +64,7 @@ public class LuaManager {
 					Globals globals = JsePlatform.debugGlobals();
 					LuaValue console = new Console(segmentPiece);
 					globals.set("luajava", LuaValue.NIL);
+					globals.set("globals", LuaValue.NIL);
 					globals.set("console", console);
 					LuaValue chunk = globals.load(script);
 					chunk.call();
