@@ -6,6 +6,7 @@ import luamade.lua.LuaVec3i;
 import luamade.lua.element.block.Block;
 import luamade.lua.element.system.module.ThrustSystem;
 import luamade.lua.element.system.reactor.Reactor;
+import luamade.lua.element.system.shield.ShieldSystem;
 import luamade.lua.entity.ai.EntityAI;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
@@ -233,5 +234,10 @@ public class Entity extends LuaMadeUserdata {
 				else if(stealth.isActive()) stealth.onRevealingAction();
 			}
 		}
+	}
+
+	@LuaMadeCallable
+	public ShieldSystem getShieldSystem() {
+		return new ShieldSystem(segmentController);
 	}
 }

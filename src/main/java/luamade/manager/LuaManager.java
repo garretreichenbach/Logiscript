@@ -45,7 +45,7 @@ public class LuaManager {
 							for(SegmentPiece segmentPiece : threadMap.keySet()) {
 								if(segmentPiece == null || segmentPiece.getSegmentController() == null || !segmentPiece.isAlive() || !segmentPiece.getSegmentController().getSegmentBuffer().existsPointUnsave(segmentPiece.getAbsoluteIndex()) || segmentPiece.getSegmentController().getSegmentBuffer().getPointUnsave(segmentPiece.getAbsoluteIndex()).getType() != ElementManager.getBlock("Computer").getId()) terminate(segmentPiece);
 							}
-						} catch(InterruptedException exception) {
+						} catch(Exception exception) {
 							exception.printStackTrace();
 						}
 					}
