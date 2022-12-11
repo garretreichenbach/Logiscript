@@ -2,7 +2,7 @@
   "name": "LuaMade",
   "author": "TheDerpGamer, LupoCani",
   "description": "Adds Lua scriptable computers to StarMade.",
-  "version": "1.0.3 - Logical",
+  "version": "1.0.4 - Logical",
   "starmade_version": "0.203.133",
   "client_mod": false,
   "server_mod": false,

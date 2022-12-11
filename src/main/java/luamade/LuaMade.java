@@ -18,6 +18,7 @@ import luamade.network.client.SaveScriptPacket;
 import luamade.network.client.SetAutoRunPacket;
 import luamade.network.client.TerminateScriptPacket;
 import luamade.utils.DataUtils;
+import org.luaj.vm2.Globals;
 import org.schema.schine.resource.ResourceLoader;
 
 import java.io.File;
