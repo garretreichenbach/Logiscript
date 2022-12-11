@@ -12,7 +12,7 @@ def starmadeDirectory = 'C:/Program Files (x86)/Steam/steamapps/common/StarMade/
 def jarName = 'LuaMade'
 mainClassName = 'luamade.LuaMade'
 group 'luamade'
-version '1.0.7 - Logical'
+version '1.0.8 - Logical'
 
 repositories {
     mavenCentral()

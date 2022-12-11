@@ -76,4 +76,8 @@ public class RemoteEntity extends LuaMadeUserdata {
 	public String getEntityType() {
 		return segmentController.getTypeString();
 	}
+
+	public SegmentController getSegmentController() {
+		return segmentController;
+	}
 }

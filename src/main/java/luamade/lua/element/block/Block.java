@@ -63,4 +63,8 @@ public class Block extends LuaMadeUserdata {
         }
         return null;
     }
+
+    public SegmentPiece getSegmentPiece() {
+        return segmentPiece;
+    }
 }
