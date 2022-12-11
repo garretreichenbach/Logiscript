@@ -18,7 +18,6 @@ import luamade.network.client.SaveScriptPacket;
 import luamade.network.client.SetAutoRunPacket;
 import luamade.network.client.TerminateScriptPacket;
 import luamade.utils.DataUtils;
-import org.luaj.vm2.Globals;
 import org.schema.schine.resource.ResourceLoader;
 
 import java.io.File;
@@ -174,6 +173,7 @@ public class LuaMade extends StarMod {
 				"setName(String) - Sets the name of the entity.\n" +
 				"getBlockAt(Vector3) - Returns the block at the given position.\n" +
 				"getAI() - Returns the entity's AI.\n" +
+				"getPos() - Returns the position of the entity as a Vector3.\n" +
 				"getSector() - Returns the entity's sector.\n" +
 				"getSystem() - Returns the entity's system.\n" +
 				"getFaction() - Returns the entity's faction.\n" +
@@ -195,13 +195,15 @@ public class LuaMade extends StarMod {
 				"canCloak() - Returns whether the entity can cloak.\n" +
 				"activateCloaking(Boolean) - Activates the entity's cloaking.\n" +
 				"getShieldSystem() - Returns the entity's shield system.\n" +
-				"getShipyards() - Returns an array of the entity's shipyards."));
+				"getShipyards() - Returns an array of the entity's shipyards.\n" +
+				"getEntityType() - Returns the entity's type."));
 		functions.addEntry(new GlossarEntry("RemoteEntity",
 				"getId() - Returns the ID of the entity.\n" +
 				"getName() - Returns the name of the entity.\n" +
 				"getFaction() - Returns the entity's faction.\n" +
 				"getSpeed() - Returns the entity's speed.\n" +
 				"getMass() - Returns the entity's mass.\n" +
+				"getPos() - Returns the position of the entity as a Vector3.\n" +
 				"getSector() - Returns the entity's sector.\n" +
 				"getSystem() - Returns the entity's system.\n" +
 				"getShieldSystem() - Returns the entity's shield system."));
@@ -289,7 +291,9 @@ public class LuaMade extends StarMod {
 				"mul(Vector3) - Multiplies this vector by the given vector.\n" +
 				"div(Vector3) - Divides this vector by the given vector.\n" +
 				"scale(Float) - Scales this vector by the given amount.\n" +
-				"size() - Returns the length of this vector."));
+				"size() - Returns the length of this vector.\n" +
+				"absolute() - Returns the absolute value of this vector.\n" +
+				"negate() - Returns the negated value of this vector."));
 		GlossarInit.addCategory(functions);
 	}
 }

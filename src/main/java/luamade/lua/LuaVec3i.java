@@ -108,6 +108,22 @@ public class LuaVec3i extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
+    public LuaVec3i absolute() {
+        xx = Math.abs(xx);
+        yy = Math.abs(yy);
+        zz = Math.abs(zz);
+        return this;
+    }
+
+    @LuaMadeCallable
+    public LuaVec3i negate() {
+        xx = -xx;
+        yy = -yy;
+        zz = -zz;
+        return this;
+    }
+
+    @LuaMadeCallable
     public Float size() {
         return (float) Math.sqrt(xx * xx + yy * yy + zz * zz);
     }

@@ -1,5 +1,6 @@
 package luamade.lua.entity;
 
+import com.bulletphysics.linearmath.Transform;
 import luamade.lua.Faction;
 import luamade.lua.LuaVec3i;
 import luamade.lua.element.system.shield.ShieldSystem;
@@ -48,6 +49,13 @@ public class RemoteEntity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public LuaVec3i getPos() {
+		Transform transform = segmentController.getWorldTransform();
+		Vector3i pos = new Vector3i(transform.origin);
+		return new LuaVec3i(pos.x, pos.y, pos.z);
+	}
+
+	@LuaMadeCallable
 	public LuaVec3i getSector() {
 		Vector3i sector = segmentController.getSector(new Vector3i());
 		return new LuaVec3i(sector.x, sector.y, sector.z);
@@ -62,5 +70,10 @@ public class RemoteEntity extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public ShieldSystem getShieldSystem() {
 		return new ShieldSystem(segmentController);
+	}
+
+	@LuaMadeCallable
+	public String getEntityType() {
+		return segmentController.getTypeString();
 	}
 }

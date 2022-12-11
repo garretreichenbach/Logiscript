@@ -1,6 +1,7 @@
 package luamade.lua.entity;
 
 import api.utils.game.SegmentControllerUtils;
+import com.bulletphysics.linearmath.Transform;
 import luamade.lua.Faction;
 import luamade.lua.LuaVec3i;
 import luamade.lua.element.block.Block;
@@ -53,6 +54,13 @@ public class Entity extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public EntityAI getAI() {
 		return new EntityAI(segmentController);
+	}
+
+	@LuaMadeCallable
+	public LuaVec3i getPos() {
+		Transform transform = segmentController.getWorldTransform();
+		Vector3i pos = new Vector3i(transform.origin);
+		return new LuaVec3i(pos.x, pos.y, pos.z);
 	}
 
 	@LuaMadeCallable
@@ -252,5 +260,10 @@ public class Entity extends LuaMadeUserdata {
 			for(ElementCollectionManager<?, ?, ?> manager : SegmentControllerUtils.getCollectionManagers((ManagedUsableSegmentController<?>) segmentController, ShipyardCollectionManager.class)) shipyards.add(new Shipyard(segmentController, (ShipyardCollectionManager) manager));
 		}
 		return shipyards.toArray(new Shipyard[0]);
+	}
+
+	@LuaMadeCallable
+	public String getEntityType() {
+		return segmentController.getTypeString();
 	}
 }
