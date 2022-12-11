@@ -7,10 +7,11 @@ import luamade.lua.Channel;
 import luamade.lua.Console;
 import org.luaj.vm2.*;
 import org.luaj.vm2.compiler.LuaC;
-import org.luaj.vm2.lib.*;
+import org.luaj.vm2.lib.Bit32Lib;
+import org.luaj.vm2.lib.StringLib;
+import org.luaj.vm2.lib.TableLib;
 import org.luaj.vm2.lib.jse.JseBaseLib;
 import org.luaj.vm2.lib.jse.JseMathLib;
-import org.luaj.vm2.lib.jse.JseOsLib;
 import org.schema.game.common.data.SegmentPiece;
 
 import java.util.HashMap;
@@ -24,8 +25,15 @@ import java.util.logging.Level;
  */
 public class LuaManager {
 
-	private static final ConcurrentHashMap<SegmentPiece, Thread> threadMap = new ConcurrentHashMap<>();
+	private static final String[] WHITELISTED_LIBS = new String[] {
+		"base",
+		"string",
+		"table",
+		"math",
+		"bit32"
+	};
 	private static final HashMap<String, Channel> channels = new HashMap<>();
+	private static final ConcurrentHashMap<SegmentPiece, Thread> threadMap = new ConcurrentHashMap<>();
 	private static Thread threadChecker;
 
 	public static void initialize(LuaMade instance) {
@@ -67,22 +75,32 @@ public class LuaManager {
 					LuaValue console = new Console(segmentPiece);
 					Globals globals = new Globals();
 					globals.load(new JseBaseLib());
-					globals.load(new PackageLib());
 					globals.load(new Bit32Lib());
 					globals.load(new TableLib());
 					globals.load(new StringLib());
 					globals.load(new JseMathLib());
-					globals.load(new JseOsLib());
 					LuaC.install(globals);
 					LuaString.s_metatable = new ReadOnlyLuaTable(LuaString.s_metatable);
 					//Security Patches
-					globals.set("collectgarbage", LuaValue.NIL);
-					globals.set("dofile", LuaValue.NIL);
-					globals.set("loadfile", LuaValue.NIL);
-					globals.set("load", LuaValue.NIL);
-					globals.set("loadstring", LuaValue.NIL);
+					for(LuaValue key : globals.keys()) {
+						LuaValue value = globals.get(key);
+						if(value instanceof LuaTable) {
+							LuaTable table = (LuaTable) value;
+							if(table.getmetatable() != null) table.setmetatable(new ReadOnlyLuaTable(table.getmetatable()));
+						}
+						//Check for whitelisted libs
+						boolean whitelisted = false;
+						for(String lib : WHITELISTED_LIBS) {
+							if(key.tojstring().equals(lib)) {
+								whitelisted = true;
+								break;
+							}
+						}
+						if(!whitelisted) globals.set(key, LuaValue.NIL);
+					}
 					//
 					globals.set("console", console);
+					globals.set("print", console.get("print"));
 					LuaValue chunk = globals.load(script);
 					chunk.call();
 				} catch(Exception exception) {
