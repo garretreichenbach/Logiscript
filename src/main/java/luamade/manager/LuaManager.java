@@ -23,6 +23,7 @@ import java.util.logging.Level;
  * @author TheDerpGamer (TheDerpGamer#0027)
  */
 public class LuaManager {
+
 	private static final ConcurrentHashMap<SegmentPiece, Thread> threadMap = new ConcurrentHashMap<>();
 	private static final HashMap<String, Channel> channels = new HashMap<>();
 	private static Thread threadChecker;

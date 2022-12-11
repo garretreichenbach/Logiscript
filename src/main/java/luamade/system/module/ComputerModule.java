@@ -1,5 +1,7 @@
 package luamade.system.module;
 
+import api.network.PacketReadBuffer;
+import api.utils.StarRunnable;
 import api.utils.game.module.util.SimpleDataStorageMCModule;
 import luamade.LuaMade;
 import luamade.element.ElementManager;
@@ -10,7 +12,9 @@ import org.schema.game.common.controller.elements.ManagerContainer;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementCollection;
 
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * [Description]
@@ -34,6 +38,28 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 		long index = ElementCollection.getPosIndexFrom4(indexAndOrientation);
 		SegmentPiece segmentPiece = segmentController.getSegmentBuffer().getPointUnsave(index);
 		if(segmentPiece != null) LuaManager.terminate(segmentPiece);
+	}
+
+	@Override
+	public void onTagDeserialize(PacketReadBuffer packetReadBuffer) throws IOException {
+		if(packetReadBuffer.readBoolean()) {
+			String name = packetReadBuffer.readString();
+			try {
+				Class<?> cls =  Class.forName(name);
+				data = packetReadBuffer.readObject(cls);
+				new StarRunnable() {
+					@Override
+					public void run() {
+						for(Map.Entry<Long, ComputerData> entry : getComputerMap().entrySet()) {
+							SegmentPiece segmentPiece = segmentController.getSegmentBuffer().getPointUnsave(entry.getKey());
+							if(segmentPiece != null && getData(segmentPiece) != null && getData(segmentPiece).autoRun) runScript(segmentPiece);
+						}
+					}
+				}.runLater(LuaMade.getInstance(), 100); //Give the game time to finish loading in the entity before running
+			} catch(ClassNotFoundException exception) {
+				exception.printStackTrace();
+			}
+		}
 	}
 
 	public String getScriptFromWeb(SegmentPiece segmentPiece, String link) {
