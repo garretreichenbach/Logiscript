@@ -5,7 +5,6 @@ import luamade.lua.element.block.Block;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.manager.LuaManager;
-import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
 import org.schema.game.client.view.effects.RaisingIndication;
 import org.schema.game.client.view.gui.shiphud.HudIndicatorOverlay;
@@ -23,6 +22,11 @@ public class Console extends LuaMadeUserdata {
 
 	public Console(SegmentPiece segmentPiece) {
 		this.segmentPiece = segmentPiece;
+	}
+
+	@LuaMadeCallable
+	public Long getTime() {
+		return System.currentTimeMillis();
 	}
 
 	@LuaMadeCallable

@@ -141,6 +141,7 @@ public class LuaMade extends StarMod {
 
 		GlossarCategory functions = new GlossarCategory("LuaMade - Functions");
 		functions.addEntry(new GlossarEntry("Console",
+				"getTime() - Returns the current system time.\n" +
 				"getBlock() - Returns the Computer Block that the script is running on.\n" +
 				"print(String) - Prints a message from the console.\n" +
 				"printColor(Float[], String) - Prints a message from the console with a color.\n" +
