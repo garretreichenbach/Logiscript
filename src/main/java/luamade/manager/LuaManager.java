@@ -23,19 +23,11 @@ import java.util.logging.Level;
  * @author TheDerpGamer (TheDerpGamer#0027)
  */
 public class LuaManager {
-	private static Globals serverGlobals;
 	private static final ConcurrentHashMap<SegmentPiece, Thread> threadMap = new ConcurrentHashMap<>();
 	private static final HashMap<String, Channel> channels = new HashMap<>();
 	private static Thread threadChecker;
 
 	public static void initialize(LuaMade instance) {
-		serverGlobals = new Globals();
-		serverGlobals.load(new JseBaseLib());
-		serverGlobals.load(new PackageLib());
-		serverGlobals.load(new StringLib());
-		serverGlobals.load(new JseMathLib());
-		LoadState.install(serverGlobals);
-		LuaC.install(serverGlobals);
 		LuaString.s_metatable = new ReadOnlyLuaTable(LuaString.s_metatable);
 
 		for(Object obj : PersistentObjectUtil.getObjects(instance.getSkeleton(), Channel.class)) {
@@ -82,6 +74,7 @@ public class LuaManager {
 					globals.load(new StringLib());
 					globals.load(new JseMathLib());
 					globals.load(new JseOsLib());
+					LuaC.install(globals);
 					globals.set("console", console);
 					LuaValue chunk = globals.load(script);
 					chunk.call();
