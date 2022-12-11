@@ -28,8 +28,6 @@ public class LuaManager {
 	private static Thread threadChecker;
 
 	public static void initialize(LuaMade instance) {
-		LuaString.s_metatable = new ReadOnlyLuaTable(LuaString.s_metatable);
-
 		for(Object obj : PersistentObjectUtil.getObjects(instance.getSkeleton(), Channel.class)) {
 			Channel channel = (Channel) obj;
 			channels.put(channel.getName(), channel);
@@ -75,6 +73,7 @@ public class LuaManager {
 					globals.load(new JseMathLib());
 					globals.load(new JseOsLib());
 					LuaC.install(globals);
+					LuaString.s_metatable = new ReadOnlyLuaTable(LuaString.s_metatable);
 					globals.set("console", console);
 					LuaValue chunk = globals.load(script);
 					chunk.call();
