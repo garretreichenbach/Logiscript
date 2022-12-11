@@ -13,16 +13,17 @@ import luamade.lua.entity.ai.EntityAI;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
-import org.schema.game.common.controller.ManagedUsableSegmentController;
-import org.schema.game.common.controller.PlayerUsableInterface;
-import org.schema.game.common.controller.SegmentController;
-import org.schema.game.common.controller.Ship;
+import org.schema.game.common.controller.*;
 import org.schema.game.common.controller.elements.ElementCollectionManager;
 import org.schema.game.common.controller.elements.cloaking.StealthAddOn;
 import org.schema.game.common.controller.elements.shipyard.ShipyardCollectionManager;
+import org.schema.game.common.data.SegmentPiece;
+import org.schema.game.common.data.element.ElementKeyMap;
 import org.schema.schine.network.objects.Sendable;
 
+import javax.vecmath.Vector3f;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class Entity extends LuaMadeUserdata {
 	private final SegmentController segmentController;
@@ -192,6 +193,94 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public void undockAll() {
+		ArrayList<SegmentController> docked = new ArrayList<>();
+		segmentController.railController.getDockedRecusive(docked);
+		for(SegmentController controller : docked) {
+			if(controller.railController.isChildDock(segmentController)) controller.railController.disconnect();
+		}
+	}
+
+	@LuaMadeCallable
+	public void dockTo(RemoteEntity entity, Block railDocker) {
+		if(!segmentController.getSector(new Vector3i()).equals(entity.getSegmentController().getSector(new Vector3i())) || isEntityDocked(entity) || segmentController.railController.getRoot().equals(entity.getSegmentController().railController.getRoot())) return;
+		if(segmentController.getFactionId() == 0 || entity.getSegmentController().getFactionId() == 0) return;
+		if(getFaction().isSameFaction(entity.getFaction()) || getFaction().isFriend(entity.getFaction())) {
+			HashMap<Block, Double> distances = new HashMap<>();
+			int searchRadius = 20;
+			SegmentBufferInterface thisBuffer = segmentController.getSegmentBuffer();
+			SegmentBufferInterface remoteBuffer = entity.getSegmentController().getSegmentBuffer();
+			SegmentPiece dockerPiece = thisBuffer.getPointUnsave(railDocker.getPos().x(), railDocker.getPos().y(), railDocker.getPos().z());
+			if(dockerPiece != null) {
+				Transform transform = new Transform();
+				dockerPiece.getTransform(transform);
+				//Go through all the blocks on the remote entity that have a distance from the docker block that is less than the search radius
+				Vector3i posTemp = new Vector3i();
+				for(int x = -searchRadius; x <= searchRadius; x++) {
+					for(int y = -searchRadius; y <= searchRadius; y++) {
+						for(int z = -searchRadius; z <= searchRadius; z++) {
+							posTemp.set(x, y, z);
+							if(remoteBuffer.existsPointUnsave(posTemp.x, posTemp.y, posTemp.z)) {
+								SegmentPiece piece = remoteBuffer.getPointUnsave(posTemp.x, posTemp.y, posTemp.z);
+								if(piece != null && (piece.getType() == ElementKeyMap.RAIL_BLOCK_BASIC || piece.getType() == ElementKeyMap.RAIL_BLOCK_CW || piece.getType() == ElementKeyMap.RAIL_BLOCK_CCW || piece.getType() == ElementKeyMap.RAIL_LOAD || piece.getType() == ElementKeyMap.RAIL_UNLOAD || piece.getType() == ElementKeyMap.RAIL_BLOCK_TURRET_Y_AXIS)) {
+									Transform remoteTransform = new Transform();
+									piece.getTransform(remoteTransform);
+									Vector3f remotePos = remoteTransform.origin;
+									Vector3f dockerPos = transform.origin;
+									double distance = Math.sqrt(Math.pow(remotePos.x - dockerPos.x, 2) + Math.pow(remotePos.y - dockerPos.y, 2) + Math.pow(remotePos.z - dockerPos.z, 2));
+									if(distance <= searchRadius) {
+										Block block = new Block(piece);
+										distances.put(block, distance);
+									}
+								}
+							}
+						}
+					}
+				}
+				//Find the closest block to the docker block
+				Block closestBlock = null;
+				double closestDistance = 0;
+				for(Block block : distances.keySet()) {
+					if(closestBlock == null) {
+						closestBlock = block;
+						closestDistance = distances.get(block);
+					} else {
+						if(distances.get(block) < closestDistance) {
+							closestBlock = block;
+							closestDistance = distances.get(block);
+						}
+					}
+				}
+				if(closestBlock != null) segmentController.railController.connectServer(railDocker.getSegmentPiece(), closestBlock.getSegmentPiece());
+			}
+		}
+	}
+
+	@LuaMadeCallable
+	public void dockTo(RemoteEntity entity, Block railDocker, LuaVec3i dockPos) {
+		if(!segmentController.getSector(new Vector3i()).equals(entity.getSegmentController().getSector(new Vector3i())) || isEntityDocked(entity) || segmentController.railController.getRoot().equals(entity.getSegmentController().railController.getRoot())) return;
+		if(segmentController.getFactionId() == 0 || entity.getSegmentController().getFactionId() == 0) return;
+		if(getFaction().isSameFaction(entity.getFaction()) || getFaction().isFriend(entity.getFaction())) {
+			HashMap<Block, Double> distances = new HashMap<>();
+			int searchRadius = 20;
+			SegmentBufferInterface thisBuffer = segmentController.getSegmentBuffer();
+			SegmentBufferInterface remoteBuffer = entity.getSegmentController().getSegmentBuffer();
+			SegmentPiece dockerPiece = thisBuffer.getPointUnsave(railDocker.getPos().x(), railDocker.getPos().y(), railDocker.getPos().z());
+			SegmentPiece dockPiece = remoteBuffer.getPointUnsave(dockPos.x(), dockPos.y(), dockPos.z());
+			if(dockerPiece != null && dockPiece != null) {
+				Transform transform = new Transform();
+				dockerPiece.getTransform(transform);
+				Transform remoteTransform = new Transform();
+				dockPiece.getTransform(remoteTransform);
+				Vector3f remotePos = remoteTransform.origin;
+				Vector3f dockerPos = transform.origin;
+				double distance = Math.sqrt(Math.pow(remotePos.x - dockerPos.x, 2) + Math.pow(remotePos.y - dockerPos.y, 2) + Math.pow(remotePos.z - dockerPos.z, 2));
+				if(distance <= searchRadius) segmentController.railController.connectServer(dockerPiece, dockPiece);
+			}
+		}
+	}
+
+	@LuaMadeCallable
 	public Double getSpeed() {
 		return (double) segmentController.getSpeedCurrent();
 	}
@@ -288,5 +377,9 @@ public class Entity extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public String getEntityType() {
 		return segmentController.getTypeString();
+	}
+
+	public SegmentController getSegmentController() {
+		return segmentController;
 	}
 }

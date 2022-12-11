@@ -191,6 +191,9 @@ public class LuaMade extends StarMod {
 				"getDocked() - Returns an array of the entity's docked entities.\n" +
 				"isEntityDocked(RemoteEntity) - Returns whether the given entity is docked to this entity.\n" +
 				"undockEntity(RemoteEntity) - Undocks the given entity from this entity.\n" +
+				"undockAll() - Undocks all entities from this entity.\n" +
+				"dockTo(RemoteEntity, Block) - Dock this entity to the nearest dock on the remote entity using the provided rail docker block.\n" +
+				"dockTo(RemoteEntity, Block, Vector3) - Dock this entity to the dock at the given position using the provided rail docker block.\n" +
 				"getSpeed() - Returns the entity's speed.\n" +
 				"getMass() - Returns the entity's mass.\n" +
 				"isJamming() - Returns whether the entity is jamming.\n" +
@@ -218,7 +221,9 @@ public class LuaMade extends StarMod {
 				"moveToSector(Vector3) - Moves the entity to the given sector.\n" +
 				"getTargetSector() - Returns the target sector of the entity.\n" +
 				"setTarget(RemoteEntity) - Sets the target of the entity.\n" +
-				"getTarget() - Returns the target of the entity."));
+				"getTarget() - Returns the target of the entity.\n" +
+				"getTargetType() - Returns the target type of the AI.\n" +
+				"setTargetType(String) - Sets the target type of the AI."));
 		functions.addEntry(new GlossarEntry("Reactor",
 				"getRecharge() - Returns the reactor's recharge rate.\n" +
 				"getConsumption() - Returns the reactor's consumption rate.\n" +

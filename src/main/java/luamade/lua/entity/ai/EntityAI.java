@@ -9,8 +9,11 @@ import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.Ship;
+import org.schema.game.common.controller.ai.AIGameConfiguration;
+import org.schema.game.common.controller.ai.Types;
 import org.schema.game.common.data.SimpleGameObject;
 import org.schema.game.server.ai.program.common.TargetProgram;
+import org.schema.schine.ai.stateMachines.AiInterface;
 import org.schema.schine.network.objects.Sendable;
 
 /**
@@ -95,5 +98,34 @@ public class EntityAI extends LuaMadeUserdata {
 		}
 		if(target instanceof SegmentController) return new RemoteEntity((SegmentController) target);
 		else return null;
+	}
+
+	@LuaMadeCallable
+	public String getTargetType() {
+		if(segmentController instanceof Ship) {
+			try {
+				AIGameConfiguration<?, ?> config = ((AIGameConfiguration<?, ?>) ((AiInterface) segmentController).getAiConfiguration());
+				return (String) config.get(Types.AIM_AT).getCurrentState();
+			} catch(Exception exception) {
+				exception.printStackTrace();
+			}
+		}
+		return "None";
+	}
+
+	@LuaMadeCallable
+	public void setTargetType(String type) {
+		if(segmentController instanceof Ship) {
+			try {
+				AIGameConfiguration<?, ?> config = ((AIGameConfiguration<?, ?>) ((AiInterface) segmentController).getAiConfiguration());
+				if(type.equals("Any")) config.get(Types.AIM_AT).switchSetting("Any", true);
+				else {
+					config.get(Types.AIM_AT).switchSetting("Any", false);
+					config.get(Types.AIM_AT).switchSetting(type, true);
+				}
+			} catch(Exception exception) {
+				exception.printStackTrace();
+			}
+		}
 	}
 }
