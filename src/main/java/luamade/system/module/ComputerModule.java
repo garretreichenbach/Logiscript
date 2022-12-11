@@ -132,11 +132,13 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 		public long index;
 		public boolean autoRun;
 		public String script;
+		public final HashMap<String, Object> variables;
 
 		public ComputerData(long index, boolean autoRun, String script) {
 			this.index = index;
 			this.autoRun = autoRun;
 			this.script = script;
+			this.variables = new HashMap<>();
 		}
 	}
 }

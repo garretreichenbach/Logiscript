@@ -97,4 +97,18 @@ public class Console extends LuaMadeUserdata {
 	public Channel createChannel(String name, String password) {
 		return LuaManager.createChannel(name, password);
 	}
+
+	@LuaMadeCallable
+	public void setVar(String name, Object value) {
+		LuaManager.setVariable(this, name, value);
+	}
+
+	@LuaMadeCallable
+	public Object getVar(String name) {
+		return LuaManager.getVariable(this, name);
+	}
+
+	public SegmentPiece getSegmentPiece() {
+		return segmentPiece;
+	}
 }

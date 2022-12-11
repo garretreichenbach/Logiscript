@@ -147,7 +147,9 @@ public class LuaMade extends StarMod {
 				"printColor(Float[], String) - Prints a message from the console with a color.\n" +
 				"printError(String) - Prints an error message from the console.\n" +
 				"getChannel(String) - Returns a channel by name.\n" +
-				"createChannel(String, String) - Creates a channel with the given name and password."));
+				"createChannel(String, String) - Creates a channel with the given name and password.\n" +
+				"setVar(String, Object) - Sets a variable with the given name and value.\n" +
+				"getVar(String) - Returns a variable with the given name."));
 		functions.addEntry(new GlossarEntry("Block",
 				"getPos() - Returns the position of the Block as a Vector3.\n" +
 				"getId() - Returns the block's id.\n" +
@@ -187,6 +189,8 @@ public class LuaMade extends StarMod {
 				"getThrust() - Returns the entity's thrust system.\n" +
 				"getTurrets() - Returns an array of the entity's turrets.\n" +
 				"getDocked() - Returns an array of the entity's docked entities.\n" +
+				"isEntityDocked(RemoteEntity) - Returns whether the given entity is docked to this entity.\n" +
+				"undockEntity(RemoteEntity) - Undocks the given entity from this entity.\n" +
 				"getSpeed() - Returns the entity's speed.\n" +
 				"getMass() - Returns the entity's mass.\n" +
 				"isJamming() - Returns whether the entity is jamming.\n" +

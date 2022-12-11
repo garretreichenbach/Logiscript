@@ -13,7 +13,7 @@ function detect()
     local enemyMass = 0
     local enemyDetected = false
     local nearbyEntities = entity:getNearbyEntities()
-    if(nearbyEntities ~= nil and nearbyEntities[1] ~= nil) then
+    if(nearbyEntities[1] ~= nil) then
         for i = 1, #nearbyEntities do
             local nearbyEntity = nearbyEntities[i]
             if(nearbyEntity ~= nil) then

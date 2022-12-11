@@ -89,6 +89,7 @@ public class Entity extends LuaMadeUserdata {
 					Ship ship = (Ship) controller;
 					if(ship.getManagerContainer().isJamming() || ship.getManagerContainer().isCloaked()) continue;
 				}
+				if(controller.railController.getRoot().equals(segmentController.railController.getRoot())) continue;
 				Vector3i sector = controller.getSector(new Vector3i());
 				Vector3i diff = new Vector3i(thisSector);
 				diff.sub(sector);
@@ -166,6 +167,28 @@ public class Entity extends LuaMadeUserdata {
 			if(controller.railController.isChildDock(segmentController)) docked.add(new Entity(controller));
 		}
 		return docked.toArray(new Entity[0]);
+	}
+
+	@LuaMadeCallable
+	public Boolean isEntityDocked(RemoteEntity entity) {
+		ArrayList<SegmentController> docked = new ArrayList<>();
+		segmentController.railController.getDockedRecusive(docked);
+		for(SegmentController controller : docked) {
+			if(controller.railController.isChildDock(segmentController) && controller.getId() == entity.getId()) return true;
+		}
+		return false;
+	}
+
+	@LuaMadeCallable
+	public void undockEntity(RemoteEntity entity) {
+		ArrayList<SegmentController> docked = new ArrayList<>();
+		segmentController.railController.getDockedRecusive(docked);
+		for(SegmentController controller : docked) {
+			if(controller.railController.isChildDock(segmentController) && controller.getId() == entity.getId()) {
+				controller.railController.disconnect();
+				return;
+			}
+		}
 	}
 
 	@LuaMadeCallable

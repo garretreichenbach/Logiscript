@@ -5,6 +5,7 @@ import luamade.LuaMade;
 import luamade.element.ElementManager;
 import luamade.lua.Channel;
 import luamade.lua.Console;
+import luamade.system.module.ComputerModule;
 import org.luaj.vm2.*;
 import org.luaj.vm2.compiler.LuaC;
 import org.luaj.vm2.lib.Bit32Lib;
@@ -12,6 +13,7 @@ import org.luaj.vm2.lib.StringLib;
 import org.luaj.vm2.lib.TableLib;
 import org.luaj.vm2.lib.jse.JseBaseLib;
 import org.luaj.vm2.lib.jse.JseMathLib;
+import org.schema.game.common.data.ManagedSegmentController;
 import org.schema.game.common.data.SegmentPiece;
 
 import java.util.HashMap;
@@ -138,6 +140,27 @@ public class LuaManager {
 			threadMap.remove(segmentPiece);
 			System.out.println("Terminated script for " + segmentPiece);
 		}
+	}
+
+	public static void setVariable(Console console, String name, Object value) {
+		ComputerModule module = getModule(console.getSegmentPiece());
+		if(module != null) module.getData(console.getSegmentPiece()).variables.put(name, value);
+	}
+
+	public static Object getVariable(Console console, String name) {
+		ComputerModule module = getModule(console.getSegmentPiece());
+		if(module != null) return module.getData(console.getSegmentPiece()).variables.get(name);
+		return null;
+	}
+
+	private static ComputerModule getModule(SegmentPiece segmentPiece) {
+		if(segmentPiece.getSegmentController() instanceof ManagedSegmentController<?>) {
+			ManagedSegmentController<?> controller = (ManagedSegmentController<?>) segmentPiece.getSegmentController();
+			if(controller.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId()) instanceof ComputerModule) {
+				return (ComputerModule) controller.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId());
+			}
+		}
+		return null;
 	}
 
 	private static class ReadOnlyLuaTable extends LuaTable {
