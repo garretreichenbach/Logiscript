@@ -25,6 +25,9 @@ public class WrapUtils {
         else if(o instanceof Double)
             return LuaValue.valueOf((Double) o);
 
+        else if(o instanceof Float)
+            return LuaValue.valueOf(((Float) o).doubleValue());
+
         else if(o instanceof String)
             return LuaValue.valueOf((String) o);
 
