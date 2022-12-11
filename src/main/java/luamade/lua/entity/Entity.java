@@ -192,13 +192,13 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Float getSpeed() {
-		return segmentController.getSpeedCurrent();
+	public Double getSpeed() {
+		return (double) segmentController.getSpeedCurrent();
 	}
 
 	@LuaMadeCallable
-	public Float getMass() {
-		return segmentController.getMass();
+	public Double getMass() {
+		return (double) segmentController.getMass();
 	}
 
 	@LuaMadeCallable

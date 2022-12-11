@@ -181,7 +181,7 @@ public class LuaMade extends StarMod {
 				"getSystem() - Returns the entity's system.\n" +
 				"getFaction() - Returns the entity's faction.\n" +
 				"getNearbyEntities() - Returns an array of nearby (remote) entities.\n" +
-				"getNearbyEntities(Float) - Returns an array of nearby (remote) entities within the given radius.\n" +
+				"getNearbyEntities(Integer) - Returns an array of nearby (remote) entities within the given radius.\n" +
 				"hasReactor() - Returns whether the entity has a reactor.\n" +
 				"getReactor() - Returns the entity's reactor.\n" +
 				"getMaxReactorHP() - Returns the entity's reactor's max HP.\n" +
@@ -295,7 +295,7 @@ public class LuaMade extends StarMod {
 				"sub(Vector3) - Subtracts the given vector from this vector.\n" +
 				"mul(Vector3) - Multiplies this vector by the given vector.\n" +
 				"div(Vector3) - Divides this vector by the given vector.\n" +
-				"scale(Float) - Scales this vector by the given amount.\n" +
+				"scale(Double) - Scales this vector by the given amount.\n" +
 				"size() - Returns the length of this vector.\n" +
 				"absolute() - Returns the absolute value of this vector.\n" +
 				"negate() - Returns the negated value of this vector."));
