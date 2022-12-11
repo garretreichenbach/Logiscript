@@ -75,11 +75,13 @@ public class LuaManager {
 					globals.load(new JseOsLib());
 					LuaC.install(globals);
 					LuaString.s_metatable = new ReadOnlyLuaTable(LuaString.s_metatable);
+					//Security Patches
 					globals.set("collectgarbage", LuaValue.NIL);
 					globals.set("dofile", LuaValue.NIL);
 					globals.set("loadfile", LuaValue.NIL);
 					globals.set("load", LuaValue.NIL);
 					globals.set("loadstring", LuaValue.NIL);
+					//
 					globals.set("console", console);
 					LuaValue chunk = globals.load(script);
 					chunk.call();
