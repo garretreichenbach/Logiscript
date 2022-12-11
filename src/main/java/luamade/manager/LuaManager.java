@@ -9,6 +9,7 @@ import luamade.system.module.ComputerModule;
 import org.luaj.vm2.*;
 import org.luaj.vm2.compiler.LuaC;
 import org.luaj.vm2.lib.Bit32Lib;
+import org.luaj.vm2.lib.PackageLib;
 import org.luaj.vm2.lib.StringLib;
 import org.luaj.vm2.lib.TableLib;
 import org.luaj.vm2.lib.jse.JseBaseLib;
@@ -32,6 +33,7 @@ public class LuaManager {
 		"string",
 		"table",
 		"math",
+		"package",
 		"bit32"
 	};
 	private static final HashMap<String, Channel> channels = new HashMap<>();
@@ -74,13 +76,13 @@ public class LuaManager {
 			@Override
 			public void run() {
 				try {
-					LuaValue console = new Console(segmentPiece);
 					Globals globals = new Globals();
 					globals.load(new JseBaseLib());
-					globals.load(new Bit32Lib());
-					globals.load(new TableLib());
+					globals.load(new PackageLib());
 					globals.load(new StringLib());
+					globals.load(new TableLib());
 					globals.load(new JseMathLib());
+					globals.load(new Bit32Lib());
 					LuaC.install(globals);
 					LuaString.s_metatable = new ReadOnlyLuaTable(LuaString.s_metatable);
 					//Security Patches
@@ -101,6 +103,7 @@ public class LuaManager {
 						if(!whitelisted) globals.set(key, LuaValue.NIL);
 					}
 					//
+					LuaValue console = new Console(segmentPiece);
 					globals.set("console", console);
 					globals.set("print", console.get("print"));
 					LuaValue chunk = globals.load(script);
