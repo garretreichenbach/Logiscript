@@ -124,8 +124,8 @@ public class LuaVec3i extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
-    public Float size() {
-        return (float) Math.sqrt(xx * xx + yy * yy + zz * zz);
+    public Double size() {
+        return Math.sqrt(xx * xx + yy * yy + zz * zz);
     }
 
     @Override

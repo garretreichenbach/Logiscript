@@ -55,13 +55,11 @@ public class Console extends LuaMadeUserdata {
 
 
 	@LuaMadeCallable
-	public void printColor(Float[] color, Varargs vargs) {
+	public void printColor(Double[] color, Varargs vargs) {
 		//Only allow printing every 2 seconds
 		if(System.currentTimeMillis() - timer > 2000) {
 			String string = "";
-			for (int i = 1; i <= vargs.narg() && i <= 16; ++i)
-				string += vargs.arg(i).toString() + "\n";
-
+			for(int i = 1; i <= vargs.narg() && i <= 16; ++i) string += vargs.arg(i).toString() + "\n";
 			System.out.println(string);
 			Transform transform = new Transform();
 			segmentPiece.getTransform(transform);
