@@ -1,7 +1,10 @@
 package luamade.manager;
 
+import api.common.GameServer;
 import api.mod.config.PersistentObjectUtil;
+import api.utils.other.HashList;
 import luamade.LuaMade;
+import luamade.data.PlayerData;
 import luamade.element.ElementManager;
 import luamade.lua.Channel;
 import luamade.lua.Console;
@@ -14,9 +17,12 @@ import org.luaj.vm2.lib.StringLib;
 import org.luaj.vm2.lib.TableLib;
 import org.luaj.vm2.lib.jse.JseBaseLib;
 import org.luaj.vm2.lib.jse.JseMathLib;
+import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.data.ManagedSegmentController;
 import org.schema.game.common.data.SegmentPiece;
+import org.schema.schine.graphicsengine.movie.craterstudio.data.tuples.Pair;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
@@ -36,14 +42,20 @@ public class LuaManager {
 		"package",
 		"bit32"
 	};
+	private static final HashMap<String, PlayerData> playerDataMap = new HashMap<>();
 	private static final HashMap<String, Channel> channels = new HashMap<>();
-	private static final ConcurrentHashMap<SegmentPiece, Thread> threadMap = new ConcurrentHashMap<>();
+ 	private static final ConcurrentHashMap<SegmentPiece, Thread> threadMap = new ConcurrentHashMap<>();
 	private static Thread threadChecker;
 
 	public static void initialize(LuaMade instance) {
 		for(Object obj : PersistentObjectUtil.getObjects(instance.getSkeleton(), Channel.class)) {
 			Channel channel = (Channel) obj;
 			channels.put(channel.getName(), channel);
+		}
+
+		for(Object obj : PersistentObjectUtil.getObjects(instance.getSkeleton(), PlayerData.class)) {
+			PlayerData playerData = (PlayerData) obj;
+			playerDataMap.put(playerData.getName(), playerData);
 		}
 
 		if(threadChecker == null || !threadChecker.isAlive() || threadChecker.isInterrupted()) {
@@ -72,6 +84,8 @@ public class LuaManager {
 
 	public static void run(final String script, final SegmentPiece segmentPiece) {
 		terminate(segmentPiece);
+		doLagCheck(segmentPiece);
+
 		threadMap.put(segmentPiece, new Thread(segmentPiece.toString()) {
 			@Override
 			public void run() {
@@ -116,6 +130,56 @@ public class LuaManager {
 		threadMap.get(segmentPiece).start();
 	}
 
+	/**
+	 * Checks if the entity is lagging or over the thread limit. If it is, pauses threads starting with the oldest until the entity is no longer lagging or the thread limit is no longer reached.
+	 * @param segmentPiece The segment piece to check for lag.
+	 */
+	private static void doLagCheck(SegmentPiece segmentPiece) {
+		if(isEntityOverThreadLimit(segmentPiece.getSegmentController().railController.getRoot())) {
+			HashList<SegmentController, Pair<SegmentPiece, Thread>> entityThreadMap = getEntityThreadMap();
+			int index = 0;
+			//Pause the oldest thread until the entity is under the thread limit
+			while(isEntityOverThreadLimit(segmentPiece.getSegmentController().railController.getRoot())) {
+				Pair<SegmentPiece, Thread> pair = entityThreadMap.get(segmentPiece.getSegmentController().railController.getRoot()).get(index);
+				pauseThread(pair.first());
+				index ++;
+			}
+		} else { //Unpause any paused computers as long as the entity is under the thread limit
+			HashList<SegmentController, Pair<SegmentPiece, Thread>> entityThreadMap = getEntityThreadMap();
+			if(entityThreadMap.containsKey(segmentPiece.getSegmentController().railController.getRoot())) {
+				for(Pair<SegmentPiece, Thread> pair : entityThreadMap.get(segmentPiece.getSegmentController().railController.getRoot())) {
+					if(isEntityOverThreadLimit(segmentPiece.getSegmentController().railController.getRoot())) return;
+					if(pair.second().getState() == Thread.State.WAITING) pair.second().notify();
+				}
+			}
+		}
+	}
+
+	public static boolean isEntityOverThreadLimit(SegmentController root) {
+		int threadCount = 0;
+		int maxThreads = ConfigManager.getMainConfig().getConfigurableInt("max-threads-per-root-entity", 5);
+		HashList<SegmentController, Pair<SegmentPiece, Thread>> entityThreadMap = getEntityThreadMap();
+		if(entityThreadMap.containsKey(root)) threadCount = entityThreadMap.get(root).size();
+		return threadCount >= maxThreads;
+	}
+
+	public static HashList<SegmentController, Pair<SegmentPiece, Thread>> getEntityThreadMap() {
+		HashList<SegmentController, Pair<SegmentPiece, Thread>> entityThreadMap = new HashList<>();
+		for(SegmentPiece segmentPiece : threadMap.keySet()) {
+			SegmentController segmentController = segmentPiece.getSegmentController().railController.getRoot();
+			if(!entityThreadMap.containsKey(segmentController)) entityThreadMap.put(segmentController, new ArrayList<Pair<SegmentPiece, Thread>>());
+			entityThreadMap.get(segmentController).add(new Pair<>(segmentPiece, threadMap.get(segmentPiece)));
+		}
+		return entityThreadMap;
+	}
+
+	public static void pauseThread(SegmentPiece segmentPiece) {
+		if(threadMap.containsKey(segmentPiece)) {
+			Console.sendError(segmentPiece, "[WARNING]: Computer paused due to server lag!");
+			threadMap.get(segmentPiece).suspend();
+		}
+	}
+
 	public static Channel getChannel(String name) {
 		return channels.get(name);
 	}
@@ -156,7 +220,7 @@ public class LuaManager {
 		return null;
 	}
 
-	private static ComputerModule getModule(SegmentPiece segmentPiece) {
+	public static ComputerModule getModule(SegmentPiece segmentPiece) {
 		if(segmentPiece.getSegmentController() instanceof ManagedSegmentController<?>) {
 			ManagedSegmentController<?> controller = (ManagedSegmentController<?>) segmentPiece.getSegmentController();
 			if(controller.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId()) instanceof ComputerModule) {
@@ -164,6 +228,48 @@ public class LuaManager {
 			}
 		}
 		return null;
+	}
+
+	public static PlayerData getPlayerData(String name) {
+		if(!playerDataMap.containsKey(name)) {
+			PlayerData data = new PlayerData(name, "");
+			playerDataMap.put(name, data);
+			PersistentObjectUtil.addObject(LuaMade.getInstance().getSkeleton(), data);
+			PersistentObjectUtil.save(LuaMade.getInstance().getSkeleton());
+		}
+		return playerDataMap.get(name);
+	}
+
+	public static void savePlayerData(PlayerData data) {
+		removePlayerData(data.getName());
+		PersistentObjectUtil.addObject(LuaMade.getInstance().getSkeleton(), data);
+		PersistentObjectUtil.save(LuaMade.getInstance().getSkeleton());
+	}
+
+	public static void removePlayerData(String name) {
+		ArrayList<PlayerData> toRemove = new ArrayList<>();
+		for(Object obj : PersistentObjectUtil.getObjects(LuaMade.getInstance().getSkeleton(), PlayerData.class)) {
+			if(obj instanceof PlayerData) {
+				PlayerData data = (PlayerData) obj;
+				if(data.getName().equals(name)) toRemove.add(data);
+			}
+		}
+		for(PlayerData data : toRemove) PersistentObjectUtil.removeObject(LuaMade.getInstance().getSkeleton(), data);
+		PersistentObjectUtil.save(LuaMade.getInstance().getSkeleton());
+	}
+
+	public static void removePlayerData(PlayerData data) {
+		PersistentObjectUtil.removeObject(LuaMade.getInstance().getSkeleton(), data);
+		PersistentObjectUtil.save(LuaMade.getInstance().getSkeleton());
+	}
+
+	public static void sendMail(String from, String playerName, String subject, String message, String password) {
+		PlayerData data = getPlayerData(playerName);
+		if(data.getPassword().equals(password) || data.getPassword().isEmpty()) {
+			try {
+				GameServer.getServerState().getServerPlayerMessager().send(from, playerName, subject, message);
+			} catch(Exception ignored) {}
+		}
 	}
 
 	private static class ReadOnlyLuaTable extends LuaTable {

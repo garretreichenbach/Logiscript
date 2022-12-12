@@ -1,13 +1,16 @@
 package luamade.lua;
 
 import com.bulletphysics.linearmath.Transform;
+import luamade.element.ElementManager;
 import luamade.lua.element.block.Block;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.manager.LuaManager;
+import luamade.system.module.ComputerModule;
 import org.luaj.vm2.Varargs;
 import org.schema.game.client.view.effects.RaisingIndication;
 import org.schema.game.client.view.gui.shiphud.HudIndicatorOverlay;
+import org.schema.game.common.data.ManagedSegmentController;
 import org.schema.game.common.data.SegmentPiece;
 
 /**
@@ -39,9 +42,7 @@ public class Console extends LuaMadeUserdata {
 		//Only allow printing every 2 seconds
 		if(System.currentTimeMillis() - timer > 2000) {
 			String string = "";
-			for (int i = 1; i <= vargs.narg() && i <= 16; ++i)
-				string += vargs.arg(i).toString() + "\n";
-
+			for(int i = 1; i <= vargs.narg() && i <= 16; ++i) string += vargs.arg(i).toString() + "\n";
 			System.out.println(string);
 			Transform transform = new Transform();
 			segmentPiece.getTransform(transform);
@@ -50,9 +51,9 @@ public class Console extends LuaMadeUserdata {
 			raisingIndication.lifetime = 15.0f;
 			HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
 			timer = System.currentTimeMillis();
+			sendOutput(string);
 		}
 	}
-
 
 	@LuaMadeCallable
 	public void printColor(Double[] color, Varargs vargs) {
@@ -68,13 +69,16 @@ public class Console extends LuaMadeUserdata {
 			raisingIndication.lifetime = 15.0f;
 			HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
 			timer = System.currentTimeMillis();
+			sendOutput(string);
 		}
 	}
 
 	@LuaMadeCallable
-	public void printError(String string) {
+	public void printError(Varargs vargs) {
 		//Only allow printing every 2 seconds
 		if(System.currentTimeMillis() - timer > 2000) {
+			String string = "";
+			for(int i = 1; i <= vargs.narg() && i <= 16; ++i) string += vargs.arg(i).toString() + "\n";
 			System.err.println(string);
 			Transform transform = new Transform();
 			segmentPiece.getTransform(transform);
@@ -83,6 +87,7 @@ public class Console extends LuaMadeUserdata {
 			raisingIndication.lifetime = 15.0f;
 			HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
 			timer = System.currentTimeMillis();
+			sendOutput(string);
 		}
 	}
 
@@ -97,6 +102,11 @@ public class Console extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public void sendMail(String sender, String playerName, String subject, String message, String password) {
+		LuaManager.sendMail(sender, playerName, subject, message, password);
+	}
+
+	@LuaMadeCallable
 	public void setVar(String name, Object value) {
 		LuaManager.setVariable(this, name, value);
 	}
@@ -108,5 +118,25 @@ public class Console extends LuaMadeUserdata {
 
 	public SegmentPiece getSegmentPiece() {
 		return segmentPiece;
+	}
+
+	public void sendOutput(String string) {
+		try {
+			if(segmentPiece.getSegmentController() instanceof ManagedSegmentController) {
+				ManagedSegmentController managedSegmentController = (ManagedSegmentController) segmentPiece.getSegmentController();
+				ComputerModule module = (ComputerModule) managedSegmentController.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId());
+				module.getData(segmentPiece).lastOutput = string;
+				module.flagUpdatedData();
+			}
+		} catch(Exception exception) {
+			exception.printStackTrace();
+		}
+	}
+
+	public static void sendError(SegmentPiece segmentPiece, String text) {
+		try {
+			System.err.println(text);
+			LuaManager.getModule(segmentPiece).getData(segmentPiece).lastOutput = text;
+		} catch(Exception ignored) {}
 	}
 }

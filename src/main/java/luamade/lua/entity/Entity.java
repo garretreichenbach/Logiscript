@@ -49,7 +49,7 @@ public class Entity extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public Block getBlockAt(LuaVec3i pos) {
-		return new Block(segmentController.getSegmentBuffer().getPointUnsave(pos.x(), pos.y(), pos.z()));
+		return new Block(segmentController.getSegmentBuffer().getPointUnsave(pos.getX(), pos.getY(), pos.getZ()));
 	}
 
 	@LuaMadeCallable
@@ -210,7 +210,7 @@ public class Entity extends LuaMadeUserdata {
 			int searchRadius = 20;
 			SegmentBufferInterface thisBuffer = segmentController.getSegmentBuffer();
 			SegmentBufferInterface remoteBuffer = entity.getSegmentController().getSegmentBuffer();
-			SegmentPiece dockerPiece = thisBuffer.getPointUnsave(railDocker.getPos().x(), railDocker.getPos().y(), railDocker.getPos().z());
+			SegmentPiece dockerPiece = thisBuffer.getPointUnsave(railDocker.getPos().getX(), railDocker.getPos().getY(), railDocker.getPos().getZ());
 			if(dockerPiece != null) {
 				Transform transform = new Transform();
 				dockerPiece.getTransform(transform);
@@ -265,8 +265,8 @@ public class Entity extends LuaMadeUserdata {
 			int searchRadius = 20;
 			SegmentBufferInterface thisBuffer = segmentController.getSegmentBuffer();
 			SegmentBufferInterface remoteBuffer = entity.getSegmentController().getSegmentBuffer();
-			SegmentPiece dockerPiece = thisBuffer.getPointUnsave(railDocker.getPos().x(), railDocker.getPos().y(), railDocker.getPos().z());
-			SegmentPiece dockPiece = remoteBuffer.getPointUnsave(dockPos.x(), dockPos.y(), dockPos.z());
+			SegmentPiece dockerPiece = thisBuffer.getPointUnsave(railDocker.getPos().getX(), railDocker.getPos().getY(), railDocker.getPos().getZ());
+			SegmentPiece dockPiece = remoteBuffer.getPointUnsave(dockPos.getX(), dockPos.getY(), dockPos.getZ());
 			if(dockerPiece != null && dockPiece != null) {
 				Transform transform = new Transform();
 				dockerPiece.getTransform(transform);

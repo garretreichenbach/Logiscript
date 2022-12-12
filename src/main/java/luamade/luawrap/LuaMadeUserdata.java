@@ -3,8 +3,9 @@ package luamade.luawrap;
 import org.luaj.vm2.*;
 import org.luaj.vm2.lib.TwoArgFunction;
 
-import java.lang.reflect.Method;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /** by lupoCani from 2022-12-07
  * Provides the core of the LuaMade Java-Lua interface.
@@ -70,23 +71,20 @@ public abstract class LuaMadeUserdata extends LuaUserdata {
      * @return The grafted Lua method, or null if none is find.
      */
     private static LuaFunction getAPIMethod(Class<? extends LuaMadeUserdata> clazz, String name) {
-        for (Class<?> c = clazz; LuaMadeUserdata.class.isAssignableFrom(c); c = c.getSuperclass())
-            if (apiMethods.containsKey(c))
-                if (apiMethods.get(c).containsKey(name))
-                    return apiMethods.get(c).get(name);
-
+        for(Class<?> c = clazz; LuaMadeUserdata.class.isAssignableFrom(c); c = c.getSuperclass())
+            if(apiMethods.containsKey(c)) {
+                if(apiMethods.get(c).containsKey(name)) return apiMethods.get(c).get(name);
+            }
         return null;
     }
 
     /**
      * Grafts a method onto an existing class.
-     * <p>Internal use only</p>
      * @param clazz The class to register the method for.
      * @param function The method to register.
      */
     public static void graftMethod(Class<? extends LuaMadeUserdata> clazz, String name, LuaFunction function) {
-        if (!apiMethods.containsKey(clazz))
-            apiMethods.put(clazz, new HashMap<String, LuaFunction>());
+        if (!apiMethods.containsKey(clazz)) apiMethods.put(clazz, new HashMap<String, LuaFunction>());
         apiMethods.get(clazz).put(name, function);
     }
 }

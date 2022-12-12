@@ -11,6 +11,7 @@ public class ConfigManager {
 			"max-world-logs: 5",
 			"script-character-limit: 30000",
 			"script-line-limit: 1000",
+			"max-threads-per-root-entity: 5"
 	};
 
 	public static void initialize(LuaMade instance) {
