@@ -5,14 +5,14 @@ import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
 
 public class LuaVec3i extends LuaMadeUserdata {
-    public int xx;
-    public int yy;
-    public int zz;
+    public int x;
+    public int y;
+    public int z;
 
     public LuaVec3i(int x, int y, int z) {
-        xx = x;
-        yy = y;
-        zz = z;
+        this.x = x;
+        this.y = y;
+        this.z = z;
     }
 
     public LuaVec3i(Vector3i v) {
@@ -20,116 +20,100 @@ public class LuaVec3i extends LuaMadeUserdata {
     }
 
     public LuaVec3i(LuaVec3i v) {
-        this(v.xx, v.yy, v.zz);
+        this(v.x, v.y, v.z);
     }
 
     @LuaMadeCallable
-    public Integer x() {
-        return xx;
+    public Integer getX() {
+        return x;
     }
     @LuaMadeCallable
-    public Integer y() {
-        return yy;
+    public Integer getY() {
+        return y;
     }
     @LuaMadeCallable
-    public Integer z() {
-        return zz;
+    public Integer getZ() {
+        return z;
     }
 
     @LuaMadeCallable
     public void setX(Integer x) {
-        xx = x;
+        this.x = x;
     }
 
     @LuaMadeCallable
     public void setY(Integer y) {
-        yy = y;
+        this.y = y;
     }
 
     @LuaMadeCallable
     public void setZ(Integer z) {
-        zz = z;
-    }
-
-    @LuaMadeCallable
-    public LuaVec3i incrementX(Integer x) {
-        xx += x;
-        return this;
-    }
-    @LuaMadeCallable
-    public LuaVec3i incrementY(Integer y) {
-        yy += y;
-        return this;
-    }
-    @LuaMadeCallable
-    public LuaVec3i incrementZ(Integer z) {
-        zz += z;
-        return this;
+        this.z = z;
     }
 
     @LuaMadeCallable
     public LuaVec3i add(LuaVec3i vec) {
-        xx += vec.xx;
-        yy += vec.yy;
-        zz += vec.zz;
+        x += vec.x;
+        y += vec.y;
+        z += vec.z;
         return this;
     }
 
     @LuaMadeCallable
     public LuaVec3i sub(LuaVec3i vec) {
-        xx -= vec.xx;
-        yy -= vec.yy;
-        zz -= vec.zz;
+        x -= vec.x;
+        y -= vec.y;
+        z -= vec.z;
         return this;
     }
 
     @LuaMadeCallable
     public LuaVec3i mul(LuaVec3i vec) {
-        xx *= vec.xx;
-        yy *= vec.yy;
-        zz *= vec.zz;
+        x *= vec.x;
+        y *= vec.y;
+        z *= vec.z;
         return this;
     }
 
     @LuaMadeCallable
     public LuaVec3i div(LuaVec3i vec) {
-        xx /= vec.xx;
-        yy /= vec.yy;
-        zz /= vec.zz;
+        x /= vec.x;
+        y /= vec.y;
+        z /= vec.z;
         return this;
     }
 
     @LuaMadeCallable
     public LuaVec3i scale(Float scale) {
-        xx *= scale;
-        yy *= scale;
-        zz *= scale;
+        x *= scale;
+        y *= scale;
+        z *= scale;
         return this;
     }
 
     @LuaMadeCallable
     public LuaVec3i absolute() {
-        xx = Math.abs(xx);
-        yy = Math.abs(yy);
-        zz = Math.abs(zz);
+        x = Math.abs(x);
+        y = Math.abs(y);
+        z = Math.abs(z);
         return this;
     }
 
     @LuaMadeCallable
     public LuaVec3i negate() {
-        xx = -xx;
-        yy = -yy;
-        zz = -zz;
+        x = -x;
+        y = -y;
+        z = -z;
         return this;
     }
 
     @LuaMadeCallable
     public Double size() {
-        return Math.sqrt(xx * xx + yy * yy + zz * zz);
+        return Math.sqrt(x * x + y * y + z * z);
     }
 
     @Override
     public String toString() {
-        return String.format("LuaVec(%s, %s, %s)", xx, yy, zz);
+        return String.format("LuaVec(%s, %s, %s)", x, y, z);
     }
 }

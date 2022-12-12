@@ -43,7 +43,7 @@ public class EntityAI extends LuaMadeUserdata {
 	public void moveToSector(LuaVec3i sector) {
 		if(segmentController instanceof Ship) {
 			try {
-				((TargetProgram<?>) (((Ship) segmentController).getAiConfiguration().getAiEntityState().getCurrentProgram())).setSectorTarget(new Vector3i(sector.x(), sector.y(), sector.z()));
+				((TargetProgram<?>) (((Ship) segmentController).getAiConfiguration().getAiEntityState().getCurrentProgram())).setSectorTarget(new Vector3i(sector.getX(), sector.getY(), sector.getZ()));
 			} catch(Exception exception) {
 				exception.printStackTrace();
 			}

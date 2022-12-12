@@ -2,11 +2,13 @@ package luamade;
 
 import api.config.BlockConfig;
 import api.listener.events.controller.ClientInitializeEvent;
+import api.mod.StarLoader;
 import api.mod.StarMod;
 import api.network.packets.PacketUtil;
 import glossar.GlossarCategory;
 import glossar.GlossarEntry;
 import glossar.GlossarInit;
+import luamade.commands.SetMailboxPasswordCommand;
 import luamade.element.ElementManager;
 import luamade.element.block.ComputerBlock;
 import luamade.manager.ConfigManager;
@@ -50,6 +52,7 @@ public class LuaMade extends StarMod {
 		EventManager.initialize(this);
 		LuaManager.initialize(this);
 		registerPackets();
+		registerCommands();
 	}
 
 	@Override
@@ -132,6 +135,10 @@ public class LuaMade extends StarMod {
 		PacketUtil.registerPacket(SetAutoRunPacket.class);
 	}
 
+	private void registerCommands() {
+		StarLoader.registerCommand(new SetMailboxPasswordCommand());
+	}
+
 	private void registerGlossary() {
 		GlossarInit.initGlossar(this);
 		GlossarCategory luaMade = new GlossarCategory("LuaMade");
@@ -143,22 +150,26 @@ public class LuaMade extends StarMod {
 		functions.addEntry(new GlossarEntry("Console",
 				"getTime() - Returns the current system time.\n" +
 				"getBlock() - Returns the Computer Block that the script is running on.\n" +
-				"print(String) - Prints a message from the console.\n" +
-				"printColor(Float[], String) - Prints a message from the console with a color.\n" +
-				"printError(String) - Prints an error message from the console.\n" +
-				"getChannel(String) - Returns a channel by name.\n" +
-				"createChannel(String, String) - Creates a channel with the given name and password.\n" +
-				"setVar(String, Object) - Sets a variable with the given name and value.\n" +
-				"getVar(String) - Returns a variable with the given name."));
+				"print(message<String>) - Prints a message from the console.\n" +
+				"printColor(color<Double[]>, message<String>) - Prints a message from the console with a color.\n" +
+				"printError( message<String>) - Prints an error message from the console.\n" +
+				"getChannel( name<String>) - Returns a channel by name.\n" +
+				"createChannel(name<String>, password<String>) - Creates a channel with the given name and password.\n" +
+				"sendMail(sender<String>, playerName<String>, subject<String>, message<String>, password<String>) - Sends a mail to the specified player.\n" +
+				"setVar(name<String>, value<Object>) - Sets a variable with the given name and value.\n" +
+				"getVar(name<String>) - Returns a variable with the given name."));
 		functions.addEntry(new GlossarEntry("Block",
 				"getPos() - Returns the position of the Block as a Vector3.\n" +
 				"getId() - Returns the block's id.\n" +
 				"getInfo() - Returns the block's element information.\n" +
 				"isActive() - Returns whether the block is active.\n" +
-				"setActive(Boolean) - Sets whether the block is active.\n" +
+				"setActive(active<Boolean>) - Sets whether the block is active.\n" +
 				"getEntity() - Returns the block's entity.\n" +
 				"hasInventory() - Returns whether the block has an inventory.\n" +
-				"getInventory() - Returns the block's inventory."));
+				"getInventory() - Returns the block's inventory.\n" +
+				"isDisplayMode() - Returns whether the block can display text.\n" +
+				"setDisplayText(text<String>) - Sets the block's display text.\n" +
+				"getDisplayText() - Returns the block's display text."));
 		functions.addEntry(new GlossarEntry("BlockInfo",
 				"getName() - Returns the name of the block.\n" +
 				"getDescription() - Returns the description of the block.\n" +
@@ -173,15 +184,15 @@ public class LuaMade extends StarMod {
 		functions.addEntry(new GlossarEntry("Entity",
 				"getId() - Returns the ID of the entity.\n" +
 				"getName() - Returns the name of the entity.\n" +
-				"setName(String) - Sets the name of the entity.\n" +
-				"getBlockAt(Vector3) - Returns the block at the given position.\n" +
+				"setName(name<String>) - Sets the name of the entity.\n" +
+				"getBlockAt(pos<Vector3>) - Returns the block at the given position.\n" +
 				"getAI() - Returns the entity's AI.\n" +
 				"getPos() - Returns the position of the entity as a Vector3.\n" +
 				"getSector() - Returns the entity's sector.\n" +
 				"getSystem() - Returns the entity's system.\n" +
 				"getFaction() - Returns the entity's faction.\n" +
 				"getNearbyEntities() - Returns an array of nearby (remote) entities.\n" +
-				"getNearbyEntities(Integer) - Returns an array of nearby (remote) entities within the given radius.\n" +
+				"getNearbyEntities(radius<Integer>) - Returns an array of nearby (remote) entities within the given radius.\n" +
 				"hasReactor() - Returns whether the entity has a reactor.\n" +
 				"getReactor() - Returns the entity's reactor.\n" +
 				"getMaxReactorHP() - Returns the entity's reactor's max HP.\n" +
@@ -189,19 +200,19 @@ public class LuaMade extends StarMod {
 				"getThrust() - Returns the entity's thrust system.\n" +
 				"getTurrets() - Returns an array of the entity's turrets.\n" +
 				"getDocked() - Returns an array of the entity's docked entities.\n" +
-				"isEntityDocked(RemoteEntity) - Returns whether the given entity is docked to this entity.\n" +
-				"undockEntity(RemoteEntity) - Undocks the given entity from this entity.\n" +
+				"isEntityDocked(entity<RemoteEntity>) - Returns whether the given entity is docked to this entity.\n" +
+				"undockEntity(entity<RemoteEntity>) - Undocks the given entity from this entity.\n" +
 				"undockAll() - Undocks all entities from this entity.\n" +
-				"dockTo(RemoteEntity, Block) - Dock this entity to the nearest dock on the remote entity using the provided rail docker block.\n" +
-				"dockTo(RemoteEntity, Block, Vector3) - Dock this entity to the dock at the given position using the provided rail docker block.\n" +
+				"dockTo(entity<RemoteEntity>, railDocker<Block>) - Dock this entity to the nearest dock on the remote entity using the provided rail docker block.\n" +
+				"dockTo(entity<RemoteEntity>, railDocker<Block>, dockPos<Vector3>) - Dock this entity to the dock at the given position using the provided rail docker block.\n" +
 				"getSpeed() - Returns the entity's speed.\n" +
 				"getMass() - Returns the entity's mass.\n" +
 				"isJamming() - Returns whether the entity is jamming.\n" +
 				"canJam() - Returns whether the entity can jam.\n" +
-				"activateJamming(Boolean) - Activates the entity's jamming.\n" +"" +
+				"activateJamming(active<Boolean>) - Activates the entity's jamming.\n" +"" +
 				"isCloaking() - Returns whether the entity is cloaking.\n" +
 				"canCloak() - Returns whether the entity can cloak.\n" +
-				"activateCloaking(Boolean) - Activates the entity's cloaking.\n" +
+				"activateCloaking(active<Boolean>) - Activates the entity's cloaking.\n" +
 				"getShieldSystem() - Returns the entity's shield system.\n" +
 				"getShipyards() - Returns an array of the entity's shipyards.\n" +
 				"getEntityType() - Returns the entity's type."));
@@ -216,14 +227,14 @@ public class LuaMade extends StarMod {
 				"getSystem() - Returns the entity's system.\n" +
 				"getShieldSystem() - Returns the entity's shield system."));
 		functions.addEntry(new GlossarEntry("EntityAI",
-				"setActive(Boolean) - Sets whether the AI is active.\n" +
+				"setActive(active<Boolean>) - Sets whether the AI is active.\n" +
 				"isActive() - Returns whether the AI is active.\n" +
-				"moveToSector(Vector3) - Moves the entity to the given sector.\n" +
+				"moveToSector(sector<Vector3>) - Moves the entity to the given sector.\n" +
 				"getTargetSector() - Returns the target sector of the entity.\n" +
-				"setTarget(RemoteEntity) - Sets the target of the entity.\n" +
+				"setTarget(target<RemoteEntity>) - Sets the target of the entity.\n" +
 				"getTarget() - Returns the target of the entity.\n" +
 				"getTargetType() - Returns the target type of the AI.\n" +
-				"setTargetType(String) - Sets the target type of the AI."));
+				"setTargetType(type<String>) - Sets the target type of the AI."));
 		functions.addEntry(new GlossarEntry("Reactor",
 				"getRecharge() - Returns the reactor's recharge rate.\n" +
 				"getConsumption() - Returns the reactor's consumption rate.\n" +
@@ -237,7 +248,7 @@ public class LuaMade extends StarMod {
 				"getName() - Returns the chamber's name.\n" +
 				"getBlockInfo() - Returns the chamber's block info.\n" +
 				"getReactor() - Returns the chamber's reactor.\n" +
-				"specify(String) - Specifies the chamber's type by name.\n" +
+				"specify(chamberName<String>) - Specifies the chamber's type by name.\n" +
 				"getValidSpecifications() - Returns an array of valid specifications for the chamber.\n" +
 				"deactivate() - Deactivates the chamber.\n" +
 				"canTrigger() - Returns whether the chamber can be triggered.\n" +
@@ -250,7 +261,7 @@ public class LuaMade extends StarMod {
 				"getRegen() - Returns the entity's shield regeneration rate.\n" +
 				"getAllShields() - Returns an array of all shields.\n" +
 				"getActiveShields() - Returns an array of all active shields.\n" +
-				"isShieldActive(Integer) - Returns whether the shield with the given index is active."));
+				"isShieldActive(index<Integer>) - Returns whether the shield with the given index is active."));
 		functions.addEntry(new GlossarEntry("Shield",
 				"getCurrent() - Returns the shield's current capacity.\n" +
 				"getCapacity() - Returns the shield's max capacity.\n" +
@@ -271,36 +282,33 @@ public class LuaMade extends StarMod {
 				"getRequired() - Returns all the resources required for the current command.\n" +
 				"getCurrent() - Returns the current resources of the shipyard.\n" +
 				"getNeeded() - Returns the needed resources to finish the current command.\n" +
-				"sendCommand(String, Object[]) - Sends a command to the shipyard with the given arguments."));
+				"sendCommand(commandName<String>, args<Object[]>) - Sends a command to the shipyard with the given arguments."));
 		functions.addEntry(new GlossarEntry("Faction",
 				"getName() - Returns the faction's name.\n" +
-				"isSameFaciton(Faction) - Returns whether the faction is the same as the given faction.\n" +
-				"isFriend(Faction) - Returns whether the faction is a friend of the given faction.\n" +
+				"isSameFaction(faction<Faction>) - Returns whether the faction is the same as the given faction.\n" +
+				"isFriend(faction<Faction>) - Returns whether the faction is a friend of the given faction.\n" +
 				"getFriends() - Returns an array of the faction's friends.\n" +
-				"isEnemy(Faction) - Returns whether the faction is an enemy of the given faction.\n" +
+				"isEnemy(faction<Faction>) - Returns whether the faction is an enemy of the given faction.\n" +
 				"getEnemies() - Returns an array of the faction's enemies.\n" +
-				"isNeutral(Faction) - Returns whether the faction is neutral to the given faction."));
+				"isNeutral(faction<Faction>) - Returns whether the faction is neutral to the given faction."));
 		functions.addEntry(new GlossarEntry("Channel",
 				"getName() - Returns the channel's name.\n" +
 				"getMessages() - Returns an array of the channel's messages. Requires password\n" +
-				"getLatestMessage(String) - Returns the latest message of the channel. Requires password.\n" +
-				"sendMessage(String, String) - Sends a message to the channel. Requires password.\n" +
-				"removeChannel(String) - Removes the channel. Requires password."));
+				"getLatestMessage(password<String>) - Returns the latest message of the channel. Requires password.\n" +
+				"sendMessage(password<String>, message<String>) - Sends a message to the channel. Requires password.\n" +
+				"removeChannel(password<String>) - Removes the channel. Requires password."));
 		functions.addEntry(new GlossarEntry("Vector3",
-				"x() - Returns the x coordinate.\n" +
-				"y() - Returns the y coordinate.\n" +
-				"z() - Returns the z coordinate.\n" +
-				"setX(Integer) - Sets the x coordinate.\n" +
-				"setY(Integer) - Sets the y coordinate.\n" +
-				"setZ(Integer) - Sets the z coordinate.\n" +
-				"incrementX(Integer) - Increases the x coordinate by the given amount.\n" +
-				"incrementY(Integer) - Increases the y coordinate by the given amount.\n" +
-				"incrementZ(Integer) - Increases the z coordinate by the given amount.\n" +
-				"add(Vector3) - Adds the given vector to this vector.\n" +
-				"sub(Vector3) - Subtracts the given vector from this vector.\n" +
-				"mul(Vector3) - Multiplies this vector by the given vector.\n" +
-				"div(Vector3) - Divides this vector by the given vector.\n" +
-				"scale(Double) - Scales this vector by the given amount.\n" +
+				"getX() - Returns the x coordinate.\n" +
+				"getY() - Returns the y coordinate.\n" +
+				"getZ() - Returns the z coordinate.\n" +
+				"setX(x<Integer>) - Sets the x coordinate.\n" +
+				"setY(y<Integer>) - Sets the y coordinate.\n" +
+				"setZ(z<Integer>) - Sets the z coordinate.\n" +
+				"add(toAdd<Vector3>) - Adds the given vector to this vector.\n" +
+				"sub(toSub<Vector3>) - Subtracts the given vector from this vector.\n" +
+				"mul(toMul<Vector3>) - Multiplies this vector by the given vector.\n" +
+				"div(toDiv<Vector3>) - Divides this vector by the given vector.\n" +
+				"scale(scalar<Double>) - Scales this vector by the given amount.\n" +
 				"size() - Returns the length of this vector.\n" +
 				"absolute() - Returns the absolute value of this vector.\n" +
 				"negate() - Returns the negated value of this vector."));

@@ -67,7 +67,9 @@ public class ComputerDialog extends GUIInputDialog {
 		private SegmentPiece segmentPiece;
 		private ComputerModule computerModule;
 		private ComputerModule.ComputerData computerData;
-		private GUIActivatableTextBar textBar;
+		private GUIActivatableTextBar codeBar;
+		private GUIActivatableTextBar outputBar;
+		private String output = "";
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback) {
 			super(inputState, "COMPUTER_PANEL", "", "", 1000, 630, guiCallback);
@@ -80,10 +82,10 @@ public class ComputerDialog extends GUIInputDialog {
 			super.onInit();
 			if(computerModule == null) return;
 			GUIContentPane contentPane = ((GUIDialogWindow) background).getMainContentPane();
-			contentPane.setTextBoxHeightLast(580);
+			contentPane.setTextBoxHeightLast(500);
 
-			GUIScrollablePanel scrollablePanel = new GUIScrollablePanel(getWidth(), 580, contentPane.getContent(0), getState());
-			textBar = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.MEDIUM, ConfigManager.getMainConfig().getConfigurableInt("script-character-limit", 30000), ConfigManager.getMainConfig().getConfigurableInt("script-line-limit", 1000), "", contentPane.getContent(0), new TextCallback() {
+			GUIScrollablePanel codePanel = new GUIScrollablePanel(getWidth(), 500, contentPane.getContent(0), getState());
+			codeBar = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.MEDIUM, ConfigManager.getMainConfig().getConfigurableInt("script-character-limit", 30000), ConfigManager.getMainConfig().getConfigurableInt("script-line-limit", 1000), "", contentPane.getContent(0), new TextCallback() {
 				@Override
 				public String[] getCommandPrefixes() {
 					return new String[0];
@@ -114,11 +116,11 @@ public class ComputerDialog extends GUIInputDialog {
 					return s;
 				}
 			});
-			scrollablePanel.setContent(textBar);
-			textBar.getTextArea().getChatLog().clear();
-			if(computerData != null && computerData.script != null) textBar.setText(computerData.script);
-			else textBar.setText("");
-			textBar.getTextArea().onTabCallback = new TabCallback() {
+			codePanel.setContent(codeBar);
+			codeBar.getTextArea().getChatLog().clear();
+			if(computerData != null && computerData.script != null) codeBar.setText(computerData.script);
+			else codeBar.setText("");
+			codeBar.getTextArea().onTabCallback = new TabCallback() {
 				@Override
 				public boolean catchTab(TextAreaInput textAreaInput) {
 					return true;
@@ -129,11 +131,54 @@ public class ComputerDialog extends GUIInputDialog {
 
 				}
 			};
-			scrollablePanel.onInit();
-			contentPane.getContent(0).attach(scrollablePanel);
-			scrollablePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);
+			codePanel.onInit();
+			contentPane.getContent(0).attach(codePanel);
+			codePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);
+
+			contentPane.addNewTextBox(100);
+			GUIScrollablePanel outputPanel = new GUIScrollablePanel(getWidth(), 100, contentPane.getContent(1), getState());
+			outputBar = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.MEDIUM, 10000, 100, "", contentPane.getContent(0), new TextCallback() {
+				@Override
+				public String[] getCommandPrefixes() {
+					return new String[0];
+				}
+
+				@Override
+				public String handleAutoComplete(String s, TextCallback textCallback, String s1) {
+					return "";
+				}
+
+				@Override
+				public void onFailedTextCheck(String s) {
+
+				}
+
+				@Override
+				public void onTextEnter(String s, boolean b, boolean b1) {
+
+				}
+
+				@Override
+				public void newLine() {
+
+				}
+			}, new OnInputChangedCallback() {
+				@Override
+				public String onInputChanged(String s) {
+					if(computerData != null && computerData.lastOutput != null) return computerData.lastOutput;
+					else return "";
+				}
+			});
+			outputPanel.setContent(outputBar);
+			outputBar.getTextArea().getChatLog().clear();
+			if(computerData != null && computerData.lastOutput != null) outputBar.setText(computerData.lastOutput);
+			else outputBar.setText("");
+			outputPanel.onInit();
+			contentPane.getContent(1).attach(outputPanel);
+			outputPanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);
+
 			contentPane.addNewTextBox(30);
-			GUIHorizontalButtonTablePane buttonPane = new GUIHorizontalButtonTablePane(getState(), 6, 1, contentPane.getContent(1));
+			GUIHorizontalButtonTablePane buttonPane = new GUIHorizontalButtonTablePane(getState(), 6, 1, contentPane.getContent(2));
 			buttonPane.onInit();
 
 			buttonPane.addButton(0, 0, "CLEAR", GUIHorizontalArea.HButtonColor.RED, new GUICallback() {
@@ -141,7 +186,7 @@ public class ComputerDialog extends GUIInputDialog {
 				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
 					if(mouseEvent.pressedLeftMouse()) {
 						computerData.script = "";
-						textBar.setText(computerData.script);
+						codeBar.setText(computerData.script);
 					}
 				}
 
@@ -165,7 +210,7 @@ public class ComputerDialog extends GUIInputDialog {
 				@Override
 				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
 					if(mouseEvent.pressedLeftMouse()) {
-						computerData.script = textBar.getText();
+						computerData.script = codeBar.getText();
 						computerModule.setData(segmentPiece, computerData);
 						PacketUtil.sendPacketToServer(new SaveScriptPacket(segmentPiece.getSegmentController(), segmentPiece.getAbsoluteIndex(), computerData.script));
 					}
@@ -191,7 +236,7 @@ public class ComputerDialog extends GUIInputDialog {
 				@Override
 				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
 					if(mouseEvent.pressedLeftMouse() && segmentPiece != null) {
-						computerData.script = textBar.getText();
+						computerData.script = codeBar.getText();
 						computerModule.setData(segmentPiece, computerData);
 						PacketUtil.sendPacketToServer(new RunScriptPacket(segmentPiece.getSegmentController(), segmentPiece.getAbsoluteIndex(), computerData.script));
 					}
@@ -247,7 +292,7 @@ public class ComputerDialog extends GUIInputDialog {
 								if(s == null || s.isEmpty()) return false;
 								else {
 									computerData.script = computerModule.getScriptFromWeb(segmentPiece, s);
-									textBar.setText(computerData.script);
+									codeBar.setText(computerData.script);
 									deactivate();
 									return true;
 								}
@@ -302,7 +347,7 @@ public class ComputerDialog extends GUIInputDialog {
 				}
 			});
 
-			contentPane.getContent(1).attach(buttonPane);
+			contentPane.getContent(2).attach(buttonPane);
 		}
 
 		public void setValues(SegmentPiece segmentPiece, ComputerModule computerModule, ComputerModule.ComputerData computerData) {
