@@ -1,5 +1,6 @@
 package luamade.lua.entity;
 
+import api.common.GameServer;
 import api.utils.game.SegmentControllerUtils;
 import com.bulletphysics.linearmath.Transform;
 import luamade.lua.Faction;
@@ -75,6 +76,15 @@ public class Entity extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public LuaVec3i getSystem() {
 		return new LuaVec3i(segmentController.getSystem(new Vector3i()));
+	}
+
+	@LuaMadeCallable
+	public Faction getSystemOwner() {
+		try {
+			return new Faction(GameServer.getUniverse().getStellarSystemFromSecPos(segmentController.getSector(new Vector3i())).getOwnerFaction());
+		} catch(Exception exception) {
+			return null;
+		}
 	}
 
 	@LuaMadeCallable
