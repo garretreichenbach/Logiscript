@@ -1,10 +1,12 @@
 package luamade.lua.entity.ai;
 
 import api.common.GameCommon;
+import api.common.GameServer;
 import luamade.lua.LuaVec3i;
 import luamade.lua.entity.RemoteEntity;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import org.schema.common.util.linAlg.Vector3fTools;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SegmentController;
@@ -12,9 +14,13 @@ import org.schema.game.common.controller.Ship;
 import org.schema.game.common.controller.ai.AIGameConfiguration;
 import org.schema.game.common.controller.ai.Types;
 import org.schema.game.common.data.SimpleGameObject;
+import org.schema.game.server.ai.ShipAIEntity;
 import org.schema.game.server.ai.program.common.TargetProgram;
 import org.schema.schine.ai.stateMachines.AiInterface;
+import org.schema.schine.graphicsengine.forms.BoundingBox;
 import org.schema.schine.network.objects.Sendable;
+
+import javax.vecmath.Vector3f;
 
 /**
  * [Description]
@@ -127,5 +133,76 @@ public class EntityAI extends LuaMadeUserdata {
 				exception.printStackTrace();
 			}
 		}
+	}
+
+	@LuaMadeCallable
+	public void moveToPos(LuaVec3i pos) {
+		if(segmentController instanceof Ship && segmentController.isOnServer()) {
+			try {
+				ShipAIEntity aiEntity = ((Ship) segmentController).getAiConfiguration().getAiEntityState();
+				Vector3f position = new Vector3f(pos.getX(), pos.getY(), pos.getZ());
+				//If position is already within 15 blocks of target, don't move
+				Vector3f currentPos = new Vector3f(segmentController.getWorldTransform().origin);
+				if(Vector3fTools.distance(currentPos.x, currentPos.y, currentPos.z, position.x, position.y, position.z) > 15) {
+					Vector3f direction = new Vector3f();
+					direction.sub(position, currentPos);
+					direction.normalize();
+					aiEntity.moveTo(GameServer.getServerState().getController().getTimer(), direction, true);
+				} else aiEntity.stop();
+			} catch(Exception exception) {
+				exception.printStackTrace();
+			}
+		}
+	}
+
+	@LuaMadeCallable
+	public void moveToEntity(RemoteEntity entity) {
+		if(entity.getSegmentController().getSectorId() != segmentController.getSectorId()) return;
+		if(segmentController instanceof Ship && segmentController.isOnServer()) {
+			try {
+				ShipAIEntity aiEntity = ((Ship) segmentController).getAiConfiguration().getAiEntityState();
+				Vector3f position = new Vector3f(entity.getSegmentController().getWorldTransform().origin);
+				Vector3f moveToPos = calculateMoveToPos(segmentController, entity.getSegmentController());
+				//If position is already within 15 blocks of target, don't move
+				Vector3f currentPos = new Vector3f(segmentController.getWorldTransform().origin);
+				if(Vector3fTools.distance(currentPos.x, currentPos.y, currentPos.z, position.x, position.y, position.z) > 15) {
+					Vector3f direction = new Vector3f();
+					direction.sub(moveToPos, currentPos);
+					direction.normalize();
+					aiEntity.moveTo(GameServer.getServerState().getController().getTimer(), direction, true);
+				} else aiEntity.stop();
+			} catch(Exception exception) {
+				exception.printStackTrace();
+			}
+		}
+	}
+
+	@LuaMadeCallable
+	public void stop() {
+		if(segmentController instanceof Ship && segmentController.isOnServer()) {
+			try {
+				((Ship) segmentController).getAiConfiguration().getAiEntityState().stop();
+			} catch(Exception exception) {
+				exception.printStackTrace();
+			}
+		}
+	}
+
+	private static Vector3f calculateMoveToPos(SegmentController segmentController, SegmentController target) {
+		Vector3f position = new Vector3f(target.getWorldTransform().origin);
+		BoundingBox boundingBox = segmentController.getBoundingBox();
+		BoundingBox targetBoundingBox = new BoundingBox(target.getBoundingBox());
+		//Move bounds out by 5 blocks just to give a clearance area
+		boundingBox.min.x -= 5;
+		boundingBox.min.y -= 5;
+		boundingBox.min.z -= 5;
+		boundingBox.max.x += 5;
+		boundingBox.max.y += 5;
+		boundingBox.max.z += 5;
+		//Move position to area in front of box but not clipping into it
+		position.x += (targetBoundingBox.max.x - targetBoundingBox.min.x) / 2 + (boundingBox.max.x - boundingBox.min.x) / 2;
+		position.y += (targetBoundingBox.max.y - targetBoundingBox.min.y) / 2 + (boundingBox.max.y - boundingBox.min.y) / 2;
+		position.z += (targetBoundingBox.max.z - targetBoundingBox.min.z) / 2 + (boundingBox.max.z - boundingBox.min.z) / 2;
+		return position;
 	}
 }

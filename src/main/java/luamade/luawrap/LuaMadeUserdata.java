@@ -1,5 +1,6 @@
 package luamade.luawrap;
 
+import luamade.lua.Console;
 import org.luaj.vm2.*;
 import org.luaj.vm2.lib.TwoArgFunction;
 
@@ -57,6 +58,10 @@ public abstract class LuaMadeUserdata extends LuaUserdata {
     };
     public LuaMadeUserdata() {
         super(new Object(), getMeta());
+    }
+
+    public Console getConsole() {
+        return (Console) checkuserdata(Console.class);
     }
 
     private static LuaTable getMeta() {

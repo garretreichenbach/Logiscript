@@ -63,7 +63,7 @@ public class Block extends LuaMadeUserdata {
         long index = segmentPiece.getAbsoluteIndex();
         if(segmentPiece.getSegmentController() instanceof ManagedSegmentController<?>) {
             ManagedSegmentController<?> controller = (ManagedSegmentController<?>) segmentPiece.getSegmentController();
-            if(controller.getManagerContainer().getInventory(index) != null) return new Inventory(controller.getManagerContainer().getInventory(index), segmentPiece);
+            if(controller.getManagerContainer().getInventory(index) != null) return new Inventory(controller.getManagerContainer().getInventory(index), controller.getSegmentController().getSegmentBuffer().getPointUnsave(index));
         }
         return null;
     }

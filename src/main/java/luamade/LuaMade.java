@@ -152,8 +152,8 @@ public class LuaMade extends StarMod {
 				"getBlock() - Returns the Computer Block that the script is running on.\n" +
 				"print(message<String>) - Prints a message from the console.\n" +
 				"printColor(color<Double[]>, message<String>) - Prints a message from the console with a color.\n" +
-				"printError( message<String>) - Prints an error message from the console.\n" +
-				"getChannel( name<String>) - Returns a channel by name.\n" +
+				"printError(message<String>) - Prints an error message from the console.\n" +
+				"getChannel(name<String>) - Returns a channel by name.\n" +
 				"createChannel(name<String>, password<String>) - Creates a channel with the given name and password.\n" +
 				"sendMail(sender<String>, playerName<String>, subject<String>, message<String>, password<String>) - Sends a mail to the specified player.\n" +
 				"setVar(name<String>, value<Object>) - Sets a variable with the given name and value.\n" +
@@ -176,7 +176,9 @@ public class LuaMade extends StarMod {
 				"getId() - Returns the id of the block."));
 		functions.addEntry(new GlossarEntry("Inventory",
 				"getName() - Returns the name of the inventory.\n" +
-				"getItems() - Returns an array of ItemStacks representing the items in the inventory."));
+				"getItems() - Returns an array of ItemStacks representing the items in the inventory.\n" +
+				"getVolume() - Returns the volume of the inventory.\n" +
+				"transferTo(inventory<Inventory>, items<ItemStack[]>) - Transfers items from this inventory to the specified inventory."));
 		functions.addEntry(new GlossarEntry("ItemStack",
 				"getId() - Returns the id of the ItemStack.\n" +
 				"getInfo() - Returns the BlockInfo of the ItemStack.\n" +
@@ -215,7 +217,8 @@ public class LuaMade extends StarMod {
 				"activateCloaking(active<Boolean>) - Activates the entity's cloaking.\n" +
 				"getShieldSystem() - Returns the entity's shield system.\n" +
 				"getShipyards() - Returns an array of the entity's shipyards.\n" +
-				"getEntityType() - Returns the entity's type."));
+				"getEntityType() - Returns the entity's type.\n" +
+				"getNamedInventory(name<String>) - Returns the entity's inventory with the given name."));
 		functions.addEntry(new GlossarEntry("RemoteEntity",
 				"getId() - Returns the ID of the entity.\n" +
 				"getName() - Returns the name of the entity.\n" +
@@ -225,7 +228,8 @@ public class LuaMade extends StarMod {
 				"getPos() - Returns the position of the entity as a Vector3.\n" +
 				"getSector() - Returns the entity's sector.\n" +
 				"getSystem() - Returns the entity's system.\n" +
-				"getShieldSystem() - Returns the entity's shield system."));
+				"getShieldSystem() - Returns the entity's shield system.\n" +
+				"getNamedInventory(name<String>) - Returns the entity's inventory with the given name."));
 		functions.addEntry(new GlossarEntry("EntityAI",
 				"setActive(active<Boolean>) - Sets whether the AI is active.\n" +
 				"isActive() - Returns whether the AI is active.\n" +
@@ -234,12 +238,15 @@ public class LuaMade extends StarMod {
 				"setTarget(target<RemoteEntity>) - Sets the target of the entity.\n" +
 				"getTarget() - Returns the target of the entity.\n" +
 				"getTargetType() - Returns the target type of the AI.\n" +
-				"setTargetType(type<String>) - Sets the target type of the AI."));
+				"setTargetType(type<String>) - Sets the target type of the AI.\n" +
+				"moveToPos(pos<Vector3>) - Moves the entity to the given position within the sector.\n" +
+				"moveToEntity(entity<RemoteEntity>) - Moves the entity to the given entity (nearby position, not colliding) as long as they are in the same sector.\n" +
+				"stop() - Stops the entity's movement."));
 		functions.addEntry(new GlossarEntry("Reactor",
 				"getRecharge() - Returns the reactor's recharge rate.\n" +
 				"getConsumption() - Returns the reactor's consumption rate.\n" +
 				"getChamberCapacity() - Returns the reactor's chamber capacity.\n" +
-				"getChamber(String) - Returns a reactor chamber by name.\n" +
+				"getChamber(chamberName<String>) - Returns a reactor chamber by name.\n" +
 				"getChambers() - Returns an array of the reactor's chambers.\n\"" +
 				"getActiveChambers() - Returns an array of the reactor's active chambers.\n" +
 				"getMaxHP() - Returns the reactor's max HP.\n" +

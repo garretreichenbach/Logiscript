@@ -5,6 +5,7 @@ import com.bulletphysics.linearmath.Transform;
 import luamade.lua.Faction;
 import luamade.lua.LuaVec3i;
 import luamade.lua.element.block.Block;
+import luamade.lua.element.inventory.Inventory;
 import luamade.lua.element.system.module.Thrust;
 import luamade.lua.element.system.reactor.Reactor;
 import luamade.lua.element.system.shield.ShieldSystem;
@@ -15,6 +16,7 @@ import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.*;
 import org.schema.game.common.controller.elements.ElementCollectionManager;
+import org.schema.game.common.controller.elements.ManagerContainer;
 import org.schema.game.common.controller.elements.cloaking.StealthAddOn;
 import org.schema.game.common.controller.elements.shipyard.ShipyardCollectionManager;
 import org.schema.game.common.data.SegmentPiece;
@@ -24,6 +26,7 @@ import org.schema.schine.network.objects.Sendable;
 import javax.vecmath.Vector3f;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 public class Entity extends LuaMadeUserdata {
 	private final SegmentController segmentController;
@@ -379,7 +382,21 @@ public class Entity extends LuaMadeUserdata {
 		return segmentController.getTypeString();
 	}
 
+	@LuaMadeCallable
+	public Inventory getNamedInventory(String name) {
+		if(segmentController instanceof Ship) return getInventory(name, ((Ship) segmentController).getManagerContainer());
+		else if(segmentController instanceof SpaceStation) return getInventory(name, ((SpaceStation) segmentController).getManagerContainer());
+		else return null;
+	}
+
 	public SegmentController getSegmentController() {
 		return segmentController;
+	}
+
+	private static Inventory getInventory(String name, ManagerContainer<?> managerContainer) {
+		for(Map.Entry<Long, org.schema.game.common.data.player.inventory.Inventory> entry : managerContainer.getInventories().entrySet()) {
+			if(entry.getValue().getCustomName().equals(name)) return new Inventory(entry.getValue(), managerContainer.getSegmentController().getSegmentBuffer().getPointUnsave(entry.getKey()));
+		}
+		return null;
 	}
 }

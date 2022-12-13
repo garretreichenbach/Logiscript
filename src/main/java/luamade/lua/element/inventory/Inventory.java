@@ -1,5 +1,6 @@
 package luamade.lua.element.inventory;
 
+import api.utils.game.inventory.InventoryUtils;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.data.SegmentPiece;
@@ -36,6 +37,27 @@ public class Inventory extends LuaMadeUserdata {
 			}
 			return itemStacks;
 		} else return null;
+	}
+
+	@LuaMadeCallable
+	public Double getVolume() {
+		if(isInventory()) return inventory.getVolume();
+		else return 0.0;
+	}
+
+	@LuaMadeCallable
+	public Boolean transferTo(Inventory to, ItemStack[] items) {
+		if(isInventory() && to.isInventory() && !inventory.equals(to.inventory) && !segmentPiece.equals(to.segmentPiece)) {
+			for(ItemStack itemStack : items) {
+				if(itemStack != null) {
+					if(InventoryUtils.getItemAmount(inventory, itemStack.getId()) >= itemStack.getCount() && to.inventory.hasFreeSlot()) {
+						InventoryUtils.consumeItems(inventory, itemStack.getId(), itemStack.getCount());
+						InventoryUtils.addItem(to.inventory, itemStack.getId(), itemStack.getCount());
+					} else return false;
+				}
+			}
+			return true;
+		} else return false;
 	}
 
 	private Boolean isInventory() {

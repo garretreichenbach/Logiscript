@@ -3,11 +3,17 @@ package luamade.lua.entity;
 import com.bulletphysics.linearmath.Transform;
 import luamade.lua.Faction;
 import luamade.lua.LuaVec3i;
+import luamade.lua.element.inventory.Inventory;
 import luamade.lua.element.system.shield.ShieldSystem;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.SegmentController;
+import org.schema.game.common.controller.Ship;
+import org.schema.game.common.controller.SpaceStation;
+import org.schema.game.common.controller.elements.ManagerContainer;
+
+import java.util.Map;
 
 /**
  * Limited version of Entity class to prevent access to methods that could lead to abuse.
@@ -77,7 +83,23 @@ public class RemoteEntity extends LuaMadeUserdata {
 		return segmentController.getTypeString();
 	}
 
+	@LuaMadeCallable
+	public Inventory getNamedInventory(String name) {
+		if(getConsole().getBlock().getEntity().getFaction().isFriend(getFaction()) || getConsole().getBlock().getEntity().getFaction().isSameFaction(getFaction())) {
+			if(segmentController instanceof Ship) return getInventory(name, ((Ship) segmentController).getManagerContainer());
+			else if(segmentController instanceof SpaceStation) return getInventory(name, ((SpaceStation) segmentController).getManagerContainer());
+		}
+		return null;
+	}
+
 	public SegmentController getSegmentController() {
 		return segmentController;
+	}
+
+	private static Inventory getInventory(String name, ManagerContainer<?> managerContainer) {
+		for(Map.Entry<Long, org.schema.game.common.data.player.inventory.Inventory> entry : managerContainer.getInventories().entrySet()) {
+			if(entry.getValue().getCustomName().equals(name)) return new Inventory(entry.getValue(), managerContainer.getSegmentController().getSegmentBuffer().getPointUnsave(entry.getKey()));
+		}
+		return null;
 	}
 }
