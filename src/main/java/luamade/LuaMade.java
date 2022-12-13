@@ -192,6 +192,7 @@ public class LuaMade extends StarMod {
 				"getPos() - Returns the position of the entity as a Vector3.\n" +
 				"getSector() - Returns the entity's sector.\n" +
 				"getSystem() - Returns the entity's system.\n" +
+				"getSystemOwner() - Returns the faction that owns the current system.\n" +
 				"getFaction() - Returns the entity's faction.\n" +
 				"getNearbyEntities() - Returns an array of nearby (remote) entities.\n" +
 				"getNearbyEntities(radius<Integer>) - Returns an array of nearby (remote) entities within the given radius.\n" +
