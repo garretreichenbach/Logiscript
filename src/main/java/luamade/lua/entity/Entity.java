@@ -307,8 +307,8 @@ public class Entity extends LuaMadeUserdata {
 	public Boolean isJamming() {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;
-			PlayerUsableInterface playerUsable = SegmentControllerUtils.getAddon(ship, PlayerUsableInterface.USABLE_ID_JAM);
-			return playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).isActive();
+			StealthAddOn playerUsable = SegmentControllerUtils.getAddon(ship, StealthAddOn.class);
+			return playerUsable != null && playerUsable.isActive();
 		}
 		return false;
 	}
@@ -318,8 +318,8 @@ public class Entity extends LuaMadeUserdata {
 		if(!isJamming()) {
 			if(segmentController instanceof Ship) {
 				Ship ship = (Ship) segmentController;
-				PlayerUsableInterface playerUsable = SegmentControllerUtils.getAddon(ship, PlayerUsableInterface.USABLE_ID_JAM);
-				return playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).canExecute();
+				StealthAddOn playerUsable = SegmentControllerUtils.getAddon(ship, StealthAddOn.class);
+				return playerUsable != null && playerUsable.canExecute();
 			}
 		}
 		return false;
@@ -329,11 +329,10 @@ public class Entity extends LuaMadeUserdata {
 	public void activateJamming(Boolean active) {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;
-			PlayerUsableInterface playerUsable = SegmentControllerUtils.getAddon(ship, PlayerUsableInterface.USABLE_ID_JAM);
-			if(playerUsable instanceof StealthAddOn) {
-				StealthAddOn stealth = (StealthAddOn) playerUsable;
-				if(active) if(stealth.canExecute()) stealth.executeModule();
-				else if(stealth.isActive()) stealth.onRevealingAction();
+			StealthAddOn playerUsable = SegmentControllerUtils.getAddon(ship, StealthAddOn.class);
+			if(playerUsable != null) {
+				if(active) if(playerUsable.canExecute()) playerUsable.executeModule();
+				else if(playerUsable.isActive()) playerUsable.onRevealingAction();
 			}
 		}
 	}
@@ -342,8 +341,8 @@ public class Entity extends LuaMadeUserdata {
 	public Boolean isCloaking() {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;
-			PlayerUsableInterface playerUsable = SegmentControllerUtils.getAddon(ship, PlayerUsableInterface.USABLE_ID_CLOAK);
-			return playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).isActive();
+			StealthAddOn playerUsable = SegmentControllerUtils.getAddon(ship, StealthAddOn.class);
+			return playerUsable != null && playerUsable.isActive();
 		}
 		return false;
 	}
@@ -353,8 +352,8 @@ public class Entity extends LuaMadeUserdata {
 		if(!isCloaking()) {
 			if(segmentController instanceof Ship) {
 				Ship ship = (Ship) segmentController;
-				PlayerUsableInterface playerUsable = SegmentControllerUtils.getAddon(ship, PlayerUsableInterface.USABLE_ID_CLOAK);
-				return playerUsable instanceof StealthAddOn && ((StealthAddOn) playerUsable).canExecute();
+				StealthAddOn playerUsable = SegmentControllerUtils.getAddon(ship, StealthAddOn.class);
+				return playerUsable != null && playerUsable.canExecute();
 			}
 		}
 		return false;
@@ -364,11 +363,10 @@ public class Entity extends LuaMadeUserdata {
 	public void activateCloaking(Boolean active) {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;
-			PlayerUsableInterface playerUsable = SegmentControllerUtils.getAddon(ship, PlayerUsableInterface.USABLE_ID_CLOAK);
-			if(playerUsable instanceof StealthAddOn) {
-				StealthAddOn stealth = (StealthAddOn) playerUsable;
-				if(active) if(stealth.canExecute()) stealth.executeModule();
-				else if(stealth.isActive()) stealth.onRevealingAction();
+			StealthAddOn playerUsable = SegmentControllerUtils.getAddon(ship, StealthAddOn.class);
+			if(playerUsable != null) {
+				if(active) if(playerUsable.canExecute()) playerUsable.executeModule();
+				else if(playerUsable.isActive()) playerUsable.onRevealingAction();
 			}
 		}
 	}
