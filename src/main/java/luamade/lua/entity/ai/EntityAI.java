@@ -2,7 +2,7 @@ package luamade.lua.entity.ai;
 
 import api.common.GameCommon;
 import api.common.GameServer;
-import luamade.lua.LuaVec3i;
+import luamade.lua.data.LuaVec3i;
 import luamade.lua.entity.RemoteEntity;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;

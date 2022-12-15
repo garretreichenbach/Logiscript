@@ -1,6 +1,6 @@
 package luamade.lua.element.block;
 
-import luamade.lua.LuaVec3i;
+import luamade.lua.data.LuaVec3i;
 import luamade.lua.element.inventory.Inventory;
 import luamade.lua.entity.Entity;
 import luamade.luawrap.LuaMadeCallable;

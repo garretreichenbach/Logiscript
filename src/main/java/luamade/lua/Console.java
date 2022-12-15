@@ -13,6 +13,9 @@ import org.schema.game.client.view.gui.shiphud.HudIndicatorOverlay;
 import org.schema.game.common.data.ManagedSegmentController;
 import org.schema.game.common.data.SegmentPiece;
 
+import java.util.PriorityQueue;
+import java.util.Queue;
+
 /**
  * [Description]
  *
@@ -21,10 +24,11 @@ import org.schema.game.common.data.SegmentPiece;
 public class Console extends LuaMadeUserdata {
 
 	private final SegmentPiece segmentPiece;
-	private long timer;
+	private final Queue<Object[]> printQueue = new PriorityQueue<>();
 
 	public Console(SegmentPiece segmentPiece) {
 		this.segmentPiece = segmentPiece;
+		startPrintThread();
 	}
 
 	@LuaMadeCallable
@@ -39,56 +43,17 @@ public class Console extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public void print(Varargs vargs) {
-		//Only allow printing every 2 seconds
-		if(System.currentTimeMillis() - timer > 2000) {
-			String string = "";
-			for(int i = 1; i <= vargs.narg() && i <= 16; ++i) string += vargs.arg(i).toString() + "\n";
-			System.out.println(string);
-			Transform transform = new Transform();
-			segmentPiece.getTransform(transform);
-			RaisingIndication raisingIndication = new RaisingIndication(transform, string, 1.0f, 1.0f, 1.0f, 1.0f);
-			raisingIndication.speed = 0.1f;
-			raisingIndication.lifetime = 15.0f;
-			HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
-			timer = System.currentTimeMillis();
-			sendOutput(string);
-		}
+		printQueue.add(new Object[] {new Double[] {1.0, 1.0, 1.0, 1.0}, vargs});
 	}
 
 	@LuaMadeCallable
 	public void printColor(Double[] color, Varargs vargs) {
-		//Only allow printing every 2 seconds
-		if(System.currentTimeMillis() - timer > 2000) {
-			String string = "";
-			for(int i = 1; i <= vargs.narg() && i <= 16; ++i) string += vargs.arg(i).toString() + "\n";
-			System.out.println(string);
-			Transform transform = new Transform();
-			segmentPiece.getTransform(transform);
-			RaisingIndication raisingIndication = new RaisingIndication(transform, string, color[0].floatValue(), color[1].floatValue(), color[2].floatValue(), color[3].floatValue());
-			raisingIndication.speed = 0.1f;
-			raisingIndication.lifetime = 15.0f;
-			HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
-			timer = System.currentTimeMillis();
-			sendOutput(string);
-		}
+		printQueue.add(new Object[] {color, vargs});
 	}
 
 	@LuaMadeCallable
 	public void printError(Varargs vargs) {
-		//Only allow printing every 2 seconds
-		if(System.currentTimeMillis() - timer > 2000) {
-			String string = "";
-			for(int i = 1; i <= vargs.narg() && i <= 16; ++i) string += vargs.arg(i).toString() + "\n";
-			System.err.println(string);
-			Transform transform = new Transform();
-			segmentPiece.getTransform(transform);
-			RaisingIndication raisingIndication = new RaisingIndication(transform, string, 1.0f, 0.3f, 0.3f, 1.0f);
-			raisingIndication.speed = 0.1f;
-			raisingIndication.lifetime = 15.0f;
-			HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
-			timer = System.currentTimeMillis();
-			sendOutput(string);
-		}
+		printQueue.add(new Object[] {new Double[] {1.0, 0.3, 0.3, 1.0}, vargs});
 	}
 
 	@LuaMadeCallable
@@ -123,9 +88,9 @@ public class Console extends LuaMadeUserdata {
 	public void sendOutput(String string) {
 		try {
 			if(segmentPiece.getSegmentController() instanceof ManagedSegmentController) {
-				ManagedSegmentController managedSegmentController = (ManagedSegmentController) segmentPiece.getSegmentController();
+				ManagedSegmentController<?> managedSegmentController = (ManagedSegmentController<?>) segmentPiece.getSegmentController();
 				ComputerModule module = (ComputerModule) managedSegmentController.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId());
-				module.getData(segmentPiece).lastOutput = string;
+				module.getData(segmentPiece).lastOutput += string;
 				module.flagUpdatedData();
 			}
 		} catch(Exception exception) {
@@ -136,7 +101,39 @@ public class Console extends LuaMadeUserdata {
 	public static void sendError(SegmentPiece segmentPiece, String text) {
 		try {
 			System.err.println(text);
-			LuaManager.getModule(segmentPiece).getData(segmentPiece).lastOutput = text;
+			LuaManager.getModule(segmentPiece).getData(segmentPiece).lastOutput += text;
 		} catch(Exception ignored) {}
+	}
+
+	private void startPrintThread() {
+		final Thread printThread = new Thread() {
+			@Override
+			public void run() {
+				try {
+					while(true) {
+						if(!printQueue.isEmpty()) {
+							Object[] objects = printQueue.poll();
+							Double[] color = (Double[]) objects[0];
+							Varargs vargs = (Varargs) objects[1];
+							StringBuilder string = new StringBuilder();
+							for(int i = 1; i <= vargs.narg() && i <= 16; ++i) string.append(vargs.arg(i).toString()).append("\n");
+							System.out.println(string);
+							Transform transform = new Transform();
+							segmentPiece.getTransform(transform);
+							RaisingIndication raisingIndication = new RaisingIndication(transform, string.toString(), color[0].floatValue(), color[1].floatValue(), color[2].floatValue(), color[3].floatValue());
+							raisingIndication.speed = 0.1f;
+							raisingIndication.lifetime = 15.0f;
+							HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
+							sendOutput(string.toString());
+						}
+						Thread.sleep(2000);
+					}
+				} catch(Exception exception) {
+					exception.printStackTrace();
+					startPrintThread();
+				}
+			}
+		};
+		printThread.start();
 	}
 }

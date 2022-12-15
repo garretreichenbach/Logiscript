@@ -1,8 +1,9 @@
 package luamade.lua.entity;
 
+import api.utils.game.SegmentControllerUtils;
 import com.bulletphysics.linearmath.Transform;
-import luamade.lua.Faction;
-import luamade.lua.LuaVec3i;
+import luamade.lua.faction.Faction;
+import luamade.lua.data.LuaVec3i;
 import luamade.lua.element.inventory.Inventory;
 import luamade.lua.element.system.shield.ShieldSystem;
 import luamade.luawrap.LuaMadeCallable;
@@ -89,6 +90,12 @@ public class RemoteEntity extends LuaMadeUserdata {
 			if(segmentController instanceof Ship) return getInventory(name, ((Ship) segmentController).getManagerContainer());
 			else if(segmentController instanceof SpaceStation) return getInventory(name, ((SpaceStation) segmentController).getManagerContainer());
 		}
+		return null;
+	}
+
+	@LuaMadeCallable
+	public String getPilot() {
+		if(segmentController instanceof Ship && segmentController.isConrolledByActivePlayer()) return SegmentControllerUtils.getAttachedPlayers(segmentController).get(0).getName();
 		return null;
 	}
 
