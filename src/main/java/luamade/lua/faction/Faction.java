@@ -1,4 +1,4 @@
-package luamade.lua;
+package luamade.lua.faction;
 
 import api.common.GameCommon;
 import luamade.luawrap.LuaMadeCallable;

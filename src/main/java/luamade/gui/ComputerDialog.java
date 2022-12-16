@@ -185,6 +185,7 @@ public class ComputerDialog extends GUIInputDialog {
 				@Override
 				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
 					if(mouseEvent.pressedLeftMouse()) {
+						computerData.lastOutput = "";
 						computerData.script = "";
 						codeBar.setText(computerData.script);
 					}

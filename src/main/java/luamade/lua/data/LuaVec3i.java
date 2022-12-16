@@ -1,4 +1,4 @@
-package luamade.lua;
+package luamade.lua.data;
 
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;

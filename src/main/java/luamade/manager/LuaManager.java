@@ -124,6 +124,37 @@ public class LuaManager {
 					chunk.call();
 				} catch(Exception exception) {
 					exception.printStackTrace();
+					Globals globals = new Globals();
+					globals.load(new JseBaseLib());
+					globals.load(new PackageLib());
+					globals.load(new StringLib());
+					globals.load(new TableLib());
+					globals.load(new JseMathLib());
+					globals.load(new Bit32Lib());
+					LuaC.install(globals);
+					LuaString.s_metatable = new ReadOnlyLuaTable(LuaString.s_metatable);
+					//Security Patches
+					for(LuaValue key : globals.keys()) {
+						LuaValue value = globals.get(key);
+						if(value instanceof LuaTable) {
+							LuaTable table = (LuaTable) value;
+							if(table.getmetatable() != null) table.setmetatable(new ReadOnlyLuaTable(table.getmetatable()));
+						}
+						//Check for whitelisted libs
+						boolean whitelisted = false;
+						for(String lib : WHITELISTED_LIBS) {
+							if(key.tojstring().equals(lib)) {
+								whitelisted = true;
+								break;
+							}
+						}
+						if(!whitelisted) globals.set(key, LuaValue.NIL);
+					}
+					//
+					LuaValue console = new Console(segmentPiece);
+					globals.set("console", console);
+					LuaValue chunk = globals.load("console:printError(\"" + exception.getMessage().replace("\"", "\\\"") + "\")");
+					chunk.call();
 				}
 			}
 		});

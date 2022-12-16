@@ -219,7 +219,8 @@ public class LuaMade extends StarMod {
 				"getShieldSystem() - Returns the entity's shield system.\n" +
 				"getShipyards() - Returns an array of the entity's shipyards.\n" +
 				"getEntityType() - Returns the entity's type.\n" +
-				"getNamedInventory(name<String>) - Returns the entity's inventory with the given name."));
+				"getNamedInventory(name<String>) - Returns the entity's inventory with the given name.\n" +
+				"getPilot() - Returns the name of the player currently piloting this entity."));
 		functions.addEntry(new GlossarEntry("RemoteEntity",
 				"getId() - Returns the ID of the entity.\n" +
 				"getName() - Returns the name of the entity.\n" +
@@ -230,7 +231,8 @@ public class LuaMade extends StarMod {
 				"getSector() - Returns the entity's sector.\n" +
 				"getSystem() - Returns the entity's system.\n" +
 				"getShieldSystem() - Returns the entity's shield system.\n" +
-				"getNamedInventory(name<String>) - Returns the entity's inventory with the given name."));
+				"getNamedInventory(name<String>) - Returns the entity's inventory with the given name.\n" +
+				"getPilot() - Returns the name of the player currently piloting this entity."));
 		functions.addEntry(new GlossarEntry("EntityAI",
 				"setActive(active<Boolean>) - Sets whether the AI is active.\n" +
 				"isActive() - Returns whether the AI is active.\n" +
@@ -258,10 +260,12 @@ public class LuaMade extends StarMod {
 				"getReactor() - Returns the chamber's reactor.\n" +
 				"specify(chamberName<String>) - Specifies the chamber's type by name.\n" +
 				"getValidSpecifications() - Returns an array of valid specifications for the chamber.\n" +
+				"isUsable() - Returns whether the chamber can be triggered.\n" +
+				"getUsable() - Returns a usable instance of the chamber."));
+		functions.addEntry(new GlossarEntry("UsableChamber",
+				"activate() - Activates the chamber.\n" +
 				"deactivate() - Deactivates the chamber.\n" +
-				"canTrigger() - Returns whether the chamber can be triggered.\n" +
-				"getCharge() - Returns the chamber's charge.\n" +
-				"trigger() - Triggers the chamber."));
+				"getCharge() - Returns the chamber's charge."));
 		functions.addEntry(new GlossarEntry("ShieldSystem",
 				"isShielded() - Returns whether the entity is shielded.\n" +
 				"getCurrent() - Returns the entity's current shield capacity.\n" +
