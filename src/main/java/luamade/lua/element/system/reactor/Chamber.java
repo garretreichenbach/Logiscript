@@ -5,8 +5,6 @@ import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.PlayerUsableInterface;
-import org.schema.game.common.controller.elements.ManagerReloadInterface;
-import org.schema.game.common.controller.elements.RecharchableSingleModule;
 import org.schema.game.common.controller.elements.power.reactor.tree.ReactorElement;
 import org.schema.game.common.data.element.ElementInformation;
 import org.schema.game.common.data.element.ElementKeyMap;
@@ -71,59 +69,27 @@ public class Chamber extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public void deactivate() {
-		reactorElement.convertToClientRequest((short) ElementKeyMap.getInfo(reactorElement.type).chamberRoot);
-		controller.getManagerContainer().getPowerInterface().requestRecalibrate();
-	}
-
-	@LuaMadeCallable
-	public Boolean canTrigger() {
-		for(PlayerUsableInterface usableInterface : controller.getManagerContainer().getPlayerUsable()) {
+	public Boolean isUsable() {
+		for(PlayerUsableInterface usableInterface : getController().getManagerContainer().getPlayerUsable()) {
 			for(Map.Entry<Long, Short> entry : PlayerUsableInterface.ICONS.entrySet()) {
-				if(entry.getValue() == reactorElement.type && usableInterface.isPlayerUsable() && (entry.getKey() == usableInterface.getUsableId())) return true;
+				if(entry.getValue() == getReactorElement().type && usableInterface.isPlayerUsable() && (entry.getKey() == usableInterface.getUsableId())) return true;
 			}
-			if(usableInterface.isPlayerUsable() && usableInterface.getUsableId() == reactorElement.type) return true;
+			if(usableInterface.isPlayerUsable() && usableInterface.getUsableId() == getReactorElement().type) return true;
 		}
 		return false;
 	}
 
 	@LuaMadeCallable
-	public Float getCharge() {
-		ManagerReloadInterface reloadInterface = getReloadInterface();
-		if(reloadInterface instanceof RecharchableSingleModule) {
-			RecharchableSingleModule recharchableSingleModule = (RecharchableSingleModule) reloadInterface;
-			return recharchableSingleModule.getCharge();
-		} else return 0.0f;
+	public UsableChamber getUsable() {
+		if(isUsable()) return new UsableChamber(getReactorElement(), getController(), getReactor());
+		else return null;
 	}
 
-	@LuaMadeCallable
-	public void trigger() {
-		if(canTrigger()) {
-			ManagerReloadInterface reloadInterface = getReloadInterface();
-			if(reloadInterface instanceof RecharchableSingleModule) {
-				RecharchableSingleModule recharchableSingleModule = (RecharchableSingleModule) reloadInterface;
-				recharchableSingleModule.executeModule();
-			}
-		}
+	public ReactorElement getReactorElement() {
+		return reactorElement;
 	}
 
-	private long getUsableId() {
-		for(PlayerUsableInterface usableInterface : controller.getManagerContainer().getPlayerUsable()) {
-			for(Map.Entry<Long, Short> entry : PlayerUsableInterface.ICONS.entrySet()) {
-				if(entry.getValue() == reactorElement.type && (entry.getKey() == usableInterface.getUsableId())) return usableInterface.getUsableId();
-			}
-			if(usableInterface.isPlayerUsable() && usableInterface.getUsableId() == reactorElement.type) return usableInterface.getUsableId();
-		}
-		return -1;
-	}
-
-	private ManagerReloadInterface getReloadInterface() {
-		for(PlayerUsableInterface usableInterface : controller.getManagerContainer().getPlayerUsable()) {
-			for(Map.Entry<Long, Short> entry : PlayerUsableInterface.ICONS.entrySet()) {
-				if(entry.getValue() == reactorElement.type && (entry.getKey() == usableInterface.getUsableId())) return usableInterface.getReloadInterface();
-			}
-			if(usableInterface.isPlayerUsable() && usableInterface.getUsableId() == reactorElement.type) return usableInterface.getReloadInterface();
-		}
-		return null;
+	public ManagedUsableSegmentController<?> getController() {
+		return controller;
 	}
 }
