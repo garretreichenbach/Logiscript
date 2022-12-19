@@ -6,7 +6,6 @@ import luamade.lua.data.LuaVec3i;
 import luamade.lua.entity.RemoteEntity;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
-import org.schema.common.util.linAlg.Vector3fTools;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SegmentController;
@@ -143,12 +142,12 @@ public class EntityAI extends LuaMadeUserdata {
 				Vector3f position = new Vector3f(pos.getX(), pos.getY(), pos.getZ());
 				//If position is already within 15 blocks of target, don't move
 				Vector3f currentPos = new Vector3f(segmentController.getWorldTransform().origin);
-				if(Vector3fTools.distance(currentPos.x, currentPos.y, currentPos.z, position.x, position.y, position.z) > 15) {
+				//if(Vector3fTools.distance(currentPos.x, currentPos.y, currentPos.z, position.x, position.y, position.z) > 15) {
 					Vector3f direction = new Vector3f();
 					direction.sub(position, currentPos);
 					direction.normalize();
 					aiEntity.moveTo(GameServer.getServerState().getController().getTimer(), direction, true);
-				} else aiEntity.stop();
+				//} else aiEntity.stop();
 			} catch(Exception exception) {
 				exception.printStackTrace();
 			}
@@ -160,8 +159,10 @@ public class EntityAI extends LuaMadeUserdata {
 		if(entity.getSegmentController().getSectorId() != segmentController.getSectorId()) return;
 		if(segmentController instanceof Ship && segmentController.isOnServer()) {
 			try {
-				ShipAIEntity aiEntity = ((Ship) segmentController).getAiConfiguration().getAiEntityState();
+				//ShipAIEntity aiEntity = ((Ship) segmentController).getAiConfiguration().getAiEntityState();
 				Vector3f position = new Vector3f(entity.getSegmentController().getWorldTransform().origin);
+				moveToPos(new LuaVec3i((int) position.x, (int) position.y, (int) position.z));
+				/*
 				Vector3f moveToPos = calculateMoveToPos(segmentController, entity.getSegmentController());
 				//If position is already within 15 blocks of target, don't move
 				Vector3f currentPos = new Vector3f(segmentController.getWorldTransform().origin);
@@ -171,6 +172,8 @@ public class EntityAI extends LuaMadeUserdata {
 					direction.normalize();
 					aiEntity.moveTo(GameServer.getServerState().getController().getTimer(), direction, true);
 				} else aiEntity.stop();
+
+				 */
 			} catch(Exception exception) {
 				exception.printStackTrace();
 			}
