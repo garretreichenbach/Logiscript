@@ -49,7 +49,8 @@ public class LuaManager {
 
 	public static void initialize(LuaMade instance) {
 		for(Object obj : PersistentObjectUtil.getObjects(instance.getSkeleton(), Channel.class)) {
-			Channel channel = (Channel) obj;
+			Channel.ChannelSerializable channelSerializable = (Channel.ChannelSerializable) obj;
+			Channel channel = channelSerializable.toChannel();
 			channels.put(channel.getName(), channel);
 		}
 
@@ -219,7 +220,8 @@ public class LuaManager {
 		if(channels.containsKey(name)) return null;
 		Channel channel = new Channel(name, password);
 		channels.put(name, channel);
-		PersistentObjectUtil.addObject(LuaMade.getInstance().getSkeleton(), channel);
+		Channel.ChannelSerializable serializable = new Channel.ChannelSerializable(channel);
+		PersistentObjectUtil.addObject(LuaMade.getInstance().getSkeleton(), serializable);
 		PersistentObjectUtil.save(LuaMade.getInstance().getSkeleton());
 		return channel;
 	}
@@ -228,7 +230,8 @@ public class LuaManager {
 		if(!channels.containsKey(name)) return;
 		Channel channel = channels.get(name);
 		channels.remove(name);
-		PersistentObjectUtil.removeObject(LuaMade.getInstance().getSkeleton(), channel);
+		Channel.ChannelSerializable serializable = new Channel.ChannelSerializable(channel);
+		PersistentObjectUtil.removeObject(LuaMade.getInstance().getSkeleton(), serializable);
 		PersistentObjectUtil.save(LuaMade.getInstance().getSkeleton());
 	}
 
