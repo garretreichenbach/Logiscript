@@ -245,6 +245,21 @@ public class LuaMade extends StarMod {
 				"moveToPos(pos<Vector3>) - Moves the entity to the given position within the sector.\n" +
 				"moveToEntity(entity<RemoteEntity>) - Moves the entity to the given entity (nearby position, not colliding) as long as they are in the same sector.\n" +
 				"stop() - Stops the entity's movement."));
+		functions.addEntry(new GlossarEntry("Fleet",
+				"getId() - Returns the ID of the fleet.\n" +
+				"getName() - Returns the name of the fleet.\n" +
+				"getFaction() - Returns the fleet's faction.\n" +
+				"getSector() - Returns the fleet's current sector.\n" +
+				"getFlagship() - Returns the fleet's flagship.\n" +
+				"getMembers() - Returns an array of the fleet's members.\n" +
+				"addMember(entity<RemoteEntity>) - Adds the given entity to the fleet.\n" +
+				"removeMember(entity<RemoteEntity>) - Removes the given entity from the fleet.\n" +
+				"getCurrentCommand() - Returns the current command of the fleet.\n" +
+				"setCurrentCommand(command<String>, args<Object[]>) - Sets the current command of the fleet."));
+		functions.addEntry(new GlossarEntry("FleetCommand",
+				"getCommand() - Returns the command.\n" +
+				"getTarget() - Returns the sector target of the command, if there is one.\n" +
+				"getArgs() - Returns the command's arguments"));
 		functions.addEntry(new GlossarEntry("Reactor",
 				"getRecharge() - Returns the reactor's recharge rate.\n" +
 				"getConsumption() - Returns the reactor's consumption rate.\n" +

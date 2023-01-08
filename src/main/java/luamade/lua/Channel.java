@@ -13,11 +13,16 @@ public class Channel extends LuaMadeUserdata {
 
 	private final String name;
 	private final String password;
-	private String[] messages = new String[0];
+	private String[] messages;
 
 	public Channel(String name, String password) {
+		this(name, password, new String[0]);
+	}
+
+	public Channel(String name, String password, String[] messages) {
 		this.name = name;
 		this.password = password;
+		this.messages = messages;
 	}
 
 	@LuaMadeCallable
@@ -52,5 +57,26 @@ public class Channel extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public void removeChannel(String password) {
 		if(password.equals(this.password)) LuaManager.removeChannel(name);
+	}
+
+	public static class ChannelSerializable {
+
+		public String name;
+		public String password;
+		public String[] messages;
+
+		public ChannelSerializable(String name, String password, String[] messages) {
+			this.name = name;
+			this.password = password;
+			this.messages = messages;
+		}
+
+		public ChannelSerializable(Channel channel) {
+			this(channel.name, channel.password, channel.messages);
+		}
+
+		public Channel toChannel() {
+			return new Channel(name, password, messages);
+		}
 	}
 }

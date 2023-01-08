@@ -172,7 +172,6 @@ public class EntityAI extends LuaMadeUserdata {
 					direction.normalize();
 					aiEntity.moveTo(GameServer.getServerState().getController().getTimer(), direction, true);
 				} else aiEntity.stop();
-
 				 */
 			} catch(Exception exception) {
 				exception.printStackTrace();
