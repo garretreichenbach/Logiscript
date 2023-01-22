@@ -15,10 +15,6 @@ public class Channel extends LuaMadeUserdata {
 	private final String password;
 	private String[] messages;
 
-	public Channel(String name, String password) {
-		this(name, password, new String[0]);
-	}
-
 	public Channel(String name, String password, String[] messages) {
 		this.name = name;
 		this.password = password;
