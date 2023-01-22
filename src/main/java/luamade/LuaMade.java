@@ -220,7 +220,9 @@ public class LuaMade extends StarMod {
 				"getShipyards() - Returns an array of the entity's shipyards.\n" +
 				"getEntityType() - Returns the entity's type.\n" +
 				"getNamedInventory(name<String>) - Returns the entity's inventory with the given name.\n" +
-				"getPilot() - Returns the name of the player currently piloting this entity."));
+				"getPilot() - Returns the name of the player currently piloting this entity.\n" +
+				"isInFleet() - Returns whether the entity is in a fleet.\n" +
+				"getFleet() - Returns the fleet the entity is in."));
 		functions.addEntry(new GlossarEntry("RemoteEntity",
 				"getId() - Returns the ID of the entity.\n" +
 				"getName() - Returns the name of the entity.\n" +

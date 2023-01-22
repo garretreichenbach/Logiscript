@@ -218,7 +218,7 @@ public class LuaManager {
 
 	public static Channel createChannel(String name, String password) {
 		if(channels.containsKey(name)) return null;
-		Channel channel = new Channel(name, password);
+		Channel channel = new Channel(name, password, new String[0]);
 		channels.put(name, channel);
 		Channel.ChannelSerializable serializable = new Channel.ChannelSerializable(channel);
 		PersistentObjectUtil.addObject(LuaMade.getInstance().getSkeleton(), serializable);

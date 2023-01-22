@@ -106,7 +106,7 @@ public class Console extends LuaMadeUserdata {
 	}
 
 	private void startPrintThread() {
-		final Thread printThread = new Thread() {
+		Thread printThread = new Thread() {
 			@Override
 			public void run() {
 				try {

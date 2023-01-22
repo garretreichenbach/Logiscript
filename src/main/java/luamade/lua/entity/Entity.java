@@ -3,7 +3,7 @@ package luamade.lua.entity;
 import api.common.GameServer;
 import api.utils.game.SegmentControllerUtils;
 import com.bulletphysics.linearmath.Transform;
-import luamade.lua.faction.Faction;
+import luamade.lua.Console;
 import luamade.lua.data.LuaVec3i;
 import luamade.lua.element.block.Block;
 import luamade.lua.element.inventory.Inventory;
@@ -12,6 +12,8 @@ import luamade.lua.element.system.reactor.Reactor;
 import luamade.lua.element.system.shield.ShieldSystem;
 import luamade.lua.element.system.shipyard.Shipyard;
 import luamade.lua.entity.ai.EntityAI;
+import luamade.lua.entity.ai.Fleet;
+import luamade.lua.faction.Faction;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
@@ -400,6 +402,23 @@ public class Entity extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public String getPilot() {
 		if(segmentController instanceof Ship && segmentController.isConrolledByActivePlayer()) return SegmentControllerUtils.getAttachedPlayers(segmentController).get(0).getName();
+		return null;
+	}
+
+	@LuaMadeCallable
+	public Boolean isInFleet() {
+		return getFleet() != null;
+	}
+
+	@LuaMadeCallable
+	public Fleet getFleet() {
+		try {
+			if(segmentController.isInFleet()) return new Fleet(segmentController.getFleet());
+		} catch(Exception exception) {
+			try {
+				Console.sendError(getConsole().getSegmentPiece(), exception.getMessage());
+			} catch(Exception ignored) {}
+		}
 		return null;
 	}
 
