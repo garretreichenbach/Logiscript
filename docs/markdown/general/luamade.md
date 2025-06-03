@@ -1,0 +1,3 @@
+# LuaMade
+
+LuaMade is a mod that allows you to run Lua scripts on Computer Blocks. You can use it to automate your ship, create a simple AI, or even create a game inside the game! To get started, place a Computer Block and activate it. You will be presented with a GUI. In the GUI, you can write Lua code and run it. You can also save your scripts to the Computer Block. You can also set the Computer Block to automatically run a script when it is placed.
