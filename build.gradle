@@ -8,7 +8,7 @@ apply plugin: 'java'
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
 
-def starmadeDirectory = 'C:/Program Files (x86)/Steam/steamapps/common/StarMade/StarMade/'
+def starmadeDirectory = '/home/garret/Documents/Game Files/StarMade Files/StarMade/'
 def jarName = 'LuaMade'
 mainClassName = 'luamade.LuaMade'
 group 'luamade'
@@ -38,5 +38,10 @@ jar {
             if(!it.getPath().contains("StarMade") && it.getName().endsWith(".jar")) it.isDirectory() ? it : zipTree(it)
             else return null;
         }
+    }
+
+    // Include documentation files
+    from('docs/markdown') {
+        into 'docs/markdown'
     }
 }

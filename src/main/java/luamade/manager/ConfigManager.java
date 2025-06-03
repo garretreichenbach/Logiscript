@@ -8,9 +8,8 @@ public class ConfigManager {
 	private static FileConfiguration mainConfig;
 	private static final String[] defaultMainConfig = {
 			"debug-mode: false",
-			"max-world-logs: 5",
-			"script-character-limit: 30000",
-			"script-line-limit: 1000",
+			"console-character-limit: 30000",
+			"console-line-limit: 1000",
 			"max-threads-per-root-entity: 5"
 	};
 

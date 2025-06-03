@@ -8,7 +8,7 @@ import luamade.data.PlayerData;
 import luamade.element.ElementManager;
 import luamade.lua.Channel;
 import luamade.lua.Console;
-import luamade.system.module.ComputerModule;
+import luamade.system.module.ComputerModuleOld;
 import org.luaj.vm2.*;
 import org.luaj.vm2.compiler.LuaC;
 import org.luaj.vm2.lib.Bit32Lib;
@@ -118,9 +118,22 @@ public class LuaManager {
 						if(!whitelisted) globals.set(key, LuaValue.NIL);
 					}
 					//
-					LuaValue console = new Console(segmentPiece);
+					// Create and set up console
+					Console console = new Console(segmentPiece);
 					globals.set("console", console);
 					globals.set("print", console.get("print"));
+
+					// Create and set up file system
+					luamade.lua.fs.FileSystem fs = new luamade.lua.fs.FileSystem(segmentPiece);
+					globals.set("fs", fs);
+
+					// Create and set up terminal
+					luamade.lua.terminal.Terminal term = new luamade.lua.terminal.Terminal(segmentPiece, console, fs);
+					globals.set("term", term);
+
+					// Create and set up network interface
+					luamade.lua.networking.NetworkInterface net = new luamade.lua.networking.NetworkInterface(segmentPiece);
+					globals.set("net", net);
 					LuaValue chunk = globals.load(script);
 					chunk.call();
 				} catch(Exception exception) {
@@ -152,7 +165,8 @@ public class LuaManager {
 						if(!whitelisted) globals.set(key, LuaValue.NIL);
 					}
 					//
-					LuaValue console = new Console(segmentPiece);
+					// Create and set up console
+					Console console = new Console(segmentPiece);
 					globals.set("console", console);
 					LuaValue chunk = globals.load("console:printError(\"" + exception.getMessage().replace("\"", "\\\"") + "\")");
 					chunk.call();
@@ -244,21 +258,21 @@ public class LuaManager {
 	}
 
 	public static void setVariable(Console console, String name, Object value) {
-		ComputerModule module = getModule(console.getSegmentPiece());
+		ComputerModuleOld module = getModule(console.getSegmentPiece());
 		if(module != null) module.getData(console.getSegmentPiece()).variables.put(name, value);
 	}
 
 	public static Object getVariable(Console console, String name) {
-		ComputerModule module = getModule(console.getSegmentPiece());
+		ComputerModuleOld module = getModule(console.getSegmentPiece());
 		if(module != null) return module.getData(console.getSegmentPiece()).variables.get(name);
 		return null;
 	}
 
-	public static ComputerModule getModule(SegmentPiece segmentPiece) {
+	public static ComputerModuleOld getModule(SegmentPiece segmentPiece) {
 		if(segmentPiece.getSegmentController() instanceof ManagedSegmentController<?>) {
 			ManagedSegmentController<?> controller = (ManagedSegmentController<?>) segmentPiece.getSegmentController();
-			if(controller.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId()) instanceof ComputerModule) {
-				return (ComputerModule) controller.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId());
+			if(controller.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId()) instanceof ComputerModuleOld) {
+				return (ComputerModuleOld) controller.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId());
 			}
 		}
 		return null;

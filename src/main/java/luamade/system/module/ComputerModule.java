@@ -1,123 +1,69 @@
 package luamade.system.module;
 
-import api.network.PacketReadBuffer;
-import api.utils.StarRunnable;
-import api.utils.game.module.util.SimpleDataStorageMCModule;
-import luamade.LuaMade;
-import luamade.element.ElementManager;
 import luamade.gui.ComputerDialog;
-import luamade.manager.LuaManager;
-import org.schema.game.common.controller.SegmentController;
-import org.schema.game.common.controller.elements.ManagerContainer;
+import luamade.lua.Console;
+import luamade.lua.fs.FileSystem;
+import luamade.lua.terminal.Terminal;
 import org.schema.game.common.data.SegmentPiece;
-import org.schema.game.common.data.element.ElementCollection;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 /**
- * [Description]
- *
- * @author TheDerpGamer (TheDerpGamer#0027)
+ * New Computer Module class to replace the old one.
+ * <br/>This does not handle the actual computer logic, but rather the integration with StarMade's systems.
  */
-public class ComputerModule extends SimpleDataStorageMCModule {
-
-	public ComputerModule(SegmentController segmentController, ManagerContainer<?> managerContainer) {
-		super(segmentController, managerContainer, LuaMade.getInstance(), ElementManager.getBlock("Computer").getId());
+public class ComputerModule {
+	
+	public enum ComputerMode {
+		OFF,
+		IDLE,
+		TERMINAL,
+		FILE_EDIT
 	}
 
-	@Override
-	public String getName() {
-		return "Computer";
+	private final byte VERSION = 1;
+	private final String uuid;
+	private final Console console;
+	private ComputerMode lastMode = ComputerMode.IDLE;
+	private long lastTouched;
+	private String lastOpenFile = "";
+	private final Terminal terminal;
+	private final FileSystem fileSystem;
+
+	public ComputerModule(String uuid) {
+		this.uuid = uuid;
+		lastTouched = System.currentTimeMillis();
+		console = new Console(this);
+		fileSystem = FileSystem.initNewFileSystem(this);
+		terminal = new Terminal(this, console, fileSystem);
 	}
 
-	@Override
-	public void handleRemove(long indexAndOrientation) {
-		super.handleRemove(indexAndOrientation);
-		long index = ElementCollection.getPosIndexFrom4(indexAndOrientation);
-		SegmentPiece segmentPiece = segmentController.getSegmentBuffer().getPointUnsave(index);
-		if(segmentPiece != null) LuaManager.terminate(segmentPiece);
+	public static String generateComputerUUID(long absIndex) {
+		return UUID.nameUUIDFromBytes((String.valueOf(absIndex)).getBytes(StandardCharsets.UTF_8)).toString();
 	}
 
-	@Override
-	public void onTagDeserialize(PacketReadBuffer packetReadBuffer) throws IOException {
-		if(packetReadBuffer.readBoolean()) {
-			String name = packetReadBuffer.readString();
-			try {
-				Class<?> cls =  Class.forName(name);
-				data = packetReadBuffer.readObject(cls);
-				new StarRunnable() {
-					@Override
-					public void run() {
-						for(Map.Entry<Long, ComputerData> entry : getComputerMap().entrySet()) {
-							SegmentPiece segmentPiece = segmentController.getSegmentBuffer().getPointUnsave(entry.getKey());
-							if(segmentPiece != null && getData(segmentPiece) != null && getData(segmentPiece).autoRun) runScript(segmentPiece);
-						}
-					}
-				}.runLater(LuaMade.getInstance(), 100); //Give the game time to finish loading in the entity before running
-			} catch(ClassNotFoundException exception) {
-				exception.printStackTrace();
-			}
+	public String getUUID() {
+		return uuid;
+	}
+
+	public String getLastTextContent() {
+		switch(lastMode) {
+			case OFF:
+				return "";
+			case IDLE:
+				return "";
+			case TERMINAL:
+				return terminal.getTextContents();
+			case FILE_EDIT:
+				return fileSystem.getFile(lastOpenFile).getTextContents();
 		}
-	}
-
-	public String getScriptFromWeb(SegmentPiece segmentPiece, String link) {
-		try {
-			StringBuilder script = new StringBuilder();
-			java.net.URL url = new java.net.URL(link);
-			java.net.URLConnection connection = url.openConnection();
-			java.io.InputStream inputStream = connection.getInputStream();
-			java.io.BufferedReader bufferedReader = new java.io.BufferedReader(new java.io.InputStreamReader(inputStream));
-			String line;
-			while((line = bufferedReader.readLine()) != null) script.append(line).append("\n");
-			bufferedReader.close();
-			getData(segmentPiece).script = script.toString();
-			flagUpdatedData();
-		} catch(Exception exception) {
-			exception.printStackTrace();
-		}
-		return getData(segmentPiece).script;
-	}
-
-	public ComputerData getData(SegmentPiece segmentPiece) {
-		if(getComputerMap().containsKey(segmentPiece.getAbsoluteIndex())) return getComputerMap().get(segmentPiece.getAbsoluteIndex());
-		else {
-			ComputerData computerData = new ComputerData(segmentPiece.getAbsoluteIndex(), false, "");
-			getComputerMap().remove(segmentPiece.getAbsoluteIndex());
-			getComputerMap().put(segmentPiece.getAbsoluteIndex(), computerData);
-			flagUpdatedData();
-			return computerData;
-		}
-	}
-
-	public void setData(SegmentPiece segmentPiece, ComputerData computerData) {
-		getComputerMap().remove(segmentPiece.getAbsoluteIndex());
-		getComputerMap().put(segmentPiece.getAbsoluteIndex(), computerData);
-		flagUpdatedData();
-	}
-
-	private ComputerDataMap getComputerMap() {
-		ComputerDataMap computerMap = new ComputerDataMap();
-		if(data != null) computerMap = (ComputerDataMap) data;
-		else data = computerMap;
-		return computerMap;
-	}
-
-	public void runScript(SegmentPiece segmentPiece) {
-		if(!segmentPiece.getSegmentController().isOnServer()) return;
-		try {
-			LuaManager.run(getData(segmentPiece).script, segmentPiece);
-		} catch(Exception exception) {
-			exception.printStackTrace();
-			LuaManager.run("console.error(" + exception.getMessage() + ")", segmentPiece);
-		}
+		return "";
 	}
 
 	public void openGUI(SegmentPiece segmentPiece) {
 		try {
-			ComputerDialog dialog = new ComputerDialog();
-			dialog.getInputPanel().setValues(segmentPiece,this, getData(segmentPiece));
+			ComputerDialog dialog = new ComputerDialog(this);
 			dialog.getInputPanel().onInit();
 			dialog.activate();
 		} catch(Exception exception) {
@@ -125,22 +71,45 @@ public class ComputerModule extends SimpleDataStorageMCModule {
 		}
 	}
 
-	public static class ComputerDataMap extends HashMap<Long, ComputerData> { }
-
-	public static class ComputerData {
-
-		public long index;
-		public boolean autoRun;
-		public String script;
-		public final HashMap<String, Object> variables;
-		public String lastOutput;
-
-		public ComputerData(long index, boolean autoRun, String script) {
-			this.index = index;
-			this.autoRun = autoRun;
-			this.script = script;
-			this.variables = new HashMap<>();
-			this.lastOutput = "";
+	public void resumeFromLastMode() {
+		switch(lastMode) {
+			case OFF:
+				// Do nothing
+				break;
+			case TERMINAL:
+				// Resume terminal state
+				loadIntoTerminal();
+				break;
+			case FILE_EDIT:
+				// Resume file edit state
+				loadIntoFileEdit(lastOpenFile);
+				break;
 		}
+	}
+
+	public ComputerMode getLastMode() {
+		return lastMode;
+	}
+
+	public void setLastMode(ComputerMode lastMode) {
+		this.lastMode = lastMode;
+		resumeFromLastMode();
+	}
+
+	public void loadIntoTerminal() {
+		terminal.start();
+	}
+
+	public void loadIntoFileEdit(String file) {
+		lastOpenFile = file;
+		console.setTextContents(file);
+	}
+
+	public long getLastTouched() {
+		return lastTouched;
+	}
+
+	public void setTouched() {
+		lastTouched = System.currentTimeMillis();
 	}
 }

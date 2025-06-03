@@ -1,7 +1,6 @@
 package luamade.lua;
 
 import com.bulletphysics.linearmath.Transform;
-import luamade.element.ElementManager;
 import luamade.lua.element.block.Block;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
@@ -23,11 +22,16 @@ import java.util.Queue;
  */
 public class Console extends LuaMadeUserdata {
 
-	private final SegmentPiece segmentPiece;
-	private final Queue<Object[]> printQueue = new PriorityQueue<>();
+	private int VERTICAL = 0;
+	private int HORIZONTAL = 1;
 
-	public Console(SegmentPiece segmentPiece) {
-		this.segmentPiece = segmentPiece;
+	private final ComputerModule module;
+	private final Queue<Object[]> printQueue = new PriorityQueue<>();
+	private StringBuilder textContents = new StringBuilder();
+	private int[] cursorPos = {0, 0};
+
+	public Console(ComputerModule module) {
+		this.module = module;
 		startPrintThread();
 	}
 
@@ -38,7 +42,7 @@ public class Console extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public Block getBlock() {
-		return new Block(segmentPiece); //Block is basically a wrapper class for SegmentPiece
+		return new Block(module.getSegmentPiece()); //Block is basically a wrapper class for SegmentPiece
 	}
 
 	@LuaMadeCallable
@@ -47,13 +51,28 @@ public class Console extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public void display(Varargs vargs) {
+		printQueue.add(new Object[] {new Double[] {1.0, 1.0, 1.0, 1.0}, true, vargs});
+	}
+
+	@LuaMadeCallable
 	public void printColor(Double[] color, Varargs vargs) {
 		printQueue.add(new Object[] {color, vargs});
 	}
 
 	@LuaMadeCallable
+	public void displayColor(Double[] color, Varargs vargs) {
+		printQueue.add(new Object[] {color, true, vargs});
+	}
+
+	@LuaMadeCallable
 	public void printError(Varargs vargs) {
 		printQueue.add(new Object[] {new Double[] {1.0, 0.3, 0.3, 1.0}, vargs});
+	}
+
+	@LuaMadeCallable
+	public void displayError(Varargs vargs) {
+		printQueue.add(new Object[] {new Double[] {1.0, 0.3, 0.3, 1.0}, true, vargs});
 	}
 
 	@LuaMadeCallable
@@ -82,16 +101,17 @@ public class Console extends LuaMadeUserdata {
 	}
 
 	public SegmentPiece getSegmentPiece() {
-		return segmentPiece;
+		return module.getSegmentPiece();
 	}
 
 	public void sendOutput(String string) {
 		try {
 			if(segmentPiece.getSegmentController() instanceof ManagedSegmentController) {
 				ManagedSegmentController<?> managedSegmentController = (ManagedSegmentController<?>) segmentPiece.getSegmentController();
-				ComputerModule module = (ComputerModule) managedSegmentController.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId());
-				module.getData(segmentPiece).lastOutput += string;
-				module.flagUpdatedData();
+//				ComputerModule module = (ComputerModule) managedSegmentController.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId());
+//				module.getData(segmentPiece).lastOutput += string;
+//				module.flagUpdatedData();
+				//Todo
 			}
 		} catch(Exception exception) {
 			exception.printStackTrace();
@@ -101,8 +121,11 @@ public class Console extends LuaMadeUserdata {
 	public static void sendError(SegmentPiece segmentPiece, String text) {
 		try {
 			System.err.println(text);
-			LuaManager.getModule(segmentPiece).getData(segmentPiece).lastOutput += text;
-		} catch(Exception ignored) {}
+			//Todo
+//			LuaManager.getModule(segmentPiece).getData(segmentPiece).lastOutput += text;
+		} catch(Exception exception) {
+			exception.printStackTrace();
+		}
 	}
 
 	private void startPrintThread() {
@@ -112,21 +135,24 @@ public class Console extends LuaMadeUserdata {
 				try {
 					while(true) {
 						if(!printQueue.isEmpty()) {
+							boolean display = false;
 							Object[] objects = printQueue.poll();
 							Double[] color = (Double[]) objects[0];
+							if(objects[1] instanceof Boolean) display = (Boolean) objects[1];
 							Varargs vargs = (Varargs) objects[1];
 							StringBuilder string = new StringBuilder();
 							for(int i = 1; i <= vargs.narg() && i <= 16; ++i) string.append(vargs.arg(i).toString()).append("\n");
-							System.out.println(string);
-							Transform transform = new Transform();
-							segmentPiece.getTransform(transform);
-							RaisingIndication raisingIndication = new RaisingIndication(transform, string.toString(), color[0].floatValue(), color[1].floatValue(), color[2].floatValue(), color[3].floatValue());
-							raisingIndication.speed = 0.1f;
-							raisingIndication.lifetime = 15.0f;
-							HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
 							sendOutput(string.toString());
+							if(display) {
+								Transform transform = new Transform();
+								segmentPiece.getTransform(transform);
+								RaisingIndication raisingIndication = new RaisingIndication(transform, string.toString(), color[0].floatValue(), color[1].floatValue(), color[2].floatValue(), color[3].floatValue());
+								raisingIndication.speed = 0.1f;
+								raisingIndication.lifetime = 15.0f;
+								HudIndicatorOverlay.toDrawTexts.add(raisingIndication);
+							}
 						}
-						Thread.sleep(2000);
+						sleep(2000);
 					}
 				} catch(Exception exception) {
 					exception.printStackTrace();
@@ -135,5 +161,50 @@ public class Console extends LuaMadeUserdata {
 			}
 		};
 		printThread.start();
+	}
+
+	public String getTextContents() {
+		return textContents.toString();
+	}
+
+	public void setTextContents(String textContents) {
+		this.textContents = new StringBuilder(textContents);
+		cursorPos[VERTICAL] = getLineNumber();
+		cursorPos[HORIZONTAL] = getLinePos();
+	}
+
+	public int[] getCursorPos() {
+		return cursorPos;
+	}
+
+	public int getLineNumber() {
+		return textContents.toString().split("\n").length;
+	}
+
+	public void setLineNumber(int lineNumber) {
+		cursorPos[VERTICAL] = lineNumber;
+		trimCursorPos();
+	}
+
+	public int getLinePos() {
+		String[] lines = textContents.toString().split("\n");
+		if(cursorPos[VERTICAL] >= lines.length) return 0;
+		return lines[cursorPos[VERTICAL]].length();
+	}
+
+	public void setLinePos(int linePos) {
+		String[] lines = textContents.toString().split("\n");
+		if(cursorPos[VERTICAL] >= lines.length) return;
+		cursorPos[HORIZONTAL] = linePos;
+		trimCursorPos();
+		if(cursorPos[HORIZONTAL] > lines[cursorPos[VERTICAL]].length()) cursorPos[HORIZONTAL] = lines[cursorPos[VERTICAL]].length();
+		trimCursorPos();
+	}
+
+	private void trimCursorPos() {
+		if(cursorPos[VERTICAL] < 0) cursorPos[VERTICAL] = 0;
+		if(cursorPos[HORIZONTAL] < 0) cursorPos[HORIZONTAL] = 0;
+		if(cursorPos[VERTICAL] >= getLineNumber()) cursorPos[VERTICAL] = getLineNumber() - 1;
+		if(cursorPos[HORIZONTAL] >= getLinePos()) cursorPos[HORIZONTAL] = getLinePos() - 1;
 	}
 }

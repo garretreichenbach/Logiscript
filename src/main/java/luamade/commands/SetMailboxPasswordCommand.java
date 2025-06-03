@@ -4,7 +4,7 @@ import api.mod.StarMod;
 import api.utils.game.PlayerUtils;
 import api.utils.game.chat.CommandInterface;
 import luamade.LuaMade;
-import luamade.data.PlayerData;
+import luamade.data.misc.PlayerData;
 import luamade.manager.LuaManager;
 import org.schema.game.common.data.player.PlayerState;
 

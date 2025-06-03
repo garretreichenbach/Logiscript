@@ -3,7 +3,7 @@ package luamade.element.block;
 import api.common.GameClient;
 import api.config.BlockConfig;
 import api.listener.events.block.SegmentPieceActivateByPlayer;
-import luamade.system.module.ComputerModule;
+import luamade.system.module.ComputerModuleOld;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementKeyMap;
@@ -56,9 +56,9 @@ public class ComputerBlock extends Block implements ActivationInterface {
 	@Override
 	public void onPlayerActivation(SegmentPieceActivateByPlayer event) {
 		try {
-			ComputerModule computerModule = getModule(event.getSegmentPiece());
-			assert computerModule != null;
-			computerModule.openGUI(event.getSegmentPiece());
+			ComputerModuleOld computerModuleOld = getModule(event.getSegmentPiece());
+			assert computerModuleOld != null;
+			computerModuleOld.openGUI(event.getSegmentPiece());
 			if(GameClient.getClientState() != null) GameClient.getClientState().getGlobalGameControlManager().getIngameControlManager().getPlayerGameControlManager().getPlayerIntercationManager().suspend(true);
 		} catch(Exception exception) {
 			exception.printStackTrace();
@@ -69,17 +69,17 @@ public class ComputerBlock extends Block implements ActivationInterface {
 	public void onLogicActivation(SegmentPiece target, boolean active) {
 		try {
 			if(!active || !target.isActive()) return;
-			ComputerModule computerModule = getModule(target);
-			if(computerModule != null && !computerModule.getData(target).script.isEmpty()) computerModule.runScript(target);
+			ComputerModuleOld computerModuleOld = getModule(target);
+			if(computerModuleOld != null && !computerModuleOld.getData(target).script.isEmpty()) computerModuleOld.runScript(target);
 		} catch(Exception exception) {
 			exception.printStackTrace();
 		}
 	}
 
-	private ComputerModule getModule(SegmentPiece segmentPiece) {
+	private ComputerModuleOld getModule(SegmentPiece segmentPiece) {
 		try {
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentPiece.getSegmentController();
-			return (ComputerModule) controller.getManagerContainer().getModMCModule(getId());
+			return (ComputerModuleOld) controller.getManagerContainer().getModMCModule(getId());
 		} catch(Exception exception) {
 			exception.printStackTrace();
 			return null;
