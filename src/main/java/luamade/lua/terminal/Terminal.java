@@ -156,6 +156,7 @@ public class Terminal extends LuaMadeUserdata {
 		globals.set("print", console.get("print"));
 		globals.set("fs", fileSystem);
 		globals.set("term", this);
+		globals.set("net", module.getNetworkInterface());
 		
 		return globals;
 	}

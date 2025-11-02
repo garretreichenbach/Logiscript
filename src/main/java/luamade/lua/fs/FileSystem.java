@@ -104,7 +104,7 @@ public class FileSystem extends LuaMadeUserdata {
 			"\n" +
 			"print(\"Hello from shell.lua!\")\n" +
 			"print(\"You can create your own scripts in /bin or /home\")\n" +
-			"print(\"Available globals: console, fs, term, args\")\n";
+			"print(\"Available globals: console, fs, term, net, args\")\n";
 		
 		if(!exists("/bin/shell.lua")) {
 			write("/bin/shell.lua", shellScript);
@@ -120,6 +120,65 @@ public class FileSystem extends LuaMadeUserdata {
 		
 		if(!exists("/bin/hello.lua")) {
 			write("/bin/hello.lua", helloScript);
+		}
+		
+		// Create a network chat example
+		String chatScript = 
+			"-- Simple chat client\n" +
+			"-- Usage: run /bin/chat.lua <target_hostname> <message>\n" +
+			"\n" +
+			"local target = args[1]\n" +
+			"local message = args[2] or \"Hello!\"\n" +
+			"\n" +
+			"if not target then\n" +
+			"    print(\"Usage: chat <target_hostname> <message>\")\n" +
+			"    print(\"Your hostname: \" .. net.getHostname())\n" +
+			"    print(\"\\nAvailable computers:\")\n" +
+			"    local hosts = net.getHostnames()\n" +
+			"    for i = 1, #hosts do\n" +
+			"        if hosts[i] ~= net.getHostname() then\n" +
+			"            print(\"  \" .. hosts[i])\n" +
+			"        end\n" +
+			"    end\n" +
+			"else\n" +
+			"    if net.send(target, \"chat\", message) then\n" +
+			"        print(\"Message sent to \" .. target)\n" +
+			"    else\n" +
+			"        print(\"Failed to send message. Computer not found.\")\n" +
+			"    end\n" +
+			"end\n";
+		
+		if(!exists("/bin/chat.lua")) {
+			write("/bin/chat.lua", chatScript);
+		}
+		
+		// Create a file lister example
+		String listScript = 
+			"-- Recursive file lister\n" +
+			"-- Usage: run /bin/listall.lua [directory]\n" +
+			"\n" +
+			"local function listRecursive(dir, indent)\n" +
+			"    indent = indent or 0\n" +
+			"    local files = fs.list(dir)\n" +
+			"    for i = 1, #files do\n" +
+			"        local file = files[i]\n" +
+			"        local path = dir .. \"/\" .. file\n" +
+			"        local prefix = string.rep(\"  \", indent)\n" +
+			"        if fs.isDir(path) then\n" +
+			"            print(prefix .. file .. \"/\")\n" +
+			"            listRecursive(path, indent + 1)\n" +
+			"        else\n" +
+			"            print(prefix .. file)\n" +
+			"        end\n" +
+			"    end\n" +
+			"end\n" +
+			"\n" +
+			"local dir = args[1] or \"/\"\n" +
+			"print(\"Listing: \" .. dir)\n" +
+			"listRecursive(dir)\n";
+		
+		if(!exists("/bin/listall.lua")) {
+			write("/bin/listall.lua", listScript);
 		}
 		
 		// Create a README file
@@ -152,9 +211,16 @@ public class FileSystem extends LuaMadeUserdata {
 			"    - console: Console API for printing\n" +
 			"    - fs: File system API\n" +
 			"    - term: Terminal API\n" +
+			"    - net: Network API\n" +
 			"    - args: Table of command-line arguments\n" +
 			"\n" +
-			"Example scripts are located in /bin/\n";
+			"Example scripts are located in /bin/:\n" +
+			"  - hello.lua: Simple hello world\n" +
+			"  - shell.lua: Shell information\n" +
+			"  - chat.lua: Send messages to other computers\n" +
+			"  - listall.lua: Recursively list all files\n" +
+			"\n" +
+			"Try: run /bin/hello.lua YourName\n";
 		
 		if(!exists("/home/README.txt")) {
 			write("/home/README.txt", readme);
