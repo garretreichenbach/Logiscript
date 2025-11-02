@@ -33,7 +33,7 @@ public class GlossaryManager {
 				"console.md",
 				"usage.md",
 				"enhancements.md",
-				"comparison.md",4
+				"comparison.md",
 				"development.md"
 		};
 		for(String file : docFiles) {

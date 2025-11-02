@@ -26,6 +26,7 @@ public class FileSystem extends LuaMadeUserdata {
 	private static final File computerStorage = new File(DataUtils.getWorldDataPath(), "computers");
 	private VirtualFile rootDirectory;
 	private VirtualFile currentDirectory;
+	private String computerUUID;
 
 	public static FileSystem initNewFileSystem(ComputerModule module) {
 		if(!computerStorage.exists()) {
@@ -35,6 +36,7 @@ public class FileSystem extends LuaMadeUserdata {
 	}
 
 	public FileSystem(ComputerModule module) {
+		this.computerUUID = module.getUUID();
 		readFilesFromDisk(module);
 		// Initialize with some basic Unix directories
 		initializeDefaultDirectories();
@@ -541,5 +543,49 @@ public class FileSystem extends LuaMadeUserdata {
 
 	public VirtualFile getRootDirectory() {
 		return rootDirectory;
+	}
+
+	/**
+	 * Saves the file system to disk by compressing it to a .smdat file.
+	 * This method should be called when the computer is going idle or shutting down.
+	 */
+	public void saveToDisk() {
+		File compressedFile = new File(computerStorage, "computer_" + computerUUID + "_fs.smdat");
+		File rootDir = rootDirectory.getInternalFile();
+		
+		try {
+			CompressionUtils.compressFS(rootDir, compressedFile);
+			LuaMade.getInstance().logInfo("Saved file system for computer " + computerUUID);
+		} catch(Exception exception) {
+			LuaMade.getInstance().logException("Error saving file system for computer " + computerUUID, exception);
+		}
+	}
+
+	/**
+	 * Cleans up the temporary uncompressed file system directory.
+	 * This should be called after saving to disk to free up space.
+	 */
+	public void cleanupTempFiles() {
+		File rootDir = rootDirectory.getInternalFile();
+		if(rootDir.exists()) {
+			deleteRecursive(rootDir);
+			LuaMade.getInstance().logInfo("Cleaned up temporary files for computer " + computerUUID);
+		}
+	}
+
+	/**
+	 * Recursively deletes a directory and all its contents.
+	 * @param file The file or directory to delete
+	 */
+	private void deleteRecursive(File file) {
+		if(file.isDirectory()) {
+			File[] children = file.listFiles();
+			if(children != null) {
+				for(File child : children) {
+					deleteRecursive(child);
+				}
+			}
+		}
+		file.delete();
 	}
 }
