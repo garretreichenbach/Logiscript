@@ -73,7 +73,7 @@ public class ComputerDialog extends PlayerInput {
 
 	@Override
 	public void onDeactivate() {
-		GameClient.getClientState().getGlobalGameControlManager().getIngameControlManager().getPlayerGameControlManager().getPlayerIntercationManager().suspend(false);
+		
 	}
 
 	public static class ComputerPanel extends GUIInputDialogPanel {
