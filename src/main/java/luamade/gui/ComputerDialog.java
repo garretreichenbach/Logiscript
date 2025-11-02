@@ -84,6 +84,8 @@ public class ComputerDialog extends PlayerInput {
 		private GUIScrollablePanel consolePanel;
 		private GUIActivatableTextBar consolePane;
 		private String currentInputLine = "";
+		private String lastModuleContent = "";
+		private boolean userIsTyping = false;
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
 			super(inputState, "COMPUTER_PANEL", "", "", 850, 650, guiCallback);
@@ -99,6 +101,8 @@ public class ComputerDialog extends PlayerInput {
 			if(computerModule != null && computerModule.getTerminal() != null) {
 				computerModule.getTerminal().handleInput(currentInputLine);
 				currentInputLine = "";
+				// After executing a command, allow the terminal output to be displayed
+				userIsTyping = false;
 			}
 		}
 
@@ -158,14 +162,22 @@ public class ComputerDialog extends PlayerInput {
 								currentInputLine = "";
 							}
 						}
+						// Mark that user is actively typing
+						userIsTyping = true;
 					}
 					return input;
 				}
 			}) {
 				@Override
 				public void draw() {
-					if(computerModule != null && !Objects.equals(computerModule.getLastTextContent(), getText())) {
-						setText(computerModule.getLastTextContent());
+					// Only update text from module when user is not typing and module content has changed
+					// This prevents user input from being overwritten while typing
+					if(computerModule != null && !userIsTyping) {
+						String moduleContent = computerModule.getLastTextContent();
+						if(!Objects.equals(lastModuleContent, moduleContent)) {
+							setText(moduleContent);
+							lastModuleContent = moduleContent;
+						}
 					}
 					super.draw();
 				}
