@@ -73,7 +73,10 @@ public class ComputerDialog extends PlayerInput {
 
 	@Override
 	public void onDeactivate() {
-		
+		// Save current input when closing the dialog
+		if(computerPanel != null) {
+			computerPanel.saveCurrentInput();
+		}
 	}
 
 	public static class ComputerPanel extends GUIInputDialogPanel {
@@ -85,7 +88,9 @@ public class ComputerDialog extends PlayerInput {
 		private GUIActivatableTextBar consolePane;
 		private String currentInputLine = "";
 		private String lastModuleContent = "";
-		private boolean userIsTyping;
+		private boolean userIsTyping = false;
+		private int promptStartPosition = -1;
+		private String lastSavedInput = "";
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
 			super(inputState, "COMPUTER_PANEL", "", "", 850, 650, guiCallback);
@@ -95,14 +100,36 @@ public class ComputerDialog extends PlayerInput {
 		}
 
 		/**
+		 * Saves the current input line to the computer module for persistence
+		 */
+		public void saveCurrentInput() {
+			if(computerModule != null) {
+				computerModule.setSavedTerminalInput(currentInputLine);
+			}
+		}
+
+		/**
 		 * Executes the current input line as a terminal command
 		 */
 		private void executeCurrentInput() {
 			if(computerModule != null && computerModule.getTerminal() != null) {
-				computerModule.getTerminal().handleInput(currentInputLine);
+				// Save the input before clearing it
+				String inputToExecute = currentInputLine;
 				currentInputLine = "";
-				// Reset typing flag to allow module content to sync back to the text field
+				
+				// Execute the command
+				computerModule.getTerminal().handleInput(inputToExecute);
+				
+				// Save empty input since command is executed
+				computerModule.setSavedTerminalInput("");
+				
+				// Reset typing flag and force UI update to show command output
 				userIsTyping = false;
+				
+				// Update the display immediately with the new terminal content
+				String newContent = computerModule.getLastTextContent();
+				consolePane.setText(newContent);
+				lastModuleContent = newContent;
 			}
 		}
 
@@ -149,20 +176,52 @@ public class ComputerDialog extends PlayerInput {
 				public String onInputChanged(String input) {
 					// The input parameter contains the new text content
 					// We need to extract just the current line being typed
-					// For now, let's assume the user types at the end
 					if(input != null) {
 						String[] lines = input.split("\n");
 						if(lines.length > 0) {
 							String lastLine = lines[lines.length - 1];
 							// Extract input after prompt (format: "path $ ")
 							int promptIndex = lastLine.indexOf(PROMPT_MARKER);
-							if(promptIndex != -1 && lastLine.length() > promptIndex + PROMPT_MARKER.length()) {
-								currentInputLine = lastLine.substring(promptIndex + PROMPT_MARKER.length());
-								// Mark that user is actively typing only when there's actual input
-								userIsTyping = true;
+							if(promptIndex != -1) {
+								// Calculate the absolute position of the prompt in the full text
+								int lineStartPos = 0;
+								for(int i = 0; i < lines.length - 1; i++) {
+									lineStartPos += lines[i].length() + 1; // +1 for newline
+								}
+								promptStartPosition = lineStartPos + promptIndex + PROMPT_MARKER.length();
+								
+								if(lastLine.length() > promptIndex + PROMPT_MARKER.length()) {
+									currentInputLine = lastLine.substring(promptIndex + PROMPT_MARKER.length());
+									// Mark that user is actively typing only when there's actual input
+									userIsTyping = true;
+								} else {
+									currentInputLine = "";
+									// No user input, allow syncing from module
+									userIsTyping = false;
+								}
 							} else {
+								// Prompt was deleted or modified - restore the last valid content
+								// This prevents users from deleting the prompt
+								if(lastModuleContent != null && !lastModuleContent.isEmpty()) {
+									// Restore the text to the last valid module content with the saved input
+									String restoredText = lastModuleContent;
+									if(!currentInputLine.isEmpty()) {
+										restoredText = lastModuleContent + currentInputLine;
+									}
+									// Schedule text restoration on next frame to avoid recursion
+									final String textToRestore = restoredText;
+									consolePane.getState().getController().queueUIAudio("0022_menu_back");
+									new Thread(() -> {
+										try {
+											Thread.sleep(10);
+											consolePane.setText(textToRestore);
+										} catch(InterruptedException e) {
+											e.printStackTrace();
+										}
+									}).start();
+									return input; // Return current input for now, will be fixed on next frame
+								}
 								currentInputLine = "";
-								// No user input, allow syncing from module
 								userIsTyping = false;
 							}
 						}
@@ -172,6 +231,12 @@ public class ComputerDialog extends PlayerInput {
 			}) {
 				@Override
 				public void draw() {
+					// Save current input line to module for persistence (only when it changes)
+					if(computerModule != null && !currentInputLine.equals(lastSavedInput)) {
+						computerModule.setSavedTerminalInput(currentInputLine);
+						lastSavedInput = currentInputLine;
+					}
+					
 					// Only update text from module when user is not typing and module content has changed
 					// This prevents user input from being overwritten while typing
 					if(computerModule != null && !userIsTyping) {
@@ -202,8 +267,17 @@ public class ComputerDialog extends PlayerInput {
 			contentPane.getContent(0).attach(consolePane);
 			consolePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL | GUIScrollablePanel.SCROLLABLE_HORIZONTAL);
 			String initialContent = computerModule.getLastTextContent();
+			
+			// Restore saved terminal input if available
+			String savedInput = computerModule.getSavedTerminalInput();
+			if(savedInput != null && !savedInput.isEmpty()) {
+				initialContent = initialContent + savedInput;
+				currentInputLine = savedInput;
+				userIsTyping = true;
+			}
+			
 			consolePane.setText(initialContent);
-			lastModuleContent = initialContent;
+			lastModuleContent = computerModule.getLastTextContent();
 		}
 	}
 }

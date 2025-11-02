@@ -24,6 +24,7 @@ public class ComputerModule {
 	private ComputerMode lastMode = ComputerMode.OFF;
 	private long lastTouched;
 	private String lastOpenFile = "";
+	private String savedTerminalInput = "";
 	public ComputerModule(SegmentPiece segmentPiece, String uuid) {
 		this.uuid = uuid;
 		this.segmentPiece = segmentPiece;
@@ -114,6 +115,14 @@ public class ComputerModule {
 
 	public NetworkInterface getNetworkInterface() {
 		return networkInterface;
+	}
+
+	public String getSavedTerminalInput() {
+		return savedTerminalInput;
+	}
+
+	public void setSavedTerminalInput(String input) {
+		this.savedTerminalInput = input;
 	}
 
 	/**
