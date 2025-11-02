@@ -108,6 +108,10 @@ public class Console extends LuaMadeUserdata {
 							Varargs vargs = (Varargs) objects[1];
 							StringBuilder string = new StringBuilder();
 							for(int i = 1; i <= vargs.narg() && i <= 16; ++i) string.append(vargs.arg(i).toString()).append("\n");
+							
+							// Append to textContents for GUI display
+							textContents.append(string);
+							
 							sendOutput(string.toString());
 							if(display) {
 								Transform transform = new Transform();

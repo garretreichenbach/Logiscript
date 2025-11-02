@@ -78,15 +78,28 @@ public class ComputerDialog extends PlayerInput {
 
 	public static class ComputerPanel extends GUIInputDialogPanel {
 
+		private static final String PROMPT_MARKER = " $ ";
+		
 		private ComputerModule computerModule;
 		private GUIScrollablePanel consolePanel;
 		private GUIActivatableTextBar consolePane;
+		private String currentInputLine = "";
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
 			super(inputState, "COMPUTER_PANEL", "", "", 850, 650, guiCallback);
 			this.computerModule = computerModule;
 			setCancelButton(false);
 			setOkButton(false);
+		}
+		
+		/**
+		 * Executes the current input line as a terminal command
+		 */
+		private void executeCurrentInput() {
+			if(computerModule != null && computerModule.getTerminal() != null) {
+				computerModule.getTerminal().handleInput(currentInputLine);
+				currentInputLine = "";
+			}
 		}
 
 		@Override
@@ -116,17 +129,37 @@ public class ComputerDialog extends PlayerInput {
 				}
 
 				@Override
-				public void onTextEnter(String s, boolean b, boolean b1) {
-				}
+				public void onTextEnter(String input, boolean b, boolean b1) {
+					// This is called when Enter is pressed
+					// Send the current input line to the terminal
+					executeCurrentInput();
+        }
 
 				@Override
 				public void newLine() {
-
+					// Called when a new line is created
+					executeCurrentInput();
 				}
 			}, new OnInputChangedCallback() {
 				@Override
-				public String onInputChanged(String s) {
-					return s;
+				public String onInputChanged(String input) {
+					// The input parameter contains the new text content
+					// We need to extract just the current line being typed
+					// For now, let's assume the user types at the end
+					if(input != null) {
+						String[] lines = input.split("\n");
+						if(lines.length > 0) {
+							String lastLine = lines[lines.length - 1];
+							// Extract input after prompt (format: "path $ ")
+							int promptIndex = lastLine.indexOf(PROMPT_MARKER);
+							if(promptIndex != -1 && lastLine.length() > promptIndex + PROMPT_MARKER.length()) {
+								currentInputLine = lastLine.substring(promptIndex + PROMPT_MARKER.length());
+							} else {
+								currentInputLine = "";
+							}
+						}
+					}
+					return input;
 				}
 			}) {
 				@Override
@@ -147,7 +180,8 @@ public class ComputerDialog extends PlayerInput {
 
 				@Override
 				public void onEnter() {
-
+					// Also handle Enter key press here
+					executeCurrentInput();
 				}
 			};
 			consolePane.onInit();
