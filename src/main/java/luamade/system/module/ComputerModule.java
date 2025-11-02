@@ -1,6 +1,5 @@
 package luamade.system.module;
 
-import luamade.gui.ComputerDialog;
 import luamade.lua.Console;
 import luamade.lua.fs.FileSystem;
 import luamade.lua.networking.NetworkInterface;
@@ -67,16 +66,6 @@ public class ComputerModule {
 				return fileSystem.getFile(lastOpenFile).getTextContents();
 		}
 		return "";
-	}
-
-	public void openGUI(SegmentPiece segmentPiece) {
-		try {
-			ComputerDialog dialog = new ComputerDialog(this);
-			dialog.getInputPanel().onInit();
-			dialog.activate();
-		} catch(Exception exception) {
-			exception.printStackTrace();
-		}
 	}
 
 	public void resumeFromLastMode() {
