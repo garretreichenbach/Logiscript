@@ -24,9 +24,7 @@ public class CompressionUtils {
 	private static ByteBuffer readBuffer = ByteBuffer.allocate(FileSystem.MAX_FS_SIZE);
 	private static ByteBuffer writeBuffer = ByteBuffer.allocate(FileSystem.MAX_FS_SIZE);
 
-
 	public static void decompressFS(File source, File destination) throws Exception {
-
 
 	}
 

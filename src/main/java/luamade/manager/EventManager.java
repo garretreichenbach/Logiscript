@@ -13,11 +13,6 @@ import luamade.system.module.ComputerModuleOld;
 import luamade.utils.SegmentPieceUtils;
 import org.schema.game.common.data.SegmentPiece;
 
-/**
- * [Description]
- *
- * @author TheDerpGamer (MrGoose#0027)
- */
 public class EventManager {
 
 	public static void initialize(LuaMade instance) {

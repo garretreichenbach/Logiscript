@@ -5,15 +5,10 @@ import api.config.BlockConfig;
 import api.listener.events.controller.ClientInitializeEvent;
 import api.mod.StarLoader;
 import api.mod.StarMod;
-import api.network.packets.PacketUtil;
 import luamade.commands.SetMailboxPasswordCommand;
 import luamade.element.ElementManager;
 import luamade.element.block.ComputerBlock;
 import luamade.manager.*;
-import luamade.network.client.RunScriptPacket;
-import luamade.network.client.SaveScriptPacket;
-import luamade.network.client.SetAutoRunPacket;
-import luamade.network.client.TerminateScriptPacket;
 import org.schema.schine.resource.ResourceLoader;
 
 public class LuaMade extends StarMod {
@@ -38,7 +33,6 @@ public class LuaMade extends StarMod {
 		ConfigManager.initialize(this);
 		EventManager.initialize(this);
 		LuaManager.initialize(this);
-		registerPackets();
 		registerCommands();
 	}
 
@@ -88,13 +82,6 @@ public class LuaMade extends StarMod {
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
-	}
-
-	private void registerPackets() {
-		PacketUtil.registerPacket(RunScriptPacket.class);
-		PacketUtil.registerPacket(SaveScriptPacket.class);
-		PacketUtil.registerPacket(TerminateScriptPacket.class);
-		PacketUtil.registerPacket(SetAutoRunPacket.class);
 	}
 
 	private void registerCommands() {

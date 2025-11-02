@@ -10,11 +10,6 @@ import org.schema.game.common.data.element.ElementKeyMap;
 import java.util.ArrayList;
 import java.util.Locale;
 
-/**
- * [Description]
- *
- * @author TheDerpGamer (TheDerpGamer#0027)
- */
 public class SegmentPieceUtils {
 
 	public static ArrayList<SegmentPiece> getControlledPiecesMatching(SegmentPiece segmentPiece, short type) {
