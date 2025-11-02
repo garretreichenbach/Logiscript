@@ -92,7 +92,9 @@ public class ComputerDialog extends PlayerInput {
 		@Override
 		public void onInit() {
 			super.onInit();
-			if(computerModule == null) return;
+			if(computerModule == null) {
+				return;
+			}
 			GUIContentPane contentPane = ((GUIDialogWindow) background).getMainContentPane();
 			contentPane.setTextBoxHeightLast(500);
 
@@ -115,7 +117,6 @@ public class ComputerDialog extends PlayerInput {
 
 				@Override
 				public void onTextEnter(String s, boolean b, boolean b1) {
-
 				}
 
 				@Override
@@ -128,18 +129,10 @@ public class ComputerDialog extends PlayerInput {
 					return s;
 				}
 			}) {
-				public String getLastTextContent() {
-					return consolePane.getText();
-				}
-
-				public void setTextContent(String text) {
-					consolePane.setText(text);
-				}
-
 				@Override
 				public void draw() {
-					if(computerModule != null && !Objects.equals(computerModule.getLastTextContent(), getLastTextContent())) {
-						setTextContent(computerModule.getLastTextContent());
+					if(computerModule != null && !Objects.equals(computerModule.getLastTextContent(), getText())) {
+						setText(computerModule.getLastTextContent());
 					}
 					super.draw();
 				}
@@ -160,6 +153,7 @@ public class ComputerDialog extends PlayerInput {
 			consolePane.onInit();
 			contentPane.getContent(0).attach(consolePane);
 			consolePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL | GUIScrollablePanel.SCROLLABLE_HORIZONTAL);
+			consolePane.setText(computerModule.getLastTextContent());
 		}
 	}
 }
