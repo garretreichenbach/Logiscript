@@ -23,6 +23,7 @@ public class ComputerModule {
 		FILE_EDIT
 	}
 
+	private final SegmentPiece segmentPiece;
 	private final String uuid;
 	private final Console console;
 	private final FileSystem fileSystem;
@@ -32,13 +33,18 @@ public class ComputerModule {
 	private long lastTouched;
 	private String lastOpenFile = "";
 
-	public ComputerModule(String uuid) {
+	public ComputerModule(SegmentPiece segmentPiece, String uuid) {
 		this.uuid = uuid;
+		this.segmentPiece = segmentPiece;
 		lastTouched = System.currentTimeMillis();
 		console = new Console(this);
 		fileSystem = FileSystem.initNewFileSystem(this);
 		networkInterface = new NetworkInterface(this);
 		terminal = new Terminal(this, console, fileSystem);
+	}
+
+	public SegmentPiece getSegmentPiece() {
+		return segmentPiece;
 	}
 
 	public static String generateComputerUUID(long absIndex) {

@@ -21,7 +21,7 @@ dependencies {
     implementation 'org.lz4:lz4-java:1.8.0'
     implementation(files(starmadeDirectory + "StarMade.jar"))
     implementation(fileTree(dir: (starmadeDirectory + "lib"), include: "*.jar"))
-    implementation(fileTree(dir: 'libs', include: '*.jar'))
+    implementation(fileTree(dir: 'lib', include: '*.jar'))
 }
 
 compileJava.options.encoding = 'UTF-8'

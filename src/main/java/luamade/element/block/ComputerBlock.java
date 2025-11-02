@@ -82,7 +82,7 @@ public class ComputerBlock extends Block implements ActivationInterface {
 		}
 		ModManagerContainerModule module = managerContainer.getModMCModule(segmentPiece.getType());
 		if(module instanceof ComputerModuleContainer) {
-			return ((ComputerModuleContainer) module).getComputerData(segmentPiece.getAbsoluteIndex());
+			return ((ComputerModuleContainer) module).getComputerData(segmentPiece);
 		} else {
 			throw new IllegalStateException("ManagerContainer is not a ComputerModuleContainer!");
 		}

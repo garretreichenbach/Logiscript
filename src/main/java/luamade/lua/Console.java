@@ -4,7 +4,6 @@ import com.bulletphysics.linearmath.Transform;
 import luamade.lua.element.block.Block;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
-import luamade.manager.LuaManager;
 import luamade.system.module.ComputerModule;
 import org.luaj.vm2.Varargs;
 import org.schema.game.client.view.effects.RaisingIndication;
@@ -70,43 +69,15 @@ public class Console extends LuaMadeUserdata {
 		printQueue.add(new Object[] {new Double[] {1.0, 0.3, 0.3, 1.0}, true, vargs});
 	}
 
-	@LuaMadeCallable
-	public Channel getChannel(String name) {
-		return LuaManager.getChannel(name);
-	}
-
-	@LuaMadeCallable
-	public Channel createChannel(String name, String password) {
-		return LuaManager.createChannel(name, password);
-	}
-
-	@LuaMadeCallable
-	public void sendMail(String sender, String playerName, String subject, String message, String password) {
-		LuaManager.sendMail(sender, playerName, subject, message, password);
-	}
-
-	@LuaMadeCallable
-	public void setVar(String name, Object value) {
-		LuaManager.setVariable(this, name, value);
-	}
-
-	@LuaMadeCallable
-	public Object getVar(String name) {
-		return LuaManager.getVariable(this, name);
-	}
-
 	public SegmentPiece getSegmentPiece() {
 		return module.getSegmentPiece();
 	}
 
 	public void sendOutput(String string) {
 		try {
-			if(segmentPiece.getSegmentController() instanceof ManagedSegmentController) {
-				ManagedSegmentController<?> managedSegmentController = (ManagedSegmentController<?>) segmentPiece.getSegmentController();
-//				ComputerModule module = (ComputerModule) managedSegmentController.getManagerContainer().getModMCModule(ElementManager.getBlock("Computer").getId());
-//				module.getData(segmentPiece).lastOutput += string;
-//				module.flagUpdatedData();
-				//Todo
+			if(getSegmentPiece().getSegmentController() instanceof ManagedSegmentController) {
+				ManagedSegmentController<?> managedSegmentController = (ManagedSegmentController<?>) getSegmentPiece().getSegmentController();
+				//Todo: output to computer log or something
 			}
 		} catch(Exception exception) {
 			exception.printStackTrace();
@@ -140,7 +111,7 @@ public class Console extends LuaMadeUserdata {
 							sendOutput(string.toString());
 							if(display) {
 								Transform transform = new Transform();
-								segmentPiece.getTransform(transform);
+								getSegmentPiece().getTransform(transform);
 								RaisingIndication raisingIndication = new RaisingIndication(transform, string.toString(), color[0].floatValue(), color[1].floatValue(), color[2].floatValue(), color[3].floatValue());
 								raisingIndication.speed = 0.1f;
 								raisingIndication.lifetime = 15.0f;
