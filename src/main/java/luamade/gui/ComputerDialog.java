@@ -84,6 +84,8 @@ public class ComputerDialog extends PlayerInput {
 		private GUIScrollablePanel consolePanel;
 		private GUIActivatableTextBar consolePane;
 		private String currentInputLine = "";
+		private String lastModuleContent = "";
+		private boolean userIsTyping = false;
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
 			super(inputState, "COMPUTER_PANEL", "", "", 850, 650, guiCallback);
@@ -99,6 +101,8 @@ public class ComputerDialog extends PlayerInput {
 			if(computerModule != null && computerModule.getTerminal() != null) {
 				computerModule.getTerminal().handleInput(currentInputLine);
 				currentInputLine = "";
+				// Reset typing flag to allow module content to sync back to the text field
+				userIsTyping = false;
 			}
 		}
 
@@ -154,8 +158,12 @@ public class ComputerDialog extends PlayerInput {
 							int promptIndex = lastLine.indexOf(PROMPT_MARKER);
 							if(promptIndex != -1 && lastLine.length() > promptIndex + PROMPT_MARKER.length()) {
 								currentInputLine = lastLine.substring(promptIndex + PROMPT_MARKER.length());
+								// Mark that user is actively typing only when there's actual input
+								userIsTyping = true;
 							} else {
 								currentInputLine = "";
+								// No user input, allow syncing from module
+								userIsTyping = false;
 							}
 						}
 					}
@@ -164,8 +172,14 @@ public class ComputerDialog extends PlayerInput {
 			}) {
 				@Override
 				public void draw() {
-					if(computerModule != null && !Objects.equals(computerModule.getLastTextContent(), getText())) {
-						setText(computerModule.getLastTextContent());
+					// Only update text from module when user is not typing and module content has changed
+					// This prevents user input from being overwritten while typing
+					if(computerModule != null && !userIsTyping) {
+						String moduleContent = computerModule.getLastTextContent();
+						if(!Objects.equals(lastModuleContent, moduleContent)) {
+							setText(moduleContent);
+							lastModuleContent = moduleContent;
+						}
 					}
 					super.draw();
 				}
@@ -187,7 +201,9 @@ public class ComputerDialog extends PlayerInput {
 			consolePane.onInit();
 			contentPane.getContent(0).attach(consolePane);
 			consolePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL | GUIScrollablePanel.SCROLLABLE_HORIZONTAL);
-			consolePane.setText(computerModule.getLastTextContent());
+			String initialContent = computerModule.getLastTextContent();
+			consolePane.setText(initialContent);
+			lastModuleContent = initialContent;
 		}
 	}
 }
