@@ -21,8 +21,9 @@ import java.util.Objects;
 public class CompressionUtils {
 
 	private static final byte END_OF_STREAM = -1;
-	private static final byte DIRECTORY = -2;
-	private static final byte FILE = -3;
+	private static final byte END_DIRECTORY = -2;
+	private static final byte DIRECTORY = -3;
+	private static final byte FILE = -4;
 
 	private static ByteBuffer readBuffer = ByteBuffer.allocate(FileSystem.MAX_FS_SIZE);
 	private static ByteBuffer writeBuffer = ByteBuffer.allocate(FileSystem.MAX_FS_SIZE);
@@ -46,17 +47,19 @@ public class CompressionUtils {
 		fis.read(compressedData);
 		fis.close();
 
-		// Decompress the data
-		readBuffer.clear();
-		writeBuffer.clear();
-		readBuffer.put(compressedData);
-		readBuffer.flip();
+		// Read the uncompressed size from the first 4 bytes
+		ByteBuffer sizeBuffer = ByteBuffer.wrap(compressedData, 0, 4);
+		int uncompressedSize = sizeBuffer.getInt();
 
+		// Decompress the data
 		LZ4FastDecompressor decompressor = LZ4Factory.fastestInstance().fastDecompressor();
-		decompressor.decompress(readBuffer, writeBuffer);
-		writeBuffer.flip();
+		byte[] decompressedData = new byte[uncompressedSize];
+		decompressor.decompress(compressedData, 4, decompressedData, 0, uncompressedSize);
 
 		// Read the decompressed data and recreate the file system
+		writeBuffer.clear();
+		writeBuffer.put(decompressedData);
+		writeBuffer.flip();
 		readFromBufferRecursive(destination, writeBuffer);
 	}
 
@@ -74,17 +77,26 @@ public class CompressionUtils {
 		
 		// Get the uncompressed data size
 		int uncompressedSize = writeBuffer.position();
+		byte[] uncompressedData = new byte[uncompressedSize];
 		writeBuffer.flip();
+		writeBuffer.get(uncompressedData);
 
 		//Now compress the data
-		readBuffer.clear();
 		LZ4Compressor compressor = LZ4Factory.fastestInstance().fastCompressor();
-		int compressedSize = compressor.compress(writeBuffer, readBuffer);
+		int maxCompressedLength = compressor.maxCompressedLength(uncompressedSize);
+		byte[] compressedData = new byte[maxCompressedLength];
+		int compressedSize = compressor.compress(uncompressedData, 0, uncompressedSize, compressedData, 0);
 
-		// Write compressed data to file
+		// Write compressed data to file (with uncompressed size prepended)
 		destination.getParentFile().mkdirs();
 		FileOutputStream fos = new FileOutputStream(destination);
-		fos.write(readBuffer.array(), 0, compressedSize);
+		// Write uncompressed size first (4 bytes)
+		fos.write((uncompressedSize >> 24) & 0xFF);
+		fos.write((uncompressedSize >> 16) & 0xFF);
+		fos.write((uncompressedSize >> 8) & 0xFF);
+		fos.write(uncompressedSize & 0xFF);
+		// Write compressed data
+		fos.write(compressedData, 0, compressedSize);
 		fos.close();
 	}
 
@@ -102,6 +114,7 @@ public class CompressionUtils {
 						writeBuffer.put(DIRECTORY);
 						writeString(child.getName());
 						writeToBufferRecursive(child);
+						writeBuffer.put(END_DIRECTORY);
 					} else {
 						//Write the file marker and name
 						writeBuffer.put(FILE);
@@ -132,7 +145,7 @@ public class CompressionUtils {
 		while(buffer.hasRemaining()) {
 			byte marker = buffer.get();
 			
-			if(marker == END_OF_STREAM) {
+			if(marker == END_OF_STREAM || marker == END_DIRECTORY) {
 				break;
 			} else if(marker == DIRECTORY) {
 				String name = readString(buffer);
@@ -149,8 +162,8 @@ public class CompressionUtils {
 				fos.write(data);
 				fos.close();
 			} else {
-				// Unknown marker, could be end of directory
-				buffer.position(buffer.position() - 1);
+				// Unknown marker
+				LuaMade.getInstance().logWarning("Unknown marker in compressed file system: " + marker);
 				break;
 			}
 		}
