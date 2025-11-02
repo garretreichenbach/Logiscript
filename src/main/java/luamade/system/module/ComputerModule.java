@@ -3,6 +3,7 @@ package luamade.system.module;
 import luamade.gui.ComputerDialog;
 import luamade.lua.Console;
 import luamade.lua.fs.FileSystem;
+import luamade.lua.networking.NetworkInterface;
 import luamade.lua.terminal.Terminal;
 import org.schema.game.common.data.SegmentPiece;
 
@@ -25,17 +26,19 @@ public class ComputerModule {
 	private final byte VERSION = 1;
 	private final String uuid;
 	private final Console console;
+	private final FileSystem fileSystem;
+	private final Terminal terminal;
+	private final NetworkInterface networkInterface;
 	private ComputerMode lastMode = ComputerMode.IDLE;
 	private long lastTouched;
 	private String lastOpenFile = "";
-	private final Terminal terminal;
-	private final FileSystem fileSystem;
 
 	public ComputerModule(String uuid) {
 		this.uuid = uuid;
 		lastTouched = System.currentTimeMillis();
 		console = new Console(this);
 		fileSystem = FileSystem.initNewFileSystem(this);
+		networkInterface = new NetworkInterface(this);
 		terminal = new Terminal(this, console, fileSystem);
 	}
 
@@ -111,5 +114,21 @@ public class ComputerModule {
 
 	public void setTouched() {
 		lastTouched = System.currentTimeMillis();
+	}
+
+	public Console getConsole() {
+		return console;
+	}
+
+	public FileSystem getFileSystem() {
+		return fileSystem;
+	}
+
+	public Terminal getTerminal() {
+		return terminal;
+	}
+
+	public NetworkInterface getNetworkInterface() {
+		return networkInterface;
 	}
 }

@@ -37,12 +37,8 @@ public class FileSystem extends LuaMadeUserdata {
 
 	public FileSystem(ComputerModule module) {
 		readFilesFromDisk(module);
-		// Initialize with some basic directories
-//		files.put("/", "directory");
-//		files.put("/home", "directory");
-//		files.put("/bin", "directory");
-//		files.put("/usr", "directory");
-//		files.put("/etc", "directory");
+		// Initialize with some basic Unix directories
+		initializeDefaultDirectories();
 	}
 
 	private void readFilesFromDisk(ComputerModule module) {
@@ -79,7 +75,90 @@ public class FileSystem extends LuaMadeUserdata {
 				throw new RuntimeException(exception);
 			}
 		}
+		this.rootDirectory = new VirtualFile(this, rootDirectory);
 		currentDirectory = this.rootDirectory;
+	}
+
+	/**
+	 * Initializes default Unix-like directory structure
+	 */
+	private void initializeDefaultDirectories() {
+		// Create standard Unix directories if they don't exist
+		String[] defaultDirs = {"/home", "/bin", "/usr", "/etc", "/tmp"};
+		for(String dir : defaultDirs) {
+			makeDir(dir);
+		}
+		
+		// Create default startup files
+		createDefaultFiles();
+	}
+
+	/**
+	 * Creates default files for a new file system
+	 */
+	private void createDefaultFiles() {
+		// Create a simple shell script as an example
+		String shellScript = 
+			"-- LuaMade Shell\n" +
+			"-- This is an example Lua script for the terminal\n" +
+			"\n" +
+			"print(\"Hello from shell.lua!\")\n" +
+			"print(\"You can create your own scripts in /bin or /home\")\n" +
+			"print(\"Available globals: console, fs, term, args\")\n";
+		
+		if(!exists("/bin/shell.lua")) {
+			write("/bin/shell.lua", shellScript);
+		}
+		
+		// Create a simple hello world example
+		String helloScript = 
+			"-- Hello World example\n" +
+			"print(\"Hello, World!\")\n" +
+			"if args[1] then\n" +
+			"    print(\"Hello, \" .. args[1] .. \"!\")\n" +
+			"end\n";
+		
+		if(!exists("/bin/hello.lua")) {
+			write("/bin/hello.lua", helloScript);
+		}
+		
+		// Create a README file
+		String readme = 
+			"LuaMade Unix-like Terminal\n" +
+			"==========================\n" +
+			"\n" +
+			"Welcome to your LuaMade computer!\n" +
+			"\n" +
+			"Available Commands:\n" +
+			"  ls [dir]         - List files\n" +
+			"  cd <dir>         - Change directory\n" +
+			"  pwd              - Print working directory\n" +
+			"  cat <file>       - Display file contents\n" +
+			"  mkdir <dir>      - Create directory\n" +
+			"  touch <file>     - Create empty file\n" +
+			"  rm <file>        - Delete file\n" +
+			"  cp <src> <dst>   - Copy file\n" +
+			"  mv <src> <dst>   - Move/rename file\n" +
+			"  edit <file> <text> - Write text to file\n" +
+			"  run <script> [args] - Run Lua script\n" +
+			"  echo <text>      - Print text\n" +
+			"  clear            - Clear terminal\n" +
+			"  help             - Show available commands\n" +
+			"  exit             - Exit terminal\n" +
+			"\n" +
+			"Lua Scripts:\n" +
+			"  You can write Lua scripts and run them from the terminal.\n" +
+			"  Scripts have access to:\n" +
+			"    - console: Console API for printing\n" +
+			"    - fs: File system API\n" +
+			"    - term: Terminal API\n" +
+			"    - args: Table of command-line arguments\n" +
+			"\n" +
+			"Example scripts are located in /bin/\n";
+		
+		if(!exists("/home/README.txt")) {
+			write("/home/README.txt", readme);
+		}
 	}
 
 	/**
@@ -92,32 +171,19 @@ public class FileSystem extends LuaMadeUserdata {
 		// Normalize path
 		path = normalizePath(path);
 
-		boolean includeDirectories = false;
-
-		// Check args
-		for(String arg : args) {
-			if(arg.equals("-d")) {
-				includeDirectories = true;
-				break;
-			}
+		// Get the virtual file for the path
+		VirtualFile dir = getFile(path);
+		if(dir == null || !dir.isDirectory()) {
+			return new ArrayList<>();
 		}
 
 		List<String> result = new ArrayList<>();
-		for(VirtualFile file : currentDirectory.listFiles())
-
-//		if(!files.containsKey(path) || !files.get(path).isDirectory()) return new ArrayList<>();
-//
-//		// Get all files in the directory
-//		List<String> result = new ArrayList<>();
-//		for(String file : files.keySet()) {
-//			if(file.startsWith(path) && !file.equals(path)) {
-//				String relativePath = file.substring(path.length());
-//				if(relativePath.startsWith("/")) relativePath = relativePath.substring(1);
-//
-//				// Only include files directly in this directory (not in subdirectories)
-//				if(!relativePath.contains("/")) result.add(relativePath);
-//			}
-//		}
+		VirtualFile[] files = dir.listFiles();
+		if(files != null) {
+			for(VirtualFile file : files) {
+				result.add(file.getName());
+			}
+		}
 
 		return result;
 	}
@@ -135,19 +201,14 @@ public class FileSystem extends LuaMadeUserdata {
 		path = normalizePath(path);
 
 		// Check if path already exists
-		if(files.containsKey(path)) {
+		VirtualFile existing = getFile(path);
+		if(existing != null) {
 			return false;
 		}
 
-		// Check if parent directory exists
-		String parentDir = getParentDirectory(path);
-		if(!files.containsKey(parentDir) || !files.get(parentDir).isDirectory()) {
-			return false;
-		}
-
-		// Create directory
-		VirtualFile dir = new VirtualFile(path);
-		return dir.mkdirs();
+		// Create the directory
+		VirtualFile dir = new VirtualFile(this, new File(rootDirectory.getInternalFile(), path.substring(1)));
+		return dir.getInternalFile().mkdirs();
 	}
 
 	/**
@@ -162,12 +223,13 @@ public class FileSystem extends LuaMadeUserdata {
 		// Normalize path
 		path = normalizePath(path);
 
-		// Check if file exists and is not a directory
-		if(!files.containsKey(path) || files.get(path).getName().equals("directory")) {
+		// Get the file
+		VirtualFile file = getFile(path);
+		if(file == null || file.isDirectory()) {
 			return null;
 		}
 
-		return files.get(path);
+		return readFile(file);
 	}
 
 	/**
@@ -182,15 +244,22 @@ public class FileSystem extends LuaMadeUserdata {
 		// Normalize path
 		path = normalizePath(path);
 
-		// Check if parent directory exists
-		String parentDir = getParentDirectory(path);
-		if(!files.containsKey(parentDir) || !files.get(parentDir).equals("directory")) {
+		try {
+			// Create the file
+			VirtualFile file = new VirtualFile(this, new File(rootDirectory.getInternalFile(), path.substring(1)));
+			
+			// Make sure parent directory exists
+			file.getInternalFile().getParentFile().mkdirs();
+			
+			// Write content to file
+			java.io.FileWriter writer = new java.io.FileWriter(file.getInternalFile());
+			writer.write(content);
+			writer.close();
+			return true;
+		} catch(Exception e) {
+			e.printStackTrace();
 			return false;
 		}
-
-		// Write to file
-		files.put(path, content);
-		return true;
 	}
 
 	/**
@@ -205,23 +274,22 @@ public class FileSystem extends LuaMadeUserdata {
 		// Normalize path
 		path = normalizePath(path);
 
-		// Check if file exists
-		if(!files.containsKey(path)) {
+		// Get the file
+		VirtualFile file = getFile(path);
+		if(file == null) {
 			return false;
 		}
 
 		// If it's a directory, check if it's empty
-		if(files.get(path).equals("directory")) {
-			for(String file : files.keySet()) {
-				if(file.startsWith(path + "/")) {
-					return false; // Directory not empty
-				}
+		if(file.isDirectory()) {
+			VirtualFile[] files = file.listFiles();
+			if(files != null && files.length > 0) {
+				return false; // Directory not empty
 			}
 		}
 
-		// Delete file
-		files.remove(path);
-		return true;
+		// Delete file or directory
+		return file.getInternalFile().delete();
 	}
 
 	/**
@@ -236,12 +304,13 @@ public class FileSystem extends LuaMadeUserdata {
 		// Normalize path
 		path = normalizePath(path);
 
-		// Check if directory exists
-		if(!files.containsKey(path) || !files.get(path).equals("directory")) {
+		// Get the directory
+		VirtualFile dir = getFile(path);
+		if(dir == null || !dir.isDirectory()) {
 			return false;
 		}
 
-		currentDirectory = path;
+		currentDirectory = dir;
 		return true;
 	}
 
@@ -250,7 +319,8 @@ public class FileSystem extends LuaMadeUserdata {
 	 */
 	@LuaMadeCallable
 	public String getCurrentDir() {
-		return currentDirectory;
+		String path = currentDirectory.getPath();
+		return path.isEmpty() ? "/" : "/" + path;
 	}
 
 	/**
@@ -265,7 +335,8 @@ public class FileSystem extends LuaMadeUserdata {
 		// Normalize path
 		path = normalizePath(path);
 
-		return files.containsKey(path);
+		VirtualFile file = getFile(path);
+		return file != null && file.getInternalFile().exists();
 	}
 
 	/**
@@ -280,7 +351,8 @@ public class FileSystem extends LuaMadeUserdata {
 		// Normalize path
 		path = normalizePath(path);
 
-		return files.containsKey(path) && files.get(path).equals("directory");
+		VirtualFile file = getFile(path);
+		return file != null && file.isDirectory();
 	}
 
 	/**
@@ -301,7 +373,12 @@ public class FileSystem extends LuaMadeUserdata {
 	public String normalizePath(String path) {
 		// If path is relative, prepend current directory
 		if(!path.startsWith("/")) {
-			path = currentDirectory + (currentDirectory.getPath().endsWith("/") ? "" : "/") + path;
+			String currentPath = currentDirectory.getPath();
+			if(currentPath.isEmpty()) {
+				path = "/" + path;
+			} else {
+				path = "/" + currentPath + "/" + path;
+			}
 		}
 
 		// Split path into components
@@ -334,12 +411,62 @@ public class FileSystem extends LuaMadeUserdata {
 		return normalizedPath.toString();
 	}
 
+	/**
+	 * Gets a file by its path
+	 */
 	public VirtualFile getFile(String filePath) {
-
+		if(filePath == null || filePath.isEmpty()) {
+			return null;
+		}
+		
+		// Normalize the path
+		filePath = normalizePath(filePath);
+		
+		// Root directory
+		if(filePath.equals("/")) {
+			return rootDirectory;
+		}
+		
+		// Remove leading slash
+		if(filePath.startsWith("/")) {
+			filePath = filePath.substring(1);
+		}
+		
+		File internalFile = new File(rootDirectory.getInternalFile(), filePath);
+		if(!internalFile.exists()) {
+			return null;
+		}
+		
+		return new VirtualFile(this, internalFile);
 	}
 
+	/**
+	 * Reads the content of a virtual file
+	 */
 	public String readFile(VirtualFile virtualFile) {
-
+		if(virtualFile == null || virtualFile.isDirectory()) {
+			return null;
+		}
+		
+		try {
+			java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(virtualFile.getInternalFile()));
+			StringBuilder content = new StringBuilder();
+			String line;
+			while((line = reader.readLine()) != null) {
+				content.append(line).append("\n");
+			}
+			reader.close();
+			
+			// Remove trailing newline if present
+			if(content.length() > 0 && content.charAt(content.length() - 1) == '\n') {
+				content.setLength(content.length() - 1);
+			}
+			
+			return content.toString();
+		} catch(Exception e) {
+			e.printStackTrace();
+			return null;
+		}
 	}
 
 	public VirtualFile getRootDirectory() {
