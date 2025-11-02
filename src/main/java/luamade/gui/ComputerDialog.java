@@ -81,6 +81,7 @@ public class ComputerDialog extends PlayerInput {
 		private ComputerModule computerModule;
 		private GUIScrollablePanel consolePanel;
 		private GUIActivatableTextBar consolePane;
+		private String currentInputLine = "";
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
 			super(inputState, "COMPUTER_PANEL", "", "", 850, 650, guiCallback);
@@ -114,18 +115,41 @@ public class ComputerDialog extends PlayerInput {
 				}
 
 				@Override
-				public void onTextEnter(String s, boolean b, boolean b1) {
-
+				public void onTextEnter(String input, boolean b, boolean b1) {
+					// This is called when Enter is pressed
+					// Send the current input line to the terminal
+					if(computerModule != null && computerModule.getTerminal() != null) {
+						computerModule.getTerminal().handleInput(currentInputLine);
+						currentInputLine = "";
+					}
 				}
 
 				@Override
 				public void newLine() {
-
+					// Called when a new line is created
+					if(computerModule != null && computerModule.getTerminal() != null) {
+						computerModule.getTerminal().handleInput(currentInputLine);
+						currentInputLine = "";
+					}
 				}
 			}, new OnInputChangedCallback() {
 				@Override
-				public String onInputChanged(String s) {
-					return s;
+				public String onInputChanged(String input) {
+					// Track what the user is typing
+					// Extract the current line being edited
+					String currentText = consolePane.getText();
+					String[] lines = currentText.split("\n");
+					if(lines.length > 0) {
+						String lastLine = lines[lines.length - 1];
+						// Extract input after prompt (format: "path $ ")
+						int promptIndex = lastLine.indexOf(" $ ");
+						if(promptIndex != -1) {
+							currentInputLine = lastLine.substring(promptIndex + 3);
+						} else {
+							currentInputLine = lastLine;
+						}
+					}
+					return input;
 				}
 			}) {
 				public String getLastTextContent() {
@@ -154,7 +178,11 @@ public class ComputerDialog extends PlayerInput {
 
 				@Override
 				public void onEnter() {
-
+					// Also handle Enter key press here
+					if(computerModule != null && computerModule.getTerminal() != null) {
+						computerModule.getTerminal().handleInput(currentInputLine);
+						currentInputLine = "";
+					}
 				}
 			};
 			consolePane.onInit();
