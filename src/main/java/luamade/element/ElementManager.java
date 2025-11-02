@@ -11,12 +11,6 @@ import org.schema.game.common.data.element.ElementKeyMap;
 
 import java.util.ArrayList;
 
-/**
- * <Description>
- *
- * @author TheDerpGamer
- * @since 04/25/2021
- */
 public class ElementManager {
 
 	public enum FactoryType {

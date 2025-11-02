@@ -5,12 +5,6 @@ import luamade.LuaMade;
 import org.schema.game.common.data.element.ElementCategory;
 import org.schema.game.common.data.element.ElementInformation;
 
-/**
- * <Description>
- *
- * @author TheDerpGamer
- * @since 04/25/2021
- */
 public abstract class Block {
 
 	protected ElementInformation blockInfo;

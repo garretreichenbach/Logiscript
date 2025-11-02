@@ -7,12 +7,6 @@ import luamade.manager.ResourceManager;
 import org.schema.game.common.data.element.ElementCategory;
 import org.schema.game.common.data.element.ElementInformation;
 
-/**
- * <Description>
- *
- * @author TheDerpGamer
- * @since 04/26/2021
- */
 public abstract class Item {
 
 	protected ElementInformation itemInfo;
