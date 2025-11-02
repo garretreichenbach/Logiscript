@@ -7,11 +7,10 @@ import net.jpountz.lz4.LZ4Factory;
 import net.jpountz.lz4.LZ4FastDecompressor;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.Objects;
 
 /**
  * Utilities for compressing and decompressing file systems for computer data storage.
@@ -25,7 +24,6 @@ public class CompressionUtils {
 	private static final byte DIRECTORY = -3;
 	private static final byte FILE = -4;
 
-	private static ByteBuffer readBuffer = ByteBuffer.allocate(FileSystem.MAX_FS_SIZE);
 	private static ByteBuffer writeBuffer = ByteBuffer.allocate(FileSystem.MAX_FS_SIZE);
 
 	/**
@@ -171,7 +169,7 @@ public class CompressionUtils {
 	 * @param str The string to write
 	 */
 	private static void writeString(String str) {
-		byte[] bytes = str.getBytes();
+		byte[] bytes = str.getBytes(StandardCharsets.UTF_8);
 		writeBuffer.putInt(bytes.length);
 		writeBuffer.put(bytes);
 	}
@@ -185,6 +183,6 @@ public class CompressionUtils {
 		int length = buffer.getInt();
 		byte[] bytes = new byte[length];
 		buffer.get(bytes);
-		return new String(bytes);
+		return new String(bytes, StandardCharsets.UTF_8);
 	}
 }
