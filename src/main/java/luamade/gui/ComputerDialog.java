@@ -79,7 +79,7 @@ public class ComputerDialog extends PlayerInput {
 	public static class ComputerPanel extends GUIInputDialogPanel {
 
 		private static final String PROMPT_MARKER = " $ ";
-		
+
 		private ComputerModule computerModule;
 		private GUIScrollablePanel consolePanel;
 		private GUIActivatableTextBar consolePane;
@@ -91,7 +91,7 @@ public class ComputerDialog extends PlayerInput {
 			setCancelButton(false);
 			setOkButton(false);
 		}
-		
+
 		/**
 		 * Executes the current input line as a terminal command
 		 */
@@ -133,7 +133,7 @@ public class ComputerDialog extends PlayerInput {
 					// This is called when Enter is pressed
 					// Send the current input line to the terminal
 					executeCurrentInput();
-        }
+				}
 
 				@Override
 				public void newLine() {

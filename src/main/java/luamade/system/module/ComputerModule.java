@@ -14,13 +14,6 @@ import java.util.UUID;
  * <br/>This does not handle the actual computer logic, but rather the integration with StarMade's systems.
  */
 public class ComputerModule {
-	
-	public enum ComputerMode {
-		OFF,
-		IDLE,
-		TERMINAL,
-		FILE_EDIT
-	}
 
 	private final SegmentPiece segmentPiece;
 	private final String uuid;
@@ -28,10 +21,9 @@ public class ComputerModule {
 	private final FileSystem fileSystem;
 	private final NetworkInterface networkInterface;
 	private final Terminal terminal;
-	private ComputerMode lastMode = ComputerMode.IDLE;
+	private ComputerMode lastMode = ComputerMode.OFF;
 	private long lastTouched;
 	private String lastOpenFile = "";
-
 	public ComputerModule(SegmentPiece segmentPiece, String uuid) {
 		this.uuid = uuid;
 		this.segmentPiece = segmentPiece;
@@ -42,12 +34,12 @@ public class ComputerModule {
 		terminal = new Terminal(this, console, fileSystem);
 	}
 
-	public SegmentPiece getSegmentPiece() {
-		return segmentPiece;
-	}
-
 	public static String generateComputerUUID(long absIndex) {
 		return UUID.nameUUIDFromBytes((String.valueOf(absIndex)).getBytes(StandardCharsets.UTF_8)).toString();
+	}
+
+	public SegmentPiece getSegmentPiece() {
+		return segmentPiece;
 	}
 
 	public String getUUID() {
@@ -57,9 +49,7 @@ public class ComputerModule {
 	public String getLastTextContent() {
 		switch(lastMode) {
 			case OFF:
-				return "";
-			case IDLE:
-				return "";
+				return terminal.getTextContents();
 			case TERMINAL:
 				return terminal.getTextContents();
 			case FILE_EDIT:
@@ -71,7 +61,7 @@ public class ComputerModule {
 	public void resumeFromLastMode() {
 		switch(lastMode) {
 			case OFF:
-				// Do nothing
+				loadIntoTerminal();
 				break;
 			case TERMINAL:
 				// Resume terminal state
@@ -142,5 +132,11 @@ public class ComputerModule {
 	 */
 	public boolean shouldSave(long idleTimeMs) {
 		return (System.currentTimeMillis() - lastTouched) > idleTimeMs;
+	}
+
+	public enum ComputerMode {
+		OFF,
+		TERMINAL,
+		FILE_EDIT
 	}
 }
