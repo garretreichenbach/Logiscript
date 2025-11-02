@@ -7,13 +7,13 @@ import luamade.system.module.ComputerModule;
 import org.luaj.vm2.Varargs;
 import org.schema.game.common.data.SegmentPiece;
 
-import java.util.PriorityQueue;
+import java.util.LinkedList;
 import java.util.Queue;
 
 public class Console extends LuaMadeUserdata {
 
 	private final ComputerModule module;
-	private final Queue<Object[]> printQueue = new PriorityQueue<>();
+	private final Queue<Object[]> printQueue = new LinkedList<>();
 	private int VERTICAL = 0;
 	private int HORIZONTAL = 1;
 	private StringBuilder textContents = new StringBuilder();

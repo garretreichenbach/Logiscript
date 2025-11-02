@@ -71,8 +71,10 @@ public final class VirtualFile extends LuaMadeUserdata implements SerializationI
 			throw new IllegalStateException("FileSystem or rootDirectory is not initialized for VirtualFile: " + (internalFile != null ? internalFile.getAbsolutePath() : "null"));
 		}
 		String path = internalFile.getAbsolutePath();
-		String rootAbs = fileSystem.getRootDirectory().getAbsolutePath();
-		if(path.startsWith(rootAbs)) path = path.substring(rootAbs.length());
+		String rootPath = fileSystem.getRootDirectory().getInternalFile().getPath();
+		if(path.startsWith(rootPath)) {
+			path = path.substring(rootPath.length());
+		}
 		if(path.startsWith(File.separator)) path = path.substring(1);
 		return path;
 	}
