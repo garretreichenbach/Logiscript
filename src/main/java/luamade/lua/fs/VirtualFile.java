@@ -70,6 +70,11 @@ public final class VirtualFile extends LuaMadeUserdata implements SerializationI
 		return internalFile.isDirectory();
 	}
 
+	@LuaMadeCallable
+	public String getName() {
+		return internalFile.getName();
+	}
+
 	public String getTextContents() {
 		if(isDirectory()) return null;
 		else return fileSystem.readFile(this);

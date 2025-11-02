@@ -93,7 +93,7 @@ public class Terminal extends LuaMadeUserdata {
 				String script = fileSystem.read(scriptPath);
 				if(script != null) {
 					console.print(valueOf("Running script: " + scriptPath));
-					// TODO: Execute the script
+					executeScript(script, args);
 				} else {
 					console.print(valueOf("Error: Could not read script file"));
 				}
@@ -103,6 +103,62 @@ public class Terminal extends LuaMadeUserdata {
 		}
 
 		printPrompt();
+	}
+
+	/**
+	 * Executes a Lua script with arguments
+	 */
+	private void executeScript(String script, String args) {
+		try {
+			// Create a sandboxed Lua environment
+			org.luaj.vm2.Globals globals = createSandboxedGlobals();
+			
+			// Set up arguments
+			org.luaj.vm2.LuaTable argsTable = new org.luaj.vm2.LuaTable();
+			if(args != null && !args.isEmpty()) {
+				String[] argArray = args.split("\\s+");
+				for(int i = 0; i < argArray.length; i++) {
+					argsTable.set(i + 1, valueOf(argArray[i]));
+				}
+			}
+			globals.set("args", argsTable);
+			
+			// Execute the script
+			org.luaj.vm2.LuaValue chunk = globals.load(script);
+			chunk.call();
+		} catch(Exception e) {
+			console.print(valueOf("Error executing script: " + e.getMessage()));
+		}
+	}
+
+	/**
+	 * Creates a sandboxed Lua globals environment for script execution
+	 */
+	private org.luaj.vm2.Globals createSandboxedGlobals() {
+		org.luaj.vm2.Globals globals = new org.luaj.vm2.Globals();
+		
+		// Load only safe libraries
+		globals.load(new org.luaj.vm2.lib.jse.JseBaseLib());
+		globals.load(new org.luaj.vm2.lib.PackageLib());
+		globals.load(new org.luaj.vm2.lib.StringLib());
+		globals.load(new org.luaj.vm2.lib.TableLib());
+		globals.load(new org.luaj.vm2.lib.jse.JseMathLib());
+		globals.load(new org.luaj.vm2.lib.Bit32Lib());
+		org.luaj.vm2.compiler.LuaC.install(globals);
+		
+		// Remove unsafe functions
+		globals.set("dofile", org.luaj.vm2.LuaValue.NIL);
+		globals.set("loadfile", org.luaj.vm2.LuaValue.NIL);
+		globals.set("load", org.luaj.vm2.LuaValue.NIL);
+		
+		// Expose safe APIs
+		globals.set("console", console);
+		globals.set("print", console.get("print"));
+		globals.set("fs", fileSystem);
+		globals.set("term", this);
+		globals.set("net", module.getNetworkInterface());
+		
+		return globals;
 	}
 
 	/**
@@ -319,6 +375,102 @@ public class Terminal extends LuaMadeUserdata {
 			@Override
 			public void execute(String args) {
 				stop();
+			}
+		});
+
+		// Copy command
+		commands.put("cp", new Command("cp", "Copies a file") {
+			@Override
+			public void execute(String args) {
+				String[] parts = args.split("\\s+");
+				if(parts.length < 2) {
+					console.print(valueOf("Error: Usage: cp <source> <destination>"));
+					return;
+				}
+
+				String source = parts[0];
+				String dest = parts[1];
+
+				String content = fileSystem.read(source);
+				if(content != null) {
+					if(fileSystem.write(dest, content)) {
+						console.print(valueOf("File copied"));
+					} else {
+						console.print(valueOf("Error: Could not write destination file"));
+					}
+				} else {
+					console.print(valueOf("Error: Source file not found or is a directory"));
+				}
+			}
+		});
+
+		// Move command
+		commands.put("mv", new Command("mv", "Moves or renames a file") {
+			@Override
+			public void execute(String args) {
+				String[] parts = args.split("\\s+");
+				if(parts.length < 2) {
+					console.print(valueOf("Error: Usage: mv <source> <destination>"));
+					return;
+				}
+
+				String source = parts[0];
+				String dest = parts[1];
+
+				String content = fileSystem.read(source);
+				if(content != null) {
+					if(fileSystem.write(dest, content) && fileSystem.delete(source)) {
+						console.print(valueOf("File moved"));
+					} else {
+						console.print(valueOf("Error: Could not move file"));
+					}
+				} else {
+					console.print(valueOf("Error: Source file not found or is a directory"));
+				}
+			}
+		});
+
+		// Edit command (simple write)
+		commands.put("edit", new Command("edit", "Creates or overwrites a file with text") {
+			@Override
+			public void execute(String args) {
+				String[] parts = args.split("\\s+", 2);
+				if(parts.length < 2) {
+					console.print(valueOf("Error: Usage: edit <file> <content>"));
+					return;
+				}
+
+				String file = parts[0];
+				String content = parts[1];
+
+				if(fileSystem.write(file, content)) {
+					console.print(valueOf("File written"));
+				} else {
+					console.print(valueOf("Error: Could not write file"));
+				}
+			}
+		});
+
+		// Run command (explicitly run a Lua script)
+		commands.put("run", new Command("run", "Runs a Lua script") {
+			@Override
+			public void execute(String args) {
+				String[] parts = args.split("\\s+", 2);
+				if(parts.length < 1 || parts[0].isEmpty()) {
+					console.print(valueOf("Error: Usage: run <script> [args]"));
+					return;
+				}
+
+				String scriptPath = parts[0];
+				String scriptArgs = parts.length > 1 ? parts[1] : "";
+
+				String script = fileSystem.read(scriptPath);
+				if(script != null) {
+					console.print(valueOf("Running script: " + scriptPath));
+					executeScript(script, scriptArgs);
+				} else {
+					console.print(valueOf("Error: Script file not found"));
+				}
 			}
 		});
 	}

@@ -3,7 +3,6 @@ package luamade.lua.networking;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.system.module.ComputerModule;
-import org.schema.game.common.data.SegmentPiece;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -16,15 +15,14 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class NetworkInterface extends LuaMadeUserdata {
 
-	private final SegmentPiece segmentPiece;
+	private final ComputerModule module;
 	private String hostname;
 	private static final Map<String, NetworkInterface> networkInterfaces = new ConcurrentHashMap<>();
 	private static final Map<String, Map<String, MessageQueue>> messageQueues = new ConcurrentHashMap<>();
 
-	public NetworkInterface(SegmentPiece segmentPiece) {
-		this.segmentPiece = segmentPiece;
-		long absIndex = segmentPiece.getAbsoluteIndex();
-		hostname = "computer-" + ComputerModule.generateComputerUUID(absIndex);
+	public NetworkInterface(ComputerModule module) {
+		this.module = module;
+		hostname = "computer-" + module.getUUID();
 		networkInterfaces.put(hostname, this);
 		messageQueues.put(hostname, new HashMap<String, MessageQueue>());
 	}
