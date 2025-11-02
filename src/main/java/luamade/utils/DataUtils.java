@@ -3,6 +3,7 @@ package luamade.utils;
 import api.common.GameClient;
 import api.common.GameCommon;
 import luamade.LuaMade;
+
 public class DataUtils {
 
 	public static String getResourcesPath() {
@@ -15,7 +16,8 @@ public class DataUtils {
 		else {
 			try {
 				LuaMade.getInstance().logWarning("Client " + GameClient.getClientPlayerState().getName() + " attempted to illegally access server data.");
-			} catch(Exception ignored) { }
+			} catch(Exception ignored) {
+			}
 			return null;
 		}
 	}

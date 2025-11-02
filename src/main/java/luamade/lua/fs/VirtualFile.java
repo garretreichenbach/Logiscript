@@ -13,7 +13,7 @@ import java.io.File;
 public final class VirtualFile extends LuaMadeUserdata implements SerializationInterface, DataCompressionInterface {
 
 	private final FileSystem fileSystem;
-	private File internalFile;
+	private final File internalFile;
 
 	public VirtualFile(FileSystem fileSystem, File internalFile) {
 		this.fileSystem = fileSystem;

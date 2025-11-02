@@ -3,9 +3,7 @@ package luamade;
 import api.common.GameServer;
 import api.config.BlockConfig;
 import api.listener.events.controller.ClientInitializeEvent;
-import api.mod.StarLoader;
 import api.mod.StarMod;
-import luamade.commands.SetMailboxPasswordCommand;
 import luamade.element.ElementManager;
 import luamade.element.block.ComputerBlock;
 import luamade.manager.*;
@@ -32,8 +30,6 @@ public class LuaMade extends StarMod {
 		instance = this;
 		ConfigManager.initialize(this);
 		EventManager.initialize(this);
-		LuaManager.initialize(this);
-		registerCommands();
 	}
 
 	@Override
@@ -82,9 +78,5 @@ public class LuaMade extends StarMod {
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
-	}
-
-	private void registerCommands() {
-		StarLoader.registerCommand(new SetMailboxPasswordCommand());
 	}
 }

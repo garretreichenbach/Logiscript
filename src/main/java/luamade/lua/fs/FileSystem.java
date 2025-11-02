@@ -28,11 +28,10 @@ public class FileSystem extends LuaMadeUserdata {
 	private VirtualFile currentDirectory;
 
 	public static FileSystem initNewFileSystem(ComputerModule module) {
-		if(!computerStorage.exists()) computerStorage.mkdirs();
-		FileSystem fileSystem = new FileSystem(module);
-		//Todo: Create default directories and files
-
-		return fileSystem;
+		if(!computerStorage.exists()) {
+			computerStorage.mkdirs();
+		}
+		return new FileSystem(module);
 	}
 
 	public FileSystem(ComputerModule module) {
@@ -98,7 +97,7 @@ public class FileSystem extends LuaMadeUserdata {
 	 */
 	private void createDefaultFiles() {
 		// Create a simple shell script as an example
-		String shellScript = 
+		String shellScript =
 			"-- LuaMade Shell\n" +
 			"-- This is an example Lua script for the terminal\n" +
 			"\n" +

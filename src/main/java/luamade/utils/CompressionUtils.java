@@ -45,6 +45,7 @@ public class CompressionUtils {
 		LZ4Compressor compressor = LZ4Factory.fastestInstance().fastCompressor();
 		compressor.compress(readBuffer, writeBuffer);
 	}
+
 	private static void writeToBufferRecursive(File file) {
 		if(file.isDirectory()) {
 			for(File child : Objects.requireNonNull(file.listFiles())) {

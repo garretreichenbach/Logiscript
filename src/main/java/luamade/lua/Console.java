@@ -15,11 +15,6 @@ import org.schema.game.common.data.SegmentPiece;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
-/**
- * [Description]
- *
- * @author TheDerpGamer (TheDerpGamer#0027)
- */
 public class Console extends LuaMadeUserdata {
 
 	private int VERTICAL = 0;

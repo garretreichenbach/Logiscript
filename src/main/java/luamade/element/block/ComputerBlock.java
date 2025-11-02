@@ -3,18 +3,11 @@ package luamade.element.block;
 import api.common.GameClient;
 import api.config.BlockConfig;
 import api.listener.events.block.SegmentPieceActivateByPlayer;
-import luamade.system.module.ComputerModuleOld;
-import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementKeyMap;
 import org.schema.game.common.data.element.FactoryResource;
 import org.schema.schine.graphicsengine.core.GraphicsContext;
 
-/**
- * [Description]
- *
- * @author TheDerpGamer (TheDerpGamer#0027)
- */
 public class ComputerBlock extends Block implements ActivationInterface {
 
 	public ComputerBlock() {
@@ -56,10 +49,13 @@ public class ComputerBlock extends Block implements ActivationInterface {
 	@Override
 	public void onPlayerActivation(SegmentPieceActivateByPlayer event) {
 		try {
-			ComputerModuleOld computerModuleOld = getModule(event.getSegmentPiece());
+			//Todo: Open new computer GUI
+			/*ComputerModuleOld computerModuleOld = getModule(event.getSegmentPiece());
 			assert computerModuleOld != null;
-			computerModuleOld.openGUI(event.getSegmentPiece());
-			if(GameClient.getClientState() != null) GameClient.getClientState().getGlobalGameControlManager().getIngameControlManager().getPlayerGameControlManager().getPlayerIntercationManager().suspend(true);
+			computerModuleOld.openGUI(event.getSegmentPiece());*/
+			if(GameClient.getClientState() != null) {
+				GameClient.getClientState().getGlobalGameControlManager().getIngameControlManager().getPlayerGameControlManager().getPlayerIntercationManager().suspend(true);
+			}
 		} catch(Exception exception) {
 			exception.printStackTrace();
 		}
@@ -67,16 +63,10 @@ public class ComputerBlock extends Block implements ActivationInterface {
 
 	@Override
 	public void onLogicActivation(SegmentPiece target, boolean active) {
-		try {
-			if(!active || !target.isActive()) return;
-			ComputerModuleOld computerModuleOld = getModule(target);
-			if(computerModuleOld != null && !computerModuleOld.getData(target).script.isEmpty()) computerModuleOld.runScript(target);
-		} catch(Exception exception) {
-			exception.printStackTrace();
-		}
+
 	}
 
-	private ComputerModuleOld getModule(SegmentPiece segmentPiece) {
+	/*private ComputerModuleOld getModule(SegmentPiece segmentPiece) {
 		try {
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentPiece.getSegmentController();
 			return (ComputerModuleOld) controller.getManagerContainer().getModMCModule(getId());
@@ -84,5 +74,5 @@ public class ComputerBlock extends Block implements ActivationInterface {
 			exception.printStackTrace();
 			return null;
 		}
-	}
+	}*/
 }

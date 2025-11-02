@@ -12,9 +12,7 @@ import org.schema.schine.graphicsengine.core.Timer;
 import java.io.IOException;
 
 /**
- * [Description]
- *
- * @author Garret Reichenbach
+ * Container module for the computer data.
  */
 public class ComputerModuleContainer extends ModManagerContainerModule {
 
