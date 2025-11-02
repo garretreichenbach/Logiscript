@@ -101,7 +101,7 @@ public class ComputerDialog extends PlayerInput {
 			if(computerModule != null && computerModule.getTerminal() != null) {
 				computerModule.getTerminal().handleInput(currentInputLine);
 				currentInputLine = "";
-				// After executing a command, allow the terminal output to be displayed
+				// Reset typing flag to allow module content to sync back to the text field
 				userIsTyping = false;
 			}
 		}
@@ -158,12 +158,14 @@ public class ComputerDialog extends PlayerInput {
 							int promptIndex = lastLine.indexOf(PROMPT_MARKER);
 							if(promptIndex != -1 && lastLine.length() > promptIndex + PROMPT_MARKER.length()) {
 								currentInputLine = lastLine.substring(promptIndex + PROMPT_MARKER.length());
+								// Mark that user is actively typing only when there's actual input
+								userIsTyping = true;
 							} else {
 								currentInputLine = "";
+								// No user input, allow syncing from module
+								userIsTyping = false;
 							}
 						}
-						// Mark that user is actively typing
-						userIsTyping = true;
 					}
 					return input;
 				}
