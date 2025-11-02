@@ -273,7 +273,9 @@ public class FileSystem extends LuaMadeUserdata {
 		}
 
 		// Create the directory
-		VirtualFile dir = new VirtualFile(this, new File(rootDirectory.getInternalFile(), path.substring(1)));
+		// Remove leading slash for file path construction
+		String relativePath = path.startsWith("/") ? path.substring(1) : path;
+		VirtualFile dir = new VirtualFile(this, new File(rootDirectory.getInternalFile(), relativePath));
 		return dir.getInternalFile().mkdirs();
 	}
 
@@ -311,8 +313,11 @@ public class FileSystem extends LuaMadeUserdata {
 		path = normalizePath(path);
 
 		try {
+			// Remove leading slash for file path construction
+			String relativePath = path.startsWith("/") ? path.substring(1) : path;
+			
 			// Create the file
-			VirtualFile file = new VirtualFile(this, new File(rootDirectory.getInternalFile(), path.substring(1)));
+			VirtualFile file = new VirtualFile(this, new File(rootDirectory.getInternalFile(), relativePath));
 			
 			// Make sure parent directory exists
 			file.getInternalFile().getParentFile().mkdirs();

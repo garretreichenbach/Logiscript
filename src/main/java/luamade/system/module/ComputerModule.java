@@ -27,8 +27,8 @@ public class ComputerModule {
 	private final String uuid;
 	private final Console console;
 	private final FileSystem fileSystem;
-	private final Terminal terminal;
 	private final NetworkInterface networkInterface;
+	private final Terminal terminal;
 	private ComputerMode lastMode = ComputerMode.IDLE;
 	private long lastTouched;
 	private String lastOpenFile = "";
