@@ -25,6 +25,12 @@ This implementation completes the transition of the LuaMade StarMade mod from a 
 - Default file creation system with example scripts
 - Proper path normalization with relative path support
 - Full disk I/O operations (reading/writing actual files)
+- **Compression and Persistence System:**
+  - `saveToDisk()` - Compresses and saves file system to `.smdat` file
+  - `cleanupTempFiles()` - Removes temporary uncompressed directories
+  - Stores computer UUID for file system identification
+  - Automatic loading from compressed file on startup
+  - LZ4 compression for efficient storage
 
 ### 2. Terminal Script Execution (Terminal.java)
 
@@ -62,6 +68,41 @@ This implementation completes the transition of the LuaMade StarMade mod from a 
   - `getFileSystem()`
   - `getTerminal()`
   - `getNetworkInterface()`
+- **Persistence Management:**
+  - `saveAndCleanup()` - Saves file system to disk and removes temporary files
+  - `shouldSave(long)` - Checks if computer has been idle long enough to save
+  - Tracks last touched time for idle detection
+
+### 5. Compression Utilities (CompressionUtils.java)
+
+**Implemented:**
+- `compressFS(File, File)` - Compresses directory structure to single file
+- `decompressFS(File, File)` - Decompresses file back to directory structure
+- **Features:**
+  - LZ4 fast compression for efficient storage
+  - Recursive directory traversal with structure preservation
+  - String encoding with length prefixes
+  - END_DIRECTORY and END_OF_STREAM markers for proper parsing
+  - Stores uncompressed size for decompression
+  - Handles empty files correctly
+- **Validated:** Compression/decompression roundtrip tested and verified
+
+### 6. Documentation System (GlossaryManager.java)
+
+**Completed:**
+- Fixed typo in markdown file list
+- Loads all 9 documentation markdown files:
+  - overview.md - System overview and components
+  - filesystem.md - File system structure and APIs
+  - terminal.md - Terminal commands and usage
+  - networking.md - Network communication
+  - console.md - Console API
+  - usage.md - How to use the system
+  - enhancements.md - Future improvements
+  - comparison.md - Comparison with similar systems
+  - development.md - Development guide
+- Automatically extracts titles from markdown headers
+- Integrates with in-game glossary system
 
 ### 5. Documentation
 
@@ -76,6 +117,10 @@ This implementation completes the transition of the LuaMade StarMade mod from a 
   - Command reference
   - Script writing guide
   - Example usage
+- **Modular Markdown Documentation**: Split into topic-based files
+  - overview.md, filesystem.md, terminal.md, networking.md
+  - console.md, usage.md, enhancements.md, comparison.md, development.md
+  - Loaded dynamically by GlossaryManager for in-game display
 
 **Example Scripts Created:**
 - **/bin/hello.lua**: Hello world with arguments
@@ -90,9 +135,11 @@ This implementation completes the transition of the LuaMade StarMade mod from a 
 ### 1. Sandboxed File System
 - Each computer has isolated virtual file system
 - Stored as compressed files on disk (`computer_<UUID>_fs.smdat`)
+- **LZ4 compression** for efficient storage (typically 50-70% compression)
 - Standard Unix directory structure
 - Full path manipulation and navigation
 - Persistent across sessions
+- **Automatic save/load** on computer idle/shutdown
 
 ### 2. Interactive Terminal
 - 15+ built-in Unix-like commands
@@ -192,6 +239,34 @@ function split(str, sep)
 end
 ```
 
+## Integration Notes for Persistence
+
+The file system persistence is now complete. To enable automatic saving:
+
+1. **On Server Shutdown**: Call `computerModule.saveAndCleanup()` for all active computers
+2. **On Computer Idle**: Periodically check `computerModule.shouldSave(idleTimeMs)` and call `saveAndCleanup()` if true
+3. **Manual Save**: Game developers can call `saveAndCleanup()` at any point to force persistence
+
+**Recommended Integration Points:**
+- **ComputerModuleContainer.handle(Timer)**: Check for idle computers and save them
+- **Server shutdown event handler**: Save all active computers
+- **Computer deactivation**: Save when player closes computer GUI after extended use
+
+**Example Integration:**
+```java
+// In ComputerModuleContainer.handle() or similar periodic update
+long IDLE_THRESHOLD = 5 * 60 * 1000; // 5 minutes
+if (computerModule.shouldSave(IDLE_THRESHOLD)) {
+    computerModule.saveAndCleanup();
+    // Mark computer as IDLE mode
+}
+
+// On server shutdown
+for (ComputerModule computer : activeComputers) {
+    computer.saveAndCleanup();
+}
+```
+
 ## Testing Recommendations
 
 To validate the implementation:
@@ -201,6 +276,7 @@ To validate the implementation:
    - Create and navigate directories
    - Test path normalization
    - Verify sandboxing (can't access parent directories)
+   - **Test persistence**: Save data, restart, verify data is restored
 
 2. **Terminal Tests**
    - Test all built-in commands
@@ -220,6 +296,13 @@ To validate the implementation:
    - Send messages between computers
    - Test broadcasting
    - Test message queuing
+
+5. **Compression Tests**
+   - Create file system with multiple files/directories
+   - Verify compression reduces file size
+   - Verify decompression restores exact structure
+   - Test with empty directories and files
+   - Verify cleanup removes temporary files
 
 ## Known Limitations
 

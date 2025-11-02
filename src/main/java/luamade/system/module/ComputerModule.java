@@ -130,4 +130,22 @@ public class ComputerModule {
 	public NetworkInterface getNetworkInterface() {
 		return networkInterface;
 	}
+
+	/**
+	 * Saves the computer's file system to disk and cleans up temporary files.
+	 * This should be called when the computer goes idle or when the server shuts down.
+	 */
+	public void saveAndCleanup() {
+		fileSystem.saveToDisk();
+		fileSystem.cleanupTempFiles();
+	}
+
+	/**
+	 * Checks if the computer has been idle for too long and should be saved to disk.
+	 * @param idleTimeMs The maximum idle time in milliseconds before saving
+	 * @return true if the computer should be saved
+	 */
+	public boolean shouldSave(long idleTimeMs) {
+		return (System.currentTimeMillis() - lastTouched) > idleTimeMs;
+	}
 }
