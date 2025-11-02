@@ -85,10 +85,7 @@ public class Console extends LuaMadeUserdata {
 				try {
 					while(true) {
 						if(!printQueue.isEmpty()) {
-							boolean display = false;
 							Object[] objects = printQueue.poll();
-							Double[] color = (Double[]) objects[0];
-							if(objects[1] instanceof Boolean) display = (Boolean) objects[1];
 							Varargs vargs = (Varargs) objects[1];
 							StringBuilder string = new StringBuilder();
 							for(int i = 1; i <= vargs.narg() && i <= 16; ++i) {
