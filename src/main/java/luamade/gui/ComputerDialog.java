@@ -63,7 +63,7 @@ public class ComputerDialog extends PlayerInput {
 
 	@Override
 	public void handleKeyEvent(KeyEventInterface keyEvent) {
-
+		super.handleKeyEvent(keyEvent);
 	}
 
 	@Override
@@ -129,16 +129,18 @@ public class ComputerDialog extends PlayerInput {
 				}
 			}) {
 				public String getLastTextContent() {
-					return textOverlay.getText().toString();
+					return consolePane.getText();
 				}
 
 				public void setTextContent(String text) {
-					textOverlay.setTextSimple(text);
+					consolePane.setText(text);
 				}
 
 				@Override
 				public void draw() {
-					if(computerModule != null && !Objects.equals(computerModule.getLastTextContent(), getLastTextContent())) setTextContent(computerModule.getLastTextContent());
+					if(computerModule != null && !Objects.equals(computerModule.getLastTextContent(), getLastTextContent())) {
+						setTextContent(computerModule.getLastTextContent());
+					}
 					super.draw();
 				}
 			};

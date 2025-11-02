@@ -17,7 +17,6 @@ public class ComputerModuleContainer extends SimpleDataStorageMCModule {
 
 	public ComputerModuleContainer(SegmentController ship, ManagerContainer<?> managerContainer) {
 		super(ship, managerContainer, LuaMade.getInstance(), ElementManager.getBlock("Computer").getId());
-		checkData();
 	}
 
 	@Override

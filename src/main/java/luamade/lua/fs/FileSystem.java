@@ -26,7 +26,7 @@ public class FileSystem extends LuaMadeUserdata {
 	private static final File computerStorage = new File(DataUtils.getWorldDataPath(), "computers");
 	private VirtualFile rootDirectory;
 	private VirtualFile currentDirectory;
-	private String computerUUID;
+	private final String computerUUID;
 
 	public static FileSystem initNewFileSystem(ComputerModule module) {
 		if(!computerStorage.exists()) {
@@ -36,10 +36,17 @@ public class FileSystem extends LuaMadeUserdata {
 	}
 
 	public FileSystem(ComputerModule module) {
-		this.computerUUID = module.getUUID();
+		computerUUID = module.getUUID();
+		if(isUninitialized(this)) {
+			initializeDefaultDirectories();
+		}
 		readFilesFromDisk(module);
 		// Initialize with some basic Unix directories
-		initializeDefaultDirectories();
+	}
+
+	private boolean isUninitialized(FileSystem fileSystem) {
+		File compressedFile = new File(computerStorage, "computer_" + fileSystem.computerUUID + "_fs.smdat");
+		return !compressedFile.exists() || compressedFile.length() == 0;
 	}
 
 	/**
@@ -63,6 +70,7 @@ public class FileSystem extends LuaMadeUserdata {
 			try {
 				compressedFile.createNewFile();
 				rootDirectory.mkdirs();
+				CompressionUtils.decompressFS(compressedFile, rootDirectory);
 				this.rootDirectory = new VirtualFile(this, rootDirectory);
 				currentDirectory = this.rootDirectory;
 				return;
@@ -84,7 +92,13 @@ public class FileSystem extends LuaMadeUserdata {
 	/**
 	 * Initializes default Unix-like directory structure
 	 */
-	private void initializeDefaultDirectories() {
+	public void initializeDefaultDirectories() {
+		File rootDirFile = new File(computerStorage, "computer_" + computerUUID + "_fs");
+		if (!rootDirFile.exists()) {
+			rootDirFile.mkdirs();
+		}
+		rootDirectory = new VirtualFile(this, rootDirFile);
+
 		// Create standard Unix directories if they don't exist
 		String[] defaultDirs = {"/home", "/bin", "/usr", "/etc", "/tmp"};
 		for(String dir : defaultDirs) {

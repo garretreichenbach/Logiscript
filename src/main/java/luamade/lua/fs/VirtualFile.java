@@ -18,7 +18,6 @@ public final class VirtualFile extends LuaMadeUserdata implements SerializationI
 	public VirtualFile(FileSystem fileSystem, File internalFile) {
 		this.fileSystem = fileSystem;
 		this.internalFile = internalFile;
-		checkSanity(this);
 	}
 
 	/**
@@ -27,8 +26,16 @@ public final class VirtualFile extends LuaMadeUserdata implements SerializationI
 	 * @throws SecurityException if the file is outside the sandboxed file system.
 	 */
 	public static void checkSanity(VirtualFile file) {
+		if(file == null) {
+			throw new IllegalArgumentException("VirtualFile is null in checkSanity");
+		}
+		if(file.fileSystem.getRootDirectory() == null) {
+			throw new IllegalStateException("FileSystem rootDirectory is not initialized for VirtualFile: " + (file.internalFile != null ? file.internalFile.getAbsolutePath() : "null"));
+		}
 		String path = file.getAbsolutePath();
-
+		if(path.contains("..") || path.startsWith(File.separator)) {
+			throw new SecurityException("Access to file outside sandboxed file system is not allowed: " + path);
+		}
 	}
 
 	@LuaMadeCallable
@@ -51,16 +58,20 @@ public final class VirtualFile extends LuaMadeUserdata implements SerializationI
 	public String getPath() {
 		//Only include the path relative to the file system root
 		String path = internalFile.getPath();
-		if(path.startsWith(fileSystem.getRootDirectory().getPath())) path = path.substring(fileSystem.getRootDirectory().getPath().length());
+		if(path.startsWith(fileSystem.getRootDirectory().getPath()))
+			path = path.substring(fileSystem.getRootDirectory().getPath().length());
 		if(path.startsWith(File.separator)) path = path.substring(1);
 		return path;
 	}
 
 	@LuaMadeCallable
 	public String getAbsolutePath() {
-		//Only include the path relative to the file system root
+		if(fileSystem == null || fileSystem.getRootDirectory() == null) {
+			throw new IllegalStateException("FileSystem or rootDirectory is not initialized for VirtualFile: " + (internalFile != null ? internalFile.getAbsolutePath() : "null"));
+		}
 		String path = internalFile.getAbsolutePath();
-		if(path.startsWith(fileSystem.getRootDirectory().getAbsolutePath())) path = path.substring(fileSystem.getRootDirectory().getAbsolutePath().length());
+		String rootAbs = fileSystem.getRootDirectory().getAbsolutePath();
+		if(path.startsWith(rootAbs)) path = path.substring(rootAbs.length());
 		if(path.startsWith(File.separator)) path = path.substring(1);
 		return path;
 	}
