@@ -90,6 +90,7 @@ public class ComputerDialog extends PlayerInput {
 		private String lastModuleContent = "";
 		private boolean userIsTyping = false;
 		private int promptStartPosition = -1;
+		private String lastSavedInput = "";
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
 			super(inputState, "COMPUTER_PANEL", "", "", 850, 650, guiCallback);
@@ -230,9 +231,10 @@ public class ComputerDialog extends PlayerInput {
 			}) {
 				@Override
 				public void draw() {
-					// Save current input line to module for persistence
-					if(computerModule != null) {
+					// Save current input line to module for persistence (only when it changes)
+					if(computerModule != null && !currentInputLine.equals(lastSavedInput)) {
 						computerModule.setSavedTerminalInput(currentInputLine);
+						lastSavedInput = currentInputLine;
 					}
 					
 					// Only update text from module when user is not typing and module content has changed

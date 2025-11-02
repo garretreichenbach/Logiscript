@@ -142,7 +142,9 @@ Ensure existing functionality still works:
 
 2. **Multi-line Prompts**: The implementation assumes single-line prompts. If the terminal ever uses multi-line prompts, the logic may need adjustment.
 
-3. **Async Text Restoration**: Uses a 10ms delay and separate thread for text restoration to avoid recursion. This is a workaround for UI framework limitations.
+3. **Async Text Restoration**: Uses a 10ms delay and separate thread for text restoration to avoid recursion. This is a workaround for UI framework limitations. While functional, a more integrated solution using the UI framework's scheduling mechanisms would be preferable.
+
+4. **Session-Only Persistence**: The `savedTerminalInput` is persisted only within a game session (when closing/reopening the UI). It is not saved to disk and will be lost when the application restarts. For permanent persistence, integration with the FileSystem's save/load mechanism would be needed.
 
 ## Success Criteria
 
