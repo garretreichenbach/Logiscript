@@ -589,6 +589,8 @@ public class FileSystem extends LuaMadeUserdata {
 				}
 			}
 		}
-		file.delete();
+		if(!file.delete()) {
+			LuaMade.getInstance().logWarning("Failed to delete file: " + file.getAbsolutePath());
+		}
 	}
 }
