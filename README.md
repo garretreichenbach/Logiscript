@@ -165,11 +165,22 @@ end
 
 When you first interact with a computer in-game:
 
-1. The terminal will start automatically
-2. Type `help` to see available commands
-3. Type `cat /home/README.txt` to read the welcome guide
-4. Try the example scripts: `run /bin/hello.lua` or `run /bin/shell.lua`
-5. Create your own scripts in /home or /bin using the `edit` command
+1. The terminal will start automatically with an interactive UI
+2. You can type commands directly in the terminal window - your input appears after the prompt (e.g., `/ $ `)
+3. Press Enter to execute your command
+4. Type `help` to see available commands
+5. Type `cat /home/README.txt` to read the welcome guide
+6. Try the example scripts: `run /bin/hello.lua` or `run /bin/shell.lua`
+7. Create your own scripts in /home or /bin using the `edit` command
+
+### Interactive Terminal Features
+
+The terminal UI now supports:
+- **Real-time typing**: Type commands directly in the terminal window
+- **Command execution**: Press Enter to run your command
+- **Output display**: See command results immediately in the terminal
+- **Command history**: Navigate through previous commands (upcoming feature)
+- **File editing**: Use commands like `edit`, `cat`, and text-based file manipulation
 
 Example session:
 ```
