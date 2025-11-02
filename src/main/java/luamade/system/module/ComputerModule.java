@@ -23,7 +23,6 @@ public class ComputerModule {
 		FILE_EDIT
 	}
 
-	private final byte VERSION = 1;
 	private final String uuid;
 	private final Console console;
 	private final FileSystem fileSystem;

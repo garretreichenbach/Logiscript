@@ -3,6 +3,13 @@ package luamade.element.block;
 import api.common.GameClient;
 import api.config.BlockConfig;
 import api.listener.events.block.SegmentPieceActivateByPlayer;
+import api.utils.game.module.ModManagerContainerModule;
+import luamade.gui.ComputerDialog;
+import luamade.system.module.ComputerModule;
+import luamade.system.module.ComputerModuleContainer;
+import org.schema.game.common.controller.Ship;
+import org.schema.game.common.controller.SpaceStation;
+import org.schema.game.common.controller.elements.ManagerContainer;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementKeyMap;
 import org.schema.game.common.data.element.FactoryResource;
@@ -49,10 +56,8 @@ public class ComputerBlock extends Block implements ActivationInterface {
 	@Override
 	public void onPlayerActivation(SegmentPieceActivateByPlayer event) {
 		try {
-			//Todo: Open new computer GUI
-			/*ComputerModuleOld computerModuleOld = getModule(event.getSegmentPiece());
-			assert computerModuleOld != null;
-			computerModuleOld.openGUI(event.getSegmentPiece());*/
+			ComputerDialog dialog = new ComputerDialog(getModule(event.getSegmentPiece()));
+			dialog.activate();
 			if(GameClient.getClientState() != null) {
 				GameClient.getClientState().getGlobalGameControlManager().getIngameControlManager().getPlayerGameControlManager().getPlayerIntercationManager().suspend(true);
 			}
@@ -66,13 +71,20 @@ public class ComputerBlock extends Block implements ActivationInterface {
 
 	}
 
-	/*private ComputerModuleOld getModule(SegmentPiece segmentPiece) {
-		try {
-			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentPiece.getSegmentController();
-			return (ComputerModuleOld) controller.getManagerContainer().getModMCModule(getId());
-		} catch(Exception exception) {
-			exception.printStackTrace();
-			return null;
+	private ComputerModule getModule(SegmentPiece segmentPiece) {
+		ManagerContainer<?> managerContainer;
+		if(segmentPiece.getSegmentController() instanceof Ship) {
+			managerContainer = ((Ship) segmentPiece.getSegmentController()).getManagerContainer();
+		} else if(segmentPiece.getSegmentController() instanceof SpaceStation) {
+			managerContainer = ((SpaceStation) segmentPiece.getSegmentController()).getManagerContainer();
+		} else {
+			throw new IllegalStateException("SegmentController is neither Ship nor SpaceStation!");
 		}
-	}*/
+		ModManagerContainerModule module = managerContainer.getModMCModule(segmentPiece.getType());
+		if(module instanceof ComputerModuleContainer) {
+			return ((ComputerModuleContainer) module).getComputerData(segmentPiece.getAbsoluteIndex());
+		} else {
+			throw new IllegalStateException("ManagerContainer is not a ComputerModuleContainer!");
+		}
+	}
 }
