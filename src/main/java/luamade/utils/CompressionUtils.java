@@ -34,18 +34,15 @@ public class CompressionUtils {
 	 * @param destination The folder to write the decompressed data to
 	 * @throws Exception If an error occurs during decompression
 	 */
-	public static void decompressFS(File source, File destination) throws Exception {
+	public static synchronized void decompressFS(File source, File destination) throws Exception {
 		if(!source.exists() || source.length() == 0) {
 			// Empty file, nothing to decompress
 			destination.mkdirs();
 			return;
 		}
 
-		// Read compressed data from file
-		FileInputStream fis = new FileInputStream(source);
-		byte[] compressedData = new byte[(int) source.length()];
-		fis.read(compressedData);
-		fis.close();
+		// Read compressed data from file - use Files.readAllBytes for complete read
+		byte[] compressedData = Files.readAllBytes(source.toPath());
 
 		// Read the uncompressed size from the first 4 bytes
 		ByteBuffer sizeBuffer = ByteBuffer.wrap(compressedData, 0, 4);
@@ -69,7 +66,7 @@ public class CompressionUtils {
 	 * @param destination The file to write the compressed data to
 	 * @throws Exception If an error occurs during compression
 	 */
-	public static void compressFS(File source, File destination) throws Exception {
+	public static synchronized void compressFS(File source, File destination) throws Exception {
 		//First, we combine all the files in the folder into a single buffer
 		writeBuffer.clear();
 		writeToBufferRecursive(source);
@@ -89,15 +86,15 @@ public class CompressionUtils {
 
 		// Write compressed data to file (with uncompressed size prepended)
 		destination.getParentFile().mkdirs();
-		FileOutputStream fos = new FileOutputStream(destination);
-		// Write uncompressed size first (4 bytes)
-		fos.write((uncompressedSize >> 24) & 0xFF);
-		fos.write((uncompressedSize >> 16) & 0xFF);
-		fos.write((uncompressedSize >> 8) & 0xFF);
-		fos.write(uncompressedSize & 0xFF);
-		// Write compressed data
-		fos.write(compressedData, 0, compressedSize);
-		fos.close();
+		try(FileOutputStream fos = new FileOutputStream(destination)) {
+			// Write uncompressed size first (4 bytes)
+			fos.write((uncompressedSize >> 24) & 0xFF);
+			fos.write((uncompressedSize >> 16) & 0xFF);
+			fos.write((uncompressedSize >> 8) & 0xFF);
+			fos.write(uncompressedSize & 0xFF);
+			// Write compressed data
+			fos.write(compressedData, 0, compressedSize);
+		}
 	}
 
 	/**
@@ -158,9 +155,9 @@ public class CompressionUtils {
 				buffer.get(data);
 				
 				File file = new File(currentDir, name);
-				FileOutputStream fos = new FileOutputStream(file);
-				fos.write(data);
-				fos.close();
+				try(FileOutputStream fos = new FileOutputStream(file)) {
+					fos.write(data);
+				}
 			} else {
 				// Unknown marker
 				LuaMade.getInstance().logWarning("Unknown marker in compressed file system: " + marker);
