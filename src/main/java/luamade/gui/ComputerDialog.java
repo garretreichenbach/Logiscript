@@ -199,7 +199,9 @@ public class ComputerDialog extends PlayerInput {
 			consolePane.onInit();
 			contentPane.getContent(0).attach(consolePane);
 			consolePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL | GUIScrollablePanel.SCROLLABLE_HORIZONTAL);
-			consolePane.setText(computerModule.getLastTextContent());
+			String initialContent = computerModule.getLastTextContent();
+			consolePane.setText(initialContent);
+			lastModuleContent = initialContent;
 		}
 	}
 }
