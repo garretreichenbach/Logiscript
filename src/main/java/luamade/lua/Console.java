@@ -11,7 +11,7 @@ import org.schema.game.client.view.gui.shiphud.HudIndicatorOverlay;
 import org.schema.game.common.data.ManagedSegmentController;
 import org.schema.game.common.data.SegmentPiece;
 
-import java.util.PriorityQueue;
+import java.util.LinkedList;
 import java.util.Queue;
 
 public class Console extends LuaMadeUserdata {
@@ -20,7 +20,7 @@ public class Console extends LuaMadeUserdata {
 	private int HORIZONTAL = 1;
 
 	private final ComputerModule module;
-	private final Queue<Object[]> printQueue = new PriorityQueue<>();
+	private final Queue<Object[]> printQueue = new LinkedList<>();
 	private StringBuilder textContents = new StringBuilder();
 	private int[] cursorPos = {0, 0};
 
@@ -104,8 +104,16 @@ public class Console extends LuaMadeUserdata {
 							boolean display = false;
 							Object[] objects = printQueue.poll();
 							Double[] color = (Double[]) objects[0];
-							if(objects[1] instanceof Boolean) display = (Boolean) objects[1];
-							Varargs vargs = (Varargs) objects[1];
+							Varargs vargs;
+							
+							// Check if this is a display call (3 elements) or regular print (2 elements)
+							if(objects.length == 3 && objects[1] instanceof Boolean) {
+								display = (Boolean) objects[1];
+								vargs = (Varargs) objects[2];
+							} else {
+								vargs = (Varargs) objects[1];
+							}
+							
 							StringBuilder string = new StringBuilder();
 							for(int i = 1; i <= vargs.narg() && i <= 16; ++i) string.append(vargs.arg(i).toString()).append("\n");
 							

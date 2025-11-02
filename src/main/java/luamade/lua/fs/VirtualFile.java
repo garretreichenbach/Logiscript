@@ -58,8 +58,9 @@ public final class VirtualFile extends LuaMadeUserdata implements SerializationI
 	public String getPath() {
 		//Only include the path relative to the file system root
 		String path = internalFile.getPath();
-		if(path.startsWith(fileSystem.getRootDirectory().getPath()))
-			path = path.substring(fileSystem.getRootDirectory().getPath().length());
+		String rootPath = fileSystem.getRootDirectory().getInternalFile().getPath();
+		if(path.startsWith(rootPath))
+			path = path.substring(rootPath.length());
 		if(path.startsWith(File.separator)) path = path.substring(1);
 		return path;
 	}
