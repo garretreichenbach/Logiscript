@@ -24,16 +24,6 @@ public class Console extends LuaMadeUserdata {
 		startPrintThread();
 	}
 
-	public static void sendError(SegmentPiece segmentPiece, String text) {
-		try {
-			System.err.println(text);
-			//Todo
-//			LuaManager.getModule(segmentPiece).getData(segmentPiece).lastOutput += text;
-		} catch(Exception exception) {
-			exception.printStackTrace();
-		}
-	}
-
 	@LuaMadeCallable
 	public Long getTime() {
 		return System.currentTimeMillis();

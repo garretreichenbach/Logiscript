@@ -3,7 +3,7 @@ package luamade.lua.entity;
 import api.common.GameServer;
 import api.utils.game.SegmentControllerUtils;
 import com.bulletphysics.linearmath.Transform;
-import luamade.lua.Console;
+import luamade.LuaMade;
 import luamade.lua.data.LuaVec3i;
 import luamade.lua.element.block.Block;
 import luamade.lua.element.inventory.Inventory;
@@ -415,9 +415,7 @@ public class Entity extends LuaMadeUserdata {
 		try {
 			if(segmentController.isInFleet()) return new Fleet(segmentController.getFleet());
 		} catch(Exception exception) {
-			try {
-				Console.sendError(getConsole().getSegmentPiece(), exception.getMessage());
-			} catch(Exception ignored) {}
+			LuaMade.getInstance().logException("Error getting fleet for entity ID " + getId(), exception);
 		}
 		return null;
 	}

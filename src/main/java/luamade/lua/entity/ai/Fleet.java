@@ -1,6 +1,6 @@
 package luamade.lua.entity.ai;
 
-import luamade.lua.Console;
+import luamade.LuaMade;
 import luamade.lua.data.LuaVec3i;
 import luamade.lua.entity.RemoteEntity;
 import luamade.lua.faction.Faction;
@@ -76,8 +76,7 @@ public class Fleet extends LuaMadeUserdata {
 			assert command != null;
 			return new FleetCommand(command);
 		} catch(Exception exception) {
-			exception.printStackTrace();
-			Console.sendError(getConsole().getSegmentPiece(), exception.getMessage());
+			LuaMade.getInstance().logException("Failed to get current fleet command", exception);
 			return null;
 		}
 	}
