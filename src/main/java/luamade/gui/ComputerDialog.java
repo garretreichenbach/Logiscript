@@ -135,18 +135,20 @@ public class ComputerDialog extends PlayerInput {
 			}, new OnInputChangedCallback() {
 				@Override
 				public String onInputChanged(String input) {
-					// Track what the user is typing
-					// Extract the current line being edited
-					String currentText = consolePane.getText();
-					String[] lines = currentText.split("\n");
-					if(lines.length > 0) {
-						String lastLine = lines[lines.length - 1];
-						// Extract input after prompt (format: "path $ ")
-						int promptIndex = lastLine.indexOf(" $ ");
-						if(promptIndex != -1) {
-							currentInputLine = lastLine.substring(promptIndex + 3);
-						} else {
-							currentInputLine = lastLine;
+					// The input parameter contains the new text content
+					// We need to extract just the current line being typed
+					// For now, let's assume the user types at the end
+					if(input != null) {
+						String[] lines = input.split("\n");
+						if(lines.length > 0) {
+							String lastLine = lines[lines.length - 1];
+							// Extract input after prompt (format: "path $ ")
+							int promptIndex = lastLine.indexOf(" $ ");
+							if(promptIndex != -1 && lastLine.length() > promptIndex + 3) {
+								currentInputLine = lastLine.substring(promptIndex + 3);
+							} else {
+								currentInputLine = "";
+							}
 						}
 					}
 					return input;
