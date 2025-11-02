@@ -85,7 +85,7 @@ public class ComputerDialog extends PlayerInput {
 		private GUIActivatableTextBar consolePane;
 		private String currentInputLine = "";
 		private String lastModuleContent = "";
-		private boolean userIsTyping = false;
+		private boolean userIsTyping;
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
 			super(inputState, "COMPUTER_PANEL", "", "", 850, 650, guiCallback);

@@ -40,17 +40,25 @@ public final class VirtualFile extends LuaMadeUserdata implements SerializationI
 
 	@LuaMadeCallable
 	public VirtualFile[] listFiles() {
-		if(!isDirectory()) return new VirtualFile[0];
+		if(!isDirectory()) {
+			return new VirtualFile[0];
+		}
 		File[] files = internalFile.listFiles();
-		if(files == null) return new VirtualFile[0];
+		if(files == null) {
+			return new VirtualFile[0];
+		}
 		VirtualFile[] virtualFiles = new VirtualFile[files.length];
-		for(int i = 0; i < files.length; i++) virtualFiles[i] = new VirtualFile(fileSystem, files[i]);
+		for(int i = 0; i < files.length; i++) {
+			virtualFiles[i] = new VirtualFile(fileSystem, files[i]);
+		}
 		return virtualFiles;
 	}
 
 	@LuaMadeCallable
 	public VirtualFile getParentFile() {
-		if(internalFile.getParentFile() == null) return null;
+		if(internalFile.getParentFile() == null) {
+			return null;
+		}
 		return new VirtualFile(fileSystem, internalFile.getParentFile());
 	}
 
@@ -62,7 +70,9 @@ public final class VirtualFile extends LuaMadeUserdata implements SerializationI
 		if(path.startsWith(rootPath)) {
 			path = path.substring(rootPath.length());
 		}
-		if(path.startsWith(File.separator)) path = path.substring(1);
+		if(path.startsWith(File.separator)) {
+			path = path.substring(1);
+		}
 		return path;
 	}
 
@@ -93,8 +103,11 @@ public final class VirtualFile extends LuaMadeUserdata implements SerializationI
 	}
 
 	public String getTextContents() {
-		if(isDirectory()) return null;
-		else return fileSystem.readFile(this);
+		if(isDirectory()) {
+			return null;
+		} else {
+			return fileSystem.readFile(this);
+		}
 	}
 
 	public File getInternalFile() {
