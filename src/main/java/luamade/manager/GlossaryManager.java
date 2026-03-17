@@ -25,17 +25,7 @@ public class GlossaryManager {
 	 * @param category The category to add entries to
 	 */
 	private static void loadDocumentationFromMarkdown(GlossarCategory category) {
-		String[] docFiles = {
-				"overview.md",
-				"filesystem.md",
-				"terminal.md",
-				"networking.md",
-				"console.md",
-				"usage.md",
-				"enhancements.md",
-				"comparison.md",
-				"development.md"
-		};
+		String[] docFiles = {};
 		for(String file : docFiles) {
 			String path = "/docs/markdown/" + file;
 			try(InputStream in = GlossaryManager.class.getResourceAsStream(path)) {

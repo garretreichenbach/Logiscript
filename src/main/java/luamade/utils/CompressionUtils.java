@@ -24,7 +24,7 @@ public class CompressionUtils {
 	private static final byte DIRECTORY = -3;
 	private static final byte FILE = -4;
 
-	private static ByteBuffer writeBuffer = ByteBuffer.allocate(FileSystem.MAX_FS_SIZE);
+	private static final ByteBuffer writeBuffer = ByteBuffer.allocate(FileSystem.MAX_FS_SIZE);
 
 	/**
 	 * Decompresses a file system from a compressed file.

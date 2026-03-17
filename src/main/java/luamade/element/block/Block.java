@@ -2,25 +2,30 @@ package luamade.element.block;
 
 import api.config.BlockConfig;
 import luamade.LuaMade;
-import org.schema.game.common.data.element.ElementCategory;
+import luamade.element.ElementInterface;
 import org.schema.game.common.data.element.ElementInformation;
 
-public abstract class Block {
+public abstract class Block implements ElementInterface {
 
+	protected String name;
 	protected ElementInformation blockInfo;
 
-	public Block(String name, ElementCategory category) {
-		blockInfo = BlockConfig.newElement(LuaMade.getInstance(), name, new short[6]);
-		BlockConfig.setElementCategory(blockInfo, category);
+	protected Block(String name) {
+		this.name = name;
 	}
 
-	public final ElementInformation getBlockInfo() {
+	@Override
+	public void initData() {
+		blockInfo = BlockConfig.newElement(LuaMade.getInstance(), name, new short[6]);
+	}
+
+	@Override
+	public short getId() {
+		return blockInfo.id;
+	}
+
+	@Override
+	public ElementInformation getInfo() {
 		return blockInfo;
 	}
-
-	public final short getId() {
-		return blockInfo.getId();
-	}
-
-	public abstract void initialize();
 }

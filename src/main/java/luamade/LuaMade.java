@@ -4,9 +4,10 @@ import api.common.GameServer;
 import api.config.BlockConfig;
 import api.listener.events.controller.ClientInitializeEvent;
 import api.mod.StarMod;
-import luamade.element.ElementManager;
-import luamade.element.block.ComputerBlock;
-import luamade.manager.*;
+import luamade.element.ElementRegistry;
+import luamade.manager.ConfigManager;
+import luamade.manager.GlossaryManager;
+import luamade.manager.ResourceManager;
 import org.schema.schine.resource.ResourceLoader;
 
 public class LuaMade extends StarMod {
@@ -29,7 +30,6 @@ public class LuaMade extends StarMod {
 	public void onEnable() {
 		instance = this;
 		ConfigManager.initialize(this);
-		EventManager.initialize(this);
 	}
 
 	@Override
@@ -41,8 +41,7 @@ public class LuaMade extends StarMod {
 
 	@Override
 	public void onBlockConfigLoad(BlockConfig config) {
-		ElementManager.addBlock(new ComputerBlock());
-		ElementManager.initialize();
+		ElementRegistry.registerElements();
 	}
 
 	@Override
@@ -77,6 +76,12 @@ public class LuaMade extends StarMod {
 			GameServer.getServerState().addCountdownMessage(10, "SERVER EXECUTING EMERGENCY SHUTDOWN DUE TO FATAL ERROR");
 		} catch(Exception e) {
 			e.printStackTrace();
+		}
+	}
+
+	public void logDebug(String message) {
+		if(ConfigManager.isDebugMode()) {
+			logMessage("[DEBUG]: [ResourcesReorganized] " + message);
 		}
 	}
 }

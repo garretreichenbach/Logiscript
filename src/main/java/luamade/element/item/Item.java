@@ -2,33 +2,31 @@ package luamade.element.item;
 
 import api.config.BlockConfig;
 import luamade.LuaMade;
-import luamade.element.ElementManager;
-import luamade.manager.ResourceManager;
-import org.schema.game.common.data.element.ElementCategory;
+import luamade.element.ElementInterface;
 import org.schema.game.common.data.element.ElementInformation;
 
-public abstract class Item {
+public abstract class Item implements ElementInterface {
 
+	protected String name;
 	protected ElementInformation itemInfo;
 
-	public Item(String name, ElementCategory category) {
-		String internalName = name.toLowerCase().replace(" ", "-").trim();
-		short textureId = (short) ResourceManager.getTexture(internalName).getTextureId();
-		itemInfo = BlockConfig.newElement(LuaMade.getInstance(), name, textureId);
-		itemInfo.setBuildIconNum(textureId);
-		itemInfo.setPlacable(false);
-		itemInfo.setPhysical(false);
-		BlockConfig.setElementCategory(itemInfo, category);
-		ElementManager.addItem(this);
+	protected Item(String name) {
+		this.name = name;
 	}
 
-	public final ElementInformation getItemInfo() {
+	@Override
+	public void initData() {
+		itemInfo = BlockConfig.newElement(LuaMade.getInstance(), name, new short[6]);
+		itemInfo.placable = false; // Items are not placable in the world like blocks, so set this to false.
+	}
+
+	@Override
+	public short getId() {
+		return itemInfo.id;
+	}
+
+	@Override
+	public ElementInformation getInfo() {
 		return itemInfo;
 	}
-
-	public final short getId() {
-		return itemInfo.getId();
-	}
-
-	public abstract void initialize();
 }
