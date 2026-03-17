@@ -5,7 +5,16 @@ import luamade.lua.fs.FileSystem;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.system.module.ComputerModule;
+import org.luaj.vm2.Globals;
+import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.compiler.LuaC;
+import org.luaj.vm2.lib.Bit32Lib;
+import org.luaj.vm2.lib.PackageLib;
+import org.luaj.vm2.lib.StringLib;
+import org.luaj.vm2.lib.TableLib;
+import org.luaj.vm2.lib.jse.JseBaseLib;
+import org.luaj.vm2.lib.jse.JseMathLib;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -111,10 +120,10 @@ public class Terminal extends LuaMadeUserdata {
 	private void executeScript(String script, String args) {
 		try {
 			// Create a sandboxed Lua environment
-			org.luaj.vm2.Globals globals = createSandboxedGlobals();
+			Globals globals = createSandboxedGlobals();
 			
 			// Set up arguments
-			org.luaj.vm2.LuaTable argsTable = new org.luaj.vm2.LuaTable();
+			LuaTable argsTable = new LuaTable();
 			if(args != null && !args.isEmpty()) {
 				String[] argArray = args.split("\\s+");
 				for(int i = 0; i < argArray.length; i++) {
@@ -124,7 +133,7 @@ public class Terminal extends LuaMadeUserdata {
 			globals.set("args", argsTable);
 			
 			// Execute the script
-			org.luaj.vm2.LuaValue chunk = globals.load(script);
+			LuaValue chunk = globals.load(script);
 			chunk.call();
 		} catch(Exception e) {
 			console.print(valueOf("Error executing script: " + e.getMessage()));
@@ -134,22 +143,22 @@ public class Terminal extends LuaMadeUserdata {
 	/**
 	 * Creates a sandboxed Lua globals environment for script execution
 	 */
-	private org.luaj.vm2.Globals createSandboxedGlobals() {
-		org.luaj.vm2.Globals globals = new org.luaj.vm2.Globals();
+	private Globals createSandboxedGlobals() {
+		Globals globals = new Globals();
 		
 		// Load only safe libraries
-		globals.load(new org.luaj.vm2.lib.jse.JseBaseLib());
-		globals.load(new org.luaj.vm2.lib.PackageLib());
-		globals.load(new org.luaj.vm2.lib.StringLib());
-		globals.load(new org.luaj.vm2.lib.TableLib());
-		globals.load(new org.luaj.vm2.lib.jse.JseMathLib());
-		globals.load(new org.luaj.vm2.lib.Bit32Lib());
-		org.luaj.vm2.compiler.LuaC.install(globals);
+		globals.load(new JseBaseLib());
+		globals.load(new PackageLib());
+		globals.load(new StringLib());
+		globals.load(new TableLib());
+		globals.load(new JseMathLib());
+		globals.load(new Bit32Lib());
+		LuaC.install(globals);
 		
 		// Remove unsafe functions
-		globals.set("dofile", org.luaj.vm2.LuaValue.NIL);
-		globals.set("loadfile", org.luaj.vm2.LuaValue.NIL);
-		globals.set("load", org.luaj.vm2.LuaValue.NIL);
+		globals.set("dofile", NIL);
+		globals.set("loadfile", NIL);
+		globals.set("load", NIL);
 		
 		// Expose safe APIs
 		globals.set("console", console);
@@ -223,7 +232,17 @@ public class Terminal extends LuaMadeUserdata {
 	 * Prints the command prompt
 	 */
 	private void printPrompt() {
-		console.print(valueOf(fileSystem.getCurrentDir() + " $ "));
+		String promptPath = getPromptPath();
+		console.print(valueOf(module.getPromptComputerName() + ":" + promptPath + " $ "));
+	}
+
+	private String getPromptPath() {
+		String currentDir = fileSystem.getCurrentDir();
+		if(currentDir == null || currentDir.isEmpty()) {
+			return "/";
+		}
+		// Only show virtual filesystem style paths in the prompt.
+		return currentDir.startsWith("/") ? currentDir : "/" + currentDir;
 	}
 
 	/**

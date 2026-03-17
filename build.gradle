@@ -10,7 +10,13 @@ version = project.property('mod_version')
 mainClassName = group + modName
 
 repositories {
-    mavenCentral()
+    mavenCentral {
+        metadataSources {
+            mavenPom()
+            artifact()
+            ignoreGradleMetadataRedirection()
+        }
+    }
     maven { url 'https://jitpack.io' }
 }
 

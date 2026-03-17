@@ -11,6 +11,8 @@ public final class ConfigManager {
 	private static SimpleConfigContainer config;
 
 	private static SimpleConfigBool debugMode;
+	private static SimpleConfigInt consoleCharacterLimit;
+	private static SimpleConfigInt consoleLineLimit;
 
 	private ConfigManager() {
 	}
@@ -19,6 +21,8 @@ public final class ConfigManager {
 		config = new SimpleConfigContainer(instance, "config", false);
 
 		debugMode = new SimpleConfigBool(config, "debug_mode", false, "If true, enables debug logging and features.");
+		consoleCharacterLimit = new SimpleConfigInt(config, "console_character_limit", 30000, "Maximum number of characters retained in the computer terminal UI.");
+		consoleLineLimit = new SimpleConfigInt(config, "console_line_limit", 1000, "Maximum number of lines retained in the computer terminal UI.");
 
 		config.readWriteFields();
 		if(isDebugMode()) {
@@ -35,6 +39,14 @@ public final class ConfigManager {
 
 	public static boolean isDebugMode() {
 		return boolOrDefault(debugMode, false);
+	}
+
+	public static int getConsoleCharacterLimit() {
+		return clampInt(intOrDefault(consoleCharacterLimit, 30000), 1000, 200000);
+	}
+
+	public static int getConsoleLineLimit() {
+		return clampInt(intOrDefault(consoleLineLimit, 1000), 100, 10000);
 	}
 
 

@@ -5,7 +5,6 @@ import api.utils.gui.GUIInputDialogPanel;
 import luamade.manager.ConfigManager;
 import luamade.system.module.ComputerModule;
 import org.schema.game.client.controller.PlayerInput;
-import org.schema.schine.common.OnInputChangedCallback;
 import org.schema.schine.common.TabCallback;
 import org.schema.schine.common.TextAreaInput;
 import org.schema.schine.common.TextCallback;
@@ -83,7 +82,7 @@ public class ComputerDialog extends PlayerInput {
 
 		private static final String PROMPT_MARKER = " $ ";
 
-		private ComputerModule computerModule;
+		private final ComputerModule computerModule;
 		private GUIScrollablePanel consolePanel;
 		private GUIActivatableTextBar consolePane;
 		private String currentInputLine = "";
@@ -143,7 +142,7 @@ public class ComputerDialog extends PlayerInput {
 			contentPane.setTextBoxHeightLast(500);
 
 			consolePanel = new GUIScrollablePanel(850, 650, contentPane.getContent(0), getState());
-			consolePane = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.MEDIUM, ConfigManager.getMainConfig().getConfigurableInt("console-character-limit", 30000), ConfigManager.getMainConfig().getConfigurableInt("console-line-limit", 1000), "", contentPane.getContent(0), new TextCallback() {
+			consolePane = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.MEDIUM, ConfigManager.getConsoleCharacterLimit(), ConfigManager.getConsoleLineLimit(), "", contentPane.getContent(0), new TextCallback() {
 				@Override
 				public String[] getCommandPrefixes() {
 					return new String[0];
@@ -171,67 +170,47 @@ public class ComputerDialog extends PlayerInput {
 					// Called when a new line is created
 					executeCurrentInput();
 				}
-			}, new OnInputChangedCallback() {
-				@Override
-				public String onInputChanged(String input) {
-					// The input parameter contains the new text content
-					// We need to extract just the current line being typed
-					if(input != null) {
-						String[] lines = input.split("\n");
-						if(lines.length > 0) {
-							String lastLine = lines[lines.length - 1];
-							// Extract input after prompt (format: "path $ ")
-							int promptIndex = lastLine.indexOf(PROMPT_MARKER);
-							if(promptIndex != -1) {
-								// Calculate the absolute position of the prompt in the full text
-								int lineStartPos = 0;
-								for(int i = 0; i < lines.length - 1; i++) {
-									lineStartPos += lines[i].length() + 1; // +1 for newline
-								}
-								promptStartPosition = lineStartPos + promptIndex + PROMPT_MARKER.length();
+			}, input -> {
+				// Guard: prevent deletion of protected console output / prompt
+				if(input != null && lastModuleContent != null && !lastModuleContent.isEmpty()) {
+					if(!input.startsWith(lastModuleContent)) {
+						// User deleted into protected territory – restore it
+						return lastModuleContent + currentInputLine;
+					}
+				}
 
-								if(lastLine.length() > promptIndex + PROMPT_MARKER.length()) {
-									currentInputLine = lastLine.substring(promptIndex + PROMPT_MARKER.length());
-									// Mark that user is actively typing only when there's actual input
-									userIsTyping = true;
-								} else {
-									currentInputLine = "";
-									// No user input, allow syncing from module
-									userIsTyping = false;
-								}
+				// The input parameter contains the new text content
+				// We need to extract just the current line being typed
+				if(input != null) {
+					String[] lines = input.split("\n");
+					if(lines.length > 0) {
+						String lastLine = lines[lines.length - 1];
+						// Extract input after the final prompt marker (supports name:path $ prompt)
+						int promptIndex = lastLine.lastIndexOf(PROMPT_MARKER);
+						if(promptIndex != -1) {
+							// Calculate the absolute position of the prompt in the full text
+							int lineStartPos = 0;
+							for(int i = 0; i < lines.length - 1; i++) {
+								lineStartPos += lines[i].length() + 1; // +1 for newline
+							}
+							promptStartPosition = lineStartPos + promptIndex + PROMPT_MARKER.length();
+
+							if(lastLine.length() > promptIndex + PROMPT_MARKER.length()) {
+								currentInputLine = lastLine.substring(promptIndex + PROMPT_MARKER.length());
+								// Mark that user is actively typing only when there's actual input
+								userIsTyping = true;
 							} else {
-								// Prompt was deleted or modified - restore the last valid content
-								// This prevents users from deleting the prompt
-								/*if(lastModuleContent != null && !lastModuleContent.isEmpty()) {
-									// Restore the text to the last valid module content with the saved input
-									String restoredText = lastModuleContent;
-									if(!currentInputLine.isEmpty()) {
-										restoredText = lastModuleContent + currentInputLine;
-									}
-									// Schedule text restoration on next frame to avoid recursion
-									final String textToRestore = restoredText;
-									consolePane.getState().getController().queueUIAudio("0022_menu_back");
-									Thread restoreThread = new Thread() {
-										@Override
-										public void run() {
-											try {
-												sleep(100);
-												consolePane.setText(textToRestore);
-											} catch(InterruptedException exception) {
-												LuaMade.getInstance().logException("Error restoring console prompt", exception);
-											}
-										}
-									};
-									restoreThread.start();
-									return input; // Return current input for now, will be fixed on next frame
-								}*/
 								currentInputLine = "";
+								// No user input, allow syncing from module
 								userIsTyping = false;
 							}
+						} else {
+							currentInputLine = "";
+							userIsTyping = false;
 						}
 					}
-					return input;
 				}
+				return input;
 			}) {
 				@Override
 				public void draw() {

@@ -25,6 +25,7 @@ public class ComputerModule {
 	private long lastTouched;
 	private String lastOpenFile = "";
 	private String savedTerminalInput = "";
+
 	public ComputerModule(SegmentPiece segmentPiece, String uuid) {
 		this.uuid = uuid;
 		this.segmentPiece = segmentPiece;
@@ -45,6 +46,11 @@ public class ComputerModule {
 
 	public String getUUID() {
 		return uuid;
+	}
+
+	public String getPromptComputerName() {
+		int shortLength = Math.min(8, uuid.length());
+		return "computer-" + uuid.substring(0, shortLength);
 	}
 
 	public String getLastTextContent() {
@@ -122,7 +128,7 @@ public class ComputerModule {
 	}
 
 	public void setSavedTerminalInput(String input) {
-		this.savedTerminalInput = input;
+		savedTerminalInput = input;
 	}
 
 	/**
