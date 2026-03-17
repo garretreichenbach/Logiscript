@@ -130,12 +130,46 @@ Scripts executed in the terminal have access to these global variables:
 - `fs` - File system API
 - `term` - Terminal API
 - `net` - Network API
+- `util` - Built-in Lua utility library with native timing helpers
+- `vector` - Built-in Lua vector helper library
 - `args` - Table of command-line arguments
 
 Runtime behavior notes:
 
 - Foreground scripts (`run`) are time-budgeted to prevent runaway execution.
 - Background scripts (`runbg`) are limited to a small parallel pool and also time-budgeted.
+
+### Utility API
+
+Access helper functions through the `util` global variable:
+
+```lua
+-- Time helpers
+now = util.now()
+util.sleep(100)
+
+-- Value helpers
+x = util.clamp(42, 0, 10)
+r = util.round(3.14159)
+
+-- String helpers
+parts = util.split("a,b,c", ",")
+joined = util.join(parts, "|")
+ok1 = util.startsWith("starmade", "star")
+ok2 = util.endsWith("terminal.lua", ".lua")
+```
+
+`util` is now loaded from `src/main/resources/scripts/lib/util.lua`, with native `util.now()` and `util.sleep()` attached from Java.
+
+### Vector Library
+
+Access vector helpers through the `vector` global variable:
+
+```lua
+v = vector.new(1, 2, 3)
+v:add({ x = 4, y = 5, z = 6 })
+length = v:length()
+```
 
 Server resource controls (config):
 
@@ -163,6 +197,13 @@ Prompt placeholders:
 - `{display}` - Saved display name
 - `{hostname}` - Network hostname
 - `{dir}` - Current working directory
+
+Default startup scripts are bundled under `src/main/resources/scripts` and copied into each computer's virtual filesystem on first boot:
+
+- `scripts/etc/startup.lua` -> `/etc/startup.lua`
+- `scripts/bin/*.lua` -> `/bin/*.lua`
+
+Built-in Lua libraries are also bundled under `src/main/resources/scripts/lib` and auto-loaded into the sandbox.
 
 Example script (/bin/example.lua):
 ```lua
@@ -211,7 +252,33 @@ if net.hasMessage("chat") then
     message = net.receive("chat")
     console.print(message.getSender() .. ": " .. message.getContent())
 end
+
+-- Join a galaxy-wide channel (optional password)
+net.openChannel("trade", "")
+net.sendChannel("trade", "", "Anyone selling fuel?")
+
+-- Join a same-sector local broadcast channel
+net.openLocalChannel("sector-alert", "")
+net.sendLocal("sector-alert", "", "Pirates on scan")
+
+-- Long-range modem: one active link only
+net.openModem("secret")
+net.connectModem("other-computer", "secret")
+net.sendModem("Handshake complete")
+
+-- Transport metadata on received messages
+message = net.receiveChannel("trade")
+if message then
+    print(message.getTransport() .. " via " .. message.getRoute())
+end
 ```
+
+Network model summary:
+
+- Direct messages: hostname to hostname using `send` / `receive`
+- Galaxy channels: unique named channels with optional password, many listeners anywhere
+- Local channels: unique named channels scoped by current sector at send time, many listeners in-sector
+- Long-range modems: explicit 1-to-1 links using `openModem`, `connectModem`, `sendModem`
 
 ## Internals
 - All Computer File Systems are sandboxed and isolated from each other

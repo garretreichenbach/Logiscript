@@ -44,6 +44,11 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public EntityInfo getInfo() {
+		return new EntityInfo(segmentController);
+	}
+
+	@LuaMadeCallable
 	public String getName() {
 		return segmentController.getRealName();
 	}

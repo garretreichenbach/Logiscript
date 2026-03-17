@@ -3,28 +3,38 @@ package luamade.lua.networking;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.system.module.ComputerModule;
+import org.schema.common.util.linAlg.Vector3i;
 
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Implements networking capabilities for computers in the game.
- * This allows computers to communicate with each other using various protocols.
+ * Supports direct messages, galaxy-wide channels, local same-sector channels,
+ * and explicit long-range 1-to-1 modem links.
  */
 public class NetworkInterface extends LuaMadeUserdata {
+	private static final String MAILBOX_DIRECT_PREFIX = "direct:";
+	private static final String MAILBOX_CHANNEL_PREFIX = "channel:";
+	private static final String MAILBOX_LOCAL_PREFIX = "local:";
+	private static final String MAILBOX_MODEM = "modem";
 
 	private final ComputerModule module;
 	private String hostname;
 	private static final Map<String, NetworkInterface> networkInterfaces = new ConcurrentHashMap<>();
 	private static final Map<String, Map<String, MessageQueue>> messageQueues = new ConcurrentHashMap<>();
+	private static final Map<String, Channel> globalChannels = new ConcurrentHashMap<>();
+	private static final Map<String, Channel> localChannels = new ConcurrentHashMap<>();
+	private static final Map<String, ModemEndpoint> modemEndpoints = new ConcurrentHashMap<>();
+	private static final Map<String, ModemConnection> modemConnections = new ConcurrentHashMap<>();
 
 	public NetworkInterface(ComputerModule module) {
 		this.module = module;
 		hostname = "computer-" + module.getUUID();
 		networkInterfaces.put(hostname, this);
-		messageQueues.put(hostname, new HashMap<String, MessageQueue>());
+		messageQueues.put(hostname, new ConcurrentHashMap<String, MessageQueue>());
 	}
 
 	/**
@@ -37,12 +47,22 @@ public class NetworkInterface extends LuaMadeUserdata {
 		// Check if hostname is already taken
 		if(networkInterfaces.containsKey(hostname) && !hostname.equals(this.hostname)) return false;
 
+		String oldHostname = this.hostname;
+		disconnectModemInternal(oldHostname);
+		migrateChannelSubscriptions(oldHostname, hostname, globalChannels);
+		migrateChannelSubscriptions(oldHostname, hostname, localChannels);
+		ModemEndpoint endpoint = modemEndpoints.remove(oldHostname);
+		if(endpoint != null) {
+			endpoint.setHostname(hostname);
+			modemEndpoints.put(hostname, endpoint);
+		}
+
 		// Update hostname
-		networkInterfaces.remove(this.hostname);
-		Map<String, MessageQueue> queues = messageQueues.remove(this.hostname);
+		networkInterfaces.remove(oldHostname);
+		Map<String, MessageQueue> queues = messageQueues.remove(oldHostname);
 		this.hostname = hostname;
 		networkInterfaces.put(hostname, this);
-		messageQueues.put(hostname, queues);
+		messageQueues.put(hostname, queues == null ? new ConcurrentHashMap<String, MessageQueue>() : queues);
 
 		return true;
 	}
@@ -70,14 +90,8 @@ public class NetworkInterface extends LuaMadeUserdata {
 		}
 
 		// Get or create message queue for the protocol
-		Map<String, MessageQueue> targetQueues = messageQueues.get(targetHostname);
-		if(!targetQueues.containsKey(protocol)) {
-			targetQueues.put(protocol, new MessageQueue());
-		}
-
-		// Add message to queue
-		MessageQueue queue = targetQueues.get(protocol);
-		queue.addMessage(new Message(hostname, message));
+		MessageQueue queue = getOrCreateMailbox(targetHostname, directMailbox(protocol));
+		queue.addMessage(new Message(hostname, message, protocol, "direct"));
 
 		return true;
 	}
@@ -106,17 +120,7 @@ public class NetworkInterface extends LuaMadeUserdata {
 		if(protocol == null || protocol.isEmpty()) {
 			return null;
 		}
-
-		// Check if queue exists
-		Map<String, MessageQueue> queues = messageQueues.get(hostname);
-		if(!queues.containsKey(protocol)) {
-			queues.put(protocol, new MessageQueue());
-			return null;
-		}
-
-		// Get message from queue
-		MessageQueue queue = queues.get(protocol);
-		return queue.getMessage();
+		return getOrCreateMailbox(hostname, directMailbox(protocol)).getMessage();
 	}
 
 	/**
@@ -127,17 +131,192 @@ public class NetworkInterface extends LuaMadeUserdata {
 		if(protocol == null || protocol.isEmpty()) {
 			return false;
 		}
+		return !getOrCreateMailbox(hostname, directMailbox(protocol)).isEmpty();
+	}
 
-		// Check if queue exists
-		Map<String, MessageQueue> queues = messageQueues.get(hostname);
-		if(!queues.containsKey(protocol)) {
-			queues.put(protocol, new MessageQueue());
+	@LuaMadeCallable
+	public boolean openChannel(String channelName, String password) {
+		return subscribeToChannel(globalChannels, channelName, password);
+	}
+
+	@LuaMadeCallable
+	public boolean closeChannel(String channelName) {
+		return unsubscribeFromChannel(globalChannels, channelName);
+	}
+
+	@LuaMadeCallable
+	public boolean sendChannel(String channelName, String password, String message) {
+		Channel channel = globalChannels.get(normalizeChannelName(channelName));
+		if(channel == null || !channel.matchesPassword(password)) {
 			return false;
 		}
 
-		// Check if queue has messages
-		MessageQueue queue = queues.get(protocol);
-		return !queue.isEmpty();
+		int delivered = 0;
+		for(String subscriber : channel.getSubscribers()) {
+			if(subscriber.equals(hostname)) {
+				continue;
+			}
+			if(networkInterfaces.containsKey(subscriber)) {
+				getOrCreateMailbox(subscriber, channelMailbox(channel.getName())).addMessage(new Message(hostname, message, channel.getName(), "channel"));
+				delivered++;
+			}
+		}
+		return delivered > 0;
+	}
+
+	@LuaMadeCallable
+	public Message receiveChannel(String channelName) {
+		String normalized = normalizeChannelName(channelName);
+		if(normalized == null) {
+			return null;
+		}
+		return getOrCreateMailbox(hostname, channelMailbox(normalized)).getMessage();
+	}
+
+	@LuaMadeCallable
+	public boolean hasChannelMessage(String channelName) {
+		String normalized = normalizeChannelName(channelName);
+		if(normalized == null) {
+			return false;
+		}
+		return !getOrCreateMailbox(hostname, channelMailbox(normalized)).isEmpty();
+	}
+
+	@LuaMadeCallable
+	public boolean openLocalChannel(String channelName, String password) {
+		return subscribeToChannel(localChannels, channelName, password);
+	}
+
+	@LuaMadeCallable
+	public boolean closeLocalChannel(String channelName) {
+		return unsubscribeFromChannel(localChannels, channelName);
+	}
+
+	@LuaMadeCallable
+	public boolean sendLocal(String channelName, String password, String message) {
+		Channel channel = localChannels.get(normalizeChannelName(channelName));
+		if(channel == null || !channel.matchesPassword(password)) {
+			return false;
+		}
+
+		String senderSector = getSectorKey();
+		int delivered = 0;
+		for(String subscriber : channel.getSubscribers()) {
+			if(subscriber.equals(hostname)) {
+				continue;
+			}
+			NetworkInterface target = networkInterfaces.get(subscriber);
+			if(target != null && senderSector.equals(target.getSectorKey())) {
+				getOrCreateMailbox(subscriber, localMailbox(channel.getName())).addMessage(new Message(hostname, message, channel.getName(), "local"));
+				delivered++;
+			}
+		}
+		return delivered > 0;
+	}
+
+	@LuaMadeCallable
+	public Message receiveLocal(String channelName) {
+		String normalized = normalizeChannelName(channelName);
+		if(normalized == null) {
+			return null;
+		}
+		return getOrCreateMailbox(hostname, localMailbox(normalized)).getMessage();
+	}
+
+	@LuaMadeCallable
+	public boolean hasLocalMessage(String channelName) {
+		String normalized = normalizeChannelName(channelName);
+		if(normalized == null) {
+			return false;
+		}
+		return !getOrCreateMailbox(hostname, localMailbox(normalized)).isEmpty();
+	}
+
+	@LuaMadeCallable
+	public boolean openModem(String password) {
+		ModemConnection activeConnection = modemConnections.get(hostname);
+		if(activeConnection != null) {
+			return false;
+		}
+
+		modemEndpoints.put(hostname, new ModemEndpoint(hostname, sanitizePassword(password)));
+		return true;
+	}
+
+	@LuaMadeCallable
+	public boolean closeModem() {
+		modemEndpoints.remove(hostname);
+		disconnectModemInternal(hostname);
+		return true;
+	}
+
+	@LuaMadeCallable
+	public boolean connectModem(String targetHostname, String password) {
+		if(targetHostname == null || targetHostname.isEmpty() || targetHostname.equals(hostname)) {
+			return false;
+		}
+		if(!networkInterfaces.containsKey(targetHostname)) {
+			return false;
+		}
+		if(modemConnections.containsKey(hostname) || modemConnections.containsKey(targetHostname)) {
+			return false;
+		}
+
+		ModemEndpoint endpoint = modemEndpoints.get(targetHostname);
+		if(endpoint == null || !endpoint.matchesPassword(password)) {
+			return false;
+		}
+
+		ModemConnection connection = new ModemConnection(hostname, targetHostname);
+		modemConnections.put(hostname, connection);
+		modemConnections.put(targetHostname, connection);
+		return true;
+	}
+
+	@LuaMadeCallable
+	public boolean disconnectModem() {
+		return disconnectModemInternal(hostname);
+	}
+
+	@LuaMadeCallable
+	public boolean isModemConnected() {
+		return modemConnections.containsKey(hostname);
+	}
+
+	@LuaMadeCallable
+	public String getModemPeer() {
+		ModemConnection connection = modemConnections.get(hostname);
+		if(connection == null) {
+			return null;
+		}
+		return connection.getPeer(hostname);
+	}
+
+	@LuaMadeCallable
+	public boolean sendModem(String message) {
+		if(message == null) {
+			return false;
+		}
+		ModemConnection connection = modemConnections.get(hostname);
+		if(connection == null) {
+			return false;
+		}
+		String peer = connection.getPeer(hostname);
+		if(peer == null || !networkInterfaces.containsKey(peer)) {
+			return false;
+		}
+		getOrCreateMailbox(peer, MAILBOX_MODEM).addMessage(new Message(hostname, message, peer, "modem"));
+		return true;
+	}
+
+	@LuaMadeCallable
+	public Message receiveModem() {
+		return getOrCreateMailbox(hostname, MAILBOX_MODEM).getMessage();
+	}
+
+	@LuaMadeCallable
+	public boolean hasModemMessage() {
+		return !getOrCreateMailbox(hostname, MAILBOX_MODEM).isEmpty();
 	}
 
 	/**
@@ -146,6 +325,11 @@ public class NetworkInterface extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public String[] getHostnames() {
 		return networkInterfaces.keySet().toArray(new String[0]);
+	}
+
+	@LuaMadeCallable
+	public String getCurrentSector() {
+		return getSectorKey();
 	}
 
 	/**
@@ -164,17 +348,118 @@ public class NetworkInterface extends LuaMadeUserdata {
 		return networkInterfaces.containsKey(targetHostname);
 	}
 
+	private boolean subscribeToChannel(Map<String, Channel> registry, String channelName, String password) {
+		String normalized = normalizeChannelName(channelName);
+		if(normalized == null) {
+			return false;
+		}
+
+		String normalizedPassword = sanitizePassword(password);
+		Channel created = new Channel(normalized, normalizedPassword);
+		Channel channel = registry.putIfAbsent(normalized, created);
+		if(channel == null) {
+			channel = created;
+		}
+
+		if(!channel.matchesPassword(normalizedPassword)) {
+			return false;
+		}
+
+		channel.getSubscribers().add(hostname);
+		return true;
+	}
+
+	private boolean unsubscribeFromChannel(Map<String, Channel> registry, String channelName) {
+		String normalized = normalizeChannelName(channelName);
+		if(normalized == null) {
+			return false;
+		}
+
+		Channel channel = registry.get(normalized);
+		if(channel == null) {
+			return false;
+		}
+
+		boolean removed = channel.getSubscribers().remove(hostname);
+		if(channel.getSubscribers().isEmpty()) {
+			registry.remove(normalized);
+		}
+		return removed;
+	}
+
+	private void migrateChannelSubscriptions(String oldHostname, String newHostname, Map<String, Channel> registry) {
+		for(Channel channel : registry.values()) {
+			if(channel.getSubscribers().remove(oldHostname)) {
+				channel.getSubscribers().add(newHostname);
+			}
+		}
+	}
+
+	private boolean disconnectModemInternal(String sourceHostname) {
+		ModemConnection connection = modemConnections.remove(sourceHostname);
+		if(connection == null) {
+			return false;
+		}
+
+		String peer = connection.getPeer(sourceHostname);
+		if(peer != null) {
+			modemConnections.remove(peer);
+		}
+		return true;
+	}
+
+	private MessageQueue getOrCreateMailbox(String targetHostname, String mailbox) {
+		Map<String, MessageQueue> queues = messageQueues.computeIfAbsent(targetHostname, key -> new ConcurrentHashMap<String, MessageQueue>());
+		return queues.computeIfAbsent(mailbox, key -> new MessageQueue());
+	}
+
+	private String directMailbox(String protocol) {
+		return MAILBOX_DIRECT_PREFIX + protocol;
+	}
+
+	private String channelMailbox(String channelName) {
+		return MAILBOX_CHANNEL_PREFIX + channelName;
+	}
+
+	private String localMailbox(String channelName) {
+		return MAILBOX_LOCAL_PREFIX + channelName;
+	}
+
+	private String normalizeChannelName(String channelName) {
+		if(channelName == null) {
+			return null;
+		}
+		String normalized = channelName.trim().toLowerCase();
+		if(normalized.isEmpty() || normalized.contains(" ")) {
+			return null;
+		}
+		return normalized;
+	}
+
+	private String sanitizePassword(String password) {
+		return password == null ? "" : password;
+	}
+
+	private String getSectorKey() {
+		Vector3i sector = module.getSegmentPiece().getSegmentController().getSector(new Vector3i());
+		return sector.x + ":" + sector.y + ":" + sector.z;
+	}
+
 	/**
 	 * Message class for network communication
 	 */
 	public static class Message extends LuaMadeUserdata {
 		private final String sender;
 		private final String content;
+		private final String route;
+		private final String transport;
 		private final long timestamp;
 
-		public Message(String sender, String content) {
+		public Message(String sender, String content, String route, String transport) {
 			this.sender = sender;
 			this.content = content;
+			this.route = route;
+			this.transport = transport;
 			timestamp = System.currentTimeMillis();
 		}
 
@@ -189,8 +474,81 @@ public class NetworkInterface extends LuaMadeUserdata {
 		}
 
 		@LuaMadeCallable
+		public String getRoute() {
+			return route;
+		}
+
+		@LuaMadeCallable
+		public String getTransport() {
+			return transport;
+		}
+
+		@LuaMadeCallable
 		public long getTimestamp() {
 			return timestamp;
+		}
+	}
+
+	private static final class Channel {
+		private final String name;
+		private final String password;
+		private final Set<String> subscribers = ConcurrentHashMap.newKeySet();
+
+		private Channel(String name, String password) {
+			this.name = name;
+			this.password = password;
+		}
+
+		private String getName() {
+			return name;
+		}
+
+		private Set<String> getSubscribers() {
+			return subscribers;
+		}
+
+		private boolean matchesPassword(String suppliedPassword) {
+			String normalized = suppliedPassword == null ? "" : suppliedPassword;
+			return password.equals(normalized);
+		}
+	}
+
+	private static final class ModemEndpoint {
+		private volatile String hostname;
+		private final String password;
+
+		private ModemEndpoint(String hostname, String password) {
+			this.hostname = hostname;
+			this.password = password;
+		}
+
+		private boolean matchesPassword(String suppliedPassword) {
+			String normalized = suppliedPassword == null ? "" : suppliedPassword;
+			return password.equals(normalized);
+		}
+
+		private void setHostname(String hostname) {
+			this.hostname = hostname;
+		}
+	}
+
+	private static final class ModemConnection {
+		private final String a;
+		private final String b;
+
+		private ModemConnection(String a, String b) {
+			this.a = a;
+			this.b = b;
+		}
+
+		private String getPeer(String hostname) {
+			if(a.equals(hostname)) {
+				return b;
+			}
+			if(b.equals(hostname)) {
+				return a;
+			}
+			return null;
 		}
 	}
 
@@ -198,7 +556,7 @@ public class NetworkInterface extends LuaMadeUserdata {
 	 * Message queue for storing messages
 	 */
 	private static class MessageQueue {
-		private final java.util.Queue<Message> queue = new LinkedList<>();
+		private final java.util.Queue<Message> queue = new ConcurrentLinkedQueue<>();
 
 		public void addMessage(Message message) {
 			queue.add(message);

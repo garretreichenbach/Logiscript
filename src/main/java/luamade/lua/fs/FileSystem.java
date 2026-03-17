@@ -11,6 +11,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.IOException;
@@ -121,105 +122,13 @@ public class FileSystem extends LuaMadeUserdata {
 	 * Creates default files for a new file system
 	 */
 	private void createDefaultFiles() {
-		String startupScript =
-			"-- /etc/startup.lua\n" +
-			"-- This file is executed whenever the terminal boots or when you run 'reboot'.\n" +
-			"-- Available prompt placeholders: {name}, {display}, {hostname}, {dir}\n" +
-			"-- UTF-8 output is supported, so you can use box/block glyphs in custom UIs.\n" +
-			"\n" +
-			"term.setAutoPrompt(true)\n" +
-			"term.setPromptTemplate(\"{name}:{dir} $ \")\n" +
-			"\n" +
-			"print(\"LuaMade Terminal v1.0\")\n" +
-			"print(\"Type 'help' for a list of commands\")\n";
-
-		if(!exists("/etc/startup.lua")) {
-			write("/etc/startup.lua", startupScript);
-		}
-
-		// Create a simple shell script as an example
-		String shellScript =
-			"-- LuaMade Shell\n" +
-			"-- This is an example Lua script for the terminal\n" +
-			"\n" +
-			"print(\"Hello from shell.lua!\")\n" +
-			"print(\"You can create your own scripts in /bin or /home\")\n" +
-			"print(\"Available globals: console, fs, term, net, args\")\n";
-		
-		if(!exists("/bin/shell.lua")) {
-			write("/bin/shell.lua", shellScript);
-		}
-		
-		// Create a simple hello world example
-		String helloScript = 
-			"-- Hello World example\n" +
-			"print(\"Hello, World!\")\n" +
-			"if args[1] then\n" +
-			"    print(\"Hello, \" .. args[1] .. \"!\")\n" +
-			"end\n";
-		
-		if(!exists("/bin/hello.lua")) {
-			write("/bin/hello.lua", helloScript);
-		}
-		
-		// Create a network chat example
-		String chatScript = 
-			"-- Simple chat client\n" +
-			"-- Usage: run /bin/chat.lua <target_hostname> <message>\n" +
-			"\n" +
-			"local target = args[1]\n" +
-			"local message = args[2] or \"Hello!\"\n" +
-			"\n" +
-			"if not target then\n" +
-			"    print(\"Usage: chat <target_hostname> <message>\")\n" +
-			"    print(\"Your hostname: \" .. net.getHostname())\n" +
-			"    print(\"\\nAvailable computers:\")\n" +
-			"    local hosts = net.getHostnames()\n" +
-			"    for i = 1, #hosts do\n" +
-			"        if hosts[i] ~= net.getHostname() then\n" +
-			"            print(\"  \" .. hosts[i])\n" +
-			"        end\n" +
-			"    end\n" +
-			"else\n" +
-			"    if net.send(target, \"chat\", message) then\n" +
-			"        print(\"Message sent to \" .. target)\n" +
-			"    else\n" +
-			"        print(\"Failed to send message. Computer not found.\")\n" +
-			"    end\n" +
-			"end\n";
-		
-		if(!exists("/bin/chat.lua")) {
-			write("/bin/chat.lua", chatScript);
-		}
-		
-		// Create a file lister example
-		String listScript = 
-			"-- Recursive file lister\n" +
-			"-- Usage: run /bin/listall.lua [directory]\n" +
-			"\n" +
-			"local function listRecursive(dir, indent)\n" +
-			"    indent = indent or 0\n" +
-			"    local files = fs.list(dir)\n" +
-			"    for i = 1, #files do\n" +
-			"        local file = files[i]\n" +
-			"        local path = dir .. \"/\" .. file\n" +
-			"        local prefix = string.rep(\"  \", indent)\n" +
-			"        if fs.isDir(path) then\n" +
-			"            print(prefix .. file .. \"/\")\n" +
-			"            listRecursive(path, indent + 1)\n" +
-			"        else\n" +
-			"            print(prefix .. file)\n" +
-			"        end\n" +
-			"    end\n" +
-			"end\n" +
-			"\n" +
-			"local dir = args[1] or \"/\"\n" +
-			"print(\"Listing: \" .. dir)\n" +
-			"listRecursive(dir)\n";
-		
-		if(!exists("/bin/listall.lua")) {
-			write("/bin/listall.lua", listScript);
-		}
+		installDefaultScriptFromResource("scripts/etc/startup.lua", "/etc/startup.lua");
+		installDefaultScriptFromResource("scripts/bin/shell.lua", "/bin/shell.lua");
+		installDefaultScriptFromResource("scripts/bin/hello.lua", "/bin/hello.lua");
+		installDefaultScriptFromResource("scripts/bin/chat.lua", "/bin/chat.lua");
+		installDefaultScriptFromResource("scripts/bin/listall.lua", "/bin/listall.lua");
+		installDefaultScriptFromResource("scripts/bin/channel_chat.lua", "/bin/channel_chat.lua");
+		installDefaultScriptFromResource("scripts/bin/modem.lua", "/bin/modem.lua");
 		
 		// Create a README file
 		String readme = 
@@ -252,18 +161,62 @@ public class FileSystem extends LuaMadeUserdata {
 			"    - fs: File system API\n" +
 			"    - term: Terminal API\n" +
 			"    - net: Network API\n" +
+			"    - util: Utility API\n" +
 			"    - args: Table of command-line arguments\n" +
 			"\n" +
 			"Example scripts are located in /bin/:\n" +
 			"  - hello.lua: Simple hello world\n" +
 			"  - shell.lua: Shell information\n" +
 			"  - chat.lua: Send messages to other computers\n" +
+			"  - channel_chat.lua: Galaxy/local channel messaging\n" +
+			"  - modem.lua: Long-range 1-to-1 modem helper\n" +
 			"  - listall.lua: Recursively list all files\n" +
 			"\n" +
 			"Try: run /bin/hello.lua YourName\n";
 		
 		if(!exists("/home/README.txt")) {
 			write("/home/README.txt", readme);
+		}
+	}
+
+	private void installDefaultScriptFromResource(String resourcePath, String destinationPath) {
+		if(exists(destinationPath)) {
+			return;
+		}
+
+		String script = readResourceText(resourcePath);
+		if(script == null) {
+			LuaMade.getInstance().logWarning("Default script resource not found: " + resourcePath);
+			return;
+		}
+
+		if(!write(destinationPath, script)) {
+			LuaMade.getInstance().logWarning("Failed writing default script to " + destinationPath + " from resource " + resourcePath);
+		}
+	}
+
+	private String readResourceText(String resourcePath) {
+		InputStream in = getClass().getClassLoader().getResourceAsStream(resourcePath);
+		if(in == null) {
+			in = LuaMade.class.getClassLoader().getResourceAsStream(resourcePath);
+		}
+		if(in == null) {
+			return null;
+		}
+
+		try(BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+			StringBuilder content = new StringBuilder();
+			String line;
+			while((line = reader.readLine()) != null) {
+				if(content.length() > 0) {
+					content.append('\n');
+				}
+				content.append(line);
+			}
+			return content.toString();
+		} catch(IOException exception) {
+			LuaMade.getInstance().logException("Failed reading default script resource: " + resourcePath, exception);
+			return null;
 		}
 	}
 

@@ -2,6 +2,7 @@ package luamade.lua.terminal;
 
 import luamade.lua.Console;
 import luamade.lua.fs.FileSystem;
+import luamade.lua.util.UtilApi;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.manager.ConfigManager;
@@ -18,6 +19,10 @@ import org.luaj.vm2.lib.TableLib;
 import org.luaj.vm2.lib.jse.JseMathLib;
 
 import java.nio.charset.StandardCharsets;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -497,8 +502,68 @@ public class Terminal extends LuaMadeUserdata {
 		globals.set("fs", fileSystem);
 		globals.set("term", this);
 		globals.set("net", module.getNetworkInterface());
+
+		LuaTable utilLibrary = loadBuiltinLibrary(globals, "scripts/lib/util.lua", "util");
+		LuaTable vectorLibrary = loadBuiltinLibrary(globals, "scripts/lib/vector.lua", "vector");
+
+		UtilApi nativeUtil = new UtilApi();
+		if(utilLibrary != null) {
+			utilLibrary.set("now", nativeUtil.get("now"));
+			utilLibrary.set("sleep", nativeUtil.get("sleep"));
+		} else {
+			globals.set("util", nativeUtil);
+		}
+
+		if(vectorLibrary == null) {
+			globals.set("vector", new LuaTable());
+		}
 		
 		return globals;
+	}
+
+	private LuaTable loadBuiltinLibrary(Globals globals, String resourcePath, String globalName) {
+		String source = readBuiltinResource(resourcePath);
+		if(source == null) {
+			return null;
+		}
+
+		try {
+			LuaValue chunk = globals.load(source, resourcePath);
+			LuaValue result = chunk.call();
+			if(result.istable()) {
+				LuaTable table = (LuaTable) result;
+				globals.set(globalName, table);
+				return table;
+			}
+		} catch(LuaError error) {
+			console.print(valueOf("Lua error loading builtin library '" + globalName + "': " + error.getMessage()));
+		} catch(Exception exception) {
+			console.print(valueOf("Error loading builtin library '" + globalName + "': " + exception.getMessage()));
+		}
+
+		return null;
+	}
+
+	private String readBuiltinResource(String resourcePath) {
+		InputStream input = getClass().getClassLoader().getResourceAsStream(resourcePath);
+		if(input == null) {
+			return null;
+		}
+
+		try(BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
+			StringBuilder builder = new StringBuilder();
+			String line;
+			while((line = reader.readLine()) != null) {
+				if(builder.length() > 0) {
+					builder.append('\n');
+				}
+				builder.append(line);
+			}
+			return builder.toString();
+		} catch(IOException exception) {
+			console.print(valueOf("Error reading builtin resource: " + resourcePath));
+			return null;
+		}
 	}
 
 	/**

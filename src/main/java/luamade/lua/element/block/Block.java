@@ -3,6 +3,7 @@ package luamade.lua.element.block;
 import luamade.lua.data.LuaVec3i;
 import luamade.lua.element.inventory.Inventory;
 import luamade.lua.entity.Entity;
+import luamade.lua.entity.EntityInfo;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.client.controller.element.world.ClientSegmentProvider;
@@ -51,6 +52,11 @@ public class Block extends LuaMadeUserdata {
     @LuaMadeCallable
     public Entity getEntity() {
         return new Entity(segmentPiece.getSegmentController());
+    }
+
+    @LuaMadeCallable
+    public EntityInfo getEntityInfo() {
+        return new EntityInfo(segmentPiece.getSegmentController());
     }
 
     @LuaMadeCallable
