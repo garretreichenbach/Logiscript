@@ -21,6 +21,7 @@ repositories {
 }
 
 dependencies {
+    implementation 'org.commonmark:commonmark:0.22.0'
     implementation 'org.lz4:lz4-java:1.8.1'
     compileOnly(files(starmadeDirectory + "StarMade.jar"))
     compileOnly(fileTree(dir: (starmadeDirectory + "lib"), include: "*.jar"))

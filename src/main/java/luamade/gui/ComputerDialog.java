@@ -2,6 +2,7 @@ package luamade.gui;
 
 import api.common.GameClient;
 import api.utils.gui.GUIInputDialogPanel;
+import luamade.docs.DocsViewerDialog;
 import luamade.manager.ConfigManager;
 import luamade.system.module.ComputerModule;
 import org.schema.game.client.controller.PlayerInput;
@@ -11,10 +12,7 @@ import org.schema.schine.common.TextCallback;
 import org.schema.schine.graphicsengine.core.GLFW;
 import org.schema.schine.graphicsengine.core.MouseEvent;
 import org.schema.schine.graphicsengine.forms.font.FontLibrary;
-import org.schema.schine.graphicsengine.forms.gui.GUICallback;
-import org.schema.schine.graphicsengine.forms.gui.GUIElement;
-import org.schema.schine.graphicsengine.forms.gui.GUIScrollablePanel;
-import org.schema.schine.graphicsengine.forms.gui.GUITextOverlay;
+import org.schema.schine.graphicsengine.forms.gui.*;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIActivatableTextBar;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIContentPane;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIDialogWindow;
@@ -54,6 +52,9 @@ public class ComputerDialog extends PlayerInput {
 		if(!isOccluded() && mouseEvent.pressedLeftMouse()) {
 			if(callingElement.getUserPointer() != null) {
 				switch((String) callingElement.getUserPointer()) {
+					case "DOCS":
+						openDocumentationPanel();
+						break;
 					case "X":
 					case "CANCEL":
 						deactivate();
@@ -64,6 +65,11 @@ public class ComputerDialog extends PlayerInput {
 				}
 			}
 		}
+	}
+
+	private void openDocumentationPanel() {
+		deactivate();
+		new DocsViewerDialog().activate();
 	}
 
 	@Override
@@ -93,6 +99,8 @@ public class ComputerDialog extends PlayerInput {
 		private static final String PROMPT_MARKER = " $ ";
 		private static final int LINE_WRAP = 100;
 		private static final String EDITOR_HINT_PREFIX = "Editor: Ctrl+S Save | Ctrl+X Exit | Ctrl+R Save & Run";
+		private static final int DOCS_BUTTON_OFFSET_X = 12;
+		private static final int DOCS_BUTTON_OFFSET_Y = 30;
 
 		private final ComputerModule computerModule;
 		private GUIScrollablePanel consolePanel;
@@ -107,13 +115,14 @@ public class ComputerDialog extends PlayerInput {
 		private boolean focusConsoleOnOpen = true;
 		private ComputerModule.ComputerMode renderedMode = ComputerModule.ComputerMode.OFF;
 		private GUITextOverlay editorHintsOverlay;
+		private GUITextButton docsButton;
 		private String lastEditorHintText = "";
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
 			super(inputState, "COMPUTER_PANEL", "", "", 850, 650, guiCallback);
 			this.computerModule = computerModule;
 			setCancelButton(false);
-			setOkButton(false);
+			setOkButton(true);
 		}
 
 		/**
@@ -224,7 +233,29 @@ public class ComputerDialog extends PlayerInput {
 				lastEditorHintText = hintText;
 			}
 
-			editorHintsOverlay.setPos(8.0F, Math.max(0.0F, getHeight() - 20.0F), 0.0F);
+			float x = 8.0F;
+			float y;
+			if(getButtonOK() != null) {
+				y = Math.max(0.0F, getButtonOK().getPos().y - editorHintsOverlay.getTextHeight() - 6.0F);
+			} else if(background != null) {
+				y = Math.max(0.0F, background.getHeight() - 48.0F);
+			} else {
+				y = Math.max(0.0F, getHeight() - 48.0F);
+			}
+			editorHintsOverlay.setPos(x, y, 0.0F);
+		}
+
+		private void updateDocsButtonPosition() {
+			if(docsButton == null || getButtonOK() == null) {
+				return;
+			}
+
+			int x = (int) (getButtonOK().getPos().x + getButtonOK().getWidth() + 5) + DOCS_BUTTON_OFFSET_X;
+			int y = (int) getButtonOK().getPos().y + DOCS_BUTTON_OFFSET_Y;
+			if(y <= 0 && background != null) {
+				y = (int) (background.getHeight() - (42 + docsButton.getHeight())) + DOCS_BUTTON_OFFSET_Y;
+			}
+			docsButton.setPos(x, y, 0);
 		}
 
 		private void activateConsoleFocusIfPending() {
@@ -562,6 +593,7 @@ public class ComputerDialog extends PlayerInput {
 				@Override
 				public void draw() {
 					updateEditorHintOverlay();
+					updateDocsButtonPosition();
 					activateConsoleFocusIfPending();
 
 					ComputerModule.ComputerMode currentMode = computerModule.getLastMode();
@@ -635,7 +667,14 @@ public class ComputerDialog extends PlayerInput {
 			editorHintsOverlay.onInit();
 			editorHintsOverlay.setColor(0.8F, 0.8F, 0.8F, 1.0F);
 			editorHintsOverlay.setTextSimple("");
-			contentPane.getContent(0).attach(editorHintsOverlay);
+			((GUIDialogWindow) background).attachSuper(editorHintsOverlay);
+
+			docsButton = new GUITextButton(getState(), 90, 20, GUITextButton.ColorPalette.OK, "DOCS", getCallback());
+			docsButton.setUserPointer("DOCS");
+			docsButton.setMouseUpdateEnabled(true);
+			docsButton.onInit();
+			updateDocsButtonPosition();
+			((GUIDialogWindow) background).attachSuper(docsButton);
 
 			consolePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);
 			consolePane.getTextArea().setLinewrap(LINE_WRAP);
@@ -667,6 +706,7 @@ public class ComputerDialog extends PlayerInput {
 		@Override
 		public void draw() {
 			super.draw();
+			updateDocsButtonPosition();
 			clampCaretToEditableRegion();
 			scrollPaneToCursor();
 		}

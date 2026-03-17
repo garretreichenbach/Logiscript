@@ -1,12 +1,10 @@
 package luamade;
 
 import api.config.BlockConfig;
-import api.listener.events.controller.ClientInitializeEvent;
 import api.mod.StarMod;
 import luamade.element.ElementRegistry;
 import luamade.manager.ConfigManager;
 import luamade.manager.EventManager;
-import luamade.manager.GlossaryManager;
 import luamade.manager.ResourceManager;
 import luamade.system.module.ComputerModuleContainer;
 import org.schema.schine.resource.ResourceLoader;
@@ -42,12 +40,6 @@ public class LuaMade extends StarMod {
 			logException("Failed to save computer data on disable", exception);
 		}
 		super.onDisable();
-	}
-
-	@Override
-	public void onClientCreated(ClientInitializeEvent clientInitializeEvent) {
-		super.onClientCreated(clientInitializeEvent);
-		GlossaryManager.initialize(this);
 	}
 
 	@Override

@@ -8,6 +8,6 @@
 - `getEntity()` - Returns the block's entity.
 - `hasInventory()` - Returns whether the block has an inventory.
 - `getInventory()` - Returns the block's inventory.
-- `isDisplayMode()` - Returns whether the block can display text.
+- `isDisplayModule()` - Returns whether the block can display text.
 - `setDisplayText(text<String>)` - Sets the block's display text.
 - `getDisplayText()` - Returns the block's display text.
