@@ -38,11 +38,6 @@ public class Block extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
-    public void setActive(boolean bool) {
-        getControl().setActive(bool);
-    }
-
-    @LuaMadeCallable
     public Entity getEntity() {
         return new Entity(segmentPiece.getSegmentController());
     }
@@ -75,11 +70,6 @@ public class Block extends LuaMadeUserdata {
     @LuaMadeCallable
     public Boolean isDisplayModule() {
         return segmentPiece.getType() == ElementKeyMap.TEXT_BOX;
-    }
-
-    @LuaMadeCallable
-    public void setDisplayText(String text) {
-        getControl().setDisplayText(text);
     }
 
     @LuaMadeCallable
