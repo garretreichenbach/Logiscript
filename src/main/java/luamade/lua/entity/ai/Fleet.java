@@ -1,7 +1,7 @@
 package luamade.lua.entity.ai;
 
 import luamade.LuaMade;
-import luamade.lua.data.LuaVec3i;
+import luamade.lua.data.Vec3i;
 import luamade.lua.entity.RemoteEntity;
 import luamade.lua.faction.Faction;
 import luamade.luawrap.LuaMadeCallable;
@@ -41,8 +41,8 @@ public class Fleet extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public LuaVec3i getSector() {
-		return new LuaVec3i(Vector3i.parseVector3i(fleet.getFlagShipSector()));
+	public Vec3i getSector() {
+		return new Vec3i(Vector3i.parseVector3i(fleet.getFlagShipSector()));
 	}
 
 	@LuaMadeCallable

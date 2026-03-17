@@ -4,7 +4,7 @@ import api.common.GameServer;
 import api.utils.game.SegmentControllerUtils;
 import com.bulletphysics.linearmath.Transform;
 import luamade.LuaMade;
-import luamade.lua.data.LuaVec3i;
+import luamade.lua.data.Vec3i;
 import luamade.lua.element.block.Block;
 import luamade.lua.element.inventory.Inventory;
 import luamade.lua.element.system.module.Thrust;
@@ -20,7 +20,6 @@ import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.*;
 import org.schema.game.common.controller.elements.ElementCollectionManager;
 import org.schema.game.common.controller.elements.ManagerContainer;
-import org.schema.game.common.controller.elements.cloaking.StealthAddOn;
 import org.schema.game.common.controller.elements.shipyard.ShipyardCollectionManager;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementKeyMap;
@@ -36,6 +35,13 @@ public class Entity extends LuaMadeUserdata {
 
 	public Entity(SegmentController controller) {
 		this.segmentController = controller;
+	}
+
+	public static Entity wrap(SegmentController controller) {
+		if(controller == null) return null;
+		if(controller instanceof org.schema.game.common.controller.Ship) return new Ship(controller);
+		if(controller instanceof SpaceStation) return new Station(controller);
+		return new Entity(controller);
 	}
 
 	@LuaMadeCallable
@@ -59,7 +65,7 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Block getBlockAt(LuaVec3i pos) {
+	public Block getBlockAt(Vec3i pos) {
 		return Block.wrap(segmentController.getSegmentBuffer().getPointUnsave(pos.getX(), pos.getY(), pos.getZ()));
 	}
 
@@ -69,20 +75,20 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public LuaVec3i getPos() {
+	public Vec3i getPos() {
 		Transform transform = segmentController.getWorldTransform();
 		Vector3i pos = new Vector3i(transform.origin);
-		return new LuaVec3i(pos.x, pos.y, pos.z);
+		return new Vec3i(pos.x, pos.y, pos.z);
 	}
 
 	@LuaMadeCallable
-	public LuaVec3i getSector() {
-		return new LuaVec3i(segmentController.getSector(new Vector3i()));
+	public Vec3i getSector() {
+		return new Vec3i(segmentController.getSector(new Vector3i()));
 	}
 
 	@LuaMadeCallable
-	public LuaVec3i getSystem() {
-		return new LuaVec3i(segmentController.getSystem(new Vector3i()));
+	public Vec3i getSystem() {
+		return new Vec3i(segmentController.getSystem(new Vector3i()));
 	}
 
 	@LuaMadeCallable
@@ -174,7 +180,7 @@ public class Entity extends LuaMadeUserdata {
 		ArrayList<SegmentController> docked = new ArrayList<>();
 		segmentController.railController.getDockedRecusive(docked);
 		for(SegmentController controller : docked) {
-			if(controller.railController.isChildDock(segmentController) && controller.railController.isTurretDocked()) turrets.add(new Entity(controller));
+			if(controller.railController.isChildDock(segmentController) && controller.railController.isTurretDocked()) turrets.add(Entity.wrap(controller));
 		}
 		return turrets.toArray(new Entity[0]);
 	}
@@ -185,7 +191,7 @@ public class Entity extends LuaMadeUserdata {
 		ArrayList<SegmentController> dockedControllers = new ArrayList<>();
 		segmentController.railController.getDockedRecusive(dockedControllers);
 		for(SegmentController controller : dockedControllers) {
-			if(controller.railController.isChildDock(segmentController)) docked.add(new Entity(controller));
+			if(controller.railController.isChildDock(segmentController)) docked.add(Entity.wrap(controller));
 		}
 		return docked.toArray(new Entity[0]);
 	}
@@ -277,7 +283,7 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public void dockTo(RemoteEntity entity, Block railDocker, LuaVec3i dockPos) {
+	public void dockTo(RemoteEntity entity, Block railDocker, Vec3i dockPos) {
 		if(!segmentController.getSector(new Vector3i()).equals(entity.getSegmentController().getSector(new Vector3i())) || isEntityDocked(entity) || segmentController.railController.getRoot().equals(entity.getSegmentController().railController.getRoot())) return;
 		if(segmentController.getFactionId() == 0 || entity.getSegmentController().getFactionId() == 0) return;
 		if(getFaction().isSameFaction(entity.getFaction()) || getFaction().isFriend(entity.getFaction())) {
@@ -311,74 +317,6 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Boolean isJamming() {
-		if(segmentController instanceof Ship) {
-			Ship ship = (Ship) segmentController;
-			StealthAddOn playerUsable = SegmentControllerUtils.getAddon(ship, StealthAddOn.class);
-			return playerUsable != null && playerUsable.isActive();
-		}
-		return false;
-	}
-
-	@LuaMadeCallable
-	public Boolean canJam() {
-		if(!isJamming()) {
-			if(segmentController instanceof Ship) {
-				Ship ship = (Ship) segmentController;
-				StealthAddOn playerUsable = SegmentControllerUtils.getAddon(ship, StealthAddOn.class);
-				return playerUsable != null && playerUsable.canExecute();
-			}
-		}
-		return false;
-	}
-
-	@LuaMadeCallable
-	public void activateJamming(Boolean active) {
-		if(segmentController instanceof Ship) {
-			Ship ship = (Ship) segmentController;
-			StealthAddOn playerUsable = SegmentControllerUtils.getAddon(ship, StealthAddOn.class);
-			if(playerUsable != null) {
-				if(active) if(playerUsable.canExecute()) playerUsable.executeModule();
-				else if(playerUsable.isActive()) playerUsable.onRevealingAction();
-			}
-		}
-	}
-
-	@LuaMadeCallable
-	public Boolean isCloaking() {
-		if(segmentController instanceof Ship) {
-			Ship ship = (Ship) segmentController;
-			StealthAddOn playerUsable = SegmentControllerUtils.getAddon(ship, StealthAddOn.class);
-			return playerUsable != null && playerUsable.isActive();
-		}
-		return false;
-	}
-
-	@LuaMadeCallable
-	public Boolean canCloak() {
-		if(!isCloaking()) {
-			if(segmentController instanceof Ship) {
-				Ship ship = (Ship) segmentController;
-				StealthAddOn playerUsable = SegmentControllerUtils.getAddon(ship, StealthAddOn.class);
-				return playerUsable != null && playerUsable.canExecute();
-			}
-		}
-		return false;
-	}
-
-	@LuaMadeCallable
-	public void activateCloaking(Boolean active) {
-		if(segmentController instanceof Ship) {
-			Ship ship = (Ship) segmentController;
-			StealthAddOn playerUsable = SegmentControllerUtils.getAddon(ship, StealthAddOn.class);
-			if(playerUsable != null) {
-				if(active) if(playerUsable.canExecute()) playerUsable.executeModule();
-				else if(playerUsable.isActive()) playerUsable.onRevealingAction();
-			}
-		}
-	}
-
-	@LuaMadeCallable
 	public ShieldSystem getShieldSystem() {
 		return new ShieldSystem(segmentController);
 	}
@@ -402,12 +340,6 @@ public class Entity extends LuaMadeUserdata {
 		if(segmentController instanceof Ship) return getInventory(name, ((Ship) segmentController).getManagerContainer());
 		else if(segmentController instanceof SpaceStation) return getInventory(name, ((SpaceStation) segmentController).getManagerContainer());
 		else return null;
-	}
-
-	@LuaMadeCallable
-	public String getPilot() {
-		if(segmentController instanceof Ship && segmentController.isConrolledByActivePlayer()) return SegmentControllerUtils.getAttachedPlayers(segmentController).get(0).getName();
-		return null;
 	}
 
 	@LuaMadeCallable

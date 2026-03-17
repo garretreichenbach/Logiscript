@@ -1,6 +1,6 @@
 package luamade.lua.peripheral;
 
-import luamade.lua.data.LuaVec3i;
+import luamade.lua.data.Vec3i;
 import luamade.lua.element.block.Block;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
@@ -23,20 +23,20 @@ public class PeripheralsApi extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Block wrap(Block block, String asType) {
+	public Block wrap(Block block) {
 		if(block == null) {
 			return null;
 		}
-		return Block.wrapAs(block.getSegmentPiece(), asType);
+		return Block.wrap(block.getSegmentPiece());
 	}
 
 	@LuaMadeCallable
-	public Block wrapCurrent(String asType) {
-		return Block.wrapAs(module.getSegmentPiece(), asType);
+	public Block wrapCurrent() {
+		return Block.wrap(module.getSegmentPiece());
 	}
 
 	@LuaMadeCallable
-	public Block getAt(LuaVec3i position) {
+	public Block getAt(Vec3i position) {
 		if(position == null) {
 			return null;
 		}
@@ -67,21 +67,21 @@ public class PeripheralsApi extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Block wrapRelative(String side, String asType) {
+	public Block wrapRelative(String side) {
 		Block relative = getRelative(side);
 		if(relative == null) {
 			return null;
 		}
-		return wrap(relative, asType);
+		return wrap(relative);
 	}
 
 	@LuaMadeCallable
-	public Block wrapAt(LuaVec3i position, String asType) {
+	public Block wrapAt(Vec3i position) {
 		Block block = getAt(position);
 		if(block == null) {
 			return null;
 		}
-		return wrap(block, asType);
+		return wrap(block);
 	}
 
 	@LuaMadeCallable

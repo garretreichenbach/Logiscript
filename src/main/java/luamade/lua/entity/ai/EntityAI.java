@@ -2,7 +2,7 @@ package luamade.lua.entity.ai;
 
 import api.common.GameCommon;
 import api.common.GameServer;
-import luamade.lua.data.LuaVec3i;
+import luamade.lua.data.Vec3i;
 import luamade.lua.entity.RemoteEntity;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
@@ -45,7 +45,7 @@ public class EntityAI extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public void moveToSector(LuaVec3i sector) {
+	public void moveToSector(Vec3i sector) {
 		if(segmentController instanceof Ship) {
 			try {
 				((TargetProgram<?>) (((Ship) segmentController).getAiConfiguration().getAiEntityState().getCurrentProgram())).setSectorTarget(new Vector3i(sector.getX(), sector.getY(), sector.getZ()));
@@ -56,7 +56,7 @@ public class EntityAI extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public LuaVec3i getTargetSector() {
+	public Vec3i getTargetSector() {
 		Vector3i sector = segmentController.getSector(new Vector3i());
 		if(segmentController instanceof Ship) {
 			try {
@@ -65,7 +65,7 @@ public class EntityAI extends LuaMadeUserdata {
 				exception.printStackTrace();
 			}
 		}
-		return new LuaVec3i(sector.x, sector.y, sector.z);
+		return new Vec3i(sector.x, sector.y, sector.z);
 	}
 
 	@LuaMadeCallable
@@ -135,7 +135,7 @@ public class EntityAI extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public void moveToPos(LuaVec3i pos) {
+	public void moveToPos(Vec3i pos) {
 		if(segmentController instanceof Ship && segmentController.isOnServer()) {
 			try {
 				ShipAIEntity aiEntity = ((Ship) segmentController).getAiConfiguration().getAiEntityState();
@@ -161,7 +161,7 @@ public class EntityAI extends LuaMadeUserdata {
 			try {
 				//ShipAIEntity aiEntity = ((Ship) segmentController).getAiConfiguration().getAiEntityState();
 				Vector3f position = new Vector3f(entity.getSegmentController().getWorldTransform().origin);
-				moveToPos(new LuaVec3i((int) position.x, (int) position.y, (int) position.z));
+				moveToPos(new Vec3i((int) position.x, (int) position.y, (int) position.z));
 				/*
 				Vector3f moveToPos = calculateMoveToPos(segmentController, entity.getSegmentController());
 				//If position is already within 15 blocks of target, don't move

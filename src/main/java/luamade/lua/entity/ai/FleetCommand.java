@@ -1,6 +1,6 @@
 package luamade.lua.entity.ai;
 
-import luamade.lua.data.LuaVec3i;
+import luamade.lua.data.Vec3i;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
@@ -25,13 +25,13 @@ public class FleetCommand extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public LuaVec3i getTarget() {
+	public Vec3i getTarget() {
 		for(String arg : getArgs()) {
 			try {
-				return new LuaVec3i(Vector3i.parseVector3i(arg));
+				return new Vec3i(Vector3i.parseVector3i(arg));
 			} catch(Exception ignored) {}
 		}
-		return new LuaVec3i(0, 0, 0);
+		return new Vec3i(0, 0, 0);
 	}
 
 	@LuaMadeCallable

@@ -1,6 +1,6 @@
 package luamade.lua.element.block;
 
-import luamade.lua.data.LuaVec3i;
+import luamade.lua.data.Vec3i;
 import luamade.lua.element.inventory.Inventory;
 import luamade.lua.entity.Entity;
 import luamade.luawrap.LuaMadeCallable;
@@ -64,8 +64,8 @@ public class Block extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
-    public LuaVec3i getPos() {
-        return new LuaVec3i(segmentPiece.getAbsolutePosX(), segmentPiece.getAbsolutePosY(), segmentPiece.getAbsolutePosZ());
+    public Vec3i getPos() {
+        return new Vec3i(segmentPiece.getAbsolutePosX(), segmentPiece.getAbsolutePosY(), segmentPiece.getAbsolutePosZ());
     }
 
     @LuaMadeCallable
@@ -85,7 +85,7 @@ public class Block extends LuaMadeUserdata {
 
     @LuaMadeCallable
     public Entity getEntity() {
-        return new Entity(segmentPiece.getSegmentController());
+        return Entity.wrap(segmentPiece.getSegmentController());
     }
 
     @LuaMadeCallable
