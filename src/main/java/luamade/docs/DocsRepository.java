@@ -12,15 +12,7 @@ import java.util.*;
 public final class DocsRepository {
 
 	private static final String DOC_INDEX_PATH = "/docs/markdown/docs.index";
-	private static final String[] FALLBACK_DOC_FILES = {
-			"general/luamade.md",
-			"general/channels.md",
-			"general/terminal.md",
-			"functions/console.md",
-			"functions/block.md",
-			"functions/blockinfo.md",
-			"functions/itemstack.md"
-	};
+	private static final String[] FALLBACK_DOC_FILES = {"general/luamade.md", "general/channels.md", "general/terminal.md", "functions/console.md", "functions/block.md", "functions/blockinfo.md", "functions/itemstack.md"};
 
 	private static List<DocTopic> cachedTopics;
 
@@ -51,8 +43,23 @@ public final class DocsRepository {
 				LuaMade.getInstance().logException("Error loading documentation file: " + path, exception);
 			}
 		}
-		topics.sort(Comparator.comparing(DocTopic::getSectionLabel).thenComparing(DocTopic::getTitle));
+		topics.sort(Comparator.comparingInt(DocsRepository::getSectionOrder).thenComparing(DocTopic::getSectionLabel).thenComparing(DocTopic::getTitle));
 		return topics;
+	}
+
+	private static int getSectionOrder(DocTopic topic) {
+		if(topic == null || topic.getSectionKey() == null) {
+			return 100;
+		}
+
+		switch(topic.getSectionKey()) {
+			case "general":
+				return 0;
+			case "functions":
+				return 1;
+			default:
+				return 10;
+		}
 	}
 
 	private static List<String> getDocFiles() {

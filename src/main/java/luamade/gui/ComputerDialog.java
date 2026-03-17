@@ -2,7 +2,6 @@ package luamade.gui;
 
 import api.common.GameClient;
 import api.utils.gui.GUIInputDialogPanel;
-import luamade.docs.DocsViewerDialog;
 import luamade.manager.ConfigManager;
 import luamade.system.module.ComputerModule;
 import org.schema.game.client.controller.PlayerInput;
@@ -69,7 +68,7 @@ public class ComputerDialog extends PlayerInput {
 
 	private void openDocumentationPanel() {
 		deactivate();
-		new DocsViewerDialog().activate();
+		new DocsViewerDialog(computerModule).activate();
 	}
 
 	@Override
