@@ -214,7 +214,7 @@ Documentation is loaded dynamically from markdown files in `src/main/resources/d
 ## Quick Reference: StarMade
 
 - StarMade is a voxel-based space sandbox game with modding support via Java.
-- MCP tools can be used to access game internals.
+- MCP tools can be used to access game internals, but you should refernece only the `release` branch for stability.
 - Mods should prefer to use the FastListener system when possible for better performance.
 
 For Lua API docs, see `docs/markdown/` (filesystem.md, terminal.md, networking.md).
