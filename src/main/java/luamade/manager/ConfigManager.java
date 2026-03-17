@@ -18,6 +18,10 @@ public final class ConfigManager {
 	private static SimpleConfigInt startupScriptTimeoutMs;
 	private static SimpleConfigInt scriptQueueWaitMs;
 	private static SimpleConfigInt scriptOverloadMode;
+	private static SimpleConfigBool webFetchEnabled;
+	private static SimpleConfigBool webFetchTrustedDomainsOnly;
+	private static SimpleConfigInt webFetchTimeoutMs;
+	private static SimpleConfigInt webFetchMaxBytes;
 
 	private ConfigManager() {
 	}
@@ -33,6 +37,10 @@ public final class ConfigManager {
 		startupScriptTimeoutMs = new SimpleConfigInt(config, "startup_script_timeout_ms", 2000, "Startup script timeout in milliseconds.");
 		scriptQueueWaitMs = new SimpleConfigInt(config, "script_queue_wait_ms", 250, "Queue wait budget in milliseconds used by hybrid overload mode.");
 		scriptOverloadMode = new SimpleConfigInt(config, "script_overload_mode", 2, "Script overload policy: 0=hard-stop, 1=stall, 2=hybrid.");
+		webFetchEnabled = new SimpleConfigBool(config, "web_fetch_enabled", false, "If true, allows terminal/scripts to fetch HTTP(S) data from the web.");
+		webFetchTrustedDomainsOnly = new SimpleConfigBool(config, "web_fetch_trusted_domains_only", true, "If true, web fetch is limited to a built-in trusted domain allowlist.");
+		webFetchTimeoutMs = new SimpleConfigInt(config, "web_fetch_timeout_ms", 4000, "Web fetch connect/read timeout in milliseconds.");
+		webFetchMaxBytes = new SimpleConfigInt(config, "web_fetch_max_bytes", 131072, "Maximum response payload size (bytes) accepted by web fetch.");
 
 		config.readWriteFields();
 		if(isDebugMode()) {
@@ -77,6 +85,22 @@ public final class ConfigManager {
 
 	public static int getScriptOverloadMode() {
 		return clampInt(intOrDefault(scriptOverloadMode, 2), 0, 2);
+	}
+
+	public static boolean isWebFetchEnabled() {
+		return boolOrDefault(webFetchEnabled, false);
+	}
+
+	public static boolean isWebFetchTrustedDomainsOnly() {
+		return boolOrDefault(webFetchTrustedDomainsOnly, true);
+	}
+
+	public static int getWebFetchTimeoutMs() {
+		return clampInt(intOrDefault(webFetchTimeoutMs, 4000), 250, 30000);
+	}
+
+	public static int getWebFetchMaxBytes() {
+		return clampInt(intOrDefault(webFetchMaxBytes, 131072), 1024, 1048576);
 	}
 
 

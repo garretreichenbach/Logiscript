@@ -161,10 +161,9 @@ ok2 = util.endsWith("terminal.lua", ".lua")
 
 `util` is now loaded from `src/main/resources/scripts/lib/util.lua`, with native `util.now()` and `util.sleep()` attached from Java.
 
-Wrapper model update:
+Wrapper usage:
 
-- Use read-only views where possible (`getInfo()`/`getEntityInfo()`).
-- Use control surfaces explicitly for mutation (`getControl()`).
+- Use direct `block`/`entity` wrappers for both reads and writes.
 
 ### Vector Library
 
@@ -210,17 +209,41 @@ Default startup scripts are bundled under `src/main/resources/scripts` and copie
 
 Built-in Lua libraries are also bundled under `src/main/resources/scripts/lib` and auto-loaded into the sandbox.
 
-Read-only vs control examples:
+Consolidated wrapper examples:
 
 ```lua
 block = console.getBlock()
-info = block.getEntityInfo()      -- read-only entity details
-ctrl = block.getControl()         -- mutating operations for this block
-
 entity = block.getEntity()
-entityInfo = entity.getInfo()     -- read-only entity details
-entityCtrl = entity.getControl()  -- mutating operations (rename, docking, AI)
+
+print(entity.getName())
+print(entity.getSector().x, entity.getSector().y, entity.getSector().z)
+
+block.setActive(true)
+block.setDisplayText("Online")
+
+entity.setName("Relay-01")
+entity.activateJamming(true)
 ```
+
+Web fetch command:
+
+```text
+httpget <url> [output-file]
+```
+
+Examples:
+
+```text
+httpget https://raw.githubusercontent.com/user/repo/main/data.txt
+httpget https://raw.githubusercontent.com/user/repo/main/data.txt /home/data.txt
+```
+
+Server config options:
+
+- `web_fetch_enabled` enables/disables all web fetching (default `false`).
+- `web_fetch_trusted_domains_only` restricts fetches to trusted domains only (default `true`).
+- `web_fetch_timeout_ms` sets connect/read timeout.
+- `web_fetch_max_bytes` sets max response size.
 
 Example script (/bin/example.lua):
 ```lua

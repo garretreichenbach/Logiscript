@@ -1,12 +1,31 @@
-# Console
+# Console API
 
-- `getTime()` - Returns the current system time.
-- `getBlock()` - Returns the Computer Block that the script is running on.
-- `print(message<String>)` - Prints a message from the console.
-- `printColor(color<Double[]>, message<String>)` - Prints a message from the console with a color.
-- `printError(message<String>)` - Prints an error message from the console.
-- `getChannel(name<String>)` - Returns a channel by name.
-- `createChannel(name<String>, password<String>)` - Creates a channel with the given name and password.
-- `sendMail(sender<String>, playerName<String>, subject<String>, message<String>, password<String>)` - Sends a mail to the specified player.
-- `setVar(name<String>, value<Object>)` - Sets a variable with the given name and value.
-- `getVar(name<String>)` - Returns a variable with the given name.
+`console` is your script's output and context entry point.
+
+## Typical usage
+
+```lua
+console.print("Booting...")
+
+block = console.getBlock()
+info = block.getInfo()
+console.print("Running on " .. info.getName())
+
+console.print("Now: " .. tostring(console.getTime()))
+```
+
+## Reference
+
+- `getTime()`
+Returns current time in milliseconds.
+
+- `getBlock()`
+Returns the computer `Block` currently running the script.
+
+- `print(value)`
+Prints a value to terminal output (appends newline).
+
+## Notes
+
+- `print(...)` is also globally available and mapped to `console.print(...)`.
+- Convert non-string values with `tostring(...)` when you need exact formatting.

@@ -44,13 +44,8 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public EntityInfo getInfo() {
-		return new EntityInfo(segmentController);
-	}
-
-	@LuaMadeCallable
-	public EntityControl getControl() {
-		return new EntityControl(segmentController);
+	public Entity getInfo() {
+		return this;
 	}
 
 	@LuaMadeCallable
@@ -58,6 +53,7 @@ public class Entity extends LuaMadeUserdata {
 		return segmentController.getRealName();
 	}
 
+	@LuaMadeCallable
 	public void setName(String name) {
 		segmentController.setRealName(name);
 	}
@@ -67,6 +63,7 @@ public class Entity extends LuaMadeUserdata {
 		return new Block(segmentController.getSegmentBuffer().getPointUnsave(pos.getX(), pos.getY(), pos.getZ()));
 	}
 
+	@LuaMadeCallable
 	public EntityAI getAI() {
 		return new EntityAI(segmentController);
 	}
@@ -203,6 +200,7 @@ public class Entity extends LuaMadeUserdata {
 		return false;
 	}
 
+	@LuaMadeCallable
 	public void undockEntity(RemoteEntity entity) {
 		ArrayList<SegmentController> docked = new ArrayList<>();
 		segmentController.railController.getDockedRecusive(docked);
@@ -214,6 +212,7 @@ public class Entity extends LuaMadeUserdata {
 		}
 	}
 
+	@LuaMadeCallable
 	public void undockAll() {
 		ArrayList<SegmentController> docked = new ArrayList<>();
 		segmentController.railController.getDockedRecusive(docked);
@@ -222,6 +221,7 @@ public class Entity extends LuaMadeUserdata {
 		}
 	}
 
+	@LuaMadeCallable
 	public void dockTo(RemoteEntity entity, Block railDocker) {
 		if(!segmentController.getSector(new Vector3i()).equals(entity.getSegmentController().getSector(new Vector3i())) || isEntityDocked(entity) || segmentController.railController.getRoot().equals(entity.getSegmentController().railController.getRoot())) return;
 		if(segmentController.getFactionId() == 0 || entity.getSegmentController().getFactionId() == 0) return;
@@ -276,6 +276,7 @@ public class Entity extends LuaMadeUserdata {
 		}
 	}
 
+	@LuaMadeCallable
 	public void dockTo(RemoteEntity entity, Block railDocker, LuaVec3i dockPos) {
 		if(!segmentController.getSector(new Vector3i()).equals(entity.getSegmentController().getSector(new Vector3i())) || isEntityDocked(entity) || segmentController.railController.getRoot().equals(entity.getSegmentController().railController.getRoot())) return;
 		if(segmentController.getFactionId() == 0 || entity.getSegmentController().getFactionId() == 0) return;
@@ -331,6 +332,7 @@ public class Entity extends LuaMadeUserdata {
 		return false;
 	}
 
+	@LuaMadeCallable
 	public void activateJamming(Boolean active) {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;
@@ -364,6 +366,7 @@ public class Entity extends LuaMadeUserdata {
 		return false;
 	}
 
+	@LuaMadeCallable
 	public void activateCloaking(Boolean active) {
 		if(segmentController instanceof Ship) {
 			Ship ship = (Ship) segmentController;

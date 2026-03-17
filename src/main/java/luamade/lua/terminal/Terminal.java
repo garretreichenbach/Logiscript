@@ -19,14 +19,22 @@ import org.luaj.vm2.lib.TableLib;
 import org.luaj.vm2.lib.jse.JseMathLib;
 
 import java.nio.charset.StandardCharsets;
+import java.io.ByteArrayOutputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -47,6 +55,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Terminal extends LuaMadeUserdata {
 	private static final String STARTUP_SCRIPT_PATH = "/etc/startup.lua";
 	private static final String DEFAULT_PROMPT_TEMPLATE = "{name}:{dir} $ ";
+	private static final Set<String> TRUSTED_WEB_DOMAINS = new HashSet<>(Arrays.asList(
+		"raw.githubusercontent.com",
+		"gist.githubusercontent.com",
+		"pastebin.com",
+		"hastebin.com"
+	));
 
 	private final ComputerModule module;
 	private final Console console;
@@ -640,6 +654,11 @@ public class Terminal extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public String httpGet(String url) {
+		return fetchWebData(url);
+	}
+
+	@LuaMadeCallable
 	public void setPromptTemplate(String template) {
 		if(template == null || template.trim().isEmpty()) {
 			promptTemplate = DEFAULT_PROMPT_TEMPLATE;
@@ -1105,6 +1124,35 @@ public class Terminal extends LuaMadeUserdata {
 			}
 		});
 
+		// Httpget command
+		commands.put("httpget", new Command("httpget", "Fetches HTTP/HTTPS data; optionally save to a file") {
+			@Override
+			public void execute(String args) {
+				List<String> parts = parseCommandTokens(args == null ? "" : args.trim());
+				if(parts.isEmpty()) {
+					console.print(valueOf("Error: Usage: httpget <url> [output-file]"));
+					return;
+				}
+
+				String payload = fetchWebData(parts.get(0));
+				if(payload == null) {
+					return;
+				}
+
+				if(parts.size() > 1) {
+					String outputPath = parts.get(1);
+					if(fileSystem.write(outputPath, payload)) {
+						console.print(valueOf("Saved " + payload.getBytes(StandardCharsets.UTF_8).length + " bytes to " + fileSystem.normalizePath(outputPath)));
+					} else {
+						console.print(valueOf("Error: Could not write output file"));
+					}
+					return;
+				}
+
+				console.print(valueOf(payload));
+			}
+		});
+
 		// Runbg command (run script in background)
 		commands.put("runbg", new Command("runbg", "Runs a Lua script in background") {
 			@Override
@@ -1209,6 +1257,92 @@ public class Terminal extends LuaMadeUserdata {
 		} catch(NumberFormatException ignored) {
 			return -1;
 		}
+	}
+
+	private String fetchWebData(String rawUrl) {
+		if(!ConfigManager.isWebFetchEnabled()) {
+			console.print(valueOf("Error: Web fetch is disabled by server config"));
+			return null;
+		}
+
+		URL url;
+		try {
+			url = new URL(rawUrl);
+		} catch(MalformedURLException malformedURLException) {
+			console.print(valueOf("Error: Invalid URL"));
+			return null;
+		}
+
+		String protocol = url.getProtocol() == null ? "" : url.getProtocol().toLowerCase(Locale.ROOT);
+		if(!"http".equals(protocol) && !"https".equals(protocol)) {
+			console.print(valueOf("Error: Only http:// and https:// URLs are allowed"));
+			return null;
+		}
+
+		String host = url.getHost() == null ? "" : url.getHost().toLowerCase(Locale.ROOT);
+		if(host.isEmpty()) {
+			console.print(valueOf("Error: URL must include a hostname"));
+			return null;
+		}
+
+		if(ConfigManager.isWebFetchTrustedDomainsOnly() && !isTrustedDomain(host)) {
+			console.print(valueOf("Error: Domain is not in trusted allowlist"));
+			return null;
+		}
+
+		HttpURLConnection connection = null;
+		try {
+			connection = (HttpURLConnection) url.openConnection();
+			connection.setRequestMethod("GET");
+			connection.setConnectTimeout(ConfigManager.getWebFetchTimeoutMs());
+			connection.setReadTimeout(ConfigManager.getWebFetchTimeoutMs());
+			connection.setRequestProperty("User-Agent", "LuaMade/1.0");
+
+			int status = connection.getResponseCode();
+			if(status < 200 || status >= 300) {
+				console.print(valueOf("Error: HTTP status " + status));
+				return null;
+			}
+
+			InputStream input = connection.getInputStream();
+			ByteArrayOutputStream output = new ByteArrayOutputStream();
+			byte[] buffer = new byte[4096];
+			int maxBytes = ConfigManager.getWebFetchMaxBytes();
+			int total = 0;
+
+			while(true) {
+				int read = input.read(buffer);
+				if(read < 0) {
+					break;
+				}
+
+				total += read;
+				if(total > maxBytes) {
+					console.print(valueOf("Error: Response exceeded web_fetch_max_bytes limit (" + maxBytes + ")"));
+					return null;
+				}
+
+				output.write(buffer, 0, read);
+			}
+
+			return output.toString(StandardCharsets.UTF_8.name());
+		} catch(IOException ioException) {
+			console.print(valueOf("Error fetching URL: " + ioException.getMessage()));
+			return null;
+		} finally {
+			if(connection != null) {
+				connection.disconnect();
+			}
+		}
+	}
+
+	private boolean isTrustedDomain(String host) {
+		for(String domain : TRUSTED_WEB_DOMAINS) {
+			if(host.equals(domain) || host.endsWith("." + domain)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
