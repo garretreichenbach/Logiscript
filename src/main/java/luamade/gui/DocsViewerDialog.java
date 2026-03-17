@@ -63,6 +63,8 @@ public class DocsViewerDialog extends PlayerInput {
 
 	@Override
 	public void onDeactivate() {
+		// Invalidate the topic cache so a failed first-load is retried next open
+		DocsRepository.invalidateCache();
 		if(reopenComputerModule != null && !reopenHandled) {
 			reopenHandled = true;
 			new ComputerDialog(reopenComputerModule).activate();
@@ -77,16 +79,19 @@ public class DocsViewerDialog extends PlayerInput {
 		private static final int PADDING = 12;
 		private static final int SEARCH_HEIGHT = 24;
 		private static final int SECTION_HEADER_HEIGHT = 22;
-		private static final int SECTION_HEADER_GAP = 6;
+		private static final int SECTION_HEADER_GAP = 4;
 		private static final int TOPIC_BUTTON_HEIGHT = 28;
 		private static final int TOPIC_BUTTON_GAP = 4;
 		private static final int TOPIC_INDENT = 10;
 		private static final int CONTENT_MARGIN = 12;
 		private static final int INLINE_CODE_PADDING_X = 4;
 		private static final int INLINE_CODE_PADDING_Y = 2;
+		private static final int SCROLLBAR_WIDTH = 16;
+		private static final int RIGHT_PANEL_MARGIN = 14;
 
 		private final List<DocTopic> allTopics = new ArrayList<>(DocsRepository.getTopics());
 		private final List<DocTopic> filteredTopics = new ArrayList<>();
+		private final java.util.Set<String> collapsedSections = new java.util.HashSet<>();
 		private DocTopic selectedTopic;
 		private String searchQuery = "";
 
@@ -99,6 +104,7 @@ public class DocsViewerDialog extends PlayerInput {
 		private GUIAncor contentBlocks;
 		private GUIColoredRectangle contentBackground;
 		private GUITextOverlay emptyTopicsOverlay;
+		private GUIContentPane mainContentPane;
 
 		public DocsPanel(InputState inputState, GUICallback guiCallback) {
 			super(inputState, "LUAMADE_DOCS", "LuaMade Documentation", "", WINDOW_WIDTH, WINDOW_HEIGHT, guiCallback);
@@ -110,8 +116,8 @@ public class DocsViewerDialog extends PlayerInput {
 		public void onInit() {
 			super.onInit();
 
-			GUIContentPane contentPane = ((GUIDialogWindow) background).getMainContentPane();
-			GUIElement root = contentPane.getContent(0);
+			mainContentPane = ((GUIDialogWindow) background).getMainContentPane();
+			GUIElement root = mainContentPane.getContent(0);
 
 			searchAnchor = new GUIAncor(getState(), LEFT_WIDTH - (PADDING * 2), SEARCH_HEIGHT);
 			root.attach(searchAnchor);
@@ -202,10 +208,16 @@ public class DocsViewerDialog extends PlayerInput {
 				return;
 			}
 
-			float contentHeight = Math.max(120.0F, getHeight() - 58.0F);
-			float leftHeight = Math.max(120.0F, contentHeight - SEARCH_HEIGHT - 12.0F);
+			// Use the content pane's actual usable dimensions rather than the full window size.
+			// GUIContentPane.getWidth/Height() exclude the dialog title bar and chrome.
+			float availableWidth = mainContentPane != null && mainContentPane.getWidth() > 0 ? mainContentPane.getWidth() : getWidth();
+			float availableHeight = mainContentPane != null && mainContentPane.getHeight() > 0 ? mainContentPane.getHeight() : getHeight();
+
+			float contentHeight = Math.max(120.0F, availableHeight - 20.0F);
+			float leftHeight = Math.max(120.0F, contentHeight - SEARCH_HEIGHT - 16.0F);
 			float rightX = LEFT_WIDTH + (PADDING * 2);
-			float rightWidth = Math.max(300.0F, getWidth() - rightX - PADDING);
+			// RIGHT_PANEL_MARGIN keeps the scroll panel (including its scrollbar) away from the dialog's right chrome
+			float rightWidth = Math.max(300.0F, availableWidth - rightX - RIGHT_PANEL_MARGIN);
 
 			searchAnchor.setWidth(LEFT_WIDTH - (PADDING * 2));
 			searchAnchor.setHeight(SEARCH_HEIGHT);
@@ -218,7 +230,8 @@ public class DocsViewerDialog extends PlayerInput {
 			topicsScrollPanel.setWidth(LEFT_WIDTH);
 			topicsScrollPanel.setHeight(leftHeight);
 			topicsScrollPanel.setPos(PADDING, SEARCH_HEIGHT + 16.0F, 0.0F);
-			topicsContent.setWidth(LEFT_WIDTH - 12);
+			// Leave room for the topics scrollbar
+			topicsContent.setWidth(LEFT_WIDTH - SCROLLBAR_WIDTH - 4);
 
 			contentBackground.setWidth(rightWidth);
 			contentBackground.setHeight(contentHeight);
@@ -226,7 +239,8 @@ public class DocsViewerDialog extends PlayerInput {
 			contentScrollPanel.setWidth(rightWidth);
 			contentScrollPanel.setHeight(contentHeight);
 			contentScrollPanel.setPos(rightX, 6.0F, 0.0F);
-			contentBlocks.setWidth(rightWidth - 12);
+			// Leave room for the content scrollbar so text doesn't flow under it
+			contentBlocks.setWidth(rightWidth - SCROLLBAR_WIDTH - 8);
 		}
 
 		private void filterTopics() {
@@ -257,30 +271,53 @@ public class DocsViewerDialog extends PlayerInput {
 				return;
 			}
 
-			String currentSection = null;
+			String currentSectionKey = null;
 			for(DocTopic topic : filteredTopics) {
-				if(!topic.getSectionLabel().equals(currentSection)) {
-					y += addSectionHeader(y, topic.getSectionLabel());
-					currentSection = topic.getSectionLabel();
+				if(!topic.getSectionKey().equals(currentSectionKey)) {
+					y += addSectionHeader(y, topic.getSectionKey(), topic.getSectionLabel());
+					currentSectionKey = topic.getSectionKey();
 				}
-				y += addTopicButton(y, topic);
+				// Skip topic rows for collapsed sections
+				if(!collapsedSections.contains(topic.getSectionKey())) {
+					y += addTopicButton(y, topic);
+				}
 			}
 
 			topicsContent.setHeight(Math.max(40.0F, y));
 		}
 
-		private int addSectionHeader(int y, String sectionLabel) {
-			GUIColoredRectangle background = new GUIColoredRectangle(getState(), LEFT_WIDTH - 18, SECTION_HEADER_HEIGHT, new Vector4f(0.08F, 0.11F, 0.18F, 0.75F));
-			background.onInit();
-			background.setPos(0, y, 0);
-			topicsContent.attach(background);
+		private void toggleSection(String sectionKey) {
+			if(collapsedSections.contains(sectionKey)) {
+				collapsedSections.remove(sectionKey);
+			} else {
+				collapsedSections.add(sectionKey);
+			}
+			rebuildTopicButtons();
+		}
 
-			GUITextOverlay overlay = new GUITextOverlay(LEFT_WIDTH - 30, 16, FontLibrary.getBoldArial14White(), getState());
-			overlay.setTextSimple(sectionLabel);
-			overlay.onInit();
-			overlay.setColor(0.92F, 0.96F, 1.0F, 1.0F);
-			overlay.setPos(8, y + 3, 0);
-			topicsContent.attach(overlay);
+		private int addSectionHeader(int y, String sectionKey, String sectionLabel) {
+			boolean collapsed = collapsedSections.contains(sectionKey);
+			String arrow = collapsed ? "\u25BA  " : "\u25BC  ";  // ► / ▼
+
+			GUITextButton headerButton = new GUITextButton(getState(), LEFT_WIDTH - PADDING, SECTION_HEADER_HEIGHT,
+					GUITextButton.ColorPalette.TUTORIAL, arrow + sectionLabel.toUpperCase(), new GUICallback() {
+				@Override
+				public void callback(GUIElement callingGuiElement, MouseEvent event) {
+					if(event.pressedLeftMouse()) {
+						toggleSection(sectionKey);
+					}
+				}
+
+				@Override
+				public boolean isOccluded() {
+					return false;
+				}
+			});
+			headerButton.setTextPos(8, 3);
+			headerButton.setMouseUpdateEnabled(true);
+			headerButton.setPos(0, y, 0);
+			headerButton.onInit();
+			topicsContent.attach(headerButton);
 			return SECTION_HEADER_HEIGHT + SECTION_HEADER_GAP;
 		}
 
@@ -315,6 +352,10 @@ public class DocsViewerDialog extends PlayerInput {
 
 		private void selectTopic(DocTopic topic) {
 			selectedTopic = topic;
+			// Auto-expand the section if the selected topic is in a collapsed one
+			if(topic != null) {
+				collapsedSections.remove(topic.getSectionKey());
+			}
 			rebuildTopicButtons();
 			rebuildRenderedContent();
 			if(contentScrollPanel != null) {

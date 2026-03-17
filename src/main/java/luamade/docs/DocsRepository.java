@@ -11,8 +11,15 @@ import java.util.*;
 
 public final class DocsRepository {
 
-	private static final String DOC_INDEX_PATH = "/docs/markdown/docs.index";
-	private static final String[] FALLBACK_DOC_FILES = {"general/luamade.md", "general/channels.md", "general/terminal.md", "functions/console.md", "functions/block.md", "functions/blockinfo.md", "functions/itemstack.md"};
+	private static final String DOC_INDEX_PATH = "docs/markdown/docs.index";
+	private static final String[] FALLBACK_DOC_FILES = {
+			"general/luamade.md",
+			"general/terminal.md",
+			"functions/console.md",
+			"functions/block.md",
+			"functions/blockinfo.md",
+			"functions/itemstack.md"
+	};
 
 	private static List<DocTopic> cachedTopics;
 
@@ -20,25 +27,39 @@ public final class DocsRepository {
 	}
 
 	public static List<DocTopic> getTopics() {
-		if(cachedTopics == null) {
-			cachedTopics = Collections.unmodifiableList(loadTopics());
+		if(cachedTopics != null) {
+			return cachedTopics;
 		}
-		return cachedTopics;
+		List<DocTopic> topics = loadTopics();
+		if(!topics.isEmpty()) {
+			// Only cache a non-empty result so a transient load failure can be retried next open
+			cachedTopics = Collections.unmodifiableList(topics);
+		}
+		return topics;
+	}
+
+	/** Clears the topic cache so it is reloaded on the next call to getTopics(). */
+	public static void invalidateCache() {
+		cachedTopics = null;
 	}
 
 	private static List<DocTopic> loadTopics() {
 		List<DocTopic> topics = new ArrayList<>();
 		for(String file : getDocFiles()) {
-			String path = "/docs/markdown/" + file;
-			try(InputStream in = DocsRepository.class.getResourceAsStream(path)) {
+			String path = "docs/markdown/" + file;
+			try(InputStream in = openResource(path)) {
 				if(in == null) {
+					LuaMade.getInstance().logWarning("Documentation file not found in resources: " + path);
 					continue;
 				}
 
 				String markdown = readAll(in);
+				if(markdown.isEmpty()) {
+					continue;
+				}
 				String title = extractTitle(markdown, file);
 				String sectionKey = extractSectionKey(file);
-				topics.add(new DocTopic(path, title, markdown, sectionKey, formatSectionLabel(sectionKey)));
+				topics.add(new DocTopic("/" + path, title, markdown, sectionKey, formatSectionLabel(sectionKey)));
 			} catch(IOException exception) {
 				LuaMade.getInstance().logException("Error loading documentation file: " + path, exception);
 			}
@@ -73,10 +94,39 @@ public final class DocsRepository {
 		return fallbackFiles;
 	}
 
+	/**
+	 * Tries multiple ClassLoader strategies to find a resource.
+	 * ClassLoader.getResourceAsStream() requires no leading slash, unlike Class.getResourceAsStream().
+	 */
+	private static InputStream openResource(String path) {
+		// Ensure no leading slash for ClassLoader-based lookups
+		String bare = path.startsWith("/") ? path.substring(1) : path;
+
+		// 1. Direct class ClassLoader (most common in mod contexts)
+		InputStream in = DocsRepository.class.getClassLoader().getResourceAsStream(bare);
+		if(in != null) return in;
+
+		// 2. Class-based lookup (with leading slash = absolute classpath root)
+		in = DocsRepository.class.getResourceAsStream("/" + bare);
+		if(in != null) return in;
+
+		// 3. LuaMade's ClassLoader (the mod entry point loader)
+		in = LuaMade.class.getClassLoader().getResourceAsStream(bare);
+		if(in != null) return in;
+
+		// 4. Thread context ClassLoader
+		ClassLoader ctx = Thread.currentThread().getContextClassLoader();
+		if(ctx != null) {
+			in = ctx.getResourceAsStream(bare);
+		}
+		return in;
+	}
+
 	private static List<String> loadDocFilesFromIndex() {
 		List<String> files = new ArrayList<>();
-		try(InputStream in = DocsRepository.class.getResourceAsStream(DOC_INDEX_PATH)) {
+		try(InputStream in = openResource(DOC_INDEX_PATH)) {
 			if(in == null) {
+				LuaMade.getInstance().logWarning("Documentation index not found, falling back to hardcoded file list");
 				return files;
 			}
 
