@@ -5,9 +5,15 @@ plugins {
 
 def starmadeDirectory = project.property("starmade_root")
 def modName = project.property("mod_name")
+def commonmarkVersion = '0.21.0'
 group = project.property('mod_org_id')
 version = project.property('mod_version')
 mainClassName = group + modName
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
 
 repositories {
     mavenCentral {
@@ -21,16 +27,16 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.commonmark:commonmark:0.22.0'
+    implementation "org.commonmark:commonmark:${commonmarkVersion}"
     implementation 'org.lz4:lz4-java:1.8.1'
+    compileOnly(files('lib/ModGlossar.jar'))
     compileOnly(files(starmadeDirectory + "StarMade.jar"))
     compileOnly(fileTree(dir: (starmadeDirectory + "lib"), include: "*.jar"))
-    implementation(fileTree(dir: 'lib', include: '*.jar'))
 }
 
-compileJava.options.encoding = 'UTF-8'
-
-compileJava.options.encoding = 'UTF-8'
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
 
 tasks.register("updateVersion") {
     doLast {
