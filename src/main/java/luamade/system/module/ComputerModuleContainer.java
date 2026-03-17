@@ -3,7 +3,6 @@ package luamade.system.module;
 import api.network.PacketReadBuffer;
 import api.network.PacketWriteBuffer;
 import api.utils.game.module.util.SystemModule;
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import luamade.LuaMade;
 import luamade.element.ElementRegistry;
@@ -13,7 +12,6 @@ import org.schema.game.common.data.SegmentPiece;
 import org.schema.schine.graphicsengine.core.Timer;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -26,6 +24,8 @@ public class ComputerModuleContainer extends SystemModule {
 	private static final Set<ComputerModuleContainer> ACTIVE_CONTAINERS = ConcurrentHashMap.newKeySet();
 	private final Long2ObjectOpenHashMap<ComputerModule> computerModules = new Long2ObjectOpenHashMap<>();
 	private final Long2ObjectOpenHashMap<PendingModuleState> pendingModuleStates = new Long2ObjectOpenHashMap<>();
+	/** Guards all reads and writes to {@code pendingModuleStates} across the game-loop and network threads. */
+	private final Object pendingLock = new Object();
 
 	public ComputerModuleContainer(SegmentController ship, ManagerContainer<?> managerContainer) {
 		super(ship, managerContainer, LuaMade.getInstance(), ElementRegistry.COMPUTER.getId());
@@ -73,8 +73,10 @@ public class ComputerModuleContainer extends SystemModule {
 
 	@Override
 	public void handle(Timer timer) {
-		if(!pendingModuleStates.isEmpty()) {
-			restorePendingModules();
+		synchronized(pendingLock) {
+			if(!pendingModuleStates.isEmpty()) {
+				restorePendingModules();
+			}
 		}
 	}
 
@@ -102,28 +104,30 @@ public class ComputerModuleContainer extends SystemModule {
 
 	@Override
 	public void onTagDeserialize(PacketReadBuffer buffer) throws IOException {
-		computerModules.clear();
-		pendingModuleStates.clear();
+		synchronized(pendingLock) {
+			computerModules.clear();
+			pendingModuleStates.clear();
 
-		byte version = buffer.readByte();
-		if(version < 1 || version > VERSION) {
-			LuaMade.getInstance().logWarning("Unsupported ComputerModuleContainer tag version " + version + " (expected 1.." + VERSION + ")");
-			return;
+			byte version = buffer.readByte();
+			if(version < 1 || version > VERSION) {
+				LuaMade.getInstance().logWarning("Unsupported ComputerModuleContainer tag version " + version + " (expected 1.." + VERSION + ")");
+				return;
+			}
+
+			int count = buffer.readInt();
+			for(int i = 0; i < count; i++) {
+				long abs = buffer.readLong();
+				byte modeOrdinal = buffer.readByte();
+				String lastOpenFile = buffer.readString();
+				String savedTerminalInput = buffer.readString();
+				String hostname = buffer.readString();
+				String displayName = version >= 2 ? buffer.readString() : "";
+
+				pendingModuleStates.put(abs, new PendingModuleState(modeOrdinal, lastOpenFile, savedTerminalInput, hostname, displayName));
+			}
+			// Do NOT call restorePendingModules() here – the segment buffer may not be
+			// fully populated yet during deserialization.  handle(Timer) will pick it up.
 		}
-
-		int count = buffer.readInt();
-		for(int i = 0; i < count; i++) {
-			long abs = buffer.readLong();
-			byte modeOrdinal = buffer.readByte();
-			String lastOpenFile = buffer.readString();
-			String savedTerminalInput = buffer.readString();
-			String hostname = buffer.readString();
-			String displayName = version >= 2 ? buffer.readString() : "";
-
-			pendingModuleStates.put(abs, new PendingModuleState(modeOrdinal, lastOpenFile, savedTerminalInput, hostname, displayName));
-		}
-
-		restorePendingModules();
 	}
 
 	public void addModule(SegmentPiece segmentPiece) {
@@ -174,29 +178,52 @@ public class ComputerModuleContainer extends SystemModule {
 	}
 
 	private void restorePendingModules() {
-		Iterator<Long2ObjectMap.Entry<PendingModuleState>> iterator = pendingModuleStates.long2ObjectEntrySet().iterator();
-		while(iterator.hasNext()) {
-			Long2ObjectMap.Entry<PendingModuleState> entry = iterator.next();
-			long abs = entry.getLongKey();
-			SegmentPiece piece = segmentController.getSegmentBuffer().getPointUnsave(abs);
-			if(piece == null || piece.getType() != ElementRegistry.COMPUTER.getId()) {
+		if(pendingModuleStates.isEmpty() || segmentController == null) {
+			return;
+		}
+
+		// Snapshot the key set into a plain array – this avoids holding a live
+		// fastutil iterator across any map mutations that may happen concurrently.
+		long[] keys = pendingModuleStates.keySet().toLongArray();
+
+		for(long abs : keys) {
+			PendingModuleState state = pendingModuleStates.get(abs);
+			if(state == null) {
+				continue; // Already removed by a concurrent addModule() call
+			}
+
+			SegmentPiece piece;
+			try {
+				piece = segmentController.getSegmentBuffer().getPointUnsave(abs);
+			} catch(Exception e) {
+				// Segment buffer not ready – leave the entry in the map and retry next tick
 				continue;
 			}
+
+			if(piece == null || piece.getType() != ElementRegistry.COMPUTER.getId()) {
+				// Segment not yet loaded or not a computer block – try again next tick
+				continue;
+			}
+
+			// Remove from pending *before* constructing the module so that any
+			// re-entrant call (e.g. from addModule) sees the entry as gone.
+			pendingModuleStates.remove(abs);
 
 			if(!computerModules.containsKey(abs)) {
 				String stableUUID = ComputerModule.generateComputerUUID(abs);
 				ComputerModule module = new ComputerModule(piece, stableUUID);
-				applyStateToModule(module, entry.getValue());
+				applyStateToModule(module, state);
 				computerModules.put(abs, module);
 			}
-			iterator.remove();
 		}
 	}
 
 	private void applyPendingState(long abs, ComputerModule module) {
-		PendingModuleState state = pendingModuleStates.remove(abs);
-		if(state != null) {
-			applyStateToModule(module, state);
+		synchronized(pendingLock) {
+			PendingModuleState state = pendingModuleStates.remove(abs);
+			if(state != null) {
+				applyStateToModule(module, state);
+			}
 		}
 	}
 
