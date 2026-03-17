@@ -161,6 +161,11 @@ ok2 = util.endsWith("terminal.lua", ".lua")
 
 `util` is now loaded from `src/main/resources/scripts/lib/util.lua`, with native `util.now()` and `util.sleep()` attached from Java.
 
+Wrapper model update:
+
+- Use read-only views where possible (`getInfo()`/`getEntityInfo()`).
+- Use control surfaces explicitly for mutation (`getControl()`).
+
 ### Vector Library
 
 Access vector helpers through the `vector` global variable:
@@ -204,6 +209,18 @@ Default startup scripts are bundled under `src/main/resources/scripts` and copie
 - `scripts/bin/*.lua` -> `/bin/*.lua`
 
 Built-in Lua libraries are also bundled under `src/main/resources/scripts/lib` and auto-loaded into the sandbox.
+
+Read-only vs control examples:
+
+```lua
+block = console.getBlock()
+info = block.getEntityInfo()      -- read-only entity details
+ctrl = block.getControl()         -- mutating operations for this block
+
+entity = block.getEntity()
+entityInfo = entity.getInfo()     -- read-only entity details
+entityCtrl = entity.getControl()  -- mutating operations (rename, docking, AI)
+```
 
 Example script (/bin/example.lua):
 ```lua

@@ -6,14 +6,9 @@ import luamade.lua.entity.Entity;
 import luamade.lua.entity.EntityInfo;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
-import org.schema.game.client.controller.element.world.ClientSegmentProvider;
-import org.schema.game.common.controller.SendableSegmentProvider;
 import org.schema.game.common.data.ManagedSegmentController;
 import org.schema.game.common.data.SegmentPiece;
-import org.schema.game.common.data.element.ElementCollection;
 import org.schema.game.common.data.element.ElementKeyMap;
-import org.schema.game.network.objects.remote.RemoteTextBlockPair;
-import org.schema.game.network.objects.remote.TextBlockPair;
 
 public class Block extends LuaMadeUserdata {
     private final SegmentPiece segmentPiece;
@@ -44,9 +39,7 @@ public class Block extends LuaMadeUserdata {
 
     @LuaMadeCallable
     public void setActive(boolean bool) {
-        segmentPiece.setActive(bool);
-        segmentPiece.applyToSegment(segmentPiece.getSegmentController().isOnServer());
-        if(segmentPiece.getSegmentController().isOnServer()) segmentPiece.getSegmentController().sendBlockActivation(ElementCollection.getEncodeActivation(segmentPiece, true, bool, false));
+        getControl().setActive(bool);
     }
 
     @LuaMadeCallable
@@ -57,6 +50,11 @@ public class Block extends LuaMadeUserdata {
     @LuaMadeCallable
     public EntityInfo getEntityInfo() {
         return new EntityInfo(segmentPiece.getSegmentController());
+    }
+
+    @LuaMadeCallable
+    public BlockControl getControl() {
+        return new BlockControl(this);
     }
 
     @LuaMadeCallable
@@ -81,23 +79,7 @@ public class Block extends LuaMadeUserdata {
 
     @LuaMadeCallable
     public void setDisplayText(String text) {
-        if(isDisplayModule()) {
-            segmentPiece.getSegmentController().getTextMap().remove(segmentPiece.getTextBlockIndex());
-            segmentPiece.getSegmentController().getTextMap().put(segmentPiece.getTextBlockIndex(), text);
-            segmentPiece.applyToSegment(segmentPiece.getSegmentController().isOnServer());
-            if(segmentPiece.getSegmentController().isOnServer()) {
-                TextBlockPair textBlockPair = new TextBlockPair();
-                textBlockPair.block = segmentPiece.getTextBlockIndex();
-                textBlockPair.text = text;
-                segmentPiece.getSegmentController().getNetworkObject().textBlockChangeBuffer.add(new RemoteTextBlockPair(textBlockPair, true));
-            } else {
-                SendableSegmentProvider provider = ((ClientSegmentProvider) segmentPiece.getSegment().getSegmentController().getSegmentProvider()).getSendableSegmentProvider();
-                TextBlockPair pair = new TextBlockPair();
-                pair.block = segmentPiece.getTextBlockIndex();
-                pair.text = text;
-                provider.getNetworkObject().textBlockResponsesAndChangeRequests.add(new RemoteTextBlockPair(pair, false));
-            }
-        }
+        getControl().setDisplayText(text);
     }
 
     @LuaMadeCallable
