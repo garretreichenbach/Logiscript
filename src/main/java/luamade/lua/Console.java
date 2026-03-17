@@ -33,17 +33,17 @@ public class Console extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public void print(Varargs vargs) {
+	public synchronized void print(Varargs vargs) {
 		textContents.append(vargs.arg(1).toString()).append("\n");
 		trimScrollbackIfNeeded();
 	}
 
-	public void appendInline(Varargs vargs) {
+	public synchronized void appendInline(Varargs vargs) {
 		textContents.append(vargs.arg(1).toString());
 		trimScrollbackIfNeeded();
 	}
 
-	public void clearTextContents() {
+	public synchronized void clearTextContents() {
 		textContents.setLength(0);
 		cursorPos[VERTICAL] = 0;
 		cursorPos[HORIZONTAL] = 0;
@@ -53,11 +53,11 @@ public class Console extends LuaMadeUserdata {
 		return module.getSegmentPiece();
 	}
 
-	public String getTextContents() {
+	public synchronized String getTextContents() {
 		return textContents.toString();
 	}
 
-	public void setTextContents(String textContents) {
+	public synchronized void setTextContents(String textContents) {
 		this.textContents = new StringBuilder(textContents);
 		trimScrollbackIfNeeded();
 		cursorPos[VERTICAL] = getLineNumber();
@@ -130,7 +130,7 @@ public class Console extends LuaMadeUserdata {
 		return cursorPos;
 	}
 
-	public int getLineNumber() {
+	public synchronized int getLineNumber() {
 		return textContents.toString().split("\n").length;
 	}
 
@@ -139,7 +139,7 @@ public class Console extends LuaMadeUserdata {
 		trimCursorPos();
 	}
 
-	public int getLinePos() {
+	public synchronized int getLinePos() {
 		String[] lines = textContents.toString().split("\n");
 		if(cursorPos[VERTICAL] >= lines.length) {
 			return 0;

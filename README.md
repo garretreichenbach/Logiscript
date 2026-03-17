@@ -72,10 +72,20 @@ term.start()
 -- Handle user input
 term.handleInput("ls")
 
+-- Run a terminal command from Lua code
+term.runCommand("echo hello from lua")
+
 -- Register a custom command
 term.registerCommand("hello", function(args)
     print("Hello, " .. args .. "!")
 end)
+
+-- Customize prompt and prompt rendering
+term.setPromptTemplate("[{hostname}] {dir} > ")
+term.setAutoPrompt(true)
+
+-- Re-run /etc/startup.lua and reset terminal state
+term.reboot()
 ```
 
 ### Terminal Commands
@@ -92,6 +102,9 @@ The terminal supports the following built-in commands:
 - `mv <source> <dest>` - Move or rename a file
 - `edit <file> <content>` - Write content to a file
 - `run <script> [args]` - Execute a Lua script with optional arguments
+- `runbg <script> [args]` - Execute a Lua script in background (limited parallelism)
+- `jobs` - List background script jobs
+- `kill <job-id>` - Stop a background script job
 - `which <command-or-path>` - Resolve built-ins or file paths
 - `name [new-name|--reset]` - Show or change the displayed computer name in the prompt
 - `head <file> [n]` - Show first lines of a file
@@ -100,6 +113,7 @@ The terminal supports the following built-in commands:
 - `nano <file>` - Open file in editor mode
 - `echo <text>` - Print text to the terminal
 - `clear` - Clear the terminal screen
+- `reboot` - Reload `/etc/startup.lua` and reset terminal UI state
 - `help` - Show available commands
 - `exit` - Exit the terminal
 
@@ -117,6 +131,38 @@ Scripts executed in the terminal have access to these global variables:
 - `term` - Terminal API
 - `net` - Network API
 - `args` - Table of command-line arguments
+
+Runtime behavior notes:
+
+- Foreground scripts (`run`) are time-budgeted to prevent runaway execution.
+- Background scripts (`runbg`) are limited to a small parallel pool and also time-budgeted.
+
+Server resource controls (config):
+
+- `script_max_parallel` controls max concurrent scripts per computer.
+- `script_timeout_ms` controls foreground/background script timeout.
+- `startup_script_timeout_ms` controls startup script timeout.
+- `script_overload_mode` controls behavior when at capacity:
+    - `0` hard-stop (reject immediately)
+    - `1` stall (wait until a slot is available)
+    - `2` hybrid (wait up to queue budget, then reject)
+- `script_queue_wait_ms` controls hybrid queue wait budget.
+
+### Startup Script
+
+On terminal boot, LuaMade will execute `/etc/startup.lua` if present.
+
+- Use it to print custom startup messages
+- Set prompt style with `term.setPromptTemplate(template)`
+- Disable automatic prompts for fully custom shells with `term.setAutoPrompt(false)`
+- Trigger startup reload in-session with `reboot`
+
+Prompt placeholders:
+
+- `{name}` - Prompt display name
+- `{display}` - Saved display name
+- `{hostname}` - Network hostname
+- `{dir}` - Current working directory
 
 Example script (/bin/example.lua):
 ```lua

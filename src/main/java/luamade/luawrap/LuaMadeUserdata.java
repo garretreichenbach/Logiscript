@@ -2,6 +2,7 @@ package luamade.luawrap;
 
 import luamade.lua.Console;
 import org.luaj.vm2.*;
+import org.luaj.vm2.lib.VarArgFunction;
 import org.luaj.vm2.lib.TwoArgFunction;
 
 import java.util.HashMap;
@@ -45,7 +46,7 @@ public abstract class LuaMadeUserdata extends LuaUserdata {
                 methods.put(ud.getClass(), WrapUtils.listMethods(ud.getClass()));
 
             if (apiMethod != null)
-                return apiMethod;
+                return bindSelf(ud, apiMethod);
             else if (!methods.get(ud.getClass()).contains(methodName))
                 throw new LuaError(String.format("LuaMadeUserdata '%s' has no such method '%s'.", udi.getClass(), methodName));
 
@@ -53,7 +54,7 @@ public abstract class LuaMadeUserdata extends LuaUserdata {
             if (!methods.containsKey(methodName))
                 methods.put(methodName, new WrapMethod(methodName, ud.getClass()));
 
-            return methods.get(key.tojstring());
+            return bindSelf(ud, methods.get(key.tojstring()));
         }
     };
     public LuaMadeUserdata() {
@@ -67,6 +68,22 @@ public abstract class LuaMadeUserdata extends LuaUserdata {
     private static LuaTable getMeta() {
         metaTable.set(INDEX, f);
         return metaTable;
+    }
+
+    /**
+     * Binds a userdata method to its instance so scripts can call it with either
+     * dot style (obj.method(arg)) or colon style (obj:method(arg)).
+     */
+    private static LuaFunction bindSelf(final LuaMadeUserdata self, final LuaFunction function) {
+        return new VarArgFunction() {
+            @Override
+            public Varargs invoke(Varargs vargs) {
+                if(vargs.narg() > 0 && vargs.arg1() == self) {
+                    return function.invoke(vargs);
+                }
+                return function.invoke(LuaValue.varargsOf(self, vargs));
+            }
+        };
     }
 
     /**

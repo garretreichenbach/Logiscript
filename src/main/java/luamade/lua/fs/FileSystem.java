@@ -9,8 +9,12 @@ import luamade.utils.DataUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -117,6 +121,22 @@ public class FileSystem extends LuaMadeUserdata {
 	 * Creates default files for a new file system
 	 */
 	private void createDefaultFiles() {
+		String startupScript =
+			"-- /etc/startup.lua\n" +
+			"-- This file is executed whenever the terminal boots or when you run 'reboot'.\n" +
+			"-- Available prompt placeholders: {name}, {display}, {hostname}, {dir}\n" +
+			"-- UTF-8 output is supported, so you can use box/block glyphs in custom UIs.\n" +
+			"\n" +
+			"term.setAutoPrompt(true)\n" +
+			"term.setPromptTemplate(\"{name}:{dir} $ \")\n" +
+			"\n" +
+			"print(\"LuaMade Terminal v1.0\")\n" +
+			"print(\"Type 'help' for a list of commands\")\n";
+
+		if(!exists("/etc/startup.lua")) {
+			write("/etc/startup.lua", startupScript);
+		}
+
 		// Create a simple shell script as an example
 		String shellScript =
 			"-- LuaMade Shell\n" +
@@ -311,11 +331,12 @@ public class FileSystem extends LuaMadeUserdata {
 			return false;
 		}
 
-		// Create the directory
-		// Remove leading slash for file path construction
-		String relativePath = path.startsWith("/") ? path.substring(1) : path;
-		VirtualFile dir = new VirtualFile(this, new File(rootDirectory.getInternalFile(), relativePath));
-		return dir.getInternalFile().mkdirs();
+		File safeFile = resolveSandboxPath(path);
+		if(safeFile == null) {
+			return false;
+		}
+
+		return safeFile.mkdirs();
 	}
 
 	/**
@@ -352,17 +373,18 @@ public class FileSystem extends LuaMadeUserdata {
 		path = normalizePath(path);
 
 		try {
-			// Remove leading slash for file path construction
-			String relativePath = path.startsWith("/") ? path.substring(1) : path;
-			
-			// Create the file
-			VirtualFile file = new VirtualFile(this, new File(rootDirectory.getInternalFile(), relativePath));
+			File safeFile = resolveSandboxPath(path);
+			if(safeFile == null) {
+				return false;
+			}
+
+			VirtualFile file = new VirtualFile(this, safeFile);
 			
 			// Make sure parent directory exists
 			file.getInternalFile().getParentFile().mkdirs();
 			
 			// Write content to file
-			FileWriter writer = new FileWriter(file.getInternalFile());
+			OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(file.getInternalFile()), StandardCharsets.UTF_8);
 			writer.write(content);
 			writer.close();
 			return true;
@@ -532,22 +554,47 @@ public class FileSystem extends LuaMadeUserdata {
 		// Normalize the path
 		filePath = normalizePath(filePath);
 		
-		// Root directory
-		if("/".equals(filePath)) {
-			return rootDirectory;
+		File internalFile = resolveSandboxPath(filePath);
+		if(internalFile == null) {
+			return null;
 		}
-		
-		// Remove leading slash
-		if(filePath.startsWith("/")) {
-			filePath = filePath.substring(1);
-		}
-		
-		File internalFile = new File(rootDirectory.getInternalFile(), filePath);
+
 		if(!internalFile.exists()) {
 			return null;
 		}
 		
 		return new VirtualFile(this, internalFile);
+	}
+
+	private File resolveSandboxPath(String normalizedPath) {
+		if(normalizedPath == null || rootDirectory == null || rootDirectory.getInternalFile() == null) {
+			return null;
+		}
+
+		String path = normalizePath(normalizedPath);
+		String relativePath = "/".equals(path) ? "" : (path.startsWith("/") ? path.substring(1) : path);
+		File root = rootDirectory.getInternalFile();
+		File candidate = relativePath.isEmpty() ? root : new File(root, relativePath);
+
+		try {
+			File canonicalRoot = root.getCanonicalFile();
+			File canonicalCandidate = candidate.getCanonicalFile();
+			if(canonicalCandidate.equals(canonicalRoot)) {
+				return canonicalCandidate;
+			}
+
+			String rootPath = canonicalRoot.getPath();
+			String candidatePath = canonicalCandidate.getPath();
+			if(!candidatePath.startsWith(rootPath + File.separator)) {
+				LuaMade.getInstance().logWarning("Blocked sandbox escape attempt: " + path);
+				return null;
+			}
+
+			return canonicalCandidate;
+		} catch(IOException exception) {
+			LuaMade.getInstance().logException("Failed to resolve sandbox path: " + path, exception);
+			return null;
+		}
 	}
 
 	/**
@@ -559,7 +606,7 @@ public class FileSystem extends LuaMadeUserdata {
 		}
 		
 		try {
-			BufferedReader reader = new BufferedReader(new FileReader(virtualFile.getInternalFile()));
+			BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(virtualFile.getInternalFile()), StandardCharsets.UTF_8));
 			StringBuilder content = new StringBuilder();
 			String line;
 			while((line = reader.readLine()) != null) {
