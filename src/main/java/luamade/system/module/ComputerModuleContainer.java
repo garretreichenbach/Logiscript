@@ -12,6 +12,7 @@ import org.schema.game.common.data.SegmentPiece;
 import org.schema.schine.graphicsengine.core.Timer;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -44,6 +45,14 @@ public class ComputerModuleContainer extends SystemModule {
 			container.saveAndCleanupAllModules();
 		}
 		ACTIVE_CONTAINERS.clear();
+	}
+
+	public static Set<String> snapshotActiveComputerUUIDs() {
+		Set<String> uuids = new HashSet<>();
+		for(ComputerModuleContainer container : ACTIVE_CONTAINERS) {
+			container.collectKnownUUIDs(uuids);
+		}
+		return uuids;
 	}
 
 	@Override
@@ -174,6 +183,20 @@ public class ComputerModuleContainer extends SystemModule {
 	public void saveAndCleanupAllModules() {
 		for(ComputerModule module : computerModules.values()) {
 			module.saveAndCleanup();
+		}
+	}
+
+	private void collectKnownUUIDs(Set<String> uuids) {
+		for(ComputerModule module : computerModules.values()) {
+			if(module != null && module.getUUID() != null && !module.getUUID().isEmpty()) {
+				uuids.add(module.getUUID());
+			}
+		}
+
+		synchronized(pendingLock) {
+			for(long abs : pendingModuleStates.keySet().toLongArray()) {
+				uuids.add(ComputerModule.generateComputerUUID(abs));
+			}
 		}
 	}
 
