@@ -23,6 +23,19 @@ public class PeripheralsApi extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public Block wrap(Block block, String asType) {
+		if(block == null) {
+			return null;
+		}
+		return Block.wrapAs(block.getSegmentPiece(), asType);
+	}
+
+	@LuaMadeCallable
+	public Block wrapCurrent(String asType) {
+		return Block.wrapAs(module.getSegmentPiece(), asType);
+	}
+
+	@LuaMadeCallable
 	public Block getAt(LuaVec3i position) {
 		if(position == null) {
 			return null;
@@ -51,6 +64,24 @@ public class PeripheralsApi extends LuaMadeUserdata {
 			return null;
 		}
 		return Block.wrap(adjacent);
+	}
+
+	@LuaMadeCallable
+	public Block wrapRelative(String side, String asType) {
+		Block relative = getRelative(side);
+		if(relative == null) {
+			return null;
+		}
+		return wrap(relative, asType);
+	}
+
+	@LuaMadeCallable
+	public Block wrapAt(LuaVec3i position, String asType) {
+		Block block = getAt(position);
+		if(block == null) {
+			return null;
+		}
+		return wrap(block, asType);
 	}
 
 	@LuaMadeCallable

@@ -14,6 +14,8 @@ import org.schema.game.common.data.element.ElementKeyMap;
 import org.schema.game.network.objects.remote.RemoteTextBlockPair;
 import org.schema.game.network.objects.remote.TextBlockPair;
 
+import java.util.Locale;
+
 public class Block extends LuaMadeUserdata {
     private final SegmentPiece segmentPiece;
 
@@ -22,7 +24,31 @@ public class Block extends LuaMadeUserdata {
     }
 
     public static Block wrap(SegmentPiece piece) {
+        return wrapAs(piece, "auto");
+    }
+
+    public static Block wrapAs(SegmentPiece piece, String target) {
         if(piece == null) {
+            return null;
+        }
+
+        String kind = target == null ? "auto" : target.trim().toLowerCase(Locale.ROOT);
+
+        if("block".equals(kind) || "base".equals(kind)) {
+            return new Block(piece);
+        }
+
+        if("display".equals(kind) || "displaymodule".equals(kind) || "display_module".equals(kind)) {
+            if(piece.getType() == ElementKeyMap.TEXT_BOX) {
+                return new DisplayModuleBlock(piece);
+            }
+            return null;
+        }
+
+        if("inventory".equals(kind)) {
+            if(hasInventoryAt(piece)) {
+                return new InventoryBlock(piece);
+            }
             return null;
         }
 
