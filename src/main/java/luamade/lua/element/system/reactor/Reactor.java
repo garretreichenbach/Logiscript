@@ -57,7 +57,7 @@ public class Reactor extends LuaMadeUserdata {
 		try {
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
 			for(ReactorElement element : SegmentControllerUtils.getAllChambers(controller)) {
-				if(element.getInfo().getName().toLowerCase().trim().equals(name.toLowerCase().trim())) return new Chamber(element, controller, this);
+				if(element.getInfo().getName().toLowerCase().trim().equals(name.toLowerCase().trim())) return Chamber.wrap(element, controller, this);
 			}
 		} catch(Exception exception) {
 			return null;
@@ -70,7 +70,7 @@ public class Reactor extends LuaMadeUserdata {
 		try {
 			ArrayList<Chamber> chambers = new ArrayList<>();
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
-			for(ReactorElement element : SegmentControllerUtils.getAllChambers(controller)) chambers.add(new Chamber(element, controller, this));
+			for(ReactorElement element : SegmentControllerUtils.getAllChambers(controller)) chambers.add(Chamber.wrap(element, controller, this));
 			return chambers.toArray(new Chamber[0]);
 		} catch(Exception exception) {
 			return new Chamber[0];
@@ -83,7 +83,7 @@ public class Reactor extends LuaMadeUserdata {
 			ArrayList<Chamber> chambers = new ArrayList<>();
 			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentController;
 			for(ReactorElement element : SegmentControllerUtils.getAllChambers(controller)) {
-				if(element.isAllValidOrUnspecified()) chambers.add(new Chamber(element, controller, this));
+				if(element.isAllValidOrUnspecified()) chambers.add(Chamber.wrap(element, controller, this));
 			}
 			return chambers.toArray(new Chamber[0]);
 		} catch(Exception exception) {

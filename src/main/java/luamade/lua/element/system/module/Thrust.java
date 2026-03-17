@@ -1,7 +1,6 @@
 package luamade.lua.element.system.module;
 
 import luamade.luawrap.LuaMadeCallable;
-import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.Ship;
 import org.schema.game.common.controller.elements.ShipManagerContainer;
@@ -11,12 +10,10 @@ import org.schema.game.common.controller.elements.ShipManagerContainer;
  *
  * @author TheDerpGamer (TheDerpGamer#0027)
  */
-public class Thrust extends LuaMadeUserdata implements ModuleInterface {
-
-	private final SegmentController segmentController;
+public class Thrust extends Module {
 
 	public Thrust(SegmentController segmentController) {
-		this.segmentController = segmentController;
+		super(segmentController);
 	}
 
 	@LuaMadeCallable
@@ -41,7 +38,6 @@ public class Thrust extends LuaMadeUserdata implements ModuleInterface {
 	}
 
 	@LuaMadeCallable
-	@Override
 	public Integer getSize() {
 		ShipManagerContainer managerContainer = getContainer();
 		if(managerContainer != null) return managerContainer.getThrust().getElementManager().totalSize;

@@ -1,14 +1,8 @@
 package luamade.lua.element.system.module;
 
-import luamade.luawrap.LuaMadeCallable;
-
-/**
- * [Description]
- *
- * @author TheDerpGamer (TheDerpGamer#0027)
- */
+/** @deprecated Use {@link Module} instead. */
+@Deprecated
 public interface ModuleInterface {
-
-	@LuaMadeCallable
 	Integer getSize();
 }
+

@@ -29,6 +29,12 @@ public class Chamber extends LuaMadeUserdata {
 		this.reactor = reactor;
 	}
 
+	public static Chamber wrap(ReactorElement element, ManagedUsableSegmentController<?> controller, Reactor reactor) {
+		Chamber base = new Chamber(element, controller, reactor);
+		if(base.isUsable()) return new UsableChamber(element, controller, reactor);
+		return base;
+	}
+
 	@LuaMadeCallable
 	public String getName() {
 		return ElementKeyMap.getInfo(reactorElement.type).getName();
