@@ -216,8 +216,9 @@ public class ComputerModule {
 	 * This should be called when the computer goes idle or when the server shuts down.
 	 */
 	public void saveAndCleanup() {
-		fileSystem.saveToDisk();
-		fileSystem.cleanupTempFiles();
+		if(fileSystem.saveToDisk()) {
+			fileSystem.cleanupTempFiles();
+		}
 	}
 
 	/**

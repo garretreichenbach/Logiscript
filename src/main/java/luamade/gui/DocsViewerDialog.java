@@ -171,11 +171,12 @@ public class DocsViewerDialog extends PlayerInput {
 			topicsBackground.onInit();
 			root.attach(topicsBackground);
 
-			topicsScrollPanel = new GUIScrollablePanel(LEFT_WIDTH, WINDOW_HEIGHT - 80, root, getState());
+			// Parent the scroll panel to its pane background so scrollbar math stays local to this pane.
+			topicsScrollPanel = new GUIScrollablePanel(LEFT_WIDTH, WINDOW_HEIGHT - 80, topicsBackground, getState());
 			topicsScrollPanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);
 			topicsContent = new GUIAncor(getState(), LEFT_WIDTH - 12, WINDOW_HEIGHT - 80);
 			topicsScrollPanel.setContent(topicsContent);
-			root.attach(topicsScrollPanel);
+			topicsBackground.attach(topicsScrollPanel);
 
 			emptyTopicsOverlay = new GUITextOverlay(LEFT_WIDTH - 24, 18, FontLibrary.FontSize.MEDIUM, getState());
 			emptyTopicsOverlay.setTextSimple("No matching topics");
@@ -185,11 +186,12 @@ public class DocsViewerDialog extends PlayerInput {
 			contentBackground.onInit();
 			root.attach(contentBackground);
 
-			contentScrollPanel = new GUIScrollablePanel(WINDOW_WIDTH - LEFT_WIDTH - (PADDING * 3), WINDOW_HEIGHT - 44, root, getState());
+			// Parent the right scroll panel to its background to keep scrollbar inside the right pane bounds.
+			contentScrollPanel = new GUIScrollablePanel(WINDOW_WIDTH - LEFT_WIDTH - (PADDING * 3), WINDOW_HEIGHT - 44, contentBackground, getState());
 			contentScrollPanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);
 			contentBlocks = new GUIAncor(getState(), WINDOW_WIDTH - LEFT_WIDTH - (PADDING * 3), WINDOW_HEIGHT - 44);
 			contentScrollPanel.setContent(contentBlocks);
-			root.attach(contentScrollPanel);
+			contentBackground.attach(contentScrollPanel);
 
 			filterTopics();
 			rebuildTopicButtons();
@@ -229,8 +231,9 @@ public class DocsViewerDialog extends PlayerInput {
 			topicsBackground.setPos(PADDING, SEARCH_HEIGHT + 16.0F, 0.0F);
 			topicsScrollPanel.setWidth(LEFT_WIDTH);
 			topicsScrollPanel.setHeight(leftHeight);
-			topicsScrollPanel.setPos(PADDING, SEARCH_HEIGHT + 16.0F, 0.0F);
-			// Leave room for the topics scrollbar
+			// Scroll panels are now children of pane backgrounds.
+			topicsScrollPanel.setPos(0.0F, 0.0F, 0.0F);
+			// Leave room for the topics scrollbar.
 			topicsContent.setWidth(LEFT_WIDTH - SCROLLBAR_WIDTH - 4);
 
 			contentBackground.setWidth(rightWidth);
@@ -238,8 +241,9 @@ public class DocsViewerDialog extends PlayerInput {
 			contentBackground.setPos(rightX, 6.0F, 0.0F);
 			contentScrollPanel.setWidth(rightWidth);
 			contentScrollPanel.setHeight(contentHeight);
-			contentScrollPanel.setPos(rightX, 6.0F, 0.0F);
-			// Leave room for the content scrollbar so text doesn't flow under it
+			// Scroll panel is now a child of the right pane background.
+			contentScrollPanel.setPos(0.0F, 0.0F, 0.0F);
+			// Leave room for the content scrollbar so text doesn't flow under it.
 			contentBlocks.setWidth(rightWidth - SCROLLBAR_WIDTH - 8);
 		}
 
