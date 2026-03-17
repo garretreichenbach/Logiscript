@@ -56,6 +56,8 @@ The file is created automatically with default entries on first startup.
 3. Persist local state to files under `/home` or `/etc`.
 4. Use `net` to coordinate with other computers.
 
+Peripheral side lookups are orientation-aware: `front`/`back`/`left`/`right` follow the computer block's facing.
+
 ## Startup behavior
 
 If `/etc/startup.lua` exists, it runs at terminal boot.

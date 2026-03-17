@@ -83,22 +83,6 @@ public class Block extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
-    public DisplayModuleBlock asDisplayModule() {
-        if(!isDisplayModule()) {
-            return null;
-        }
-        return new DisplayModuleBlock(segmentPiece);
-    }
-
-    @LuaMadeCallable
-    public InventoryBlock asInventory() {
-        if(!hasInventory()) {
-            return null;
-        }
-        return new InventoryBlock(segmentPiece);
-    }
-
-    @LuaMadeCallable
     public void setActive(boolean active) {
         segmentPiece.setActive(active);
         segmentPiece.applyToSegment(segmentPiece.getSegmentController().isOnServer());

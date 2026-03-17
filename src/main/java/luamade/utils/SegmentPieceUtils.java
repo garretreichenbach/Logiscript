@@ -1,11 +1,14 @@
 package luamade.utils;
 
+import com.bulletphysics.linearmath.Transform;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.PositionControl;
 import org.schema.game.common.controller.SegmentBufferInterface;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementInformation;
 import org.schema.game.common.data.element.ElementKeyMap;
+
+import javax.vecmath.Vector3f;
 
 import java.util.ArrayList;
 import java.util.Locale;
@@ -41,34 +44,82 @@ public class SegmentPieceUtils {
 	}
 
 	public static SegmentPiece getAdjacentDir(SegmentPiece segmentPiece, String dir) {
-		ArrayList<SegmentPiece> matching = getAdjacent(segmentPiece);
-		if(!matching.isEmpty()) {
-			int dirInt = -1;
-			switch(dir.toLowerCase()) {
-				case "left":
-					dirInt = 0;
-					break;
-				case "right":
-					dirInt = 1;
-					break;
-				case "down":
-					dirInt = 2;
-					break;
-				case "up":
-					dirInt = 3;
-					break;
-				case "back":
-					dirInt = 4;
-					break;
-				case "front":
-					dirInt = 5;
-					break;
-			}
-			for(int i = 0; i < 6; i ++) {
-				if(i == dirInt && i < matching.size() && matching.get(i) != null) return matching.get(i);
-			}
+		if(segmentPiece == null || dir == null) {
+			return null;
 		}
-		return null;
+
+		Vector3i offset = getDirectionalOffset(segmentPiece, dir);
+		if(offset == null) {
+			return null;
+		}
+
+		Vector3i absolutePos = new Vector3i(segmentPiece.getAbsolutePos(new Vector3i()));
+		absolutePos.add(offset);
+		return segmentPiece.getSegmentController().getSegmentBuffer().getPointUnsave(absolutePos);
+	}
+
+	private static Vector3i getDirectionalOffset(SegmentPiece segmentPiece, String dir) {
+		String side = dir.toLowerCase(Locale.ROOT);
+		switch(side) {
+			case "left":
+				return getOrientedLeft(segmentPiece);
+			case "right":
+				return negate(getOrientedLeft(segmentPiece));
+			case "up":
+				return getOrientedUp(segmentPiece);
+			case "down":
+				return negate(getOrientedUp(segmentPiece));
+			case "front":
+				return getOrientedFront(segmentPiece);
+			case "back":
+				return negate(getOrientedFront(segmentPiece));
+			default:
+				return null;
+		}
+	}
+
+	private static Vector3i getOrientedLeft(SegmentPiece segmentPiece) {
+		Vector3f localRight = getBasisDirection(segmentPiece, new Vector3f(1f, 0f, 0f));
+		return negate(snapToAxis(localRight));
+	}
+
+	private static Vector3i getOrientedUp(SegmentPiece segmentPiece) {
+		Vector3f localUp = getBasisDirection(segmentPiece, new Vector3f(0f, 1f, 0f));
+		return snapToAxis(localUp);
+	}
+
+	private static Vector3i getOrientedFront(SegmentPiece segmentPiece) {
+		Vector3f localFront = getBasisDirection(segmentPiece, new Vector3f(0f, 0f, 1f));
+		return snapToAxis(localFront);
+	}
+
+	private static Vector3f getBasisDirection(SegmentPiece segmentPiece, Vector3f localAxis) {
+		Transform transform = new Transform();
+		segmentPiece.getTransform(transform);
+		Vector3f out = new Vector3f(localAxis);
+		transform.basis.transform(out);
+		return out;
+	}
+
+	private static Vector3i snapToAxis(Vector3f direction) {
+		float absX = Math.abs(direction.x);
+		float absY = Math.abs(direction.y);
+		float absZ = Math.abs(direction.z);
+
+		if(absX >= absY && absX >= absZ) {
+			return new Vector3i(direction.x >= 0 ? 1 : -1, 0, 0);
+		}
+		if(absY >= absX && absY >= absZ) {
+			return new Vector3i(0, direction.y >= 0 ? 1 : -1, 0);
+		}
+		return new Vector3i(0, 0, direction.z >= 0 ? 1 : -1);
+	}
+
+	private static Vector3i negate(Vector3i vec) {
+		if(vec == null) {
+			return null;
+		}
+		return new Vector3i(-vec.x, -vec.y, -vec.z);
 	}
 
 	public static ArrayList<SegmentPiece> getMatchingAdjacent(SegmentPiece segmentPiece, short type) {
