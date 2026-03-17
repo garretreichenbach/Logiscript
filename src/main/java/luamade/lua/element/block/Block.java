@@ -21,6 +21,22 @@ public class Block extends LuaMadeUserdata {
         this.segmentPiece = piece;
     }
 
+    public static Block wrap(SegmentPiece piece) {
+        if(piece == null) {
+            return null;
+        }
+
+        if(piece.getType() == ElementKeyMap.TEXT_BOX) {
+            return new DisplayModuleBlock(piece);
+        }
+
+        if(hasInventoryAt(piece)) {
+            return new InventoryBlock(piece);
+        }
+
+        return new Block(piece);
+    }
+
     @LuaMadeCallable
     public LuaVec3i getPos() {
         return new LuaVec3i(segmentPiece.getAbsolutePosX(), segmentPiece.getAbsolutePosY(), segmentPiece.getAbsolutePosZ());
@@ -53,22 +69,33 @@ public class Block extends LuaMadeUserdata {
 
     @LuaMadeCallable
     public Boolean hasInventory() {
-        return getInventory() != null;
+        return hasInventoryAt(segmentPiece);
     }
 
     @LuaMadeCallable
     public Inventory getInventory() {
-        long index = segmentPiece.getAbsoluteIndex();
-        if(segmentPiece.getSegmentController() instanceof ManagedSegmentController<?>) {
-            ManagedSegmentController<?> controller = (ManagedSegmentController<?>) segmentPiece.getSegmentController();
-            if(controller.getManagerContainer().getInventory(index) != null) return new Inventory(controller.getManagerContainer().getInventory(index), controller.getSegmentController().getSegmentBuffer().getPointUnsave(index));
-        }
-        return null;
+        return getInventoryAt(segmentPiece);
     }
 
     @LuaMadeCallable
     public Boolean isDisplayModule() {
         return segmentPiece.getType() == ElementKeyMap.TEXT_BOX;
+    }
+
+    @LuaMadeCallable
+    public DisplayModuleBlock asDisplayModule() {
+        if(!isDisplayModule()) {
+            return null;
+        }
+        return new DisplayModuleBlock(segmentPiece);
+    }
+
+    @LuaMadeCallable
+    public InventoryBlock asInventory() {
+        if(!hasInventory()) {
+            return null;
+        }
+        return new InventoryBlock(segmentPiece);
     }
 
     @LuaMadeCallable
@@ -112,5 +139,20 @@ public class Block extends LuaMadeUserdata {
 
     public SegmentPiece getSegmentPiece() {
         return segmentPiece;
+    }
+
+    private static Inventory getInventoryAt(SegmentPiece piece) {
+        long index = piece.getAbsoluteIndex();
+        if(piece.getSegmentController() instanceof ManagedSegmentController<?>) {
+            ManagedSegmentController<?> controller = (ManagedSegmentController<?>) piece.getSegmentController();
+            if(controller.getManagerContainer().getInventory(index) != null) {
+                return new Inventory(controller.getManagerContainer().getInventory(index), controller.getSegmentController().getSegmentBuffer().getPointUnsave(index));
+            }
+        }
+        return null;
+    }
+
+    private static boolean hasInventoryAt(SegmentPiece piece) {
+        return getInventoryAt(piece) != null;
     }
 }

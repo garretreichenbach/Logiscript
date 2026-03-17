@@ -60,7 +60,7 @@ public class Entity extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public Block getBlockAt(LuaVec3i pos) {
-		return new Block(segmentController.getSegmentBuffer().getPointUnsave(pos.getX(), pos.getY(), pos.getZ()));
+		return Block.wrap(segmentController.getSegmentBuffer().getPointUnsave(pos.getX(), pos.getY(), pos.getZ()));
 	}
 
 	@LuaMadeCallable
@@ -249,7 +249,7 @@ public class Entity extends LuaMadeUserdata {
 									Vector3f dockerPos = transform.origin;
 									double distance = Math.sqrt(Math.pow(remotePos.x - dockerPos.x, 2) + Math.pow(remotePos.y - dockerPos.y, 2) + Math.pow(remotePos.z - dockerPos.z, 2));
 									if(distance <= searchRadius) {
-										Block block = new Block(piece);
+										Block block = Block.wrap(piece);
 										distances.put(block, distance);
 									}
 								}

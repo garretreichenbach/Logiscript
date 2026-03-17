@@ -223,6 +223,11 @@ block.setDisplayText("Online")
 
 entity.setName("Relay-01")
 entity.activateJamming(true)
+
+topBlock = peripheral.getRelative("top")
+if topBlock ~= nil then
+    print("Top block:", topBlock.getInfo().getName())
+end
 ```
 
 Web fetch command:

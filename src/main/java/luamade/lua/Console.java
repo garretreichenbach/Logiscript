@@ -29,7 +29,7 @@ public class Console extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public Block getBlock() {
-		return new Block(module.getSegmentPiece()); //Block is basically a wrapper class for SegmentPiece
+		return Block.wrap(module.getSegmentPiece()); //Block is basically a wrapper class for SegmentPiece
 	}
 
 	@LuaMadeCallable

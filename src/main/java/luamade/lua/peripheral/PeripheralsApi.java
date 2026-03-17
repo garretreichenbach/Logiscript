@@ -1,0 +1,88 @@
+package luamade.lua.peripheral;
+
+import luamade.lua.data.LuaVec3i;
+import luamade.lua.element.block.Block;
+import luamade.luawrap.LuaMadeCallable;
+import luamade.luawrap.LuaMadeUserdata;
+import luamade.system.module.ComputerModule;
+import luamade.utils.SegmentPieceUtils;
+import org.schema.game.common.data.SegmentPiece;
+
+import java.util.Locale;
+
+public class PeripheralsApi extends LuaMadeUserdata {
+	private final ComputerModule module;
+
+	public PeripheralsApi(ComputerModule module) {
+		this.module = module;
+	}
+
+	@LuaMadeCallable
+	public Block getCurrentBlock() {
+		return Block.wrap(module.getSegmentPiece());
+	}
+
+	@LuaMadeCallable
+	public Block getAt(LuaVec3i position) {
+		if(position == null) {
+			return null;
+		}
+
+		SegmentPiece piece = module.getSegmentPiece().getSegmentController().getSegmentBuffer().getPointUnsave(
+			position.getX(),
+			position.getY(),
+			position.getZ()
+		);
+		if(piece == null) {
+			return null;
+		}
+		return Block.wrap(piece);
+	}
+
+	@LuaMadeCallable
+	public Block getRelative(String side) {
+		String normalized = normalizeSide(side);
+		if(normalized == null) {
+			return null;
+		}
+
+		SegmentPiece adjacent = SegmentPieceUtils.getAdjacentDir(module.getSegmentPiece(), normalized);
+		if(adjacent == null) {
+			return null;
+		}
+		return Block.wrap(adjacent);
+	}
+
+	@LuaMadeCallable
+	public Boolean hasRelative(String side) {
+		return getRelative(side) != null;
+	}
+
+	@LuaMadeCallable
+	public String[] getSides() {
+		return new String[] {"front", "back", "left", "right", "top", "bottom"};
+	}
+
+	private String normalizeSide(String side) {
+		if(side == null) {
+			return null;
+		}
+
+		String value = side.trim().toLowerCase(Locale.ROOT);
+		switch(value) {
+			case "up":
+			case "top":
+				return "up";
+			case "down":
+			case "bottom":
+				return "down";
+			case "left":
+			case "right":
+			case "front":
+			case "back":
+				return value;
+			default:
+				return null;
+		}
+	}
+}

@@ -2,6 +2,7 @@ package luamade.lua.terminal;
 
 import luamade.lua.Console;
 import luamade.lua.fs.FileSystem;
+import luamade.lua.peripheral.PeripheralsApi;
 import luamade.lua.util.UtilApi;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
@@ -507,6 +508,7 @@ public class Terminal extends LuaMadeUserdata {
 		globals.set("fs", fileSystem);
 		globals.set("term", this);
 		globals.set("net", module.getNetworkInterface());
+		globals.set("peripheral", new PeripheralsApi(module));
 
 		LuaTable utilLibrary = loadBuiltinLibrary(globals, "scripts/lib/util.lua", "util");
 		LuaTable vectorLibrary = loadBuiltinLibrary(globals, "scripts/lib/vector.lua", "vector");

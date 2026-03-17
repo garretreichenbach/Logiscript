@@ -22,7 +22,7 @@ info = block.getInfo()
 print("Running on:", info.getName(), "id=", info.getId())
 ```
 
-3. Save and run:
+1. Save and run:
 
 ```text
 run /home/hello.lua
@@ -34,6 +34,7 @@ run /home/hello.lua
 - `fs`: virtual filesystem read/write/list APIs.
 - `term`: terminal/session controls and command hooks.
 - `net`: direct, channel, local, and modem networking APIs.
+- `peripheral`: relative and absolute nearby block access helpers.
 - `args`: script argument array for `run` and direct script execution.
 - `util`: utility helpers from bundled Lua library plus native `now`/`sleep`.
 - `vector`: bundled vector helper library.
