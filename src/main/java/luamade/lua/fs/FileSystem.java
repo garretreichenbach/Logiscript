@@ -37,23 +37,17 @@ public class FileSystem extends LuaMadeUserdata {
 
 	public FileSystem(ComputerModule module) {
 		computerUUID = module.getUUID();
-		if(isUninitialized(this)) {
+		if(!readFilesFromDisk(module)) {
 			initializeDefaultDirectories();
 		}
-		readFilesFromDisk(module);
 		// Initialize with some basic Unix directories
-	}
-
-	private boolean isUninitialized(FileSystem fileSystem) {
-		File compressedFile = new File(computerStorage, "computer_" + fileSystem.computerUUID + "_fs.smdat");
-		return !compressedFile.exists() || compressedFile.length() == 0;
 	}
 
 	/**
 	 * Reads the file system from disk, decompressing if a saved state exists.
 	 * Note: module.getUUID() returns a standard UUID string (hex + hyphens), which is safe for file names.
 	 */
-	private void readFilesFromDisk(ComputerModule module) {
+	private boolean readFilesFromDisk(ComputerModule module) {
 		// Each computer file system is stored in a compressed file
 		File compressedFile = new File(computerStorage, "computer_" + module.getUUID() + "_fs.smdat");
 		File rootDirectory = new File(computerStorage, "computer_" + module.getUUID() + "_fs");
@@ -62,21 +56,11 @@ public class FileSystem extends LuaMadeUserdata {
 			LuaMade.getInstance().logWarning("File system for computer " + module.getUUID() + " was not cleaned up properly on server shutdown!");
 			this.rootDirectory = new VirtualFile(this, rootDirectory);
 			currentDirectory = this.rootDirectory;
-			return;
+			return true;
 		}
-		boolean exists = compressedFile.exists();
+		boolean exists = compressedFile.exists() && compressedFile.length() > 0;
 		if(!exists) {
-			compressedFile.getParentFile().mkdirs();
-			try {
-				compressedFile.createNewFile();
-				rootDirectory.mkdirs();
-				CompressionUtils.decompressFS(compressedFile, rootDirectory);
-				this.rootDirectory = new VirtualFile(this, rootDirectory);
-				currentDirectory = this.rootDirectory;
-				return;
-			} catch(Exception exception) {
-				throw new RuntimeException(exception);
-			}
+			return false;
 		} else {
 			try {
 				rootDirectory.mkdirs();
@@ -87,6 +71,7 @@ public class FileSystem extends LuaMadeUserdata {
 		}
 		this.rootDirectory = new VirtualFile(this, rootDirectory);
 		currentDirectory = this.rootDirectory;
+		return true;
 	}
 
 	/**
@@ -354,7 +339,7 @@ public class FileSystem extends LuaMadeUserdata {
 	 */
 	@LuaMadeCallable
 	public boolean delete(String path) {
-		if(path == null || path.isEmpty() || path.equals("/")) {
+		if(path == null || path.isEmpty() || "/".equals(path)) {
 			return false;
 		}
 
@@ -473,9 +458,9 @@ public class FileSystem extends LuaMadeUserdata {
 		List<String> normalizedComponents = new ArrayList<>();
 
 		for(String component : components) {
-			if(component.isEmpty() || component.equals(".")) {
+			if(component.isEmpty() || ".".equals(component)) {
 				continue;
-			} else if(component.equals("..")) {
+			} else if("..".equals(component)) {
 				if(!normalizedComponents.isEmpty()) {
 					normalizedComponents.remove(normalizedComponents.size() - 1);
 				}
@@ -510,7 +495,7 @@ public class FileSystem extends LuaMadeUserdata {
 		filePath = normalizePath(filePath);
 		
 		// Root directory
-		if(filePath.equals("/")) {
+		if("/".equals(filePath)) {
 			return rootDirectory;
 		}
 		

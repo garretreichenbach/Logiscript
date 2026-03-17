@@ -3,6 +3,7 @@ package luamade.listener;
 import api.listener.fastevents.segmentpiece.*;
 import luamade.element.ElementRegistry;
 import luamade.gui.ComputerDialog;
+import luamade.system.module.ComputerModule;
 import luamade.system.module.ComputerModuleContainer;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.schema.game.client.controller.manager.ingame.PlayerInteractionControlManager;
@@ -22,16 +23,14 @@ public class SegmentPieceListener implements SegmentPiecePlayerInteractListener,
 		if(segmentPiece.getSegmentController() instanceof ManagedUsableSegmentController<?>) {
 			if(segmentPiece.getType() == ElementRegistry.COMPUTER.getId()) {
 				ComputerModuleContainer container = ComputerModuleContainer.getContainer(((ManagedUsableSegmentController<?>) segmentPiece.getSegmentController()).getManagerContainer());
-				if(container != null && container.getModule(segmentPiece) != null) {
-					(new ComputerDialog(container.getModule(segmentPiece))).activate();
+				if(container != null) {
+					ComputerModule module = container.getOrCreateModule(segmentPiece);
+					if(module != null) {
+						(new ComputerDialog(module)).activate();
+					}
 				}
 			}
 		}
-	}
-
-	@Override
-	public void onAdd(short type, byte orientation, byte x, byte y, byte z, long index, boolean server) {
-
 	}
 
 	@Override

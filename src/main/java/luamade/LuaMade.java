@@ -8,6 +8,7 @@ import luamade.manager.ConfigManager;
 import luamade.manager.EventManager;
 import luamade.manager.GlossaryManager;
 import luamade.manager.ResourceManager;
+import luamade.system.module.ComputerModuleContainer;
 import org.schema.schine.resource.ResourceLoader;
 
 public class LuaMade extends StarMod {
@@ -31,6 +32,16 @@ public class LuaMade extends StarMod {
 		instance = this;
 		ConfigManager.initialize(this);
 		EventManager.registerEvents(this);
+	}
+
+	@Override
+	public void onDisable() {
+		try {
+			ComputerModuleContainer.saveAndCleanupAll();
+		} catch(Exception exception) {
+			logException("Failed to save computer data on disable", exception);
+		}
+		super.onDisable();
 	}
 
 	@Override

@@ -127,8 +127,28 @@ public class ComputerModule {
 		return savedTerminalInput;
 	}
 
+	public String getLastOpenFile() {
+		return lastOpenFile;
+	}
+
 	public void setSavedTerminalInput(String input) {
 		savedTerminalInput = input;
+	}
+
+	/**
+	 * Restores lightweight module state from container serialization.
+	 * File-system contents are loaded independently by FileSystem using computer UUID.
+	 */
+	public void restoreSerializedState(ComputerMode mode, String openFile, String savedInput, String hostname) {
+		if(mode != null) {
+			lastMode = mode;
+		}
+		lastOpenFile = openFile == null ? "" : openFile;
+		savedTerminalInput = savedInput == null ? "" : savedInput;
+
+		if(hostname != null && !hostname.isEmpty()) {
+			networkInterface.setHostname(hostname);
+		}
 	}
 
 	/**

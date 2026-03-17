@@ -13,6 +13,7 @@ import luamade.listener.SegmentPieceListener;
 import luamade.system.module.ComputerModuleContainer;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.data.SegmentPiece;
+import org.schema.game.common.data.element.ElementCollection;
 import org.schema.schine.graphicsengine.core.GLFW;
 
 public class EventManager {
@@ -37,9 +38,7 @@ public class EventManager {
 				if(panel == null) return;
 
 				int key = event.getKey();
-				if(key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_DOWN ||
-						key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT ||
-						key == GLFW.GLFW_KEY_HOME || key == GLFW.GLFW_KEY_END) {
+				if(key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_DOWN || key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT || key == GLFW.GLFW_KEY_HOME || key == GLFW.GLFW_KEY_END) {
 					event.setCanceled(true);
 					panel.handleNavigationKey(key);
 				}
@@ -49,7 +48,7 @@ public class EventManager {
 		StarLoader.registerListener(SegmentPieceAddByMetadataEvent.class, new Listener<SegmentPieceAddByMetadataEvent>() {
 			@Override
 			public void onEvent(SegmentPieceAddByMetadataEvent event) {
-				SegmentPiece segmentPiece = event.getSegment().getSegmentController().getSegmentBuffer().getPointUnsave(event.getAbsIndex());
+				SegmentPiece segmentPiece = event.getSegment().getSegmentController().getSegmentBuffer().getPointUnsave(ElementCollection.getIndex(event.getX(), event.getY(), event.getZ()));
 				if(segmentPiece != null) {
 					if(event.getSegment().getSegmentController() instanceof ManagedUsableSegmentController<?>) {
 						if(segmentPiece.getType() == ElementRegistry.COMPUTER.getId()) {

@@ -18,8 +18,8 @@ import org.schema.schine.graphicsengine.forms.gui.newgui.GUIActivatableTextBar;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIContentPane;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIDialogWindow;
 import org.schema.schine.input.InputState;
-import org.schema.schine.input.KeyEventInterface;
 
+import java.lang.reflect.Field;
 import java.util.Objects;
 
 public class ComputerDialog extends PlayerInput {
@@ -45,6 +45,7 @@ public class ComputerDialog extends PlayerInput {
 		super.activate();
 		activePanel = computerPanel;
 		computerModule.resumeFromLastMode();
+		computerPanel.requestConsoleFocus();
 	}
 
 	@Override
@@ -70,11 +71,6 @@ public class ComputerDialog extends PlayerInput {
 	}
 
 	@Override
-	public void handleKeyEvent(KeyEventInterface keyEvent) {
-		super.handleKeyEvent(keyEvent);
-	}
-
-	@Override
 	public void handleMouseEvent(MouseEvent mouseEvent) {
 
 	}
@@ -94,6 +90,7 @@ public class ComputerDialog extends PlayerInput {
 	public static class ComputerPanel extends GUIInputDialogPanel {
 
 		private static final String PROMPT_MARKER = " $ ";
+		private static final int LINE_WRAP = 100;
 
 		private final ComputerModule computerModule;
 		private GUIScrollablePanel consolePanel;
@@ -103,6 +100,9 @@ public class ComputerDialog extends PlayerInput {
 		private boolean userIsTyping;
 		private int promptStartPosition = -1;
 		private String lastSavedInput = "";
+		private GUIScrollablePanel textBarScrollPanel;
+		private boolean textBarScrollPanelResolved;
+		private boolean focusConsoleOnOpen = true;
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
 			super(inputState, "COMPUTER_PANEL", "", "", 850, 650, guiCallback);
@@ -118,6 +118,35 @@ public class ComputerDialog extends PlayerInput {
 			if(computerModule != null) {
 				computerModule.setSavedTerminalInput(currentInputLine);
 			}
+		}
+
+		public void requestConsoleFocus() {
+			focusConsoleOnOpen = true;
+			activateConsoleFocusIfPending();
+		}
+
+		private void activateConsoleFocusIfPending() {
+			if(!focusConsoleOnOpen || consolePane == null) {
+				return;
+			}
+
+			TextAreaInput textArea = consolePane.getTextArea();
+			if(textArea == null) {
+				return;
+			}
+
+			consolePane.activateBar();
+			int caretPosition = textArea.getCache() == null ? 0 : textArea.getCache().length();
+			if(promptStartPosition >= 0) {
+				caretPosition = Math.max(caretPosition, promptStartPosition);
+			}
+			textArea.setChatCarrier(caretPosition);
+			textArea.setBufferChanged();
+			textArea.update();
+			clampCaretToEditableRegion();
+			scrollPaneToCursor();
+
+			focusConsoleOnOpen = getState().getController().getInputController().getCurrentActiveField() != textArea;
 		}
 
 		private void refreshPromptStartPositionFromCurrentText() {
@@ -143,7 +172,7 @@ public class ComputerDialog extends PlayerInput {
 			promptStartPosition = lastLineStart + promptIndex + PROMPT_MARKER.length();
 		}
 
-		private void clampCaretToEditableRegion() {
+		public void clampCaretToEditableRegion() {
 			if(consolePane == null) {
 				return;
 			}
@@ -158,8 +187,57 @@ public class ComputerDialog extends PlayerInput {
 				textArea.setChatCarrier(promptStartPosition);
 				// Force bufferChanged so update() actually refreshes cacheCarrier
 				textArea.setBufferChanged();
-				textArea.update();
 			}
+		}
+
+		private GUIScrollablePanel resolveTextBarScrollPanel() {
+			if(textBarScrollPanelResolved) {
+				return textBarScrollPanel;
+			}
+			textBarScrollPanelResolved = true;
+
+			if(consolePane == null) {
+				return null;
+			}
+
+			try {
+				Field backgroundField = GUIActivatableTextBar.class.getDeclaredField("background");
+				backgroundField.setAccessible(true);
+				Object background = backgroundField.get(consolePane);
+				if(background instanceof GUIScrollablePanel) {
+					textBarScrollPanel = (GUIScrollablePanel) background;
+				}
+			} catch(Exception ignored) {
+				textBarScrollPanel = null;
+			}
+
+			return textBarScrollPanel;
+		}
+
+		private void scrollPaneToCursor() {
+			if(consolePane == null) {
+				return;
+			}
+
+			TextAreaInput textArea = consolePane.getTextArea();
+			if(textArea == null) {
+				return;
+			}
+
+			GUIScrollablePanel scrollPanel = resolveTextBarScrollPanel();
+			if(scrollPanel == null) {
+				return;
+			}
+
+			int totalLines = Math.max(1, textArea.getLineIndex() + 1);
+			int cursorLine = Math.max(0, textArea.getCarrierLineIndex());
+			if(totalLines <= 1) {
+				scrollPanel.scrollVerticalPercent(0.0F);
+				return;
+			}
+
+			float cursorPercent = Math.min(1.0F, Math.max(0.0F, cursorLine / (float) (totalLines - 1)));
+			scrollPanel.scrollVerticalPercent(cursorPercent);
 		}
 
 		/**
@@ -217,6 +295,7 @@ public class ComputerDialog extends PlayerInput {
 				textArea.setBufferChanged();
 				textArea.update();
 			}
+			scrollPaneToCursor();
 		}
 
 		private void handleCaretLeft() {
@@ -248,6 +327,7 @@ public class ComputerDialog extends PlayerInput {
 		private void handleCaretEnd() {
 			if(consolePane == null) return;
 			consolePane.getTextArea().chatKeyEnd();
+			scrollPaneToCursor();
 		}
 
 		/**
@@ -268,10 +348,19 @@ public class ComputerDialog extends PlayerInput {
 				// Reset typing flag and force UI update to show command output
 				userIsTyping = false;
 
-				// Update the display immediately with the new terminal content
+				// Update the display immediately with the new terminal content.
+				// Use setTextWithoutCallback so the guard in onInputChangedCallback
+				// does not fire during the intermediate area.clear() step inside
+				// setText(), which would cause a double-prompt by re-injecting the
+				// old content before the new content is appended.
 				String newContent = computerModule.getLastTextContent();
-				consolePane.setText(newContent);
 				lastModuleContent = newContent;
+				consolePane.setTextWithoutCallback(newContent);
+				// Manually sync state since the callback won't fire.
+				currentInputLine = "";
+				userIsTyping = false;
+				refreshPromptStartPositionFromCurrentText();
+				scrollPaneToCursor();
 			}
 		}
 
@@ -361,6 +450,8 @@ public class ComputerDialog extends PlayerInput {
 			}) {
 				@Override
 				public void draw() {
+					activateConsoleFocusIfPending();
+
 					// Save current input line to module for persistence (only when it changes)
 					if(!currentInputLine.equals(lastSavedInput)) {
 						computerModule.setSavedTerminalInput(currentInputLine);
@@ -372,22 +463,20 @@ public class ComputerDialog extends PlayerInput {
 					if(!userIsTyping) {
 						String moduleContent = computerModule.getLastTextContent();
 						if(!Objects.equals(lastModuleContent, moduleContent)) {
-							setText(moduleContent);
+							// Use setTextWithoutCallback – setText internally calls area.clear()
+							// which fires onInputChanged(""), causing the guard to re-inject the
+							// old content before append() adds the new content (double prompt).
 							lastModuleContent = moduleContent;
+							setTextWithoutCallback(moduleContent);
+							currentInputLine = "";
+							refreshPromptStartPositionFromCurrentText();
 						}
 					}
 
 					refreshPromptStartPositionFromCurrentText();
-
-					// Clamp caret multiple times to catch all possible cursor movements
 					clampCaretToEditableRegion();
-					clampCaretToEditableRegion();
-					clampCaretToEditableRegion();
-					
+					scrollPaneToCursor();
 					super.draw();
-
-					// Final clamp after drawing to ensure position is locked
-					clampCaretToEditableRegion();
 				}
 			};
 			consolePanel.setContent(consolePane);
@@ -407,7 +496,7 @@ public class ComputerDialog extends PlayerInput {
 			consolePane.onInit();
 			contentPane.getContent(0).attach(consolePane);
 			consolePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);
-			consolePane.getTextArea().setLinewrap(100);
+			consolePane.getTextArea().setLinewrap(LINE_WRAP);
 			String initialContent = computerModule.getLastTextContent();
 
 			// Restore saved terminal input if available
@@ -418,8 +507,11 @@ public class ComputerDialog extends PlayerInput {
 				userIsTyping = true;
 			}
 
-			consolePane.setText(initialContent);
+			consolePane.setTextWithoutCallback(initialContent);
 			lastModuleContent = computerModule.getLastTextContent();
+			refreshPromptStartPositionFromCurrentText();
+			scrollPaneToCursor();
+			requestConsoleFocus();
 		}
 
 
@@ -427,6 +519,7 @@ public class ComputerDialog extends PlayerInput {
 		public void draw() {
 			super.draw();
 			clampCaretToEditableRegion();
+			scrollPaneToCursor();
 		}
 	}
 }
