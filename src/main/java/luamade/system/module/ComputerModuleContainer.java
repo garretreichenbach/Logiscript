@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ComputerModuleContainer extends SystemModule {
 
-	private final byte VERSION = 1;
+	private final byte VERSION = 2;
 	private static final Set<ComputerModuleContainer> ACTIVE_CONTAINERS = ConcurrentHashMap.newKeySet();
 	private final Long2ObjectOpenHashMap<ComputerModule> computerModules = new Long2ObjectOpenHashMap<>();
 	private final Long2ObjectOpenHashMap<PendingModuleState> pendingModuleStates = new Long2ObjectOpenHashMap<>();
@@ -89,6 +89,7 @@ public class ComputerModuleContainer extends SystemModule {
 			buffer.writeString(safeString(module.getLastOpenFile()));
 			buffer.writeString(safeString(module.getSavedTerminalInput()));
 			buffer.writeString(safeString(module.getNetworkInterface().getHostname()));
+			buffer.writeString(safeString(module.getDisplayName()));
 		}
 	}
 
@@ -105,8 +106,8 @@ public class ComputerModuleContainer extends SystemModule {
 		pendingModuleStates.clear();
 
 		byte version = buffer.readByte();
-		if(version != VERSION) {
-			LuaMade.getInstance().logWarning("Unsupported ComputerModuleContainer tag version " + version + " (expected " + VERSION + ")");
+		if(version < 1 || version > VERSION) {
+			LuaMade.getInstance().logWarning("Unsupported ComputerModuleContainer tag version " + version + " (expected 1.." + VERSION + ")");
 			return;
 		}
 
@@ -117,8 +118,9 @@ public class ComputerModuleContainer extends SystemModule {
 			String lastOpenFile = buffer.readString();
 			String savedTerminalInput = buffer.readString();
 			String hostname = buffer.readString();
+			String displayName = version >= 2 ? buffer.readString() : "";
 
-			pendingModuleStates.put(abs, new PendingModuleState(modeOrdinal, lastOpenFile, savedTerminalInput, hostname));
+			pendingModuleStates.put(abs, new PendingModuleState(modeOrdinal, lastOpenFile, savedTerminalInput, hostname, displayName));
 		}
 
 		restorePendingModules();
@@ -209,7 +211,7 @@ public class ComputerModuleContainer extends SystemModule {
 			mode = modes[state.modeOrdinal];
 		}
 
-		module.restoreSerializedState(mode, state.lastOpenFile, state.savedTerminalInput, state.hostname);
+		module.restoreSerializedState(mode, state.lastOpenFile, state.savedTerminalInput, state.hostname, state.displayName);
 	}
 
 	private String safeString(String value) {
@@ -221,12 +223,14 @@ public class ComputerModuleContainer extends SystemModule {
 		private final String lastOpenFile;
 		private final String savedTerminalInput;
 		private final String hostname;
+		private final String displayName;
 
-		private PendingModuleState(byte modeOrdinal, String lastOpenFile, String savedTerminalInput, String hostname) {
+		private PendingModuleState(byte modeOrdinal, String lastOpenFile, String savedTerminalInput, String hostname, String displayName) {
 			this.modeOrdinal = modeOrdinal;
 			this.lastOpenFile = lastOpenFile;
 			this.savedTerminalInput = savedTerminalInput;
 			this.hostname = hostname;
+			this.displayName = displayName;
 		}
 	}
 }

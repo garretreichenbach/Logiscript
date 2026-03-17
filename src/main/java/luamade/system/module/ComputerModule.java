@@ -25,10 +25,12 @@ public class ComputerModule {
 	private long lastTouched;
 	private String lastOpenFile = "";
 	private String savedTerminalInput = "";
+	private String displayName;
 
 	public ComputerModule(SegmentPiece segmentPiece, String uuid) {
 		this.uuid = uuid;
 		this.segmentPiece = segmentPiece;
+		displayName = defaultDisplayNameFor(uuid);
 		lastTouched = System.currentTimeMillis();
 		console = new Console(this);
 		fileSystem = FileSystem.initNewFileSystem(this);
@@ -48,21 +50,35 @@ public class ComputerModule {
 		return uuid;
 	}
 
-	public String getPromptComputerName() {
+	private static String defaultDisplayNameFor(String uuid) {
 		int shortLength = Math.min(8, uuid.length());
 		return "computer-" + uuid.substring(0, shortLength);
 	}
 
-	public String getLastTextContent() {
-		switch(lastMode) {
-			case OFF:
-				return terminal.getTextContents();
-			case TERMINAL:
-				return terminal.getTextContents();
-			case FILE_EDIT:
-				return fileSystem.getFile(lastOpenFile).getTextContents();
+	public String getPromptComputerName() {
+		return displayName;
+	}
+
+	public String getDisplayName() {
+		return displayName;
+	}
+
+	public boolean setDisplayName(String displayName) {
+		if(displayName == null) {
+			return false;
 		}
-		return "";
+
+		String normalized = displayName.trim();
+		if(normalized.isEmpty() || normalized.length() > 32 || normalized.contains("\n") || normalized.contains("\r")) {
+			return false;
+		}
+
+		this.displayName = normalized;
+		return true;
+	}
+
+	public void resetDisplayName() {
+		displayName = defaultDisplayNameFor(uuid);
 	}
 
 	public void resumeFromLastMode() {
@@ -94,9 +110,40 @@ public class ComputerModule {
 		terminal.start();
 	}
 
+	public String getLastTextContent() {
+		switch(lastMode) {
+			case OFF:
+				return terminal.getTextContents();
+			case TERMINAL:
+				return terminal.getTextContents();
+			case FILE_EDIT:
+				if(lastOpenFile == null || lastOpenFile.isEmpty()) {
+					return "";
+				}
+				if(!fileSystem.exists(lastOpenFile) || fileSystem.isDir(lastOpenFile)) {
+					return "";
+				}
+				String fileText = fileSystem.read(lastOpenFile);
+				return fileText == null ? "" : fileText;
+		}
+		return "";
+	}
+
 	public void loadIntoFileEdit(String file) {
-		lastOpenFile = file;
-		console.setTextContents(file);
+		if(file == null || file.isEmpty()) {
+			return;
+		}
+
+		String normalized = fileSystem.normalizePath(file);
+		if(fileSystem.isDir(normalized)) {
+			return;
+		}
+		if(!fileSystem.exists(normalized)) {
+			fileSystem.write(normalized, "");
+		}
+
+		lastOpenFile = normalized;
+		lastMode = ComputerMode.FILE_EDIT;
 	}
 
 	public long getLastTouched() {
@@ -135,11 +182,20 @@ public class ComputerModule {
 		savedTerminalInput = input;
 	}
 
+	public boolean openFileInEditor(String file) {
+		if(file == null || file.trim().isEmpty()) {
+			return false;
+		}
+
+		loadIntoFileEdit(file.trim());
+		return lastMode == ComputerMode.FILE_EDIT;
+	}
+
 	/**
 	 * Restores lightweight module state from container serialization.
 	 * File-system contents are loaded independently by FileSystem using computer UUID.
 	 */
-	public void restoreSerializedState(ComputerMode mode, String openFile, String savedInput, String hostname) {
+	public void restoreSerializedState(ComputerMode mode, String openFile, String savedInput, String hostname, String displayName) {
 		if(mode != null) {
 			lastMode = mode;
 		}
@@ -148,6 +204,10 @@ public class ComputerModule {
 
 		if(hostname != null && !hostname.isEmpty()) {
 			networkInterface.setHostname(hostname);
+		}
+
+		if(displayName != null && !displayName.isEmpty()) {
+			setDisplayName(displayName);
 		}
 	}
 

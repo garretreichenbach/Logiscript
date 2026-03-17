@@ -20,6 +20,9 @@ LuaMade provides a Unix-like computing environment with the following features:
 - Direct Lua script execution from terminal
 - Built-in commands: ls, cd, pwd, cat, mkdir, touch, rm, cp, mv, edit, run, echo, clear, help, exit
 
+Planned next commands (in progress): `which`, `head`, `tail`, `wc`, `find`, `grep`, `history`, aliases.
+`chmod` is intentionally out of scope for now.
+
 ### Networking
 - Computer-to-computer communication
 - Message passing with different protocols
@@ -89,10 +92,21 @@ The terminal supports the following built-in commands:
 - `mv <source> <dest>` - Move or rename a file
 - `edit <file> <content>` - Write content to a file
 - `run <script> [args]` - Execute a Lua script with optional arguments
+- `which <command-or-path>` - Resolve built-ins or file paths
+- `name [new-name|--reset]` - Show or change the displayed computer name in the prompt
+- `head <file> [n]` - Show first lines of a file
+- `tail <file> [n]` - Show last lines of a file
+- `wc <file>` - Show line, word, and byte counts
+- `nano <file>` - Open file in editor mode
 - `echo <text>` - Print text to the terminal
 - `clear` - Clear the terminal screen
 - `help` - Show available commands
 - `exit` - Exit the terminal
+
+### Roadmap
+
+- Command and editor roadmap: `docs/markdown/general/terminal.md`
+- Next UI milestone: interactive file editor pane (`nano`) with save/exit/run hotkeys
 
 ### Writing Lua Scripts
 Scripts executed in the terminal have access to these global variables:

@@ -7,7 +7,10 @@ import luamade.system.module.ComputerModule;
 import luamade.utils.CompressionUtils;
 import luamade.utils.DataUtils;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,7 +24,7 @@ import java.util.List;
 public class FileSystem extends LuaMadeUserdata {
 
 	//Todo: This might be too generous idk
-	public static int MAX_FS_SIZE = 10 * 1024 * 1024; //10MB
+	public static int MAX_FS_SIZE = 2 * 1024 * 1024; //2MB
 
 	private static final File computerStorage = new File(DataUtils.getWorldDataPath(), "computers");
 	private VirtualFile rootDirectory;
@@ -324,7 +327,7 @@ public class FileSystem extends LuaMadeUserdata {
 			file.getInternalFile().getParentFile().mkdirs();
 			
 			// Write content to file
-			java.io.FileWriter writer = new java.io.FileWriter(file.getInternalFile());
+			FileWriter writer = new FileWriter(file.getInternalFile());
 			writer.write(content);
 			writer.close();
 			return true;
@@ -521,7 +524,7 @@ public class FileSystem extends LuaMadeUserdata {
 		}
 		
 		try {
-			java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(virtualFile.getInternalFile()));
+			BufferedReader reader = new BufferedReader(new FileReader(virtualFile.getInternalFile()));
 			StringBuilder content = new StringBuilder();
 			String line;
 			while((line = reader.readLine()) != null) {

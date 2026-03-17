@@ -16,6 +16,7 @@ import org.luaj.vm2.lib.TableLib;
 import org.luaj.vm2.lib.jse.JseBaseLib;
 import org.luaj.vm2.lib.jse.JseMathLib;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -263,8 +264,143 @@ public class Terminal extends LuaMadeUserdata {
 			public void execute(String args) {
 				console.print(valueOf("Available commands:"));
 				for(Command command : commands.values()) {
-					console.print(valueOf("  " + command.getName() + " - " + command.getDescription()));
+					console.print(valueOf("    " + command.getName() + " - " + command.getDescription()));
 				}
+			}
+		});
+
+		// Which command
+		commands.put("which", new Command("which", "Shows where a command or file resolves") {
+			@Override
+			public void execute(String args) {
+				String target = args == null ? "" : args.trim();
+				if(target.isEmpty()) {
+					console.print(valueOf("Error: Usage: which <command-or-path>"));
+					return;
+				}
+
+				if(commands.containsKey(target)) {
+					console.print(valueOf(target + ": shell built-in"));
+					return;
+				}
+
+				String resolvedPath = fileSystem.normalizePath(target);
+				if(fileSystem.exists(resolvedPath)) {
+					console.print(valueOf(resolvedPath));
+				} else {
+					console.print(valueOf(target + " not found"));
+				}
+			}
+		});
+
+		// Name command
+		commands.put("name", new Command("name", "Gets or sets the displayed computer name") {
+			@Override
+			public void execute(String args) {
+				String value = args == null ? "" : args.trim();
+				if(value.isEmpty()) {
+					console.print(valueOf("Display name: " + module.getDisplayName()));
+					return;
+				}
+
+				if("--reset".equals(value)) {
+					module.resetDisplayName();
+					console.print(valueOf("Display name reset to: " + module.getDisplayName()));
+					return;
+				}
+
+				if(module.setDisplayName(value)) {
+					console.print(valueOf("Display name set to: " + module.getDisplayName()));
+				} else {
+					console.print(valueOf("Error: Invalid name (1-32 chars, no newlines)"));
+				}
+			}
+		});
+
+		// Head command
+		commands.put("head", new Command("head", "Prints the first lines of a file") {
+			@Override
+			public void execute(String args) {
+				String trimmed = args == null ? "" : args.trim();
+				if(trimmed.isEmpty()) {
+					console.print(valueOf("Error: Usage: head <file> [lines]"));
+					return;
+				}
+
+				String[] parts = trimmed.split("\\s+");
+				String file = parts[0];
+				int lineCount = parsePositiveLineCount(parts.length > 1 ? parts[1] : null, 10);
+				if(lineCount < 1) {
+					console.print(valueOf("Error: lines must be a positive integer"));
+					return;
+				}
+
+				String content = fileSystem.read(file);
+				if(content == null) {
+					console.print(valueOf("Error: File not found or is a directory"));
+					return;
+				}
+
+				String[] lines = content.split("\\n", -1);
+				int max = Math.min(lineCount, lines.length);
+				for(int i = 0; i < max; i++) {
+					console.print(valueOf(lines[i]));
+				}
+			}
+		});
+
+		// Tail command
+		commands.put("tail", new Command("tail", "Prints the last lines of a file") {
+			@Override
+			public void execute(String args) {
+				String trimmed = args == null ? "" : args.trim();
+				if(trimmed.isEmpty()) {
+					console.print(valueOf("Error: Usage: tail <file> [lines]"));
+					return;
+				}
+
+				String[] parts = trimmed.split("\\s+");
+				String file = parts[0];
+				int lineCount = parsePositiveLineCount(parts.length > 1 ? parts[1] : null, 10);
+				if(lineCount < 1) {
+					console.print(valueOf("Error: lines must be a positive integer"));
+					return;
+				}
+
+				String content = fileSystem.read(file);
+				if(content == null) {
+					console.print(valueOf("Error: File not found or is a directory"));
+					return;
+				}
+
+				String[] lines = content.split("\\n", -1);
+				int start = Math.max(0, lines.length - lineCount);
+				for(int i = start; i < lines.length; i++) {
+					console.print(valueOf(lines[i]));
+				}
+			}
+		});
+
+		// Wc command
+		commands.put("wc", new Command("wc", "Prints line, word, and byte counts") {
+			@Override
+			public void execute(String args) {
+				String file = args == null ? "" : args.trim();
+				if(file.isEmpty()) {
+					console.print(valueOf("Error: Usage: wc <file>"));
+					return;
+				}
+
+				String content = fileSystem.read(file);
+				if(content == null) {
+					console.print(valueOf("Error: File not found or is a directory"));
+					return;
+				}
+
+				int lineCount = content.isEmpty() ? 0 : content.split("\\n", -1).length;
+				int wordCount = content.trim().isEmpty() ? 0 : content.trim().split("\\s+").length;
+				int byteCount = content.getBytes(StandardCharsets.UTF_8).length;
+				console.print(valueOf(lineCount + " " + wordCount + " " + byteCount + " " + fileSystem.normalizePath(file)));
 			}
 		});
 
@@ -477,6 +613,22 @@ public class Terminal extends LuaMadeUserdata {
 			}
 		});
 
+		// Nano command
+		commands.put("nano", new Command("nano", "Opens a file in the editor pane") {
+			@Override
+			public void execute(String args) {
+				String file = args == null ? "" : args.trim();
+				if(file.isEmpty()) {
+					console.print(valueOf("Error: Usage: nano <file>"));
+					return;
+				}
+
+				if(!module.openFileInEditor(file)) {
+					console.print(valueOf("Error: Could not open editor for file"));
+				}
+			}
+		});
+
 		// Run command (explicitly run a Lua script)
 		commands.put("run", new Command("run", "Runs a Lua script") {
 			@Override
@@ -503,6 +655,18 @@ public class Terminal extends LuaMadeUserdata {
 
 	public String getTextContents() {
 		return console.getTextContents();
+	}
+
+	private int parsePositiveLineCount(String raw, int defaultValue) {
+		if(raw == null || raw.trim().isEmpty()) {
+			return defaultValue;
+		}
+
+		try {
+			return Integer.parseInt(raw.trim());
+		} catch(NumberFormatException ignored) {
+			return -1;
+		}
 	}
 
 	/**

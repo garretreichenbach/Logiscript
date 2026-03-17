@@ -14,6 +14,7 @@ import org.schema.schine.graphicsengine.forms.font.FontLibrary;
 import org.schema.schine.graphicsengine.forms.gui.GUICallback;
 import org.schema.schine.graphicsengine.forms.gui.GUIElement;
 import org.schema.schine.graphicsengine.forms.gui.GUIScrollablePanel;
+import org.schema.schine.graphicsengine.forms.gui.GUITextOverlay;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIActivatableTextBar;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIContentPane;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIDialogWindow;
@@ -91,6 +92,7 @@ public class ComputerDialog extends PlayerInput {
 
 		private static final String PROMPT_MARKER = " $ ";
 		private static final int LINE_WRAP = 100;
+		private static final String EDITOR_HINT_PREFIX = "Editor: Ctrl+S Save | Ctrl+X Exit | Ctrl+R Save & Run";
 
 		private final ComputerModule computerModule;
 		private GUIScrollablePanel consolePanel;
@@ -103,6 +105,9 @@ public class ComputerDialog extends PlayerInput {
 		private GUIScrollablePanel textBarScrollPanel;
 		private boolean textBarScrollPanelResolved;
 		private boolean focusConsoleOnOpen = true;
+		private ComputerModule.ComputerMode renderedMode = ComputerModule.ComputerMode.OFF;
+		private GUITextOverlay editorHintsOverlay;
+		private String lastEditorHintText = "";
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
 			super(inputState, "COMPUTER_PANEL", "", "", 850, 650, guiCallback);
@@ -123,6 +128,103 @@ public class ComputerDialog extends PlayerInput {
 		public void requestConsoleFocus() {
 			focusConsoleOnOpen = true;
 			activateConsoleFocusIfPending();
+		}
+
+		public boolean isFileEditMode() {
+			return computerModule != null && computerModule.getLastMode() == ComputerModule.ComputerMode.FILE_EDIT;
+		}
+
+		public void handleEditorShortcut(int glfwKey) {
+			if(!isFileEditMode()) {
+				return;
+			}
+
+			switch(glfwKey) {
+				case GLFW.GLFW_KEY_S:
+					saveEditorBuffer();
+					break;
+				case GLFW.GLFW_KEY_X:
+					exitEditorToTerminal();
+					break;
+				case GLFW.GLFW_KEY_R:
+					runEditorFile();
+					break;
+			}
+		}
+
+		private void saveEditorBuffer() {
+			if(!isFileEditMode() || consolePane == null) {
+				return;
+			}
+
+			String file = computerModule.getLastOpenFile();
+			if(file == null || file.isEmpty()) {
+				return;
+			}
+
+			String content = consolePane.getText();
+			if(content == null) {
+				content = "";
+			}
+			computerModule.getFileSystem().write(file, content);
+		}
+
+		private void exitEditorToTerminal() {
+			if(computerModule == null) {
+				return;
+			}
+
+			computerModule.setLastMode(ComputerModule.ComputerMode.TERMINAL);
+			lastModuleContent = computerModule.getLastTextContent();
+			if(consolePane != null) {
+				consolePane.setTextWithoutCallback(lastModuleContent);
+			}
+			currentInputLine = "";
+			userIsTyping = false;
+			refreshPromptStartPositionFromCurrentText();
+			scrollPaneToCursor();
+			requestConsoleFocus();
+		}
+
+		private void runEditorFile() {
+			if(!isFileEditMode() || computerModule == null) {
+				return;
+			}
+
+			String file = computerModule.getLastOpenFile();
+			saveEditorBuffer();
+			exitEditorToTerminal();
+			if(file != null && !file.isEmpty()) {
+				computerModule.getTerminal().handleInput("run " + file);
+			}
+		}
+
+		private void updateEditorHintOverlay() {
+			if(editorHintsOverlay == null) {
+				return;
+			}
+
+			boolean inEditor = isFileEditMode();
+			if(!inEditor) {
+				if(!lastEditorHintText.isEmpty()) {
+					editorHintsOverlay.setTextSimple("");
+					lastEditorHintText = "";
+				}
+				return;
+			}
+
+			String currentFile = computerModule.getLastOpenFile();
+			if(currentFile == null || currentFile.isEmpty()) {
+				currentFile = "(unspecified file)";
+			}
+
+			String hintText = EDITOR_HINT_PREFIX + " | " + currentFile;
+			if(!hintText.equals(lastEditorHintText)) {
+				editorHintsOverlay.setTextSimple(hintText);
+				lastEditorHintText = hintText;
+			}
+
+			editorHintsOverlay.setPos(8.0F, Math.max(0.0F, getHeight() - 20.0F), 0.0F);
 		}
 
 		private void activateConsoleFocusIfPending() {
@@ -334,6 +436,10 @@ public class ComputerDialog extends PlayerInput {
 		 * Executes the current input line as a terminal command
 		 */
 		private void executeCurrentInput() {
+			if(isFileEditMode()) {
+				return;
+			}
+
 			if(computerModule != null && computerModule.getTerminal() != null) {
 				// Save the input before clearing it
 				String inputToExecute = currentInputLine;
@@ -403,6 +509,11 @@ public class ComputerDialog extends PlayerInput {
 					executeCurrentInput();
 				}
 			}, input -> {
+				if(isFileEditMode()) {
+					userIsTyping = true;
+					return input;
+				}
+
 				// Guard: prevent deletion of protected console output / prompt
 				if(input != null && lastModuleContent != null && !lastModuleContent.isEmpty()) {
 					if(!input.startsWith(lastModuleContent)) {
@@ -450,7 +561,30 @@ public class ComputerDialog extends PlayerInput {
 			}) {
 				@Override
 				public void draw() {
+					updateEditorHintOverlay();
 					activateConsoleFocusIfPending();
+
+					ComputerModule.ComputerMode currentMode = computerModule.getLastMode();
+					if(renderedMode != currentMode) {
+						renderedMode = currentMode;
+						String modeContent = computerModule.getLastTextContent();
+						setTextWithoutCallback(modeContent == null ? "" : modeContent);
+						lastModuleContent = modeContent == null ? "" : modeContent;
+						if(isFileEditMode()) {
+							userIsTyping = true;
+							currentInputLine = "";
+						} else {
+							userIsTyping = false;
+							refreshPromptStartPositionFromCurrentText();
+							requestConsoleFocus();
+						}
+					}
+
+					if(isFileEditMode()) {
+						super.draw();
+						scrollPaneToCursor();
+						return;
+					}
 
 					// Save current input line to module for persistence (only when it changes)
 					if(!currentInputLine.equals(lastSavedInput)) {
@@ -495,22 +629,37 @@ public class ComputerDialog extends PlayerInput {
 			};
 			consolePane.onInit();
 			contentPane.getContent(0).attach(consolePane);
+
+			editorHintsOverlay = new GUITextOverlay(830, 16, FontLibrary.FontSize.SMALL, getState());
+			editorHintsOverlay.setTextSimple(EDITOR_HINT_PREFIX);
+			editorHintsOverlay.onInit();
+			editorHintsOverlay.setColor(0.8F, 0.8F, 0.8F, 1.0F);
+			editorHintsOverlay.setTextSimple("");
+			contentPane.getContent(0).attach(editorHintsOverlay);
+
 			consolePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);
 			consolePane.getTextArea().setLinewrap(LINE_WRAP);
 			String initialContent = computerModule.getLastTextContent();
 
-			// Restore saved terminal input if available
-			String savedInput = computerModule.getSavedTerminalInput();
-			if(savedInput != null && !savedInput.isEmpty()) {
-				initialContent = initialContent + savedInput;
-				currentInputLine = savedInput;
+			if(isFileEditMode()) {
+				currentInputLine = "";
 				userIsTyping = true;
+			} else {
+				// Restore saved terminal input if available
+				String savedInput = computerModule.getSavedTerminalInput();
+				if(savedInput != null && !savedInput.isEmpty()) {
+					initialContent = initialContent + savedInput;
+					currentInputLine = savedInput;
+					userIsTyping = true;
+				}
 			}
 
 			consolePane.setTextWithoutCallback(initialContent);
 			lastModuleContent = computerModule.getLastTextContent();
+			renderedMode = computerModule.getLastMode();
 			refreshPromptStartPositionFromCurrentText();
 			scrollPaneToCursor();
+			updateEditorHintOverlay();
 			requestConsoleFocus();
 		}
 
