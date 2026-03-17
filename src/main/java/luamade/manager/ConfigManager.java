@@ -6,6 +6,17 @@ import api.utils.simpleconfig.SimpleConfigDouble;
 import api.utils.simpleconfig.SimpleConfigInt;
 import luamade.LuaMade;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
 public final class ConfigManager {
 
 	private static SimpleConfigContainer config;
@@ -22,6 +33,14 @@ public final class ConfigManager {
 	private static SimpleConfigBool webFetchTrustedDomainsOnly;
 	private static SimpleConfigInt webFetchTimeoutMs;
 	private static SimpleConfigInt webFetchMaxBytes;
+	private static final List<String> DEFAULT_TRUSTED_WEB_DOMAINS = Arrays.asList(
+		"raw.githubusercontent.com",
+		"gist.githubusercontent.com",
+		"pastebin.com",
+		"hastebin.com"
+	);
+	private static final Path TRUSTED_WEB_DOMAINS_PATH = Path.of("config", "luamade", "trusted_domains.txt");
+	private static volatile Set<String> trustedWebDomainsCache = new LinkedHashSet<>(DEFAULT_TRUSTED_WEB_DOMAINS);
 
 	private ConfigManager() {
 	}
@@ -43,6 +62,8 @@ public final class ConfigManager {
 		webFetchMaxBytes = new SimpleConfigInt(config, "web_fetch_max_bytes", 131072, "Maximum response payload size (bytes) accepted by web fetch.");
 
 		config.readWriteFields();
+		ensureTrustedDomainsFileExists(instance);
+		reloadTrustedWebDomains(instance);
 		if(isDebugMode()) {
 			String mode = config.isServer() ? "server" : (config.local ? "client-local" : "client-synced");
 			instance.logInfo("Config initialized via SimpleConfigContainer (mode=" + mode + ")");
@@ -53,6 +74,7 @@ public final class ConfigManager {
 		if(config != null) {
 			config.readFields();
 		}
+		reloadTrustedWebDomains(LuaMade.getInstance());
 	}
 
 	public static boolean isDebugMode() {
@@ -103,6 +125,24 @@ public final class ConfigManager {
 		return clampInt(intOrDefault(webFetchMaxBytes, 131072), 1024, 1048576);
 	}
 
+	public static Set<String> getTrustedWebDomains() {
+		return new LinkedHashSet<>(trustedWebDomainsCache);
+	}
+
+	public static boolean isTrustedWebDomain(String host) {
+		if(host == null || host.trim().isEmpty()) {
+			return false;
+		}
+
+		String normalizedHost = host.toLowerCase(Locale.ROOT).trim();
+		for(String domain : trustedWebDomainsCache) {
+			if(normalizedHost.equals(domain) || normalizedHost.endsWith("." + domain)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 
 	private static int clampInt(int value, int min, int max) {
 		return Math.max(min, Math.min(max, value));
@@ -127,5 +167,63 @@ public final class ConfigManager {
 			return defaultValue;
 		}
 		return entry.getValue();
+	}
+
+	private static void ensureTrustedDomainsFileExists(LuaMade instance) {
+		if(Files.exists(TRUSTED_WEB_DOMAINS_PATH)) {
+			return;
+		}
+
+		try {
+			if(TRUSTED_WEB_DOMAINS_PATH.getParent() != null) {
+				Files.createDirectories(TRUSTED_WEB_DOMAINS_PATH.getParent());
+			}
+
+			StringBuilder builder = new StringBuilder();
+			builder.append("# LuaMade trusted web domains\n");
+			builder.append("# One domain per line. Subdomains are allowed automatically.\n");
+			builder.append("# Example: raw.githubusercontent.com\n\n");
+			for(String domain : DEFAULT_TRUSTED_WEB_DOMAINS) {
+				builder.append(domain).append('\n');
+			}
+
+			Files.writeString(
+				TRUSTED_WEB_DOMAINS_PATH,
+				builder.toString(),
+				StandardCharsets.UTF_8,
+				StandardOpenOption.CREATE,
+				StandardOpenOption.TRUNCATE_EXISTING,
+				StandardOpenOption.WRITE
+			);
+		} catch(IOException exception) {
+			if(instance != null) {
+				instance.logException("Failed to create trusted domains file: " + TRUSTED_WEB_DOMAINS_PATH, exception);
+			}
+		}
+	}
+
+	private static void reloadTrustedWebDomains(LuaMade instance) {
+		Set<String> loaded = new LinkedHashSet<>();
+		try {
+			if(Files.exists(TRUSTED_WEB_DOMAINS_PATH)) {
+				for(String line : Files.readAllLines(TRUSTED_WEB_DOMAINS_PATH, StandardCharsets.UTF_8)) {
+					String domain = line == null ? "" : line.trim().toLowerCase(Locale.ROOT);
+					if(domain.isEmpty() || domain.startsWith("#")) {
+						continue;
+					}
+					loaded.add(domain);
+				}
+			}
+		} catch(IOException exception) {
+			if(instance != null) {
+				instance.logException("Failed to read trusted domains file: " + TRUSTED_WEB_DOMAINS_PATH, exception);
+			}
+		}
+
+		if(loaded.isEmpty()) {
+			loaded.addAll(DEFAULT_TRUSTED_WEB_DOMAINS);
+		}
+
+		trustedWebDomainsCache = loaded;
 	}
 }

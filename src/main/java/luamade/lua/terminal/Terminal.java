@@ -28,13 +28,10 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -55,12 +52,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Terminal extends LuaMadeUserdata {
 	private static final String STARTUP_SCRIPT_PATH = "/etc/startup.lua";
 	private static final String DEFAULT_PROMPT_TEMPLATE = "{name}:{dir} $ ";
-	private static final Set<String> TRUSTED_WEB_DOMAINS = new HashSet<>(Arrays.asList(
-		"raw.githubusercontent.com",
-		"gist.githubusercontent.com",
-		"pastebin.com",
-		"hastebin.com"
-	));
 
 	private final ComputerModule module;
 	private final Console console;
@@ -1285,7 +1276,7 @@ public class Terminal extends LuaMadeUserdata {
 			return null;
 		}
 
-		if(ConfigManager.isWebFetchTrustedDomainsOnly() && !isTrustedDomain(host)) {
+		if(ConfigManager.isWebFetchTrustedDomainsOnly() && !ConfigManager.isTrustedWebDomain(host)) {
 			console.print(valueOf("Error: Domain is not in trusted allowlist"));
 			return null;
 		}
@@ -1334,15 +1325,6 @@ public class Terminal extends LuaMadeUserdata {
 				connection.disconnect();
 			}
 		}
-	}
-
-	private boolean isTrustedDomain(String host) {
-		for(String domain : TRUSTED_WEB_DOMAINS) {
-			if(host.equals(domain) || host.endsWith("." + domain)) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	/**

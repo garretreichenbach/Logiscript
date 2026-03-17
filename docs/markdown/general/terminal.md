@@ -23,6 +23,12 @@ The terminal is the command shell and script runner for each computer.
 - `httpget <url> [output-file]` to fetch web content (if enabled by server config).
 - `reboot` to re-run startup flow and reset prompt behavior.
 
+If trusted-only mode is enabled, allowed domains come from:
+
+```text
+config/luamade/trusted_domains.txt
+```
+
 ## Terminal API (`term`)
 
 Inside scripts, the `term` global provides runtime terminal controls.

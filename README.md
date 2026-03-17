@@ -245,6 +245,19 @@ Server config options:
 - `web_fetch_timeout_ms` sets connect/read timeout.
 - `web_fetch_max_bytes` sets max response size.
 
+Trusted domain list is configurable in:
+
+```text
+config/luamade/trusted_domains.txt
+```
+
+Default entries:
+
+- `raw.githubusercontent.com`
+- `gist.githubusercontent.com`
+- `pastebin.com`
+- `hastebin.com`
+
 Example script (/bin/example.lua):
 ```lua
 -- Access command-line arguments

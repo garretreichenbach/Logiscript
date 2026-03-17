@@ -85,7 +85,7 @@ public class DocsViewerDialog extends PlayerInput {
 		private static final int TOPIC_INDENT = 10;
 		private static final int CONTENT_MARGIN = 12;
 		private static final int INLINE_CODE_PADDING_X = 4;
-		private static final int INLINE_CODE_PADDING_Y = 2;
+		private static final int INLINE_CODE_PADDING_Y = 4;
 		private static final int SCROLLBAR_WIDTH = 16;
 		private static final int RIGHT_PANEL_MARGIN = 14;
 

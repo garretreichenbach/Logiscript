@@ -40,6 +40,14 @@ run /home/hello.lua
 
 Terminal web fetch is available through `httpget` and `term.httpGet(url)` when enabled in server config.
 
+When `web_fetch_trusted_domains_only` is enabled, trusted domains are loaded from:
+
+```text
+config/luamade/trusted_domains.txt
+```
+
+The file is created automatically with default entries on first startup.
+
 ## Typical workflow
 
 1. Read current state from `console.getBlock()` and wrappers.
