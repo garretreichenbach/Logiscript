@@ -4,22 +4,22 @@ import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
 
-public class LuaVec3i extends LuaMadeUserdata {
+public class Vec3i extends LuaMadeUserdata {
     public int x;
     public int y;
     public int z;
 
-    public LuaVec3i(int x, int y, int z) {
+    public Vec3i(int x, int y, int z) {
         this.x = x;
         this.y = y;
         this.z = z;
     }
 
-    public LuaVec3i(Vector3i v) {
+    public Vec3i(Vector3i v) {
         this(v.x, v.y, v.z);
     }
 
-    public LuaVec3i(LuaVec3i v) {
+    public Vec3i(Vec3i v) {
         this(v.x, v.y, v.z);
     }
 
@@ -52,7 +52,7 @@ public class LuaVec3i extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
-    public LuaVec3i add(LuaVec3i vec) {
+    public Vec3i add(Vec3i vec) {
         x += vec.x;
         y += vec.y;
         z += vec.z;
@@ -60,7 +60,7 @@ public class LuaVec3i extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
-    public LuaVec3i sub(LuaVec3i vec) {
+    public Vec3i sub(Vec3i vec) {
         x -= vec.x;
         y -= vec.y;
         z -= vec.z;
@@ -68,7 +68,7 @@ public class LuaVec3i extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
-    public LuaVec3i mul(LuaVec3i vec) {
+    public Vec3i mul(Vec3i vec) {
         x *= vec.x;
         y *= vec.y;
         z *= vec.z;
@@ -76,7 +76,7 @@ public class LuaVec3i extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
-    public LuaVec3i div(LuaVec3i vec) {
+    public Vec3i div(Vec3i vec) {
         x /= vec.x;
         y /= vec.y;
         z /= vec.z;
@@ -84,7 +84,7 @@ public class LuaVec3i extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
-    public LuaVec3i scale(Float scale) {
+    public Vec3i scale(Float scale) {
         x *= scale;
         y *= scale;
         z *= scale;
@@ -92,7 +92,7 @@ public class LuaVec3i extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
-    public LuaVec3i absolute() {
+    public Vec3i absolute() {
         x = Math.abs(x);
         y = Math.abs(y);
         z = Math.abs(z);
@@ -100,7 +100,7 @@ public class LuaVec3i extends LuaMadeUserdata {
     }
 
     @LuaMadeCallable
-    public LuaVec3i negate() {
+    public Vec3i negate() {
         x = -x;
         y = -y;
         z = -z;
@@ -114,6 +114,6 @@ public class LuaVec3i extends LuaMadeUserdata {
 
     @Override
     public String toString() {
-        return String.format("LuaVec(%s, %s, %s)", x, y, z);
+        return String.format("Vec(%s, %s, %s)", x, y, z);
     }
 }
