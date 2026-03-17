@@ -16,7 +16,7 @@ public class LuaMade extends StarMod {
 	private static LuaMade instance;
 
 	public LuaMade() {
-
+		instance = this;
 	}
 
 	public static LuaMade getInstance() {

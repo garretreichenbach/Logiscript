@@ -75,14 +75,22 @@ public class Terminal extends LuaMadeUserdata {
 			return;
 		}
 
+		String submittedInput = input == null ? "" : input;
+
+		// Commit the typed command into the console transcript before processing.
+		console.appendInline(valueOf(submittedInput));
+
+		// Move to a new line after the inline prompt when Enter is pressed.
+		console.print(valueOf(""));
+
 		// Add to history
-		if(!input.trim().isEmpty()) {
-			history.add(input);
+		if(!submittedInput.trim().isEmpty()) {
+			history.add(submittedInput);
 			historyIndex = history.size();
 		}
 
 		// Process the command
-		String[] parts = input.trim().split("\\s+", 2);
+		String[] parts = submittedInput.trim().split("\\s+", 2);
 		String commandName = parts[0];
 		String args = parts.length > 1 ? parts[1] : "";
 
@@ -233,7 +241,7 @@ public class Terminal extends LuaMadeUserdata {
 	 */
 	private void printPrompt() {
 		String promptPath = getPromptPath();
-		console.print(valueOf(module.getPromptComputerName() + ":" + promptPath + " $ "));
+		console.appendInline(valueOf(module.getPromptComputerName() + ":" + promptPath + " $ "));
 	}
 
 	private String getPromptPath() {
@@ -384,8 +392,7 @@ public class Terminal extends LuaMadeUserdata {
 		commands.put("clear", new Command("clear", "Clears the terminal") {
 			@Override
 			public void execute(String args) {
-				// TODO: Implement clear functionality
-				console.print(valueOf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"));
+				console.clearTextContents();
 			}
 		});
 

@@ -8,6 +8,7 @@ import org.schema.game.client.controller.PlayerInput;
 import org.schema.schine.common.TabCallback;
 import org.schema.schine.common.TextAreaInput;
 import org.schema.schine.common.TextCallback;
+import org.schema.schine.graphicsengine.core.GLFW;
 import org.schema.schine.graphicsengine.core.MouseEvent;
 import org.schema.schine.graphicsengine.forms.font.FontLibrary;
 import org.schema.schine.graphicsengine.forms.gui.GUICallback;
@@ -26,6 +27,13 @@ public class ComputerDialog extends PlayerInput {
 	protected final ComputerModule computerModule;
 	private final ComputerPanel computerPanel;
 
+	/** Tracks the currently open ComputerPanel so event listeners can access it. */
+	private static ComputerPanel activePanel;
+
+	public static ComputerPanel getActivePanel() {
+		return activePanel;
+	}
+
 	public ComputerDialog(ComputerModule computerModule) {
 		super(GameClient.getClientState());
 		this.computerModule = computerModule;
@@ -35,6 +43,7 @@ public class ComputerDialog extends PlayerInput {
 	@Override
 	public void activate() {
 		super.activate();
+		activePanel = computerPanel;
 		computerModule.resumeFromLastMode();
 	}
 
@@ -72,6 +81,10 @@ public class ComputerDialog extends PlayerInput {
 
 	@Override
 	public void onDeactivate() {
+		// Clear the active panel reference so the event listener stops intercepting
+		if(activePanel == computerPanel) {
+			activePanel = null;
+		}
 		// Save current input when closing the dialog
 		if(computerPanel != null) {
 			computerPanel.saveCurrentInput();
@@ -105,6 +118,136 @@ public class ComputerDialog extends PlayerInput {
 			if(computerModule != null) {
 				computerModule.setSavedTerminalInput(currentInputLine);
 			}
+		}
+
+		private void refreshPromptStartPositionFromCurrentText() {
+			if(consolePane == null) {
+				promptStartPosition = -1;
+				return;
+			}
+
+			String fullText = consolePane.getText();
+			if(fullText == null || fullText.isEmpty()) {
+				promptStartPosition = -1;
+				return;
+			}
+
+			int lastLineStart = fullText.lastIndexOf('\n') + 1;
+			String lastLine = fullText.substring(lastLineStart);
+			int promptIndex = lastLine.lastIndexOf(PROMPT_MARKER);
+			if(promptIndex == -1) {
+				promptStartPosition = -1;
+				return;
+			}
+
+			promptStartPosition = lastLineStart + promptIndex + PROMPT_MARKER.length();
+		}
+
+		private void clampCaretToEditableRegion() {
+			if(consolePane == null) {
+				return;
+			}
+
+			TextAreaInput textArea = consolePane.getTextArea();
+			if(textArea == null || promptStartPosition < 0) {
+				return;
+			}
+
+			int currentCarrier = textArea.getChatCarrier();
+			if(currentCarrier < promptStartPosition) {
+				textArea.setChatCarrier(promptStartPosition);
+				// Force bufferChanged so update() actually refreshes cacheCarrier
+				textArea.setBufferChanged();
+				textArea.update();
+			}
+		}
+
+		/**
+		 * Handles navigation key events intercepted before they reach TextAreaInput.
+		 * Called from EventManager's KeyPressEvent listener.
+		 */
+		public void handleNavigationKey(int glfwKey) {
+			switch(glfwKey) {
+				case GLFW.GLFW_KEY_UP:
+					handleHistoryUp();
+					break;
+				case GLFW.GLFW_KEY_DOWN:
+					handleHistoryDown();
+					break;
+				case GLFW.GLFW_KEY_LEFT:
+					handleCaretLeft();
+					break;
+				case GLFW.GLFW_KEY_RIGHT:
+					handleCaretRight();
+					break;
+				case GLFW.GLFW_KEY_HOME:
+					handleCaretHome();
+					break;
+				case GLFW.GLFW_KEY_END:
+					handleCaretEnd();
+					break;
+			}
+		}
+
+		private void handleHistoryUp() {
+			if(computerModule == null || computerModule.getTerminal() == null) return;
+			// Save current input before navigating away for the first time
+			computerModule.getTerminal().setCurrentInput(currentInputLine);
+			String command = computerModule.getTerminal().getPreviousCommand();
+			setHistoryCommand(command);
+		}
+
+		private void handleHistoryDown() {
+			if(computerModule == null || computerModule.getTerminal() == null) return;
+			String command = computerModule.getTerminal().getNextCommand();
+			setHistoryCommand(command);
+		}
+
+		private void setHistoryCommand(String command) {
+			if(command == null) command = "";
+			currentInputLine = command;
+			userIsTyping = !command.isEmpty();
+			// Use setTextWithoutCallback to avoid the guard restoring old content
+			consolePane.setTextWithoutCallback(lastModuleContent + command);
+			refreshPromptStartPositionFromCurrentText();
+			// Move caret to end of the newly set text
+			TextAreaInput textArea = consolePane.getTextArea();
+			if(textArea != null) {
+				textArea.setChatCarrier(textArea.getCache().length());
+				textArea.setBufferChanged();
+				textArea.update();
+			}
+		}
+
+		private void handleCaretLeft() {
+			if(consolePane == null) return;
+			TextAreaInput textArea = consolePane.getTextArea();
+			if(textArea == null) return;
+			// Only allow moving left if we stay within the editable region
+			if(textArea.getChatCarrier() > promptStartPosition) {
+				textArea.chatKeyLeft();
+			}
+		}
+
+		private void handleCaretRight() {
+			if(consolePane == null) return;
+			TextAreaInput textArea = consolePane.getTextArea();
+			if(textArea == null) return;
+			textArea.chatKeyRight();
+		}
+
+		private void handleCaretHome() {
+			if(consolePane == null) return;
+			TextAreaInput textArea = consolePane.getTextArea();
+			if(textArea == null || promptStartPosition < 0) return;
+			textArea.setChatCarrier(promptStartPosition);
+			textArea.setBufferChanged();
+			textArea.update();
+		}
+
+		private void handleCaretEnd() {
+			if(consolePane == null) return;
+			consolePane.getTextArea().chatKeyEnd();
 		}
 
 		/**
@@ -210,26 +353,41 @@ public class ComputerDialog extends PlayerInput {
 						}
 					}
 				}
+
+				// Clamp caret immediately after input parsing to prevent movement into prompt
+				clampCaretToEditableRegion();
+
 				return input;
 			}) {
 				@Override
 				public void draw() {
 					// Save current input line to module for persistence (only when it changes)
-					if(computerModule != null && !currentInputLine.equals(lastSavedInput)) {
+					if(!currentInputLine.equals(lastSavedInput)) {
 						computerModule.setSavedTerminalInput(currentInputLine);
 						lastSavedInput = currentInputLine;
 					}
 
 					// Only update text from module when user is not typing and module content has changed
 					// This prevents user input from being overwritten while typing
-					if(computerModule != null && !userIsTyping) {
+					if(!userIsTyping) {
 						String moduleContent = computerModule.getLastTextContent();
 						if(!Objects.equals(lastModuleContent, moduleContent)) {
 							setText(moduleContent);
 							lastModuleContent = moduleContent;
 						}
 					}
+
+					refreshPromptStartPositionFromCurrentText();
+
+					// Clamp caret multiple times to catch all possible cursor movements
+					clampCaretToEditableRegion();
+					clampCaretToEditableRegion();
+					clampCaretToEditableRegion();
+					
 					super.draw();
+
+					// Final clamp after drawing to ensure position is locked
+					clampCaretToEditableRegion();
 				}
 			};
 			consolePanel.setContent(consolePane);
@@ -248,7 +406,8 @@ public class ComputerDialog extends PlayerInput {
 			};
 			consolePane.onInit();
 			contentPane.getContent(0).attach(consolePane);
-			consolePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL | GUIScrollablePanel.SCROLLABLE_HORIZONTAL);
+			consolePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);
+			consolePane.getTextArea().setLinewrap(100);
 			String initialContent = computerModule.getLastTextContent();
 
 			// Restore saved terminal input if available
@@ -261,6 +420,13 @@ public class ComputerDialog extends PlayerInput {
 
 			consolePane.setText(initialContent);
 			lastModuleContent = computerModule.getLastTextContent();
+		}
+
+
+		@Override
+		public void draw() {
+			super.draw();
+			clampCaretToEditableRegion();
 		}
 	}
 }

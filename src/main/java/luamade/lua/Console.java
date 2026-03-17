@@ -13,7 +13,7 @@ public class Console extends LuaMadeUserdata {
 	private final int VERTICAL = 0;
 	private final int HORIZONTAL = 1;
 	private StringBuilder textContents = new StringBuilder();
-	private int[] cursorPos = {0, 0};
+	private final int[] cursorPos = {0, 0};
 
 	public Console(ComputerModule module) {
 		this.module = module;
@@ -32,6 +32,16 @@ public class Console extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public void print(Varargs vargs) {
 		textContents.append(vargs.arg(1).toString()).append("\n");
+	}
+
+	public void appendInline(Varargs vargs) {
+		textContents.append(vargs.arg(1).toString());
+	}
+
+	public void clearTextContents() {
+		textContents.setLength(0);
+		cursorPos[VERTICAL] = 0;
+		cursorPos[HORIZONTAL] = 0;
 	}
 
 	public SegmentPiece getSegmentPiece() {
