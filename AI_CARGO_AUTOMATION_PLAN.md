@@ -135,34 +135,7 @@ Deliverable:
 
 - Scripts can do predictable dock/undock for cargo handoff points.
 
-## Phase 3 - Cargo mission orchestration
-
-Introduce mission-state abstraction (wrapper class or method set):
-
-- `beginRoute(pickupSector, pickupPos, dropoffSector, dropoffPos, options)`
-- States:
-  - `MOVE_TO_PICKUP_SECTOR`
-  - `APPROACH_PICKUP`
-  - `DOCK_PICKUP`
-  - `LOAD`
-  - `MOVE_TO_DROPOFF_SECTOR`
-  - `APPROACH_DROPOFF`
-  - `DOCK_DROPOFF`
-  - `UNLOAD`
-  - `RETURN_OR_IDLE`
-
-Expose:
-
-- `getMissionState()`
-- `getLastError()`
-- `isBusy()`
-- `abortMission()`
-
-Deliverable:
-
-- Turn-key cargo automation loop usable from Lua scripts.
-
-## Phase 4 - Reliability and safeguards
+## Phase 3 - Reliability and safeguards
 
 - Retry logic for missed docking or blocked rails
 - Timeout + fallback behavior for stuck movement

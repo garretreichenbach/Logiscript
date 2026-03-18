@@ -132,7 +132,7 @@ public class FileSystem extends LuaMadeUserdata {
 		
 		// Create a README file
 		String readme = 
-			"LuaMade Unix-like Terminal\n" +
+			"LuaMade Terminal\n" +
 			"==========================\n" +
 			"\n" +
 			"Welcome to your LuaMade computer!\n" +

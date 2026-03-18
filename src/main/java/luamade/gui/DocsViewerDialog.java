@@ -134,12 +134,16 @@ public class DocsViewerDialog extends PlayerInput {
 			searchAnchor = new GUIAncor(getState(), LEFT_WIDTH - (PADDING * 2), SEARCH_HEIGHT);
 			root.attach(searchAnchor);
 
-			collapseAllButton = new GUITextButton(getState(), COLLAPSE_ALL_BUTTON_WIDTH, COLLAPSE_ALL_BUTTON_HEIGHT,
-					GUITextButton.ColorPalette.NEUTRAL, "Collapse All", new GUICallback() {
+			collapseAllButton = new GUITextButton(getState(), COLLAPSE_ALL_BUTTON_WIDTH, COLLAPSE_ALL_BUTTON_HEIGHT, GUITextButton.ColorPalette.NEUTRAL, new Object() {
+				@Override
+				public String toString() {
+					return areAllSectionsCollapsed() ? "Expand All" : "Collapse All";
+				}
+			}, new GUICallback() {
 				@Override
 				public void callback(GUIElement callingGuiElement, MouseEvent event) {
 					if(event.pressedLeftMouse()) {
-						collapseAllSections();
+						toggleAllSections();
 					}
 				}
 
@@ -153,7 +157,7 @@ public class DocsViewerDialog extends PlayerInput {
 			collapseAllButton.onInit();
 			root.attach(collapseAllButton);
 
-			searchBar = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.MEDIUM, 80, 1, "Search titles or content", searchAnchor, new TextCallback() {
+			searchBar = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.MEDIUM, 80, 1, "Search", searchAnchor, new TextCallback() {
 				@Override
 				public String[] getCommandPrefixes() {
 					return new String[0];
@@ -339,12 +343,36 @@ public class DocsViewerDialog extends PlayerInput {
 
 		private void collapseAllSections() {
 			collapsedSections.clear();
+			collapsedSections.addAll(getAllSectionKeys());
+			rebuildTopicButtons();
+		}
+
+		private void expandAllSections() {
+			collapsedSections.clear();
+			rebuildTopicButtons();
+		}
+
+		private void toggleAllSections() {
+			if(areAllSectionsCollapsed()) {
+				expandAllSections();
+			} else {
+				collapseAllSections();
+			}
+		}
+
+		private boolean areAllSectionsCollapsed() {
+			java.util.Set<String> sectionKeys = getAllSectionKeys();
+			return !sectionKeys.isEmpty() && collapsedSections.containsAll(sectionKeys);
+		}
+
+		private java.util.Set<String> getAllSectionKeys() {
+			java.util.Set<String> sectionKeys = new java.util.HashSet<>();
 			for(DocTopic topic : allTopics) {
 				if(topic != null && topic.getSectionKey() != null) {
-					collapsedSections.add(topic.getSectionKey());
+					sectionKeys.add(topic.getSectionKey());
 				}
 			}
-			rebuildTopicButtons();
+			return sectionKeys;
 		}
 
 		private int addSectionHeader(int y, String sectionKey, String sectionLabel) {
@@ -352,8 +380,7 @@ public class DocsViewerDialog extends PlayerInput {
 			String arrow = collapsed ? "\u25BA  " : "\u25BC  ";  // ► / ▼
 			int rowWidth = Math.max(120, (int) topicsContent.getWidth());
 
-			GUITextButton headerButton = new GUITextButton(getState(), rowWidth, SECTION_HEADER_HEIGHT,
-					GUITextButton.ColorPalette.TUTORIAL, arrow + sectionLabel.toUpperCase(), new GUICallback() {
+			GUITextButton headerButton = new GUITextButton(getState(), rowWidth, SECTION_HEADER_HEIGHT, GUITextButton.ColorPalette.TUTORIAL, arrow + sectionLabel.toUpperCase(), new GUICallback() {
 				@Override
 				public void callback(GUIElement callingGuiElement, MouseEvent event) {
 					if(event.pressedLeftMouse()) {
@@ -378,9 +405,7 @@ public class DocsViewerDialog extends PlayerInput {
 			boolean selected = topic.equals(selectedTopic);
 			int rowWidth = Math.max(120, (int) topicsContent.getWidth());
 			String label = isIndexTopic(topic) ? "Overview: " + topic.getTitle() : topic.getTitle();
-			GUITextButton.ColorPalette palette = selected
-					? (isIndexTopic(topic) ? GUITextButton.ColorPalette.OK : GUITextButton.ColorPalette.FRIENDLY)
-					: GUITextButton.ColorPalette.NEUTRAL;
+			GUITextButton.ColorPalette palette = selected ? (isIndexTopic(topic) ? GUITextButton.ColorPalette.OK : GUITextButton.ColorPalette.FRIENDLY) : GUITextButton.ColorPalette.NEUTRAL;
 
 			GUITextButton topicButton = new GUITextButton(getState(), rowWidth, TOPIC_BUTTON_HEIGHT, palette, label, new GUICallback() {
 				@Override

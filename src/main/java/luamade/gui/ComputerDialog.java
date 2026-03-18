@@ -100,6 +100,10 @@ public class ComputerDialog extends PlayerInput {
 		private static final String EDITOR_HINT_PREFIX = "Editor: Ctrl+S Save | Ctrl+X Exit | Ctrl+R Save & Run";
 		private static final int DOCS_BUTTON_OFFSET_X = 12;
 		private static final int DOCS_BUTTON_OFFSET_Y = 30;
+		/** Pixel height of the console text-box in terminal mode. */
+		private static final int TEXT_BOX_HEIGHT = 500;
+		/** Pixels reserved at the bottom for the editor hint bar overlay. */
+		private static final int EDITOR_HINT_RESERVE_PX = 36;
 
 		private final ComputerModule computerModule;
 		private GUIScrollablePanel consolePanel;
@@ -116,6 +120,13 @@ public class ComputerDialog extends PlayerInput {
 		private GUITextOverlay editorHintsOverlay;
 		private GUITextButton docsButton;
 		private String lastEditorHintText = "";
+		/** Reference to the content pane so we can adjust text-box height dynamically. */
+		private GUIContentPane mainContentPane;
+		/**
+		 * Last cursor line at which we forced auto-scroll. In editor mode we skip
+		 * the auto-scroll when the cursor hasn't moved so the user can scroll freely.
+		 */
+		private int lastAutoScrollCursorLine = -1;
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
 			super(inputState, "COMPUTER_PANEL", "", "", 850, 650, guiCallback);
@@ -189,6 +200,11 @@ public class ComputerDialog extends PlayerInput {
 			}
 			currentInputLine = "";
 			userIsTyping = false;
+			lastAutoScrollCursorLine = -1;
+			// Restore full text-box height when returning to terminal mode.
+			if(mainContentPane != null) {
+				mainContentPane.setTextBoxHeightLast(TEXT_BOX_HEIGHT);
+			}
 			refreshPromptStartPositionFromCurrentText();
 			scrollPaneToCursor();
 			requestConsoleFocus();
@@ -363,6 +379,15 @@ public class ComputerDialog extends PlayerInput {
 
 			int totalLines = Math.max(1, textArea.getLineIndex() + 1);
 			int cursorLine = Math.max(0, textArea.getCarrierLineIndex());
+
+			// In editor mode, only force-scroll when the cursor line has actually moved.
+			// Without this guard the scroll is overridden every frame, making the
+			// scroll bar impossible to use while editing.
+			if(isFileEditMode() && cursorLine == lastAutoScrollCursorLine) {
+				return;
+			}
+			lastAutoScrollCursorLine = cursorLine;
+
 			if(totalLines <= 1) {
 				scrollPanel.scrollVerticalPercent(0.0F);
 				return;
@@ -507,7 +532,8 @@ public class ComputerDialog extends PlayerInput {
 				return;
 			}
 			GUIContentPane contentPane = ((GUIDialogWindow) background).getMainContentPane();
-			contentPane.setTextBoxHeightLast(500);
+			contentPane.setTextBoxHeightLast(TEXT_BOX_HEIGHT);
+			this.mainContentPane = contentPane;
 
 			consolePanel = new GUIScrollablePanel(850, 650, contentPane.getContent(0), getState());
 			consolePane = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.MEDIUM, ConfigManager.getConsoleCharacterLimit(), ConfigManager.getConsoleLineLimit(), "", contentPane.getContent(0), new TextCallback() {
@@ -598,16 +624,26 @@ public class ComputerDialog extends PlayerInput {
 					ComputerModule.ComputerMode currentMode = computerModule.getLastMode();
 					if(renderedMode != currentMode) {
 						renderedMode = currentMode;
+						// Reset cursor tracker so initial scroll-to-cursor fires on mode entry.
+						lastAutoScrollCursorLine = -1;
 						String modeContent = computerModule.getLastTextContent();
 						setTextWithoutCallback(modeContent == null ? "" : modeContent);
 						lastModuleContent = modeContent == null ? "" : modeContent;
 						if(isFileEditMode()) {
 							userIsTyping = true;
 							currentInputLine = "";
+							// Shrink text area so bottom lines don't render behind the hint overlay.
+							if(mainContentPane != null) {
+								mainContentPane.setTextBoxHeightLast(TEXT_BOX_HEIGHT - EDITOR_HINT_RESERVE_PX);
+							}
 						} else {
 							userIsTyping = false;
 							refreshPromptStartPositionFromCurrentText();
 							requestConsoleFocus();
+							// Restore full height in terminal mode (no hint overlay).
+							if(mainContentPane != null) {
+								mainContentPane.setTextBoxHeightLast(TEXT_BOX_HEIGHT);
+							}
 						}
 					}
 

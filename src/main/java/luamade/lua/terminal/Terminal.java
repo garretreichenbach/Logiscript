@@ -513,6 +513,8 @@ public class Terminal extends LuaMadeUserdata {
 		globals.set("print", console.get("print"));
 		globals.set("fs", fileSystem);
 		globals.set("term", this);
+		// Backward compatibility for older scripts that used `terminal`.
+		globals.set("terminal", this);
 		globals.set("net", module.getNetworkInterface());
 		globals.set("peripheral", new PeripheralsApi(module));
 		globals.set("shell", createShellCompatibilityApi());
