@@ -2,6 +2,7 @@ package luamade.system.module;
 
 import luamade.lua.Console;
 import luamade.lua.fs.FileSystem;
+import luamade.lua.input.InputApi;
 import luamade.lua.networking.NetworkInterface;
 import luamade.lua.terminal.Terminal;
 import org.schema.game.common.data.SegmentPiece;
@@ -21,6 +22,7 @@ public class ComputerModule {
 	private final FileSystem fileSystem;
 	private final NetworkInterface networkInterface;
 	private final Terminal terminal;
+	private final InputApi inputApi;
 	private ComputerMode lastMode = ComputerMode.OFF;
 	private long lastTouched;
 	private String lastOpenFile = "";
@@ -36,6 +38,7 @@ public class ComputerModule {
 		fileSystem = FileSystem.initNewFileSystem(this);
 		networkInterface = new NetworkInterface(this);
 		terminal = new Terminal(this, console, fileSystem);
+		inputApi = new InputApi();
 	}
 
 	public static String generateComputerUUID(long absIndex) {
@@ -168,6 +171,10 @@ public class ComputerModule {
 
 	public NetworkInterface getNetworkInterface() {
 		return networkInterface;
+	}
+
+	public InputApi getInputApi() {
+		return inputApi;
 	}
 
 	public String getSavedTerminalInput() {

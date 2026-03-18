@@ -78,7 +78,22 @@ public class ComputerDialog extends PlayerInput {
 
 	@Override
 	public void handleMouseEvent(MouseEvent mouseEvent) {
-
+		if(computerModule == null) return;
+		// Determine which button triggered this event (-1 = move/scroll only)
+		int button = mouseEvent.button;
+		boolean pressed = mouseEvent.state;
+		// Only report actual button events (button >= 0) or scroll (dWheel != 0)
+		if(button >= 0 || mouseEvent.dWheel != 0) {
+			computerModule.getInputApi().pushMouseEvent(
+					button,
+					pressed,
+					mouseEvent.x,
+					mouseEvent.y,
+					mouseEvent.dx,
+					mouseEvent.dy,
+					mouseEvent.dWheel
+			);
+		}
 	}
 
 	@Override
@@ -90,6 +105,10 @@ public class ComputerDialog extends PlayerInput {
 		// Save current input when closing the dialog
 		if(computerPanel != null) {
 			computerPanel.saveCurrentInput();
+		}
+		// Discard any pending input events so they don't bleed into the next session
+		if(computerModule != null) {
+			computerModule.getInputApi().clear();
 		}
 	}
 
@@ -151,6 +170,11 @@ public class ComputerDialog extends PlayerInput {
 
 		public boolean isFileEditMode() {
 			return computerModule != null && computerModule.getLastMode() == ComputerModule.ComputerMode.FILE_EDIT;
+		}
+
+		/** Returns the {@link ComputerModule} associated with this panel (may be null). */
+		public ComputerModule getComputerModule() {
+			return computerModule;
 		}
 
 		public void handleEditorShortcut(int glfwKey) {
@@ -533,7 +557,7 @@ public class ComputerDialog extends PlayerInput {
 			}
 			GUIContentPane contentPane = ((GUIDialogWindow) background).getMainContentPane();
 			contentPane.setTextBoxHeightLast(TEXT_BOX_HEIGHT);
-			this.mainContentPane = contentPane;
+			mainContentPane = contentPane;
 
 			consolePanel = new GUIScrollablePanel(850, 650, contentPane.getContent(0), getState());
 			consolePane = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.MEDIUM, ConfigManager.getConsoleCharacterLimit(), ConfigManager.getConsoleLineLimit(), "", contentPane.getContent(0), new TextCallback() {

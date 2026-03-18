@@ -1,6 +1,9 @@
 package luamade.listener;
 
-import api.listener.fastevents.segmentpiece.*;
+import api.listener.fastevents.segmentpiece.SegmentPieceAddListener;
+import api.listener.fastevents.segmentpiece.SegmentPieceKilledListener;
+import api.listener.fastevents.segmentpiece.SegmentPiecePlayerInteractListener;
+import api.listener.fastevents.segmentpiece.SegmentPieceRemoveListener;
 import luamade.element.ElementRegistry;
 import luamade.gui.ComputerDialog;
 import luamade.system.module.ComputerModule;
@@ -16,7 +19,7 @@ import org.schema.game.common.data.element.ElementCollection;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.world.Segment;
 
-public class SegmentPieceListener implements SegmentPiecePlayerInteractListener, SegmentPieceAddByMetadataListener, SegmentPieceAddListener, SegmentPieceRemoveListener, SegmentPieceKilledListener {
+public class SegmentPieceListener implements SegmentPiecePlayerInteractListener, SegmentPieceAddListener, SegmentPieceRemoveListener, SegmentPieceKilledListener {
 
 	@Override
 	public void onInteract(SegmentPiece segmentPiece, PlayerState playerState, PlayerInteractionControlManager playerInteractionControlManager) {

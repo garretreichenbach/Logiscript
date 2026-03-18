@@ -10,6 +10,7 @@ import luamade.LuaMade;
 import luamade.element.ElementRegistry;
 import luamade.gui.ComputerDialog;
 import luamade.listener.SegmentPieceListener;
+import luamade.system.module.ComputerModule;
 import luamade.system.module.ComputerModuleContainer;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.data.SegmentPiece;
@@ -23,7 +24,6 @@ public class EventManager {
 
 	public static void registerEvents(LuaMade instance) {
 		FastListenerCommon.segmentPiecePlayerInteractListeners.add(segmentPieceListener);
-//		FastListenerCommon.segmentPieceAddByMetadataListeners.add(segmentPieceListener); bad event, doesnt expose the entity
 		FastListenerCommon.segmentPieceAddListeners.add(segmentPieceListener);
 		FastListenerCommon.segmentPieceRemoveListeners.add(segmentPieceListener);
 		FastListenerCommon.segmentPieceKilledListeners.add(segmentPieceListener);
@@ -34,21 +34,38 @@ public class EventManager {
 		StarLoader.registerListener(KeyPressEvent.class, new Listener<KeyPressEvent>() {
 			@Override
 			public void onEvent(KeyPressEvent event) {
-				if(!event.isKeyDown()) return;
 				ComputerDialog.ComputerPanel panel = ComputerDialog.getActivePanel();
 				if(panel == null) return;
 
 				int key = event.getKey();
 				boolean ctrlDown = Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_CONTROL) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_CONTROL);
-				if(panel.isFileEditMode() && ctrlDown && (key == GLFW.GLFW_KEY_S || key == GLFW.GLFW_KEY_X || key == GLFW.GLFW_KEY_R)) {
-					event.setCanceled(true);
-					panel.handleEditorShortcut(key);
-					return;
+				boolean shiftDown = Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_SHIFT);
+				boolean altDown = Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_ALT) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_ALT);
+
+				// ---- existing shortcut / navigation interception (key-down only) ----
+				if(event.isKeyDown()) {
+					if(panel.isFileEditMode() && ctrlDown && (key == GLFW.GLFW_KEY_S || key == GLFW.GLFW_KEY_X || key == GLFW.GLFW_KEY_R)) {
+						event.setCanceled(true);
+						panel.handleEditorShortcut(key);
+						// still forward to InputApi so scripts can react
+					} else if(!panel.isFileEditMode() && (key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_DOWN || key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT || key == GLFW.GLFW_KEY_HOME || key == GLFW.GLFW_KEY_END)) {
+						event.setCanceled(true);
+						panel.handleNavigationKey(key);
+						// still forward to InputApi below
+					}
 				}
 
-				if(!panel.isFileEditMode() && (key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_DOWN || key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT || key == GLFW.GLFW_KEY_HOME || key == GLFW.GLFW_KEY_END)) {
-					event.setCanceled(true);
-					panel.handleNavigationKey(key);
+				// ---- forward every key event (press + release) to Lua InputApi ----
+				ComputerModule module = panel.getComputerModule();
+				if(module != null) {
+					module.getInputApi().pushKeyEvent(
+							key,
+							event.getChar(),
+							event.isKeyDown(),
+							shiftDown,
+							ctrlDown,
+							altDown
+					);
 				}
 			}
 		}, instance);

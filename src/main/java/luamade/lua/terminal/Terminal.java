@@ -8,44 +8,18 @@ import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.manager.ConfigManager;
 import luamade.system.module.ComputerModule;
-import org.luaj.vm2.Globals;
-import org.luaj.vm2.LuaError;
-import org.luaj.vm2.LuaTable;
-import org.luaj.vm2.LuaValue;
-import org.luaj.vm2.Varargs;
+import org.luaj.vm2.*;
 import org.luaj.vm2.compiler.LuaC;
-import org.luaj.vm2.lib.BaseLib;
-import org.luaj.vm2.lib.Bit32Lib;
-import org.luaj.vm2.lib.StringLib;
-import org.luaj.vm2.lib.TableLib;
-import org.luaj.vm2.lib.VarArgFunction;
+import org.luaj.vm2.lib.*;
 import org.luaj.vm2.lib.jse.JseMathLib;
 
-import java.nio.charset.StandardCharsets;
-import java.io.ByteArrayOutputStream;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.Semaphore;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -518,6 +492,7 @@ public class Terminal extends LuaMadeUserdata {
 		globals.set("net", module.getNetworkInterface());
 		globals.set("peripheral", new PeripheralsApi(module));
 		globals.set("gfx", new TextGraphicsApi(console));
+		globals.set("input", module.getInputApi());
 		globals.set("shell", createShellCompatibilityApi());
 
 		LuaTable utilLibrary = loadBuiltinLibrary(globals, "scripts/lib/util.lua", "util");
