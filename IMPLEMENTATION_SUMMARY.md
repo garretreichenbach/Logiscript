@@ -113,8 +113,8 @@ This implementation completes the transition of the LuaMade StarMade mod from a 
   - Command reference
   - Script writing guide
   - Example usage
-- **Modular Markdown Documentation**: Organized by category folders
-  - `general/`, `runtime-api/`, `game-systems/`, `block-wrappers/`, `entity-wrappers/`
+- **Modular Markdown Documentation**: Organized by semantic category
+  - `core/`, `io/`, `math/`, `entities/`, `systems/`
   - Loaded dynamically by GlossaryManager for in-game display
 
 **Example Scripts Created:**

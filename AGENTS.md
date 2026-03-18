@@ -176,7 +176,7 @@ Use protocol names as channel identifiers (e.g., "chat", "sensor-network").
 - Example scripts: `examples/TerminalExample.lua`, `src/main/resources/bin/*.lua`
 
 ### Glossary System
-Documentation is loaded dynamically from markdown files in `src/main/resources/docs/` (with category subfolders). Titles are extracted from headers. Integrated into StarMade's in-game documentation UI.
+Documentation is loaded dynamically from markdown files in `src/main/resources/docs/` (organized by semantic category: core, io, math, entities, systems). Titles are extracted from headers. Integrated into StarMade's in-game documentation UI.
 
 ---
 
@@ -217,5 +217,5 @@ Documentation is loaded dynamically from markdown files in `src/main/resources/d
 - MCP tools can be used to access game internals, but you should refernece only the `release` branch for stability.
 - Mods should prefer to use the FastListener system when possible for better performance.
 
-For Lua API docs, see `docs/markdown/runtime-api/` and `docs/markdown/general/`.
+For Lua API docs, see `docs/markdown/core/` and `docs/markdown/io/`.
 
