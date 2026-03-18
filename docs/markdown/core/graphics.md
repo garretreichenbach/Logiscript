@@ -25,8 +25,14 @@ Clears the canvas with the current fill character (default space).
 - `clear(fillChar)`
 Sets the fill character and clears the canvas.
 
+- `clear(fillChar, foreground, background)`
+Clears using a fill character plus ANSI foreground/background color.
+
 - `pixel(x, y, char)`
 Draws one character at `(x, y)`.
+
+- `pixel(x, y, char, foreground, background)`
+Draws one character with explicit ANSI colors.
 
 - `line(x1, y1, x2, y2, char)`
 Draws a line using Bresenham rasterization.
@@ -46,6 +52,27 @@ Draws a filled circle.
 - `text(x, y, content)`
 Draws text horizontally starting at `(x, y)`.
 
+- `setAnsiEnabled(enabled)`
+Enables/disables ANSI output in `frame()` and `render()`. Disabled by default.
+
+- `isAnsiEnabled()`
+Returns whether ANSI output is enabled.
+
+- `setForeground(color)`
+Sets the current brush foreground color.
+
+- `setBackground(color)`
+Sets the current brush background color.
+
+- `setColor(foreground)`
+Sets brush foreground color.
+
+- `setColor(foreground, background)`
+Sets brush foreground and background colors.
+
+- `resetColor()`
+Resets brush colors back to terminal defaults.
+
 - `frame()`
 Returns the full canvas as a single newline-separated string.
 
@@ -56,18 +83,32 @@ Pushes the canvas to the terminal output area (replaces current terminal text co
 
 ```lua
 gfx.setSize(50, 18)
-gfx.clear(" ")
+gfx.setAnsiEnabled(true)
+gfx.clear(" ", "white", "blue")
 
+gfx.setColor("bright_cyan", "blue")
 gfx.rect(1, 1, 50, 18, "#")
-gfx.line(2, 2, 49, 17, "/")
-gfx.line(49, 2, 2, 17, "\\")
+
+gfx.setColor("yellow", "blue")
 gfx.circle(25, 9, 5, "*")
+
+gfx.setColor("bright_white", "blue")
 gfx.text(16, 9, "LuaMade GFX")
 
+gfx.pixel(3, 3, "@", "bright_red", "blue")
 gfx.render()
 ```
+
+## Color values
+
+- Named colors: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`
+- Bright variants: `bright_red`, `bright_blue`, etc.
+- Extra aliases: `gray`/`grey` (same as `bright_black`)
+- 256-color palette indexes: `0` to `255` as strings or numbers
+- Reset/default: `default`, `none`, `reset`, or empty
 
 ## Notes
 
 - `gfx.render()` replaces the terminal text buffer. If you want to keep a static screen, disable automatic prompt with `term.setAutoPrompt(false)`.
 - For animation loops, redraw onto the canvas and call `gfx.render()` each frame.
+- If ANSI is disabled, color metadata is stored but output is rendered as plain text.
