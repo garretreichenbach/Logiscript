@@ -55,8 +55,16 @@ public final class DocsRepository {
 				LuaMade.getInstance().logException("Error loading documentation file: " + file, exception);
 			}
 		}
-		topics.sort(Comparator.comparingInt(DocsRepository::getSectionOrder).thenComparing(DocTopic::getSectionLabel).thenComparing(DocTopic::getTitle));
+		topics.sort(Comparator.comparingInt(DocsRepository::getSectionOrder).thenComparing(DocTopic::getSectionLabel).thenComparingInt(DocsRepository::getIndexPriority).thenComparing(DocTopic::getTitle));
 		return topics;
+	}
+
+	private static int getIndexPriority(DocTopic topic) {
+		if(topic == null || topic.getResourcePath() == null) {
+			return 1;
+		}
+		String resourcePath = topic.getResourcePath();
+		return resourcePath.toLowerCase(Locale.ROOT).endsWith("/index.md") ? 0 : 1;
 	}
 
 	private static int getSectionOrder(DocTopic topic) {
@@ -97,7 +105,18 @@ public final class DocsRepository {
 	private static InputStream openResource(String path) {
 		// Ensure no leading slash for ClassLoader-based lookups
 		String bare = path.startsWith("/") ? path.substring(1) : path;
-		return LuaMade.getInstance().getClass().getClassLoader().getResourceAsStream(bare);
+		ClassLoader classLoader = LuaMade.getInstance().getClass().getClassLoader();
+		InputStream resource = classLoader.getResourceAsStream(bare);
+		if(resource != null) {
+			return resource;
+		}
+
+		// docs.index stores markdown paths relative to the docs root (e.g. core/terminal.md).
+		// Runtime resources are packaged under docs/, so retry there when needed.
+		if(!bare.startsWith("docs/")) {
+			return classLoader.getResourceAsStream("docs/" + bare);
+		}
+		return null;
 	}
 
 	private static List<String> loadDocFilesFromIndex() {
@@ -113,13 +132,24 @@ public final class DocsRepository {
 			while((line = reader.readLine()) != null) {
 				String trimmed = line.trim();
 				if(trimmed.endsWith(".md")) {
-					files.add(trimmed);
+					files.add(normalizeDocPath(trimmed));
 				}
 			}
 		} catch(IOException exception) {
 			LuaMade.getInstance().logException("Error loading documentation index", exception);
 		}
 		return files;
+	}
+
+	private static String normalizeDocPath(String path) {
+		if(path == null) {
+			return "";
+		}
+		String normalized = path.trim().replace('\\', '/');
+		if(normalized.startsWith("docs/")) {
+			return normalized.substring("docs/".length());
+		}
+		return normalized;
 	}
 
 	private static String readAll(InputStream in) throws IOException {

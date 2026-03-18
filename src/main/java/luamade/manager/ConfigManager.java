@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
@@ -39,7 +40,7 @@ public final class ConfigManager {
 		"pastebin.com",
 		"hastebin.com"
 	);
-	private static final Path TRUSTED_WEB_DOMAINS_PATH = Path.of("config", "luamade", "trusted_domains.txt");
+	private static final Path TRUSTED_WEB_DOMAINS_PATH = Paths.get("config", "luamade", "trusted_domains.txt");
 	private static volatile Set<String> trustedWebDomainsCache = new LinkedHashSet<>(DEFAULT_TRUSTED_WEB_DOMAINS);
 
 	private ConfigManager() {
@@ -187,10 +188,9 @@ public final class ConfigManager {
 				builder.append(domain).append('\n');
 			}
 
-			Files.writeString(
+			Files.write(
 				TRUSTED_WEB_DOMAINS_PATH,
-				builder.toString(),
-				StandardCharsets.UTF_8,
+				builder.toString().getBytes(StandardCharsets.UTF_8),
 				StandardOpenOption.CREATE,
 				StandardOpenOption.TRUNCATE_EXISTING,
 				StandardOpenOption.WRITE
@@ -207,7 +207,7 @@ public final class ConfigManager {
 		try {
 			if(Files.exists(TRUSTED_WEB_DOMAINS_PATH)) {
 				for(String line : Files.readAllLines(TRUSTED_WEB_DOMAINS_PATH, StandardCharsets.UTF_8)) {
-					String domain = line == null ? "" : line.trim().toLowerCase(Locale.ROOT);
+					String domain = line.trim().toLowerCase(Locale.ROOT);
 					if(domain.isEmpty() || domain.startsWith("#")) {
 						continue;
 					}
