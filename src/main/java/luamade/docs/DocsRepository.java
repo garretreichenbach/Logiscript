@@ -11,15 +11,7 @@ import java.util.*;
 
 public final class DocsRepository {
 
-	private static final String DOC_INDEX_PATH = "docs/markdown/docs.index";
-	private static final String[] FALLBACK_DOC_FILES = {
-			"general/luamade.md",
-			"general/terminal.md",
-			"functions/console.md",
-			"functions/block.md",
-			"functions/blockinfo.md",
-			"functions/itemstack.md"
-	};
+	private static final String DOC_INDEX_PATH = "docs/docs.index";
 
 	private static List<DocTopic> cachedTopics;
 
@@ -46,10 +38,9 @@ public final class DocsRepository {
 	private static List<DocTopic> loadTopics() {
 		List<DocTopic> topics = new ArrayList<>();
 		for(String file : getDocFiles()) {
-			String path = "docs/markdown/" + file;
-			try(InputStream in = openResource(path)) {
+			try(InputStream in = openResource(file)) {
 				if(in == null) {
-					LuaMade.getInstance().logWarning("Documentation file not found in resources: " + path);
+					LuaMade.getInstance().logWarning("Documentation file not found in resources: " + file);
 					continue;
 				}
 
@@ -59,9 +50,9 @@ public final class DocsRepository {
 				}
 				String title = extractTitle(markdown, file);
 				String sectionKey = extractSectionKey(file);
-				topics.add(new DocTopic("/" + path, title, markdown, sectionKey, formatSectionLabel(sectionKey)));
+				topics.add(new DocTopic("/" + file, title, markdown, sectionKey, formatSectionLabel(sectionKey)));
 			} catch(IOException exception) {
-				LuaMade.getInstance().logException("Error loading documentation file: " + path, exception);
+				LuaMade.getInstance().logException("Error loading documentation file: " + file, exception);
 			}
 		}
 		topics.sort(Comparator.comparingInt(DocsRepository::getSectionOrder).thenComparing(DocTopic::getSectionLabel).thenComparing(DocTopic::getTitle));
@@ -72,7 +63,6 @@ public final class DocsRepository {
 		if(topic == null || topic.getSectionKey() == null) {
 			return 100;
 		}
-
 		switch(topic.getSectionKey()) {
 			case "general":
 				return 0;
@@ -89,9 +79,7 @@ public final class DocsRepository {
 			return docFiles;
 		}
 
-		List<String> fallbackFiles = new ArrayList<>();
-		Collections.addAll(fallbackFiles, FALLBACK_DOC_FILES);
-		return fallbackFiles;
+		return new ArrayList<>();
 	}
 
 	/**
@@ -101,25 +89,7 @@ public final class DocsRepository {
 	private static InputStream openResource(String path) {
 		// Ensure no leading slash for ClassLoader-based lookups
 		String bare = path.startsWith("/") ? path.substring(1) : path;
-
-		// 1. Direct class ClassLoader (most common in mod contexts)
-		InputStream in = DocsRepository.class.getClassLoader().getResourceAsStream(bare);
-		if(in != null) return in;
-
-		// 2. Class-based lookup (with leading slash = absolute classpath root)
-		in = DocsRepository.class.getResourceAsStream("/" + bare);
-		if(in != null) return in;
-
-		// 3. LuaMade's ClassLoader (the mod entry point loader)
-		in = LuaMade.class.getClassLoader().getResourceAsStream(bare);
-		if(in != null) return in;
-
-		// 4. Thread context ClassLoader
-		ClassLoader ctx = Thread.currentThread().getContextClassLoader();
-		if(ctx != null) {
-			in = ctx.getResourceAsStream(bare);
-		}
-		return in;
+		return LuaMade.getInstance().getClass().getClassLoader().getResourceAsStream(bare);
 	}
 
 	private static List<String> loadDocFilesFromIndex() {

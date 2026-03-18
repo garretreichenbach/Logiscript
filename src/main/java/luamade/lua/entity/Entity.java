@@ -17,7 +17,10 @@ import luamade.lua.faction.Faction;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
-import org.schema.game.common.controller.*;
+import org.schema.game.common.controller.ManagedUsableSegmentController;
+import org.schema.game.common.controller.SegmentBufferInterface;
+import org.schema.game.common.controller.SegmentController;
+import org.schema.game.common.controller.SpaceStation;
 import org.schema.game.common.controller.elements.ElementCollectionManager;
 import org.schema.game.common.controller.elements.ManagerContainer;
 import org.schema.game.common.controller.elements.shipyard.ShipyardCollectionManager;
@@ -34,7 +37,7 @@ public class Entity extends LuaMadeUserdata {
 	private final SegmentController segmentController;
 
 	public Entity(SegmentController controller) {
-		this.segmentController = controller;
+		segmentController = controller;
 	}
 
 	public static Entity wrap(SegmentController controller) {
@@ -112,16 +115,21 @@ public class Entity extends LuaMadeUserdata {
 		for(Sendable sendable : segmentController.getState().getLocalAndRemoteObjectContainer().getLocalObjects().values()) {
 			if(sendable instanceof SegmentController) {
 				SegmentController controller = (SegmentController) sendable;
-				if(controller instanceof Ship) {
-					Ship ship = (Ship) controller;
-					if(ship.getManagerContainer().isJamming() || ship.getManagerContainer().isCloaked()) continue;
+				if(controller instanceof org.schema.game.common.controller.Ship) {
+					org.schema.game.common.controller.Ship ship = (org.schema.game.common.controller.Ship) controller;
+					if(ship.getManagerContainer().isJamming() || ship.getManagerContainer().isCloaked()) {
+						continue;
+					}
 				}
-				if(controller.railController.getRoot().equals(segmentController.railController.getRoot())) continue;
+				if(controller.railController.getRoot().equals(segmentController.railController.getRoot())) {
+					continue;
+				}
 				Vector3i sector = controller.getSector(new Vector3i());
 				Vector3i diff = new Vector3i(thisSector);
 				diff.sub(sector);
 				diff.absolute();
-				if(diff.x <= 1 && diff.y <= 1 && diff.z <= 1 && controller.getId() != getId()) entities.add(new RemoteEntity(controller));
+				if(diff.x <= 1 && diff.y <= 1 && diff.z <= 1 && controller.getId() != getId())
+					entities.add(new RemoteEntity(controller));
 			}
 		}
 		return entities.toArray(new RemoteEntity[0]);
@@ -135,15 +143,19 @@ public class Entity extends LuaMadeUserdata {
 		for(Sendable sendable : segmentController.getState().getLocalAndRemoteObjectContainer().getLocalObjects().values()) {
 			if(sendable instanceof SegmentController) {
 				SegmentController controller = (SegmentController) sendable;
-				if(controller instanceof Ship) {
-					Ship ship = (Ship) controller;
-					if(ship.getManagerContainer().isJamming() || ship.getManagerContainer().isCloaked()) continue;
+				if(controller instanceof org.schema.game.common.controller.Ship) {
+					org.schema.game.common.controller.Ship ship = (org.schema.game.common.controller.Ship) controller;
+					if(ship.getManagerContainer().isJamming() || ship.getManagerContainer().isCloaked()) {
+						continue;
+					}
 				}
 				Vector3i sector = controller.getSector(new Vector3i());
 				Vector3i diff = new Vector3i(thisSector);
 				diff.sub(sector);
 				diff.absolute();
-				if(diff.x <= radius && diff.y <= radius && diff.z <= radius && controller.getId() != getId()) entities.add(new RemoteEntity(controller));
+				if(diff.x <= radius && diff.y <= radius && diff.z <= radius && controller.getId() != getId()) {
+					entities.add(new RemoteEntity(controller));
+				}
 			}
 		}
 		return entities.toArray(new RemoteEntity[0]);
@@ -180,7 +192,9 @@ public class Entity extends LuaMadeUserdata {
 		ArrayList<SegmentController> docked = new ArrayList<>();
 		segmentController.railController.getDockedRecusive(docked);
 		for(SegmentController controller : docked) {
-			if(controller.railController.isChildDock(segmentController) && controller.railController.isTurretDocked()) turrets.add(Entity.wrap(controller));
+			if(controller.railController.isChildDock(segmentController) && controller.railController.isTurretDocked()) {
+				turrets.add(wrap(controller));
+			}
 		}
 		return turrets.toArray(new Entity[0]);
 	}
@@ -191,7 +205,9 @@ public class Entity extends LuaMadeUserdata {
 		ArrayList<SegmentController> dockedControllers = new ArrayList<>();
 		segmentController.railController.getDockedRecusive(dockedControllers);
 		for(SegmentController controller : dockedControllers) {
-			if(controller.railController.isChildDock(segmentController)) docked.add(Entity.wrap(controller));
+			if(controller.railController.isChildDock(segmentController)) {
+				docked.add(wrap(controller));
+			}
 		}
 		return docked.toArray(new Entity[0]);
 	}
@@ -201,7 +217,9 @@ public class Entity extends LuaMadeUserdata {
 		ArrayList<SegmentController> docked = new ArrayList<>();
 		segmentController.railController.getDockedRecusive(docked);
 		for(SegmentController controller : docked) {
-			if(controller.railController.isChildDock(segmentController) && controller.getId() == entity.getId()) return true;
+			if(controller.railController.isChildDock(segmentController) && controller.getId() == entity.getId()) {
+				return true;
+			}
 		}
 		return false;
 	}
@@ -229,7 +247,9 @@ public class Entity extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public void dockTo(RemoteEntity entity, Block railDocker) {
-		if(!segmentController.getSector(new Vector3i()).equals(entity.getSegmentController().getSector(new Vector3i())) || isEntityDocked(entity) || segmentController.railController.getRoot().equals(entity.getSegmentController().railController.getRoot())) return;
+		if(!segmentController.getSector(new Vector3i()).equals(entity.getSegmentController().getSector(new Vector3i())) || isEntityDocked(entity) || segmentController.railController.getRoot().equals(entity.getSegmentController().railController.getRoot())) {
+			return;
+		}
 		if(segmentController.getFactionId() == 0 || entity.getSegmentController().getFactionId() == 0) return;
 		if(getFaction().isSameFaction(entity.getFaction()) || getFaction().isFriend(entity.getFaction())) {
 			HashMap<Block, Double> distances = new HashMap<>();
@@ -277,15 +297,20 @@ public class Entity extends LuaMadeUserdata {
 						}
 					}
 				}
-				if(closestBlock != null) segmentController.railController.connectServer(railDocker.getSegmentPiece(), closestBlock.getSegmentPiece());
+				if(closestBlock != null)
+					segmentController.railController.connectServer(railDocker.getSegmentPiece(), closestBlock.getSegmentPiece());
 			}
 		}
 	}
 
 	@LuaMadeCallable
 	public void dockTo(RemoteEntity entity, Block railDocker, Vec3i dockPos) {
-		if(!segmentController.getSector(new Vector3i()).equals(entity.getSegmentController().getSector(new Vector3i())) || isEntityDocked(entity) || segmentController.railController.getRoot().equals(entity.getSegmentController().railController.getRoot())) return;
-		if(segmentController.getFactionId() == 0 || entity.getSegmentController().getFactionId() == 0) return;
+		if(!segmentController.getSector(new Vector3i()).equals(entity.getSegmentController().getSector(new Vector3i())) || isEntityDocked(entity) || segmentController.railController.getRoot().equals(entity.getSegmentController().railController.getRoot())) {
+			return;
+		}
+		if(segmentController.getFactionId() == 0 || entity.getSegmentController().getFactionId() == 0) {
+			return;
+		}
 		if(getFaction().isSameFaction(entity.getFaction()) || getFaction().isFriend(entity.getFaction())) {
 			HashMap<Block, Double> distances = new HashMap<>();
 			int searchRadius = 20;
@@ -325,7 +350,9 @@ public class Entity extends LuaMadeUserdata {
 	public Shipyard[] getShipyards() {
 		ArrayList<Shipyard> shipyards = new ArrayList<>();
 		if(segmentController instanceof ManagedUsableSegmentController<?>) {
-			for(ElementCollectionManager<?, ?, ?> manager : SegmentControllerUtils.getCollectionManagers((ManagedUsableSegmentController<?>) segmentController, ShipyardCollectionManager.class)) shipyards.add(new Shipyard(segmentController, (ShipyardCollectionManager) manager));
+			for(ElementCollectionManager<?, ?, ?> manager : SegmentControllerUtils.getCollectionManagers((ManagedUsableSegmentController<?>) segmentController, ShipyardCollectionManager.class)) {
+				shipyards.add(new Shipyard(segmentController, (ShipyardCollectionManager) manager));
+			}
 		}
 		return shipyards.toArray(new Shipyard[0]);
 	}
@@ -337,9 +364,13 @@ public class Entity extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public Inventory getNamedInventory(String name) {
-		if(segmentController instanceof Ship) return getInventory(name, ((Ship) segmentController).getManagerContainer());
-		else if(segmentController instanceof SpaceStation) return getInventory(name, ((SpaceStation) segmentController).getManagerContainer());
-		else return null;
+		if(segmentController instanceof org.schema.game.common.controller.Ship) {
+			return getInventory(name, ((org.schema.game.common.controller.Ship) segmentController).getManagerContainer());
+		} else if(segmentController instanceof SpaceStation) {
+			return getInventory(name, ((SpaceStation) segmentController).getManagerContainer());
+		} else {
+			return null;
+		}
 	}
 
 	@LuaMadeCallable
@@ -363,7 +394,9 @@ public class Entity extends LuaMadeUserdata {
 
 	private static Inventory getInventory(String name, ManagerContainer<?> managerContainer) {
 		for(Map.Entry<Long, org.schema.game.common.data.player.inventory.Inventory> entry : managerContainer.getInventories().entrySet()) {
-			if(entry.getValue().getCustomName().equals(name)) return new Inventory(entry.getValue(), managerContainer.getSegmentController().getSegmentBuffer().getPointUnsave(entry.getKey()));
+			if(entry.getValue().getCustomName().equals(name)) {
+				return new Inventory(entry.getValue(), managerContainer.getSegmentController().getSegmentBuffer().getPointUnsave(entry.getKey()));
+			}
 		}
 		return null;
 	}

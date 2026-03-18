@@ -3,6 +3,7 @@ package luamade.lua.faction;
 import api.common.GameCommon;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import org.schema.game.common.data.player.faction.FactionManager;
 
 /**
  * [Description]
@@ -15,6 +16,11 @@ public class Faction extends LuaMadeUserdata {
 
 	public Faction(int factionId) {
 		this.factionId = factionId;
+	}
+
+	@LuaMadeCallable
+	public int getFactionId() {
+		return factionId;
 	}
 
 	@LuaMadeCallable
@@ -57,5 +63,10 @@ public class Faction extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public Boolean isNeutral(Faction faction) {
 		return GameCommon.getGameState().getFactionManager().isNeutral(factionId, faction.factionId);
+	}
+
+	@LuaMadeCallable
+	public Boolean isNPCFaction() {
+		return FactionManager.isNPCFaction(factionId);
 	}
 }
