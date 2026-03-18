@@ -35,6 +35,15 @@ Draws one character at `(x, y)`.
 - `pixel(x, y, char, foreground, background)`
 Draws one character with explicit ANSI colors.
 
+- `pixelScaled(x, y, char, scale)`
+Draws one character and applies uniform per-pixel scale in one call.
+
+- `pixelScaled(x, y, char, scaleX, scaleY)`
+Draws one character and applies independent per-pixel X/Y scale.
+
+- `pixelScaled(x, y, char, foreground, background, scaleX, scaleY)`
+Draws one character with explicit colors and per-pixel X/Y scale.
+
 - `line(x1, y1, x2, y2, char)`
 Draws a line using Bresenham rasterization.
 

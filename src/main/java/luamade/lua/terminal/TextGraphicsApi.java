@@ -189,6 +189,30 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public void pixelScaled(int x, int y, String glyph, double scale) {
+		float clamped = clampScale((float) scale);
+		setCell(x - 1, y - 1, toCodePoint(glyph), brushFg, brushBg, clamped, clamped);
+	}
+
+	@LuaMadeCallable
+	public void pixelScaled(int x, int y, String glyph, double scaleX, double scaleY) {
+		setCell(x - 1, y - 1, toCodePoint(glyph), brushFg, brushBg, clampScale((float) scaleX), clampScale((float) scaleY));
+	}
+
+	@LuaMadeCallable
+	public void pixelScaled(int x, int y, String glyph, String foreground, String background, double scaleX, double scaleY) {
+		setCell(
+				x - 1,
+				y - 1,
+				toCodePoint(glyph),
+				parseColor(foreground),
+				parseColor(background),
+				clampScale((float) scaleX),
+				clampScale((float) scaleY)
+		);
+	}
+
+	@LuaMadeCallable
 	public void setPixelScale(int x, int y, double scale) {
 		setPixelScale(x, y, scale, scale);
 	}
