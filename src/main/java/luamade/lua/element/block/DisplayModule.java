@@ -3,9 +3,9 @@ package luamade.lua.element.block;
 import luamade.luawrap.LuaMadeCallable;
 import org.schema.game.common.data.SegmentPiece;
 
-public class DisplayModuleBlock extends Block {
+public class DisplayModule extends Block {
 
-	public DisplayModuleBlock(SegmentPiece piece) {
+	public DisplayModule(SegmentPiece piece) {
 		super(piece);
 	}
 
@@ -20,7 +20,7 @@ public class DisplayModuleBlock extends Block {
 	}
 
 	@LuaMadeCallable
-	public Integer getTextBlockIndex() {
+	public Long getTextBlockIndex() {
 		return getSegmentPiece().getTextBlockIndex();
 	}
 }

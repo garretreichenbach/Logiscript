@@ -91,16 +91,12 @@ This implementation completes the transition of the LuaMade StarMade mod from a 
 
 **Completed:**
 - Fixed typo in markdown file list
-- Loads all 9 documentation markdown files:
-  - overview.md - System overview and components
-  - filesystem.md - File system structure and APIs
-  - terminal.md - Terminal commands and usage
-  - networking.md - Network communication
-  - console.md - Console API
-  - usage.md - How to use the system
-  - enhancements.md - Future improvements
-  - comparison.md - Comparison with similar systems
-  - development.md - Development guide
+- Loads documentation markdown files recursively from categorized folders:
+  - `general/` - high-level and terminal docs
+  - `runtime-api/` - APIs exposed to scripts (`fs`, `term`, `net`, `util`, etc.)
+  - `game-systems/` - inventory, peripherals, channels, and related systems
+  - `block-wrappers/` - block and module wrapper references
+  - `entity-wrappers/` - entity/faction/fleet wrapper references
 - Automatically extracts titles from markdown headers
 - Integrates with in-game glossary system
 
@@ -117,9 +113,8 @@ This implementation completes the transition of the LuaMade StarMade mod from a 
   - Command reference
   - Script writing guide
   - Example usage
-- **Modular Markdown Documentation**: Split into topic-based files
-  - overview.md, filesystem.md, terminal.md, networking.md
-  - console.md, usage.md, enhancements.md, comparison.md, development.md
+- **Modular Markdown Documentation**: Organized by category folders
+  - `general/`, `runtime-api/`, `game-systems/`, `block-wrappers/`, `entity-wrappers/`
   - Loaded dynamically by GlossaryManager for in-game display
 
 **Example Scripts Created:**

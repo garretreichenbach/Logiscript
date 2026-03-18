@@ -66,8 +66,16 @@ public final class DocsRepository {
 		switch(topic.getSectionKey()) {
 			case "general":
 				return 0;
-			case "functions":
+			case "runtime-api":
 				return 1;
+			case "game-systems":
+				return 2;
+			case "block-wrappers":
+				return 3;
+			case "entity-wrappers":
+				return 4;
+			case "functions":
+				return 5;
 			default:
 				return 10;
 		}

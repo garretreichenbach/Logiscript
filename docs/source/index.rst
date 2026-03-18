@@ -13,6 +13,14 @@ Description
 ===================================
 LuaMade is a StarMade mod that adds scriptable Lua Computers to the game. They can be programmed, auto-run, fetch scripts from the web and more.
 
+Documentation Categories
+-----------------------------------
+- ``docs/markdown/general/``
+- ``docs/markdown/runtime-api/``
+- ``docs/markdown/game-systems/``
+- ``docs/markdown/block-wrappers/``
+- ``docs/markdown/entity-wrappers/``
+
 Authors
 -----------------------------------
 - TheDerpGamer (TheDerpGamer#0027)

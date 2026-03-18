@@ -40,7 +40,7 @@ public class Block extends LuaMadeUserdata {
 
         if("display".equals(kind) || "displaymodule".equals(kind) || "display_module".equals(kind)) {
             if(piece.getType() == ElementKeyMap.TEXT_BOX) {
-                return new DisplayModuleBlock(piece);
+                return new DisplayModule(piece);
             }
             return null;
         }
@@ -53,7 +53,7 @@ public class Block extends LuaMadeUserdata {
         }
 
         if(piece.getType() == ElementKeyMap.TEXT_BOX) {
-            return new DisplayModuleBlock(piece);
+            return new DisplayModule(piece);
         }
 
         if(hasInventoryAt(piece)) {
