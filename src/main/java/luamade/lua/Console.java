@@ -8,7 +8,10 @@ import luamade.system.module.ComputerModule;
 import org.luaj.vm2.Varargs;
 import org.schema.game.common.data.SegmentPiece;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 public class Console extends LuaMadeUserdata {
 
@@ -110,6 +113,7 @@ public class Console extends LuaMadeUserdata {
 		private final int[] codePoints;
 		private final int[] foregroundColors;
 		private final int[] backgroundColors;
+		private final List<GraphicsLayer> layers;
 		public GraphicsFrame(
 				String text,
 				int width,
@@ -120,7 +124,8 @@ public class Console extends LuaMadeUserdata {
 				RenderBackend backend,
 				int[] codePoints,
 				int[] foregroundColors,
-				int[] backgroundColors
+				int[] backgroundColors,
+				List<GraphicsLayer> layers
 		) {
 			this.text = text == null ? "" : text;
 			this.width = width;
@@ -132,6 +137,13 @@ public class Console extends LuaMadeUserdata {
 			this.codePoints = codePoints == null ? new int[0] : Arrays.copyOf(codePoints, codePoints.length);
 			this.foregroundColors = foregroundColors == null ? new int[0] : Arrays.copyOf(foregroundColors, foregroundColors.length);
 			this.backgroundColors = backgroundColors == null ? new int[0] : Arrays.copyOf(backgroundColors, backgroundColors.length);
+			if(layers == null || layers.isEmpty()) {
+				List<GraphicsLayer> fallbackLayers = new ArrayList<GraphicsLayer>(1);
+				fallbackLayers.add(new GraphicsLayer(this.text, cellScaleX, cellScaleY, new int[0]));
+				this.layers = Collections.unmodifiableList(fallbackLayers);
+			} else {
+				this.layers = Collections.unmodifiableList(new ArrayList<GraphicsLayer>(layers));
+			}
 		}
 
 		public RenderBackend getBackend() {
@@ -172,6 +184,40 @@ public class Console extends LuaMadeUserdata {
 
 		public int[] getBackgroundColors() {
 			return Arrays.copyOf(backgroundColors, backgroundColors.length);
+		}
+
+		public List<GraphicsLayer> getLayers() {
+			return layers;
+		}
+
+		public static final class GraphicsLayer {
+			private final String text;
+			private final float cellScaleX;
+			private final float cellScaleY;
+			private final int[] codePoints;
+
+			public GraphicsLayer(String text, float cellScaleX, float cellScaleY, int[] codePoints) {
+				this.text = text == null ? "" : text;
+				this.cellScaleX = cellScaleX;
+				this.cellScaleY = cellScaleY;
+				this.codePoints = codePoints == null ? new int[0] : Arrays.copyOf(codePoints, codePoints.length);
+			}
+
+			public String getText() {
+				return text;
+			}
+
+			public float getCellScaleX() {
+				return cellScaleX;
+			}
+
+			public float getCellScaleY() {
+				return cellScaleY;
+			}
+
+			public int[] getCodePoints() {
+				return Arrays.copyOf(codePoints, codePoints.length);
+			}
 		}
 
 		public enum RenderBackend {

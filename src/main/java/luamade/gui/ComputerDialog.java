@@ -20,6 +20,8 @@ import org.schema.schine.input.InputState;
 
 import javax.vecmath.Vector3f;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class ComputerDialog extends PlayerInput {
@@ -152,7 +154,8 @@ public class ComputerDialog extends PlayerInput {
 		private boolean focusConsoleOnOpen = true;
 		private ComputerModule.ComputerMode renderedMode = ComputerModule.ComputerMode.OFF;
 		private GUITextOverlay editorHintsOverlay;
-		private GUITextOverlay graphicsFrameOverlay;
+		private final List<GUITextOverlay> graphicsFrameOverlays = new ArrayList<GUITextOverlay>();
+		private final List<CanvasOverlayState> activeCanvasOverlayStates = new ArrayList<CanvasOverlayState>();
 		private GUITextButton docsButton;
 		private String lastEditorHintText = "";
 		private long lastGraphicsFrameRevision = -1L;
@@ -596,43 +599,64 @@ public class ComputerDialog extends PlayerInput {
 
 		public int[] mapMouseToCanvasCell(int mouseX, int mouseY) {
 			Console.GraphicsFrame frame = getActiveCanvasFrame();
-			if(frame == null || graphicsFrameOverlay == null) {
+			if(frame == null || activeCanvasOverlayStates.isEmpty()) {
 				return null;
 			}
 
-			float originX = graphicsFrameOverlay.getPos().x;
-			float originY = graphicsFrameOverlay.getPos().y;
 			int baseCharWidth = Math.max(1, FontLibrary.getMetrics(FontLibrary.FontSize.MEDIUM.getFont()).stringWidth("W"));
 			int baseCharHeight = Math.max(1, FontLibrary.FontSize.MEDIUM.getFont().getLineHeight());
-			float cellWidthPx = Math.max(1.0F, baseCharWidth * frame.getCellScaleX());
-			float cellHeightPx = Math.max(1.0F, baseCharHeight * frame.getCellScaleY());
 
-			float localX = mouseX - originX;
-			float localY = mouseY - originY;
-			if(localX < 0 || localY < 0) {
-				return null;
+			for(int layerIndex = activeCanvasOverlayStates.size() - 1; layerIndex >= 0; layerIndex--) {
+				CanvasOverlayState layerState = activeCanvasOverlayStates.get(layerIndex);
+				float cellWidthPx = Math.max(1.0F, baseCharWidth * layerState.scaleX);
+				float cellHeightPx = Math.max(1.0F, baseCharHeight * layerState.scaleY);
+				float localX = mouseX - layerState.originX;
+				float localY = mouseY - layerState.originY;
+				if(localX < 0 || localY < 0) {
+					continue;
+				}
+
+				int cellX = (int) Math.floor(localX / cellWidthPx) + 1;
+				int cellY = (int) Math.floor(localY / cellHeightPx) + 1;
+				if(cellX < 1 || cellY < 1 || cellX > frame.getWidth() || cellY > frame.getHeight()) {
+					continue;
+				}
+
+				if(layerState.isOpaqueAt(frame.getWidth(), cellX, cellY)) {
+					return new int[]{cellX, cellY};
+				}
 			}
 
-			int cellX = (int) Math.floor(localX / cellWidthPx) + 1;
-			int cellY = (int) Math.floor(localY / cellHeightPx) + 1;
-			if(cellX < 1 || cellY < 1 || cellX > frame.getWidth() || cellY > frame.getHeight()) {
-				return null;
-			}
-
-			return new int[]{cellX, cellY};
+			return null;
 		}
 
 		private void hideGraphicsOverlay() {
-			if(graphicsFrameOverlay == null) {
-				return;
+			for(GUITextOverlay overlay : graphicsFrameOverlays) {
+				overlay.setTextSimple("");
+				overlay.setScale(new Vector3f(1.0F, 1.0F, 1.0F));
 			}
-			graphicsFrameOverlay.setTextSimple("");
-			graphicsFrameOverlay.setScale(new Vector3f(1.0F, 1.0F, 1.0F));
+			activeCanvasOverlayStates.clear();
 			lastGraphicsFrameRevision = -1L;
 		}
 
+		private void ensureGraphicsOverlayCount(int requiredCount) {
+			if(requiredCount <= 0 || background == null) {
+				return;
+			}
+
+			GUIDialogWindow window = (GUIDialogWindow) background;
+			while(graphicsFrameOverlays.size() < requiredCount) {
+				GUITextOverlay overlay = new GUITextOverlay(830, TEXT_BOX_HEIGHT, FontLibrary.FontSize.MEDIUM, getState());
+				overlay.onInit();
+				overlay.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+				overlay.setTextSimple("");
+				window.attachSuper(overlay);
+				graphicsFrameOverlays.add(overlay);
+			}
+		}
+
 		private boolean updateGraphicsFrameOverlay() {
-			if(isFileEditMode() || graphicsFrameOverlay == null || computerModule == null || computerModule.getConsole() == null) {
+			if(isFileEditMode() || computerModule == null || computerModule.getConsole() == null) {
 				hideGraphicsOverlay();
 				return false;
 			}
@@ -643,18 +667,75 @@ public class ComputerDialog extends PlayerInput {
 				return false;
 			}
 
+			List<Console.GraphicsFrame.GraphicsLayer> layers = frame.getLayers();
+			if(layers == null || layers.isEmpty()) {
+				hideGraphicsOverlay();
+				return false;
+			}
+			ensureGraphicsOverlayCount(layers.size());
+
 			long revision = computerModule.getConsole().getGraphicsFrameRevision();
 			if(revision != lastGraphicsFrameRevision) {
-				String frameText = frame.isAnsiEnabled() ? stripAnsi(frame.getText()) : frame.getText();
-				graphicsFrameOverlay.setTextSimple(frameText == null ? "" : frameText);
+				activeCanvasOverlayStates.clear();
+				for(int i = 0; i < layers.size(); i++) {
+					Console.GraphicsFrame.GraphicsLayer layer = layers.get(i);
+					String layerText = layer.getText();
+					if(frame.isAnsiEnabled()) {
+						layerText = stripAnsi(layerText);
+					}
+					GUITextOverlay overlay = graphicsFrameOverlays.get(i);
+					overlay.setTextSimple(layerText == null ? "" : layerText);
+					activeCanvasOverlayStates.add(new CanvasOverlayState(
+							layer.getCellScaleX(),
+							layer.getCellScaleY(),
+							layer.getCodePoints()
+					));
+				}
+				for(int i = layers.size(); i < graphicsFrameOverlays.size(); i++) {
+					graphicsFrameOverlays.get(i).setTextSimple("");
+					graphicsFrameOverlays.get(i).setScale(new Vector3f(1.0F, 1.0F, 1.0F));
+				}
 				lastGraphicsFrameRevision = revision;
 			}
 
 			if(consolePane != null) {
-				graphicsFrameOverlay.setPos(consolePane.getPos().x + CANVAS_PADDING_X, consolePane.getPos().y + CANVAS_PADDING_Y, 0.0F);
+				float originX = consolePane.getPos().x + CANVAS_PADDING_X;
+				float originY = consolePane.getPos().y + CANVAS_PADDING_Y;
+				for(int i = 0; i < activeCanvasOverlayStates.size(); i++) {
+					CanvasOverlayState layerState = activeCanvasOverlayStates.get(i);
+					layerState.originX = originX;
+					layerState.originY = originY;
+					GUITextOverlay overlay = graphicsFrameOverlays.get(i);
+					overlay.setPos(originX, originY, 0.0F);
+					overlay.setScale(new Vector3f(layerState.scaleX, layerState.scaleY, 1.0F));
+				}
 			}
-			graphicsFrameOverlay.setScale(new Vector3f(frame.getCellScaleX(), frame.getCellScaleY(), 1.0F));
 			return true;
+		}
+
+		private static final class CanvasOverlayState {
+			private final float scaleX;
+			private final float scaleY;
+			private final int[] codePoints;
+			private float originX;
+			private float originY;
+
+			private CanvasOverlayState(float scaleX, float scaleY, int[] codePoints) {
+				this.scaleX = Math.max(0.1F, scaleX);
+				this.scaleY = Math.max(0.1F, scaleY);
+				this.codePoints = codePoints == null ? new int[0] : codePoints;
+			}
+
+			private boolean isOpaqueAt(int frameWidth, int cellX, int cellY) {
+				if(frameWidth <= 0 || cellX <= 0 || cellY <= 0) {
+					return false;
+				}
+				int index = (cellY - 1) * frameWidth + (cellX - 1);
+				if(index < 0 || index >= codePoints.length) {
+					return false;
+				}
+				return codePoints[index] != ' ';
+			}
 		}
 
 		@Override
@@ -839,11 +920,7 @@ public class ComputerDialog extends PlayerInput {
 			editorHintsOverlay.setTextSimple("");
 			((GUIDialogWindow) background).attachSuper(editorHintsOverlay);
 
-			graphicsFrameOverlay = new GUITextOverlay(830, TEXT_BOX_HEIGHT, FontLibrary.FontSize.MEDIUM, getState());
-			graphicsFrameOverlay.onInit();
-			graphicsFrameOverlay.setColor(1.0F, 1.0F, 1.0F, 1.0F);
-			graphicsFrameOverlay.setTextSimple("");
-			((GUIDialogWindow) background).attachSuper(graphicsFrameOverlay);
+			ensureGraphicsOverlayCount(1);
 
 			docsButton = new GUITextButton(getState(), 90, 20, GUITextButton.ColorPalette.OK, "DOCS", getCallback());
 			docsButton.setUserPointer("DOCS");

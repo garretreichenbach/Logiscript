@@ -5,8 +5,12 @@ import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.manager.ConfigManager;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Text-based graphics API for terminal scripts.
@@ -21,6 +25,7 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 	private static final String ANSI_RESET = "\u001B[0m";
 	private static final float MIN_CELL_SCALE = 0.5F;
 	private static final float MAX_CELL_SCALE = 4.0F;
+	private static final int MAX_CANVAS_LAYERS = 64;
 	private Backend backend = Backend.CANVAS;
 
 	private final Console console;
@@ -33,6 +38,8 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 	private int[][] cells;
 	private int[][] fgColors;
 	private int[][] bgColors;
+	private float[][] cellScaleXMap;
+	private float[][] cellScaleYMap;
 	private float cellScaleX = 1.0F;
 	private float cellScaleY = 1.0F;
 
@@ -50,7 +57,8 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 					Console.GraphicsFrame.RenderBackend.CANVAS,
 					flattenCodePoints(),
 					flattenColors(fgColors),
-					flattenColors(bgColors)
+					flattenColors(bgColors),
+					createCanvasLayers()
 			));
 			return;
 		}
@@ -64,7 +72,9 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 		cells = new int[height][width];
 		fgColors = new int[height][width];
 		bgColors = new int[height][width];
-		clearInternal(fillCodePoint, ANSI_DEFAULT, ANSI_DEFAULT);
+		cellScaleXMap = new float[height][width];
+		cellScaleYMap = new float[height][width];
+		clearInternal(fillCodePoint, ANSI_DEFAULT, ANSI_DEFAULT, cellScaleX, cellScaleY);
 	}
 
 	@LuaMadeCallable
@@ -122,10 +132,14 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 		int[][] next = new int[clampedHeight][clampedWidth];
 		int[][] nextFg = new int[clampedHeight][clampedWidth];
 		int[][] nextBg = new int[clampedHeight][clampedWidth];
+		float[][] nextScaleX = new float[clampedHeight][clampedWidth];
+		float[][] nextScaleY = new float[clampedHeight][clampedWidth];
 		for(int y = 0; y < clampedHeight; y++) {
 			Arrays.fill(next[y], fillCodePoint);
 			Arrays.fill(nextFg[y], ANSI_DEFAULT);
 			Arrays.fill(nextBg[y], ANSI_DEFAULT);
+			Arrays.fill(nextScaleX[y], cellScaleX);
+			Arrays.fill(nextScaleY[y], cellScaleY);
 		}
 
 		int copyHeight = Math.min(height, clampedHeight);
@@ -134,6 +148,8 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 			System.arraycopy(cells[y], 0, next[y], 0, copyWidth);
 			System.arraycopy(fgColors[y], 0, nextFg[y], 0, copyWidth);
 			System.arraycopy(bgColors[y], 0, nextBg[y], 0, copyWidth);
+			System.arraycopy(cellScaleXMap[y], 0, nextScaleX[y], 0, copyWidth);
+			System.arraycopy(cellScaleYMap[y], 0, nextScaleY[y], 0, copyWidth);
 		}
 
 		width = clampedWidth;
@@ -141,33 +157,62 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 		cells = next;
 		fgColors = nextFg;
 		bgColors = nextBg;
+		cellScaleXMap = nextScaleX;
+		cellScaleYMap = nextScaleY;
 	}
 
 	@LuaMadeCallable
 	public void clear() {
-		clearInternal(fillCodePoint, ANSI_DEFAULT, ANSI_DEFAULT);
+		clearInternal(fillCodePoint, ANSI_DEFAULT, ANSI_DEFAULT, cellScaleX, cellScaleY);
 	}
 
 	@LuaMadeCallable
 	public void clear(String fill) {
 		fillCodePoint = toCodePoint(fill);
-		clearInternal(fillCodePoint, ANSI_DEFAULT, ANSI_DEFAULT);
+		clearInternal(fillCodePoint, ANSI_DEFAULT, ANSI_DEFAULT, cellScaleX, cellScaleY);
 	}
 
 	@LuaMadeCallable
 	public void clear(String fill, String foreground, String background) {
 		fillCodePoint = toCodePoint(fill);
-		clearInternal(fillCodePoint, parseColor(foreground), parseColor(background));
+		clearInternal(fillCodePoint, parseColor(foreground), parseColor(background), cellScaleX, cellScaleY);
 	}
 
 	@LuaMadeCallable
 	public void pixel(int x, int y, String glyph) {
-		setCell(x - 1, y - 1, toCodePoint(glyph), brushFg, brushBg);
+		setCell(x - 1, y - 1, toCodePoint(glyph), brushFg, brushBg, cellScaleX, cellScaleY);
 	}
 
 	@LuaMadeCallable
 	public void pixel(int x, int y, String glyph, String foreground, String background) {
-		setCell(x - 1, y - 1, toCodePoint(glyph), parseColor(foreground), parseColor(background));
+		setCell(x - 1, y - 1, toCodePoint(glyph), parseColor(foreground), parseColor(background), cellScaleX, cellScaleY);
+	}
+
+	@LuaMadeCallable
+	public void setPixelScale(int x, int y, double scale) {
+		setPixelScale(x, y, scale, scale);
+	}
+
+	@LuaMadeCallable
+	public void setPixelScale(int x, int y, double scaleX, double scaleY) {
+		int px = x - 1;
+		int py = y - 1;
+		if(px < 0 || py < 0 || px >= width || py >= height) {
+			return;
+		}
+
+		cellScaleXMap[py][px] = clampScale((float) scaleX);
+		cellScaleYMap[py][px] = clampScale((float) scaleY);
+	}
+
+	@LuaMadeCallable
+	public double[] getPixelScale(int x, int y) {
+		int px = x - 1;
+		int py = y - 1;
+		if(px < 0 || py < 0 || px >= width || py >= height) {
+			return new double[]{cellScaleX, cellScaleY};
+		}
+		return new double[]{cellScaleXMap[py][px], cellScaleYMap[py][px]};
 	}
 
 	@LuaMadeCallable
@@ -394,6 +439,10 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 	public void setCellScale(double scaleX, double scaleY) {
 		cellScaleX = clampScale((float) scaleX);
 		cellScaleY = clampScale((float) scaleY);
+		for(int y = 0; y < height; y++) {
+			Arrays.fill(cellScaleXMap[y], cellScaleX);
+			Arrays.fill(cellScaleYMap[y], cellScaleY);
+		}
 	}
 
 	@LuaMadeCallable
@@ -434,6 +483,73 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 		return flattened;
 	}
 
+	private List<Console.GraphicsFrame.GraphicsLayer> createCanvasLayers() {
+		Map<ScaleKey, Integer> layerIndices = new LinkedHashMap<ScaleKey, Integer>();
+		List<int[]> layerBuffers = new ArrayList<int[]>();
+		List<ScaleKey> layerKeys = new ArrayList<ScaleKey>();
+
+		ScaleKey fallbackKey = new ScaleKey(cellScaleX, cellScaleY);
+		for(int y = 0; y < height; y++) {
+			for(int x = 0; x < width; x++) {
+				ScaleKey key = new ScaleKey(cellScaleXMap[y][x], cellScaleYMap[y][x]);
+				Integer layerIndex = layerIndices.get(key);
+				if(layerIndex == null) {
+					if(layerIndices.size() >= MAX_CANVAS_LAYERS) {
+						layerIndex = layerIndices.get(fallbackKey);
+						if(layerIndex == null) {
+							layerIndex = 0;
+							layerIndices.put(fallbackKey, layerIndex);
+							layerKeys.add(fallbackKey);
+							layerBuffers.add(createEmptyLayerBuffer());
+						}
+					} else {
+						layerIndex = layerBuffers.size();
+						layerIndices.put(key, layerIndex);
+						layerKeys.add(key);
+						layerBuffers.add(createEmptyLayerBuffer());
+					}
+				}
+
+				int[] layer = layerBuffers.get(layerIndex);
+				layer[(y * width) + x] = cells[y][x];
+			}
+		}
+
+		if(layerBuffers.isEmpty()) {
+			return Arrays.asList(new Console.GraphicsFrame.GraphicsLayer(frameWithoutAnsi(), cellScaleX, cellScaleY, flattenCodePoints()));
+		}
+
+		List<Console.GraphicsFrame.GraphicsLayer> layers = new ArrayList<Console.GraphicsFrame.GraphicsLayer>(layerBuffers.size());
+		for(int i = 0; i < layerBuffers.size(); i++) {
+			ScaleKey key = layerKeys.get(i);
+			int[] layerCodePoints = layerBuffers.get(i);
+			String layerText = buildLayerText(layerCodePoints);
+			layers.add(new Console.GraphicsFrame.GraphicsLayer(layerText, key.scaleX, key.scaleY, layerCodePoints));
+		}
+		return layers;
+	}
+
+	private int[] createEmptyLayerBuffer() {
+		int[] buffer = new int[width * height];
+		Arrays.fill(buffer, ' ');
+		return buffer;
+	}
+
+	private String buildLayerText(int[] codePointBuffer) {
+		StringBuilder builder = new StringBuilder((width + 1) * height);
+		int idx = 0;
+		for(int y = 0; y < height; y++) {
+			for(int x = 0; x < width; x++) {
+				builder.appendCodePoint(codePointBuffer[idx]);
+				idx++;
+			}
+			if(y < height - 1) {
+				builder.append('\n');
+			}
+		}
+		return builder.toString();
+	}
+
 	private int[] flattenColors(int[][] colors) {
 		int[] flattened = new int[width * height];
 		int idx = 0;
@@ -457,21 +573,29 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 		setCell(cx + x, cy - y, cp, fg, bg);
 	}
 
-	private void clearInternal(int cp, int fg, int bg) {
+	private void clearInternal(int cp, int fg, int bg, float scaleX, float scaleY) {
 		for(int y = 0; y < height; y++) {
 			Arrays.fill(cells[y], cp);
 			Arrays.fill(fgColors[y], fg);
 			Arrays.fill(bgColors[y], bg);
+			Arrays.fill(cellScaleXMap[y], scaleX);
+			Arrays.fill(cellScaleYMap[y], scaleY);
 		}
 	}
 
 	private void setCell(int x, int y, int codePoint, int fg, int bg) {
+		setCell(x, y, codePoint, fg, bg, cellScaleX, cellScaleY);
+	}
+
+	private void setCell(int x, int y, int codePoint, int fg, int bg, float scaleX, float scaleY) {
 		if(x < 0 || y < 0 || x >= width || y >= height) {
 			return;
 		}
 		cells[y][x] = codePoint;
 		fgColors[y][x] = fg;
 		bgColors[y][x] = bg;
+		cellScaleXMap[y][x] = scaleX;
+		cellScaleYMap[y][x] = scaleY;
 	}
 
 	private int toCodePoint(String glyph) {
@@ -483,6 +607,36 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 
 	private int clamp(int value, int min, int max) {
 		return Math.max(min, Math.min(max, value));
+	}
+
+	private static final class ScaleKey {
+		private final float scaleX;
+		private final float scaleY;
+
+		private ScaleKey(float scaleX, float scaleY) {
+			this.scaleX = scaleX;
+			this.scaleY = scaleY;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if(this == obj) {
+				return true;
+			}
+			if(!(obj instanceof ScaleKey)) {
+				return false;
+			}
+			ScaleKey other = (ScaleKey) obj;
+			return Float.floatToIntBits(scaleX) == Float.floatToIntBits(other.scaleX)
+					&& Float.floatToIntBits(scaleY) == Float.floatToIntBits(other.scaleY);
+		}
+
+		@Override
+		public int hashCode() {
+			int result = Float.floatToIntBits(scaleX);
+			result = 31 * result + Float.floatToIntBits(scaleY);
+			return result;
+		}
 	}
 
 	private enum Backend {

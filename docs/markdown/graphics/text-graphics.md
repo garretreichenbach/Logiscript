@@ -95,6 +95,15 @@ Returns the full canvas as a single newline-separated string.
 - `getCellScale()`
   Returns `{ scaleX, scaleY }`.
 
+- `setPixelScale(x, y, scale)`
+  Sets both X and Y scale for a single pixel (cell). This cell will be rendered via an overlay layer matching that scale.
+
+- `setPixelScale(x, y, scaleX, scaleY)`
+  Sets independent X/Y scale for a single pixel (cell).
+
+- `getPixelScale(x, y)`
+  Returns `{ scaleX, scaleY }` for a single pixel.
+
 ## Example
 
 ```lua
@@ -125,7 +134,9 @@ gfx.render()
 
 ## Notes
 
-- Default backend is `canvas`, which draws on a dedicated overlay and supports `setCellScale`.
+- Default backend is `canvas`, which draws on one or more overlay layers.
+- Pixels with different scale values are grouped into separate overlay layers automatically.
+- Use `setPixelScale(...)` to build mixed-density text UIs (fine text + chunky icon pixels in the same frame).
 - Server/client config guard: when `gfx_canvas_backend_enabled=false`, canvas requests are forced to terminal rendering.
 - Use `gfx.setBackend("terminal")` for legacy behavior that writes into terminal text contents.
 - In `terminal` backend, `gfx.render()` replaces the terminal text buffer. If you want to keep a static screen, disable
