@@ -517,6 +517,7 @@ public class Terminal extends LuaMadeUserdata {
 		globals.set("terminal", this);
 		globals.set("net", module.getNetworkInterface());
 		globals.set("peripheral", new PeripheralsApi(module));
+		globals.set("gfx", new TextGraphicsApi(console));
 		globals.set("shell", createShellCompatibilityApi());
 
 		LuaTable utilLibrary = loadBuiltinLibrary(globals, "scripts/lib/util.lua", "util");
