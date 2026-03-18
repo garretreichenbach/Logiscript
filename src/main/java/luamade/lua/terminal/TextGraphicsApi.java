@@ -3,6 +3,7 @@ package luamade.lua.terminal;
 import luamade.lua.Console;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import luamade.manager.ConfigManager;
 
 import java.util.Arrays;
 import java.util.Locale;
@@ -37,8 +38,20 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public void render() {
-		if(backend == Backend.CANVAS) {
-			console.setGraphicsFrame(new Console.GraphicsFrame(frame(), width, height, cellScaleX, cellScaleY, ansiEnabled));
+		Backend activeBackend = resolveActiveBackend();
+		if(activeBackend == Backend.CANVAS) {
+			console.setGraphicsFrame(new Console.GraphicsFrame(
+					frame(),
+					width,
+					height,
+					cellScaleX,
+					cellScaleY,
+					ansiEnabled,
+					Console.GraphicsFrame.RenderBackend.CANVAS,
+					flattenCodePoints(),
+					flattenColors(fgColors),
+					flattenColors(bgColors)
+			));
 			return;
 		}
 
@@ -358,7 +371,8 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public String getBackend() {
-		return backend == Backend.CANVAS ? "canvas" : "terminal";
+		Backend activeBackend = resolveActiveBackend();
+		return activeBackend == Backend.CANVAS ? "canvas" : "terminal";
 	}
 
 	@LuaMadeCallable
@@ -399,6 +413,37 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 			return 1.0F;
 		}
 		return Math.max(MIN_CELL_SCALE, Math.min(MAX_CELL_SCALE, value));
+	}
+
+	private Backend resolveActiveBackend() {
+		if(backend == Backend.CANVAS && !ConfigManager.isGfxCanvasBackendEnabled()) {
+			return Backend.TERMINAL;
+		}
+		return backend;
+	}
+
+	private int[] flattenCodePoints() {
+		int[] flattened = new int[width * height];
+		int idx = 0;
+		for(int y = 0; y < height; y++) {
+			for(int x = 0; x < width; x++) {
+				flattened[idx] = cells[y][x];
+				idx++;
+			}
+		}
+		return flattened;
+	}
+
+	private int[] flattenColors(int[][] colors) {
+		int[] flattened = new int[width * height];
+		int idx = 0;
+		for(int y = 0; y < height; y++) {
+			for(int x = 0; x < width; x++) {
+				flattened[idx] = colors[y][x];
+				idx++;
+			}
+		}
+		return flattened;
 	}
 
 	private void plotCirclePoints(int cx, int cy, int x, int y, int cp, int fg, int bg) {

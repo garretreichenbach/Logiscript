@@ -12,11 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 
 public final class ConfigManager {
 
@@ -34,6 +30,7 @@ public final class ConfigManager {
 	private static SimpleConfigBool webFetchTrustedDomainsOnly;
 	private static SimpleConfigInt webFetchTimeoutMs;
 	private static SimpleConfigInt webFetchMaxBytes;
+	private static SimpleConfigBool gfxCanvasBackendEnabled;
 	private static final List<String> DEFAULT_TRUSTED_WEB_DOMAINS = Arrays.asList(
 		"raw.githubusercontent.com",
 		"gist.githubusercontent.com",
@@ -61,6 +58,7 @@ public final class ConfigManager {
 		webFetchTrustedDomainsOnly = new SimpleConfigBool(config, "web_fetch_trusted_domains_only", true, "If true, web fetch is limited to a built-in trusted domain allowlist.");
 		webFetchTimeoutMs = new SimpleConfigInt(config, "web_fetch_timeout_ms", 4000, "Web fetch connect/read timeout in milliseconds.");
 		webFetchMaxBytes = new SimpleConfigInt(config, "web_fetch_max_bytes", 131072, "Maximum response payload size (bytes) accepted by web fetch.");
+		gfxCanvasBackendEnabled = new SimpleConfigBool(config, "gfx_canvas_backend_enabled", false, "If true, enables the gfx canvas overlay backend. If false, gfx renders through terminal text mode.");
 
 		config.readWriteFields();
 		ensureTrustedDomainsFileExists(instance);
@@ -124,6 +122,10 @@ public final class ConfigManager {
 
 	public static int getWebFetchMaxBytes() {
 		return clampInt(intOrDefault(webFetchMaxBytes, 131072), 1024, 1048576);
+	}
+
+	public static boolean isGfxCanvasBackendEnabled() {
+		return boolOrDefault(gfxCanvasBackendEnabled, false);
 	}
 
 	public static Set<String> getTrustedWebDomains() {

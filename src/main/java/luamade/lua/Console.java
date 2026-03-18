@@ -8,6 +8,8 @@ import luamade.system.module.ComputerModule;
 import org.luaj.vm2.Varargs;
 import org.schema.game.common.data.SegmentPiece;
 
+import java.util.Arrays;
+
 public class Console extends LuaMadeUserdata {
 
 	private final ComputerModule module;
@@ -97,20 +99,43 @@ public class Console extends LuaMadeUserdata {
 	}
 
 	public static class GraphicsFrame {
+		private final RenderBackend backend;
+
 		private final String text;
 		private final int width;
 		private final int height;
 		private final float cellScaleX;
 		private final float cellScaleY;
 		private final boolean ansiEnabled;
-
-		public GraphicsFrame(String text, int width, int height, float cellScaleX, float cellScaleY, boolean ansiEnabled) {
+		private final int[] codePoints;
+		private final int[] foregroundColors;
+		private final int[] backgroundColors;
+		public GraphicsFrame(
+				String text,
+				int width,
+				int height,
+				float cellScaleX,
+				float cellScaleY,
+				boolean ansiEnabled,
+				RenderBackend backend,
+				int[] codePoints,
+				int[] foregroundColors,
+				int[] backgroundColors
+		) {
 			this.text = text == null ? "" : text;
 			this.width = width;
 			this.height = height;
 			this.cellScaleX = cellScaleX;
 			this.cellScaleY = cellScaleY;
 			this.ansiEnabled = ansiEnabled;
+			this.backend = backend == null ? RenderBackend.TERMINAL : backend;
+			this.codePoints = codePoints == null ? new int[0] : Arrays.copyOf(codePoints, codePoints.length);
+			this.foregroundColors = foregroundColors == null ? new int[0] : Arrays.copyOf(foregroundColors, foregroundColors.length);
+			this.backgroundColors = backgroundColors == null ? new int[0] : Arrays.copyOf(backgroundColors, backgroundColors.length);
+		}
+
+		public RenderBackend getBackend() {
+			return backend;
 		}
 
 		public String getText() {
@@ -135,6 +160,23 @@ public class Console extends LuaMadeUserdata {
 
 		public boolean isAnsiEnabled() {
 			return ansiEnabled;
+		}
+
+		public int[] getCodePoints() {
+			return Arrays.copyOf(codePoints, codePoints.length);
+		}
+
+		public int[] getForegroundColors() {
+			return Arrays.copyOf(foregroundColors, foregroundColors.length);
+		}
+
+		public int[] getBackgroundColors() {
+			return Arrays.copyOf(backgroundColors, backgroundColors.length);
+		}
+
+		public enum RenderBackend {
+			TERMINAL,
+			CANVAS
 		}
 	}
 
