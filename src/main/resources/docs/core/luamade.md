@@ -22,7 +22,7 @@ info = block.getInfo()
 print("Running on:", info.getName(), "id=", info.getId())
 ```
 
-3. Save and run:
+1. Save and run:
 
 ```text
 run /home/hello.lua

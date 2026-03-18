@@ -12,11 +12,13 @@ import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.Varargs;
 import org.luaj.vm2.compiler.LuaC;
 import org.luaj.vm2.lib.BaseLib;
 import org.luaj.vm2.lib.Bit32Lib;
 import org.luaj.vm2.lib.StringLib;
 import org.luaj.vm2.lib.TableLib;
+import org.luaj.vm2.lib.VarArgFunction;
 import org.luaj.vm2.lib.jse.JseMathLib;
 
 import java.nio.charset.StandardCharsets;
@@ -185,7 +187,11 @@ public class Terminal extends LuaMadeUserdata {
 			chunk.call();
 			return true;
 		} catch(LuaError error) {
-			console.print(valueOf("Lua error: " + error.getMessage()));
+			String message = error.getMessage();
+			if(message == null || message.trim().isEmpty()) {
+				message = error.toString();
+			}
+			console.print(valueOf("Lua error in " + scriptPath + ": " + message));
 			return false;
 		} catch(Exception e) {
 			console.print(valueOf("Error executing script: " + e.getMessage()));
@@ -509,6 +515,7 @@ public class Terminal extends LuaMadeUserdata {
 		globals.set("term", this);
 		globals.set("net", module.getNetworkInterface());
 		globals.set("peripheral", new PeripheralsApi(module));
+		globals.set("shell", createShellCompatibilityApi());
 
 		LuaTable utilLibrary = loadBuiltinLibrary(globals, "scripts/lib/util.lua", "util");
 		LuaTable vectorLibrary = loadBuiltinLibrary(globals, "scripts/lib/vector.lua", "vector");
@@ -526,6 +533,42 @@ public class Terminal extends LuaMadeUserdata {
 		}
 		
 		return globals;
+	}
+
+	private LuaTable createShellCompatibilityApi() {
+		LuaTable shell = new LuaTable();
+		shell.set("run", new VarArgFunction() {
+			@Override
+			public Varargs invoke(Varargs vargs) {
+				int startIndex = vargs.narg() > 0 && vargs.arg1().istable() ? 2 : 1;
+				if(vargs.narg() < startIndex || vargs.arg(startIndex).isnil()) {
+					return FALSE;
+				}
+
+				String commandOrPath = vargs.arg(startIndex).tojstring();
+				String resolvedPath = resolveScriptPath(commandOrPath);
+				if(resolvedPath == null) {
+					console.print(valueOf("Error: shell.run could not resolve script: " + commandOrPath));
+					return FALSE;
+				}
+
+				List<String> scriptArgs = new ArrayList<>();
+				for(int i = startIndex + 1; i <= vargs.narg(); i++) {
+					scriptArgs.add(vargs.arg(i).tojstring());
+				}
+
+				String script = fileSystem.read(resolvedPath);
+				if(script == null) {
+					console.print(valueOf("Error: Could not read script file: " + resolvedPath));
+					return FALSE;
+				}
+
+				boolean success = executeScript(resolvedPath, script, scriptArgs);
+				return success ? TRUE : FALSE;
+			}
+		});
+
+		return shell;
 	}
 
 	private LuaTable loadBuiltinLibrary(Globals globals, String resourcePath, String globalName) {

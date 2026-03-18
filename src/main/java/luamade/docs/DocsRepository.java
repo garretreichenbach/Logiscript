@@ -55,7 +55,11 @@ public final class DocsRepository {
 				LuaMade.getInstance().logException("Error loading documentation file: " + file, exception);
 			}
 		}
-		topics.sort(Comparator.comparingInt(DocsRepository::getSectionOrder).thenComparing(DocTopic::getSectionLabel).thenComparingInt(DocsRepository::getIndexPriority).thenComparing(DocTopic::getTitle));
+		topics.sort(Comparator.comparingInt(DocsRepository::getSectionOrder)
+			.thenComparing(DocTopic::getSectionLabel)
+			.thenComparingInt(DocsRepository::getIndexPriority)
+			.thenComparingInt(DocsRepository::getTopicPriority)
+			.thenComparing(DocTopic::getTitle));
 		return topics;
 	}
 
@@ -65,6 +69,14 @@ public final class DocsRepository {
 		}
 		String resourcePath = topic.getResourcePath();
 		return resourcePath.toLowerCase(Locale.ROOT).endsWith("/index.md") ? 0 : 1;
+	}
+
+	private static int getTopicPriority(DocTopic topic) {
+		if(topic == null || topic.getResourcePath() == null) {
+			return 1;
+		}
+		String resourcePath = topic.getResourcePath().toLowerCase(Locale.ROOT);
+		return resourcePath.endsWith("/core/luamade.md") ? 0 : 1;
 	}
 
 	private static int getSectionOrder(DocTopic topic) {

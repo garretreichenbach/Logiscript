@@ -78,6 +78,9 @@ public class DocsViewerDialog extends PlayerInput {
 		private static final int LEFT_WIDTH = 280;
 		private static final int PADDING = 12;
 		private static final int SEARCH_HEIGHT = 24;
+		private static final int TOP_LEFT_BUTTON_GAP = 8;
+		private static final int COLLAPSE_ALL_BUTTON_WIDTH = 110;
+		private static final int COLLAPSE_ALL_BUTTON_HEIGHT = SEARCH_HEIGHT;
 		private static final int SECTION_HEADER_HEIGHT = 22;
 		private static final int SECTION_HEADER_GAP = 4;
 		private static final int TOPIC_BUTTON_HEIGHT = 28;
@@ -103,6 +106,7 @@ public class DocsViewerDialog extends PlayerInput {
 
 		private GUIAncor searchAnchor;
 		private GUIActivatableTextBar searchBar;
+		private GUITextButton collapseAllButton;
 		private GUIScrollablePanel topicsScrollPanel;
 		private GUIAncor topicsContent;
 		private GUIAncor topicsPane;
@@ -129,6 +133,25 @@ public class DocsViewerDialog extends PlayerInput {
 
 			searchAnchor = new GUIAncor(getState(), LEFT_WIDTH - (PADDING * 2), SEARCH_HEIGHT);
 			root.attach(searchAnchor);
+
+			collapseAllButton = new GUITextButton(getState(), COLLAPSE_ALL_BUTTON_WIDTH, COLLAPSE_ALL_BUTTON_HEIGHT,
+					GUITextButton.ColorPalette.NEUTRAL, "Collapse All", new GUICallback() {
+				@Override
+				public void callback(GUIElement callingGuiElement, MouseEvent event) {
+					if(event.pressedLeftMouse()) {
+						collapseAllSections();
+					}
+				}
+
+				@Override
+				public boolean isOccluded() {
+					return false;
+				}
+			});
+			collapseAllButton.setMouseUpdateEnabled(true);
+			collapseAllButton.setTextPos(8, 4);
+			collapseAllButton.onInit();
+			root.attach(collapseAllButton);
 
 			searchBar = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.MEDIUM, 80, 1, "Search titles or content", searchAnchor, new TextCallback() {
 				@Override
@@ -229,10 +252,17 @@ public class DocsViewerDialog extends PlayerInput {
 			float rightWidth = Math.max(300.0F, availableWidth - rightX - RIGHT_PANEL_MARGIN);
 			float contentScrollHeight = Math.max(80.0F, contentHeight - CONTENT_SCROLL_BOTTOM_CLAMP);
 
-			searchAnchor.setWidth(LEFT_WIDTH - (PADDING * 2));
+			float searchX = PADDING + COLLAPSE_ALL_BUTTON_WIDTH + TOP_LEFT_BUTTON_GAP;
+			float searchWidth = Math.max(80.0F, LEFT_WIDTH - (PADDING * 2) - COLLAPSE_ALL_BUTTON_WIDTH - TOP_LEFT_BUTTON_GAP);
+
+			collapseAllButton.setWidth(COLLAPSE_ALL_BUTTON_WIDTH);
+			collapseAllButton.setHeight(COLLAPSE_ALL_BUTTON_HEIGHT);
+			collapseAllButton.setPos(PADDING, 6.0F, 0.0F);
+
+			searchAnchor.setWidth(searchWidth);
 			searchAnchor.setHeight(SEARCH_HEIGHT);
-			searchAnchor.setPos(PADDING, 6.0F, 0.0F);
-			searchBar.setPos(PADDING, 6.0F, 0.0F);
+			searchAnchor.setPos(searchX, 6.0F, 0.0F);
+			searchBar.setPos(searchX, 6.0F, 0.0F);
 
 			topicsPane.setWidth(LEFT_WIDTH);
 			topicsPane.setHeight(leftHeight);
@@ -303,6 +333,16 @@ public class DocsViewerDialog extends PlayerInput {
 				collapsedSections.remove(sectionKey);
 			} else {
 				collapsedSections.add(sectionKey);
+			}
+			rebuildTopicButtons();
+		}
+
+		private void collapseAllSections() {
+			collapsedSections.clear();
+			for(DocTopic topic : allTopics) {
+				if(topic != null && topic.getSectionKey() != null) {
+					collapsedSections.add(topic.getSectionKey());
+				}
 			}
 			rebuildTopicButtons();
 		}
