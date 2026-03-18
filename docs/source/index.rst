@@ -16,6 +16,7 @@ LuaMade is a StarMade mod that adds scriptable Lua Computers to the game. They c
 Documentation Categories
 -----------------------------------
 - ``docs/markdown/core/`` - Core APIs and runtime
+- ``docs/markdown/graphics/`` - Text and display graphics APIs
 - ``docs/markdown/io/`` - File system and networking
 - ``docs/markdown/math/`` - Vector and math utilities
 - ``docs/markdown/entities/`` - Entity and faction APIs
