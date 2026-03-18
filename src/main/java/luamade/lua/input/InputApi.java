@@ -38,6 +38,19 @@ public class InputApi extends LuaMadeUserdata {
 	private final LinkedBlockingQueue<LuaTable> eventQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
 	private volatile boolean enabled = true;
 
+	/**
+	 * When true, the EventManager cancels StarMade key events so the terminal
+	 * text bar never receives keystrokes. Events are still pushed to the Lua
+	 * queue so the consuming script can handle them.
+	 */
+	private volatile boolean keyboardConsumed = false;
+
+	/**
+	 * Convenience flag scripts can use to signal exclusive mouse ownership.
+	 * Does not change event routing on its own; query it with {@link #isMouseConsumed()}.
+	 */
+	private volatile boolean mouseConsumed = false;
+
 	// ------------------------------------------------------------------
 	// Package-private: called from EventManager / ComputerDialog on the
 	// UI/game thread.  These must be non-blocking and thread-safe.
@@ -166,6 +179,58 @@ public class InputApi extends LuaMadeUserdata {
 	// ------------------------------------------------------------------
 	// Helpers
 	// ------------------------------------------------------------------
+
+	/**
+	 * Claims exclusive keyboard control. While consumed, StarMade key events
+	 * are cancelled so the terminal text bar never receives keystrokes. All
+	 * key events are still forwarded to the Lua input queue.
+	 */
+	@LuaMadeCallable
+	public void consumeKeyboard() {
+		keyboardConsumed = true;
+	}
+
+	/**
+	 * Releases exclusive keyboard control, restoring normal terminal input
+	 * behaviour.
+	 */
+	@LuaMadeCallable
+	public void releaseKeyboard() {
+		keyboardConsumed = false;
+	}
+
+	/**
+	 * Returns true while a script holds exclusive keyboard control.
+	 */
+	@LuaMadeCallable
+	public boolean isKeyboardConsumed() {
+		return keyboardConsumed;
+	}
+
+	/**
+	 * Signals that a script is handling mouse input exclusively.
+	 * Query with {@link #isMouseConsumed()} from other parts of your script.
+	 */
+	@LuaMadeCallable
+	public void consumeMouse() {
+		mouseConsumed = true;
+	}
+
+	/**
+	 * Releases the exclusive mouse signal.
+	 */
+	@LuaMadeCallable
+	public void releaseMouse() {
+		mouseConsumed = false;
+	}
+
+	/**
+	 * Returns true while a script has signalled exclusive mouse ownership.
+	 */
+	@LuaMadeCallable
+	public boolean isMouseConsumed() {
+		return mouseConsumed;
+	}
 
 	/**
 	 * Returns the number of events currently waiting in the queue.

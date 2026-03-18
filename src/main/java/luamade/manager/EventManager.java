@@ -42,8 +42,16 @@ public class EventManager {
 				boolean shiftDown = Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_SHIFT);
 				boolean altDown = Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_ALT) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_ALT);
 
-				// ---- existing shortcut / navigation interception (key-down only) ----
-				if(event.isKeyDown()) {
+				ComputerModule module = panel.getComputerModule();
+				boolean keyboardConsumed = module != null && module.getInputApi().isKeyboardConsumed();
+
+				if(keyboardConsumed) {
+					// Script has exclusive keyboard control: cancel the event so
+					// the terminal text bar never receives the keystroke but still
+					// forward it to the Lua input queue below.
+					event.setCanceled(true);
+				} else if(event.isKeyDown()) {
+					// Normal mode: intercept editor shortcuts and navigation keys.
 					if(panel.isFileEditMode() && ctrlDown && (key == GLFW.GLFW_KEY_S || key == GLFW.GLFW_KEY_X || key == GLFW.GLFW_KEY_R)) {
 						event.setCanceled(true);
 						panel.handleEditorShortcut(key);
@@ -56,7 +64,6 @@ public class EventManager {
 				}
 
 				// ---- forward every key event (press + release) to Lua InputApi ----
-				ComputerModule module = panel.getComputerModule();
 				if(module != null) {
 					module.getInputApi().pushKeyEvent(
 							key,

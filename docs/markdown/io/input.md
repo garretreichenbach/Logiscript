@@ -59,6 +59,33 @@ Events are captured only while the computer's terminal dialog is open and are au
 - `input.pending()`
   Returns the number of events currently in the queue (max 256).
 
+### Keyboard capture
+
+- `input.consumeKeyboard()`
+  Claims exclusive keyboard control. While active, StarMade key events are
+  cancelled so the terminal text bar never receives keystrokes. All key events
+  are still forwarded to the Lua input queue so your overlay can handle them.
+
+- `input.releaseKeyboard()`
+  Releases exclusive keyboard control and restores normal terminal input
+  behaviour.
+
+- `input.isKeyboardConsumed()`
+  Returns `true` while a script holds exclusive keyboard control.
+
+### Mouse capture
+
+- `input.consumeMouse()`
+  Signals that your script is handling mouse input exclusively. Mouse events
+  continue to be delivered to the queue; this flag is intended as a
+  coordination signal you can query from other parts of your script.
+
+- `input.releaseMouse()`
+  Clears the exclusive mouse signal.
+
+- `input.isMouseConsumed()`
+  Returns `true` while a script has signalled exclusive mouse ownership.
+
 ## Common key codes
 
 | Key   | Code | Key       | Code  |
