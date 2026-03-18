@@ -81,6 +81,15 @@ public class ComputerDialog extends PlayerInput {
 	@Override
 	public void handleMouseEvent(MouseEvent mouseEvent) {
 		if(computerModule == null) return;
+		int cellX = -1;
+		int cellY = -1;
+		if(computerPanel != null) {
+			int[] mapped = computerPanel.mapMouseToCanvasCell(mouseEvent.x, mouseEvent.y);
+			if(mapped != null) {
+				cellX = mapped[0];
+				cellY = mapped[1];
+			}
+		}
 		// Determine which button triggered this event (-1 = move/scroll only)
 		int button = mouseEvent.button;
 		boolean pressed = mouseEvent.state;
@@ -93,7 +102,9 @@ public class ComputerDialog extends PlayerInput {
 					mouseEvent.y,
 					mouseEvent.dx,
 					mouseEvent.dy,
-					mouseEvent.dWheel
+					mouseEvent.dWheel,
+					cellX,
+					cellY
 			);
 		}
 	}
@@ -125,6 +136,8 @@ public class ComputerDialog extends PlayerInput {
 		private static final int TEXT_BOX_HEIGHT = 500;
 		/** Pixels reserved at the bottom for the editor hint bar overlay. */
 		private static final int EDITOR_HINT_RESERVE_PX = 36;
+		private static final float CANVAS_PADDING_X = 8.0F;
+		private static final float CANVAS_PADDING_Y = 8.0F;
 
 		private final ComputerModule computerModule;
 		private GUIScrollablePanel consolePanel;
@@ -566,8 +579,47 @@ public class ComputerDialog extends PlayerInput {
 			}
 		}
 
+		private Console.GraphicsFrame getActiveCanvasFrame() {
+			if(computerModule == null || computerModule.getConsole() == null) {
+				return null;
+			}
+			Console.GraphicsFrame frame = computerModule.getConsole().getGraphicsFrame();
+			if(frame == null || frame.getBackend() != Console.GraphicsFrame.RenderBackend.CANVAS) {
+				return null;
+			}
+			return frame;
+		}
+
 		private boolean hasGraphicsFrame() {
-			return computerModule != null && computerModule.getConsole() != null && computerModule.getConsole().getGraphicsFrame() != null;
+			return getActiveCanvasFrame() != null;
+		}
+
+		public int[] mapMouseToCanvasCell(int mouseX, int mouseY) {
+			Console.GraphicsFrame frame = getActiveCanvasFrame();
+			if(frame == null || graphicsFrameOverlay == null) {
+				return null;
+			}
+
+			float originX = graphicsFrameOverlay.getPos().x;
+			float originY = graphicsFrameOverlay.getPos().y;
+			int baseCharWidth = Math.max(1, FontLibrary.getMetrics(FontLibrary.FontSize.MEDIUM.getFont()).stringWidth("W"));
+			int baseCharHeight = Math.max(1, FontLibrary.FontSize.MEDIUM.getFont().getLineHeight());
+			float cellWidthPx = Math.max(1.0F, baseCharWidth * frame.getCellScaleX());
+			float cellHeightPx = Math.max(1.0F, baseCharHeight * frame.getCellScaleY());
+
+			float localX = mouseX - originX;
+			float localY = mouseY - originY;
+			if(localX < 0 || localY < 0) {
+				return null;
+			}
+
+			int cellX = (int) Math.floor(localX / cellWidthPx) + 1;
+			int cellY = (int) Math.floor(localY / cellHeightPx) + 1;
+			if(cellX < 1 || cellY < 1 || cellX > frame.getWidth() || cellY > frame.getHeight()) {
+				return null;
+			}
+
+			return new int[]{cellX, cellY};
 		}
 
 		private void hideGraphicsOverlay() {
@@ -585,7 +637,7 @@ public class ComputerDialog extends PlayerInput {
 				return false;
 			}
 
-			Console.GraphicsFrame frame = computerModule.getConsole().getGraphicsFrame();
+			Console.GraphicsFrame frame = getActiveCanvasFrame();
 			if(frame == null) {
 				hideGraphicsOverlay();
 				return false;
@@ -599,7 +651,7 @@ public class ComputerDialog extends PlayerInput {
 			}
 
 			if(consolePane != null) {
-				graphicsFrameOverlay.setPos(consolePane.getPos().x + 8.0F, consolePane.getPos().y + 8.0F, 0.0F);
+				graphicsFrameOverlay.setPos(consolePane.getPos().x + CANVAS_PADDING_X, consolePane.getPos().y + CANVAS_PADDING_Y, 0.0F);
 			}
 			graphicsFrameOverlay.setScale(new Vector3f(frame.getCellScaleX(), frame.getCellScaleY(), 1.0F));
 			return true;

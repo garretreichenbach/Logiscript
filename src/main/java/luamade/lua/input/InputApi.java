@@ -88,9 +88,11 @@ public class InputApi extends LuaMadeUserdata {
 	 * @param dx       delta x since last event
 	 * @param dy       delta y since last event
 	 * @param wheel    scroll wheel delta
+	 * @param cellX    mapped canvas cell X (1-based), or -1 when unavailable
+	 * @param cellY    mapped canvas cell Y (1-based), or -1 when unavailable
 	 */
 	public void pushMouseEvent(int button, boolean pressed,
-	                           int x, int y, int dx, int dy, int wheel) {
+	                           int x, int y, int dx, int dy, int wheel, int cellX, int cellY) {
 		if(!enabled) return;
 		LuaTable t = new LuaTable();
 		t.set("type", valueOf("mouse"));
@@ -102,6 +104,8 @@ public class InputApi extends LuaMadeUserdata {
 		t.set("dx", valueOf(dx));
 		t.set("dy", valueOf(dy));
 		t.set("wheel", valueOf(wheel));
+		t.set("cellX", cellX > 0 ? valueOf(cellX) : NIL);
+		t.set("cellY", cellY > 0 ? valueOf(cellY) : NIL);
 		eventQueue.offer(t);
 	}
 

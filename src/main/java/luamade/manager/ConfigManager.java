@@ -58,7 +58,7 @@ public final class ConfigManager {
 		webFetchTrustedDomainsOnly = new SimpleConfigBool(config, "web_fetch_trusted_domains_only", true, "If true, web fetch is limited to a built-in trusted domain allowlist.");
 		webFetchTimeoutMs = new SimpleConfigInt(config, "web_fetch_timeout_ms", 4000, "Web fetch connect/read timeout in milliseconds.");
 		webFetchMaxBytes = new SimpleConfigInt(config, "web_fetch_max_bytes", 131072, "Maximum response payload size (bytes) accepted by web fetch.");
-		gfxCanvasBackendEnabled = new SimpleConfigBool(config, "gfx_canvas_backend_enabled", false, "If true, enables the gfx canvas overlay backend. If false, gfx renders through terminal text mode.");
+		gfxCanvasBackendEnabled = new SimpleConfigBool(config, "gfx_canvas_backend_enabled", true, "If true, enables the gfx canvas overlay backend. If false, gfx renders through terminal text mode.");
 
 		config.readWriteFields();
 		ensureTrustedDomainsFileExists(instance);
@@ -125,7 +125,7 @@ public final class ConfigManager {
 	}
 
 	public static boolean isGfxCanvasBackendEnabled() {
-		return boolOrDefault(gfxCanvasBackendEnabled, false);
+		return boolOrDefault(gfxCanvasBackendEnabled, true);
 	}
 
 	public static Set<String> getTrustedWebDomains() {
