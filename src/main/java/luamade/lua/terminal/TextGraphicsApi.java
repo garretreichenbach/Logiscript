@@ -42,6 +42,10 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 	private float[][] cellScaleYMap;
 	private float cellScaleX = 1.0F;
 	private float cellScaleY = 1.0F;
+	/** Insertion-ordered named layers. Empty = single-layer (flat buffer) mode. */
+	private final LinkedHashMap<String, CanvasLayer> explicitLayers = new LinkedHashMap<String, CanvasLayer>();
+	/** Non-null when an explicit layer is active; null = flat buffer. */
+	private CanvasLayer activeLayer = null;
 
 	@LuaMadeCallable
 	public void render() {
@@ -152,6 +156,9 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 			System.arraycopy(cellScaleYMap[y], 0, nextScaleY[y], 0, copyWidth);
 		}
 
+		for(CanvasLayer layer : explicitLayers.values()) {
+			layer.resize(clampedWidth, clampedHeight, width, height, fillCodePoint);
+		}
 		width = clampedWidth;
 		height = clampedHeight;
 		cells = next;
@@ -463,9 +470,14 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 	public void setCellScale(double scaleX, double scaleY) {
 		cellScaleX = clampScale((float) scaleX);
 		cellScaleY = clampScale((float) scaleY);
-		for(int y = 0; y < height; y++) {
-			Arrays.fill(cellScaleXMap[y], cellScaleX);
-			Arrays.fill(cellScaleYMap[y], cellScaleY);
+		if(activeLayer != null) {
+			activeLayer.scaleX = cellScaleX;
+			activeLayer.scaleY = cellScaleY;
+		} else {
+			for(int y = 0; y < height; y++) {
+				Arrays.fill(cellScaleXMap[y], cellScaleX);
+				Arrays.fill(cellScaleYMap[y], cellScaleY);
+			}
 		}
 	}
 
@@ -479,6 +491,15 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 		float clamped = clampScale((float) scale);
 		cellScaleX = clamped;
 		cellScaleY = clamped;
+		if(activeLayer != null) {
+			activeLayer.scaleX = clamped;
+			activeLayer.scaleY = clamped;
+		} else {
+			for(int y = 0; y < height; y++) {
+				Arrays.fill(cellScaleXMap[y], clamped);
+				Arrays.fill(cellScaleYMap[y], clamped);
+			}
+		}
 	}
 
 	private float clampScale(float value) {
@@ -508,49 +529,66 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 	}
 
 	private List<Console.GraphicsFrame.GraphicsLayer> createCanvasLayers() {
-		Map<ScaleKey, Integer> layerIndices = new LinkedHashMap<ScaleKey, Integer>();
-		List<int[]> layerBuffers = new ArrayList<int[]>();
-		List<ScaleKey> layerKeys = new ArrayList<ScaleKey>();
+		List<Console.GraphicsFrame.GraphicsLayer> result =
+				new ArrayList<Console.GraphicsFrame.GraphicsLayer>();
 
-		ScaleKey fallbackKey = new ScaleKey(cellScaleX, cellScaleY);
-		for(int y = 0; y < height; y++) {
-			for(int x = 0; x < width; x++) {
-				ScaleKey key = new ScaleKey(cellScaleXMap[y][x], cellScaleYMap[y][x]);
-				Integer layerIndex = layerIndices.get(key);
-				if(layerIndex == null) {
-					if(layerIndices.size() >= MAX_CANVAS_LAYERS) {
-						layerIndex = layerIndices.get(fallbackKey);
-						if(layerIndex == null) {
-							layerIndex = 0;
-							layerIndices.put(fallbackKey, layerIndex);
-							layerKeys.add(fallbackKey);
+		// --- flat buffer: auto-group by per-cell scale (unchanged behaviour) ---
+		if(explicitLayers.isEmpty()) {
+			Map<ScaleKey, Integer> layerIndices = new LinkedHashMap<ScaleKey, Integer>();
+			List<int[]> layerBuffers = new ArrayList<int[]>();
+			List<ScaleKey> layerKeys = new ArrayList<ScaleKey>();
+			ScaleKey fallbackKey = new ScaleKey(cellScaleX, cellScaleY);
+
+			for(int y = 0; y < height; y++) {
+				for(int x = 0; x < width; x++) {
+					ScaleKey key = new ScaleKey(cellScaleXMap[y][x], cellScaleYMap[y][x]);
+					Integer idx = layerIndices.get(key);
+					if(idx == null) {
+						if(layerIndices.size() >= MAX_CANVAS_LAYERS) {
+							idx = layerIndices.get(fallbackKey);
+							if(idx == null) {
+								idx = 0;
+								layerIndices.put(fallbackKey, idx);
+								layerKeys.add(fallbackKey);
+								layerBuffers.add(createEmptyLayerBuffer());
+							}
+						} else {
+							idx = layerBuffers.size();
+							layerIndices.put(key, idx);
+							layerKeys.add(key);
 							layerBuffers.add(createEmptyLayerBuffer());
 						}
-					} else {
-						layerIndex = layerBuffers.size();
-						layerIndices.put(key, layerIndex);
-						layerKeys.add(key);
-						layerBuffers.add(createEmptyLayerBuffer());
 					}
+					layerBuffers.get(idx)[(y * width) + x] = cells[y][x];
 				}
-
-				int[] layer = layerBuffers.get(layerIndex);
-				layer[(y * width) + x] = cells[y][x];
 			}
+
+			if(layerBuffers.isEmpty()) {
+				result.add(new Console.GraphicsFrame.GraphicsLayer(
+						"", frameWithoutAnsi(), cellScaleX, cellScaleY, flattenCodePoints()));
+				return result;
+			}
+
+			for(int i = 0; i < layerBuffers.size(); i++) {
+				ScaleKey key = layerKeys.get(i);
+				int[] buf = layerBuffers.get(i);
+				result.add(new Console.GraphicsFrame.GraphicsLayer(
+						"", buildLayerText(buf), key.scaleX, key.scaleY, buf));
+			}
+			return result;
 		}
 
-		if(layerBuffers.isEmpty()) {
-			return Arrays.asList(new Console.GraphicsFrame.GraphicsLayer(frameWithoutAnsi(), cellScaleX, cellScaleY, flattenCodePoints()));
-		}
+		// --- explicit-layer mode: flat buffer is the base (z = -1), then named layers in z-order ---
+		// Flat base (always bottom)
+		result.add(new Console.GraphicsFrame.GraphicsLayer(
+				"", buildLayerText(flattenCodePoints()), cellScaleX, cellScaleY, flattenCodePoints()));
 
-		List<Console.GraphicsFrame.GraphicsLayer> layers = new ArrayList<Console.GraphicsFrame.GraphicsLayer>(layerBuffers.size());
-		for(int i = 0; i < layerBuffers.size(); i++) {
-			ScaleKey key = layerKeys.get(i);
-			int[] layerCodePoints = layerBuffers.get(i);
-			String layerText = buildLayerText(layerCodePoints);
-			layers.add(new Console.GraphicsFrame.GraphicsLayer(layerText, key.scaleX, key.scaleY, layerCodePoints));
+		for(CanvasLayer layer : sortedLayers()) {
+			int[] buf = layer.flattenCodePoints(width, height);
+			result.add(new Console.GraphicsFrame.GraphicsLayer(
+					layer.name, buildLayerText(buf), layer.scaleX, layer.scaleY, buf));
 		}
-		return layers;
+		return result;
 	}
 
 	private int[] createEmptyLayerBuffer() {
@@ -598,12 +636,16 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 	}
 
 	private void clearInternal(int cp, int fg, int bg, float scaleX, float scaleY) {
-		for(int y = 0; y < height; y++) {
-			Arrays.fill(cells[y], cp);
-			Arrays.fill(fgColors[y], fg);
-			Arrays.fill(bgColors[y], bg);
-			Arrays.fill(cellScaleXMap[y], scaleX);
-			Arrays.fill(cellScaleYMap[y], scaleY);
+		if(activeLayer != null) {
+			activeLayer.clear(cp, fg);
+		} else {
+			for(int y = 0; y < height; y++) {
+				Arrays.fill(cells[y], cp);
+				Arrays.fill(fgColors[y], fg);
+				Arrays.fill(bgColors[y], bg);
+				Arrays.fill(cellScaleXMap[y], scaleX);
+				Arrays.fill(cellScaleYMap[y], scaleY);
+			}
 		}
 	}
 
@@ -611,15 +653,205 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 		setCell(x, y, codePoint, fg, bg, cellScaleX, cellScaleY);
 	}
 
+	private int[][] getActiveCells() {
+		return activeLayer != null ? activeLayer.cells : cells;
+	}
+
+	private int[][] getActiveFg() {
+		return activeLayer != null ? activeLayer.fgColors : fgColors;
+	}
+
+	private int[][] getActiveBg() {
+		return activeLayer != null ? activeLayer.bgColors : bgColors;
+	}
+
 	private void setCell(int x, int y, int codePoint, int fg, int bg, float scaleX, float scaleY) {
 		if(x < 0 || y < 0 || x >= width || y >= height) {
 			return;
 		}
-		cells[y][x] = codePoint;
-		fgColors[y][x] = fg;
-		bgColors[y][x] = bg;
-		cellScaleXMap[y][x] = scaleX;
-		cellScaleYMap[y][x] = scaleY;
+		getActiveCells()[y][x] = codePoint;
+		getActiveFg()[y][x] = fg;
+		getActiveBg()[y][x] = bg;
+		if(activeLayer == null) {
+			cellScaleXMap[y][x] = scaleX;
+			cellScaleYMap[y][x] = scaleY;
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Explicit layer management API
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Creates a named layer above all existing layers.
+	 * If the layer already exists its parameters are updated.
+	 */
+	@LuaMadeCallable
+	public void createLayer(String name) {
+		if(name == null || name.isEmpty()) return;
+		if(explicitLayers.size() >= MAX_CANVAS_LAYERS) return;
+		if(!explicitLayers.containsKey(name)) {
+			explicitLayers.put(name, new CanvasLayer(name, width, height, cellScaleX, cellScaleY,
+					explicitLayers.size(), fillCodePoint));
+		}
+	}
+
+	/** Removes a named layer. If that layer was active, active layer resets to none. */
+	@LuaMadeCallable
+	public void removeLayer(String name) {
+		if(name == null) return;
+		explicitLayers.remove(name);
+		if(activeLayer != null && name.equals(activeLayer.name)) {
+			activeLayer = null;
+		}
+	}
+
+	/** Activates a named layer so all draw calls target it. Pass "" or call setLayer() with no layer to return to the flat buffer. */
+	@LuaMadeCallable
+	public void setLayer(String name) {
+		if(name == null || name.isEmpty()) {
+			activeLayer = null;
+			return;
+		}
+		activeLayer = explicitLayers.get(name);
+	}
+
+	/** Returns to drawing on the flat (default) buffer. */
+	@LuaMadeCallable
+	public void clearActiveLayer() {
+		activeLayer = null;
+	}
+
+	/** Clears a specific named layer to spaces. */
+	@LuaMadeCallable
+	public void clearLayer(String name) {
+		CanvasLayer layer = explicitLayers.get(name);
+		if(layer != null) {
+			layer.clear(fillCodePoint, ANSI_DEFAULT);
+		}
+	}
+
+	/** Sets the pixel density (scale) of a named layer. */
+	@LuaMadeCallable
+	public void setLayerScale(String name, double scale) {
+		CanvasLayer layer = explicitLayers.get(name);
+		if(layer != null) {
+			layer.scaleX = clampScale((float) scale);
+			layer.scaleY = clampScale((float) scale);
+		}
+	}
+
+	/** Sets independent X/Y pixel density of a named layer. */
+	@LuaMadeCallable
+	public void setLayerScale(String name, double scaleX, double scaleY) {
+		CanvasLayer layer = explicitLayers.get(name);
+		if(layer != null) {
+			layer.scaleX = clampScale((float) scaleX);
+			layer.scaleY = clampScale((float) scaleY);
+		}
+	}
+
+	/** Returns {scaleX, scaleY} for a named layer, or the global cell scale if the layer doesn't exist. */
+	@LuaMadeCallable
+	public double[] getLayerScale(String name) {
+		CanvasLayer layer = explicitLayers.get(name);
+		if(layer == null) return new double[]{cellScaleX, cellScaleY};
+		return new double[]{layer.scaleX, layer.scaleY};
+	}
+
+	/** Returns the z-index of a named layer (0 = bottom-most explicit layer). */
+	@LuaMadeCallable
+	public int getLayerZ(String name) {
+		CanvasLayer layer = explicitLayers.get(name);
+		return layer == null ? -1 : layer.zIndex;
+	}
+
+	/** Sets the z-index of a named layer, then re-sorts the layer stack. */
+	@LuaMadeCallable
+	public void setLayerZ(String name, int z) {
+		CanvasLayer layer = explicitLayers.get(name);
+		if(layer == null) return;
+		layer.zIndex = z;
+		rebuildLayerOrder();
+	}
+
+	/** Returns a Lua table (array) of layer names in current z-order (bottom to top). */
+	@LuaMadeCallable
+	public String[] getLayerNames() {
+		List<CanvasLayer> sorted = sortedLayers();
+		String[] names = new String[sorted.size()];
+		for(int i = 0; i < sorted.size(); i++) {
+			names[i] = sorted.get(i).name;
+		}
+		return names;
+	}
+
+	/** Returns true if a layer with the given name exists. */
+	@LuaMadeCallable
+	public boolean hasLayer(String name) {
+		return explicitLayers.containsKey(name);
+	}
+
+	/** Returns the name of the currently active layer, or "" if on the flat buffer. */
+	@LuaMadeCallable
+	public String getActiveLayer() {
+		return activeLayer == null ? "" : activeLayer.name;
+	}
+
+	/** Moves a layer one step toward the top of the stack. */
+	@LuaMadeCallable
+	public void moveLayerUp(String name) {
+		CanvasLayer layer = explicitLayers.get(name);
+		if(layer == null) return;
+		list_swap_up(layer);
+		rebuildLayerOrder();
+	}
+
+	/** Moves a layer one step toward the bottom of the stack. */
+	@LuaMadeCallable
+	public void moveLayerDown(String name) {
+		CanvasLayer layer = explicitLayers.get(name);
+		if(layer == null) return;
+		list_swap_down(layer);
+		rebuildLayerOrder();
+	}
+
+	private List<CanvasLayer> sortedLayers() {
+		List<CanvasLayer> list = new ArrayList<CanvasLayer>(explicitLayers.values());
+		java.util.Collections.sort(list, new java.util.Comparator<CanvasLayer>() {
+			@Override
+			public int compare(CanvasLayer a, CanvasLayer b) {
+				return Integer.compare(a.zIndex, b.zIndex);
+			}
+		});
+		return list;
+	}
+
+	private void rebuildLayerOrder() {
+		List<CanvasLayer> sorted = sortedLayers();
+		for(int i = 0; i < sorted.size(); i++) {
+			sorted.get(i).zIndex = i;
+		}
+	}
+
+	private void list_swap_up(CanvasLayer target) {
+		List<CanvasLayer> sorted = sortedLayers();
+		int idx = sorted.indexOf(target);
+		if(idx < sorted.size() - 1) {
+			int tmp = sorted.get(idx).zIndex;
+			sorted.get(idx).zIndex = sorted.get(idx + 1).zIndex;
+			sorted.get(idx + 1).zIndex = tmp;
+		}
+	}
+
+	private void list_swap_down(CanvasLayer target) {
+		List<CanvasLayer> sorted = sortedLayers();
+		int idx = sorted.indexOf(target);
+		if(idx > 0) {
+			int tmp = sorted.get(idx).zIndex;
+			sorted.get(idx).zIndex = sorted.get(idx - 1).zIndex;
+			sorted.get(idx - 1).zIndex = tmp;
+		}
 	}
 
 	private int toCodePoint(String glyph) {
@@ -631,6 +863,73 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 
 	private int clamp(int value, int min, int max) {
 		return Math.max(min, Math.min(max, value));
+	}
+
+	/**
+	 * Mutable named canvas layer with its own cell/color buffers, scale, and z-index.
+	 */
+	private final class CanvasLayer {
+		private final String name;
+		private int[][] cells;
+		private int[][] fgColors;
+		private int[][] bgColors;
+		private float scaleX;
+		private float scaleY;
+		private int zIndex;
+
+		private CanvasLayer(String name, int w, int h, float scaleX, float scaleY, int zIndex, int fillCp) {
+			this.name = name;
+			this.scaleX = scaleX;
+			this.scaleY = scaleY;
+			this.zIndex = zIndex;
+			this.cells = new int[h][w];
+			this.fgColors = new int[h][w];
+			this.bgColors = new int[h][w];
+			clear(fillCp, ANSI_DEFAULT);
+		}
+
+		private void clear(int fillCp, int fg) {
+			int h = cells.length;
+			int w = h > 0 ? cells[0].length : 0;
+			for(int y = 0; y < h; y++) {
+				Arrays.fill(cells[y], fillCp);
+				Arrays.fill(fgColors[y], fg);
+				Arrays.fill(bgColors[y], ANSI_DEFAULT);
+			}
+		}
+
+		private void resize(int newW, int newH, int oldW, int oldH, int fillCp) {
+			int[][] next = new int[newH][newW];
+			int[][] nextFg = new int[newH][newW];
+			int[][] nextBg = new int[newH][newW];
+			for(int y = 0; y < newH; y++) {
+				Arrays.fill(next[y], fillCp);
+				Arrays.fill(nextFg[y], ANSI_DEFAULT);
+				Arrays.fill(nextBg[y], ANSI_DEFAULT);
+			}
+			int copyH = Math.min(oldH, newH);
+			int copyW = Math.min(oldW, newW);
+			for(int y = 0; y < copyH; y++) {
+				System.arraycopy(cells[y], 0, next[y], 0, copyW);
+				System.arraycopy(fgColors[y], 0, nextFg[y], 0, copyW);
+				System.arraycopy(bgColors[y], 0, nextBg[y], 0, copyW);
+			}
+			cells = next;
+			fgColors = nextFg;
+			bgColors = nextBg;
+		}
+
+		private int[] flattenCodePoints(int w, int h) {
+			int[] out = new int[w * h];
+			Arrays.fill(out, ' ');
+			int idx = 0;
+			for(int y = 0; y < h; y++) {
+				for(int x = 0; x < w; x++) {
+					out[idx++] = cells[y][x];
+				}
+			}
+			return out;
+		}
 	}
 
 	private static final class ScaleKey {

@@ -113,6 +113,55 @@ Returns the full canvas as a single newline-separated string.
 - `getPixelScale(x, y)`
   Returns `{ scaleX, scaleY }` for a single pixel.
 
+## Layer Management
+
+Explicit layers let you stack multiple independent drawing surfaces on top of the flat canvas buffer. Each layer has its own pixel buffers, scale (density), and z-index.
+
+- `createLayer(name)`
+  Creates a named layer. If it already exists nothing changes.
+
+- `removeLayer(name)`
+  Deletes a named layer.
+
+- `setLayer(name)`
+  Activates a layer so all subsequent draw calls (`pixel`, `text`, `rect`, etc.) target it. Call `setLayer("")` or `clearActiveLayer()` to return to the flat buffer.
+
+- `clearActiveLayer()`
+  Deactivates any explicit layer and returns to the flat buffer.
+
+- `clearLayer(name)`
+  Clears a specific named layer to spaces without affecting the flat buffer.
+
+- `setLayerScale(name, scale)`
+  Sets uniform pixel density for a named layer.
+
+- `setLayerScale(name, scaleX, scaleY)`
+  Sets independent X/Y pixel density for a named layer.
+
+- `getLayerScale(name)`
+  Returns `{ scaleX, scaleY }` for a named layer.
+
+- `setLayerZ(name, z)`
+  Sets the z-index of a named layer (higher = on top).
+
+- `getLayerZ(name)`
+  Returns the current z-index of a named layer.
+
+- `moveLayerUp(name)`
+  Moves a layer one step toward the top of the stack.
+
+- `moveLayerDown(name)`
+  Moves a layer one step toward the bottom of the stack.
+
+- `getLayerNames()`
+  Returns an array of layer names in z-order (bottom to top).
+
+- `hasLayer(name)`
+  Returns true if a layer with that name exists.
+
+- `getActiveLayer()`
+  Returns the name of the currently active layer, or `""` when on the flat buffer.
+
 ## Example
 
 ```lua
@@ -146,6 +195,8 @@ gfx.render()
 - Default backend is `canvas`, which draws on one or more overlay layers.
 - Pixels with different scale values are grouped into separate overlay layers automatically.
 - Use `setPixelScale(...)` to build mixed-density text UIs (fine text + chunky icon pixels in the same frame).
+- Use `createLayer` / `setLayer` for fully independent named layers with per-layer pixel density.
+- Named layers are rendered in z-order above the flat buffer; each gets its own GUI overlay.
 - Server/client config guard: when `gfx_canvas_backend_enabled=false`, canvas requests are forced to terminal rendering.
 - Use `gfx.setBackend("terminal")` for legacy behavior that writes into terminal text contents.
 - In `terminal` backend, `gfx.render()` replaces the terminal text buffer. If you want to keep a static screen, disable

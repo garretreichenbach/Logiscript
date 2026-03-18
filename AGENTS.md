@@ -174,6 +174,7 @@ Use protocol names as channel identifiers (e.g., "chat", "sensor-network").
 - `README.md`: Feature overview + API reference
 - `docs/markdown/`: Topic-specific guides grouped by category (`general/`, `runtime-api/`, `game-systems/`, `block-wrappers/`, `entity-wrappers/`)
 - Example scripts: `examples/TerminalExample.lua`, `src/main/resources/bin/*.lua`
+- Note: Do not update docs in `src/main/resources/docs`, these are automatically copied by the build script from the actual docs folder.
 
 ### Glossary System
 Documentation is loaded dynamically from markdown files in `src/main/resources/docs/` (organized by semantic category: core, io, math, entities, systems). Titles are extracted from headers. Integrated into StarMade's in-game documentation UI.

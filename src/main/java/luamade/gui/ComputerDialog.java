@@ -686,6 +686,7 @@ public class ComputerDialog extends PlayerInput {
 					GUITextOverlay overlay = graphicsFrameOverlays.get(i);
 					overlay.setTextSimple(layerText == null ? "" : layerText);
 					activeCanvasOverlayStates.add(new CanvasOverlayState(
+							layer.getName(),
 							layer.getCellScaleX(),
 							layer.getCellScaleY(),
 							layer.getCodePoints()
@@ -714,13 +715,15 @@ public class ComputerDialog extends PlayerInput {
 		}
 
 		private static final class CanvasOverlayState {
+			private final String name;
 			private final float scaleX;
 			private final float scaleY;
 			private final int[] codePoints;
 			private float originX;
 			private float originY;
 
-			private CanvasOverlayState(float scaleX, float scaleY, int[] codePoints) {
+			private CanvasOverlayState(String name, float scaleX, float scaleY, int[] codePoints) {
+				this.name = name == null ? "" : name;
 				this.scaleX = Math.max(0.1F, scaleX);
 				this.scaleY = Math.max(0.1F, scaleY);
 				this.codePoints = codePoints == null ? new int[0] : codePoints;

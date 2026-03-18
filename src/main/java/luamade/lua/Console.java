@@ -191,16 +191,22 @@ public class Console extends LuaMadeUserdata {
 		}
 
 		public static final class GraphicsLayer {
+			private final String name;
 			private final String text;
 			private final float cellScaleX;
 			private final float cellScaleY;
 			private final int[] codePoints;
 
-			public GraphicsLayer(String text, float cellScaleX, float cellScaleY, int[] codePoints) {
+			public GraphicsLayer(String name, String text, float cellScaleX, float cellScaleY, int[] codePoints) {
+				this.name = name == null ? "" : name;
 				this.text = text == null ? "" : text;
 				this.cellScaleX = cellScaleX;
 				this.cellScaleY = cellScaleY;
 				this.codePoints = codePoints == null ? new int[0] : Arrays.copyOf(codePoints, codePoints.length);
+			}
+
+			public String getName() {
+				return name;
 			}
 
 			public String getText() {
