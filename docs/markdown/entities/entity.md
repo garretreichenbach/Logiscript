@@ -15,7 +15,6 @@ print("Reactor HP:", reactor.getHP(), "/", reactor.getMaxHP())
 ## Identity and location
 
 - `getId()`
-- `getInfo()` (returns same entity wrapper)
 - `getName()` / `setName(name)`
 - `getPos()`
 - `getSector()`
