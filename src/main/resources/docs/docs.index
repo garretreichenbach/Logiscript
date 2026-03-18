@@ -1,10 +1,11 @@
 core/INDEX.md
 core/console.md
-core/graphics.md
 core/luamade.md
 core/terminal-api.md
 core/terminal.md
 core/util.md
+graphics/INDEX.md
+graphics/text-graphics.md
 entities/INDEX.md
 entities/entity-ai.md
 entities/entity.md

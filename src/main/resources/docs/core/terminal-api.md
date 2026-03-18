@@ -2,7 +2,7 @@
 
 `term` provides runtime/session helpers in addition to shell commands.
 
-See also: `gfx` text graphics canvas API in `graphics.md`.
+See also: `gfx` text graphics canvas API in `../graphics/text-graphics.md`.
 
 ## Reference
 

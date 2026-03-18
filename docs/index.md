@@ -10,8 +10,14 @@ markdown/core/luamade
 markdown/core/console
 markdown/core/terminal
 markdown/core/terminal-api
-markdown/core/graphics
 markdown/core/util
+```
+
+```{toctree}
+:maxdepth: 2
+:caption: Graphics
+
+markdown/graphics/text-graphics
 ```
 
 ```{toctree}
