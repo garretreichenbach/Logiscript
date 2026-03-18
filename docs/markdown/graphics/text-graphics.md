@@ -1,6 +1,7 @@
 # Text Graphics API
 
-`gfx` provides an off-screen text canvas for drawing ASCII/Unicode shapes in the terminal.
+`gfx` provides an off-screen text canvas for drawing ASCII/Unicode shapes.
+By default, `render()` targets the in-dialog **canvas overlay** backend.
 
 ## Coordinate system
 
@@ -77,7 +78,22 @@ Resets brush colors back to terminal defaults.
 Returns the full canvas as a single newline-separated string.
 
 - `render()`
-Pushes the canvas to the terminal output area (replaces current terminal text contents).
+  Pushes the canvas to the active backend (`canvas` by default).
+
+- `setBackend(name)`
+  Sets render backend. Supported values: `"canvas"` (default) and `"terminal"`.
+
+- `getBackend()`
+  Returns the current backend name.
+
+- `setCellScale(scale)`
+  Sets both X and Y cell scale for canvas rendering (clamped to `0.5..4.0`).
+
+- `setCellScale(scaleX, scaleY)`
+  Sets independent X/Y scale for canvas rendering (each clamped to `0.5..4.0`).
+
+- `getCellScale()`
+  Returns `{ scaleX, scaleY }`.
 
 ## Example
 
@@ -109,6 +125,9 @@ gfx.render()
 
 ## Notes
 
-- `gfx.render()` replaces the terminal text buffer. If you want to keep a static screen, disable automatic prompt with `term.setAutoPrompt(false)`.
+- Default backend is `canvas`, which draws on a dedicated overlay and supports `setCellScale`.
+- Use `gfx.setBackend("terminal")` for legacy behavior that writes into terminal text contents.
+- In `terminal` backend, `gfx.render()` replaces the terminal text buffer. If you want to keep a static screen, disable
+  automatic prompt with `term.setAutoPrompt(false)`.
 - For animation loops, redraw onto the canvas and call `gfx.render()` each frame.
 - If ANSI is disabled, color metadata is stored but output is rendered as plain text.
