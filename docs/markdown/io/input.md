@@ -30,6 +30,8 @@ Events are captured only while the computer's terminal dialog is open and are au
     released = false, -- true on button-up
     x = 120, -- absolute x position in dialog pixels
     y = 45, -- absolute y position in dialog pixels
+    cellX = 5, -- optional 1-based canvas cell X when gfx canvas frame is active
+    cellY = 3, -- optional 1-based canvas cell Y when gfx canvas frame is active
     dx = 0, -- delta x since last event
     dy = 0, -- delta y since last event
     wheel = 0, -- scroll wheel delta (positive = up)
@@ -134,4 +136,5 @@ term.reboot()
 - The queue holds up to **256 events**. Older events are silently dropped if the script doesn't read fast enough.
 - Key codes match LWJGL keyboard constants (same values as the GLFW wrapper in StarMade).
 - Mouse `x`/`y` are pixel coordinates within the computer dialog window.
+- Mouse `cellX`/`cellY` are provided only when a `gfx` canvas frame is active and the pointer is inside that frame.
 

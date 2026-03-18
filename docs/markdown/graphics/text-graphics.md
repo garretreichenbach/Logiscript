@@ -126,6 +126,7 @@ gfx.render()
 ## Notes
 
 - Default backend is `canvas`, which draws on a dedicated overlay and supports `setCellScale`.
+- Server/client config guard: when `gfx_canvas_backend_enabled=false`, canvas requests are forced to terminal rendering.
 - Use `gfx.setBackend("terminal")` for legacy behavior that writes into terminal text contents.
 - In `terminal` backend, `gfx.render()` replaces the terminal text buffer. If you want to keep a static screen, disable
   automatic prompt with `term.setAutoPrompt(false)`.
