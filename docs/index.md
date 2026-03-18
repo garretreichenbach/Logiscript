@@ -10,6 +10,7 @@ markdown/core/luamade
 markdown/core/console
 markdown/core/terminal
 markdown/core/terminal-api
+markdown/core/graphics
 markdown/core/util
 ```
 
