@@ -20,7 +20,7 @@ source_suffix = {
 
 root_doc = "index"
 
-html_theme = "furo"
+html_theme = "sphinx_rtd_theme"
 html_title = "LuaMade Documentation"
 html_static_path = ["_static"]
 
