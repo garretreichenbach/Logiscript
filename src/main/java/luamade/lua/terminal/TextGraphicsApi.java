@@ -18,6 +18,9 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 	private static final int ANSI_DEFAULT = -1;
 	private static final String ANSI_ESCAPE = "\u001B[";
 	private static final String ANSI_RESET = "\u001B[0m";
+	private static final float MIN_CELL_SCALE = 0.5F;
+	private static final float MAX_CELL_SCALE = 4.0F;
+	private Backend backend = Backend.CANVAS;
 
 	private final Console console;
 	private int width = 64;
@@ -29,12 +32,25 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 	private int[][] cells;
 	private int[][] fgColors;
 	private int[][] bgColors;
+	private float cellScaleX = 1.0F;
+	private float cellScaleY = 1.0F;
+
+	@LuaMadeCallable
+	public void render() {
+		if(backend == Backend.CANVAS) {
+			console.setGraphicsFrame(new Console.GraphicsFrame(frame(), width, height, cellScaleX, cellScaleY, ansiEnabled));
+			return;
+		}
+
+		console.clearGraphicsFrame();
+		console.setTextContents(frame());
+	}
 
 	public TextGraphicsApi(Console console) {
 		this.console = console;
-		this.cells = new int[height][width];
-		this.fgColors = new int[height][width];
-		this.bgColors = new int[height][width];
+		cells = new int[height][width];
+		fgColors = new int[height][width];
+		bgColors = new int[height][width];
 		clearInternal(fillCodePoint, ANSI_DEFAULT, ANSI_DEFAULT);
 	}
 
@@ -341,8 +357,48 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public void render() {
-		console.setTextContents(frame());
+	public String getBackend() {
+		return backend == Backend.CANVAS ? "canvas" : "terminal";
+	}
+
+	@LuaMadeCallable
+	public void setBackend(String backendName) {
+		if(backendName == null) {
+			backend = Backend.CANVAS;
+			return;
+		}
+
+		String normalized = backendName.trim().toLowerCase(Locale.ROOT);
+		if("canvas".equals(normalized)) {
+			backend = Backend.CANVAS;
+		} else {
+			backend = Backend.TERMINAL;
+		}
+	}
+
+	@LuaMadeCallable
+	public void setCellScale(double scaleX, double scaleY) {
+		cellScaleX = clampScale((float) scaleX);
+		cellScaleY = clampScale((float) scaleY);
+	}
+
+	@LuaMadeCallable
+	public double[] getCellScale() {
+		return new double[]{cellScaleX, cellScaleY};
+	}
+
+	@LuaMadeCallable
+	public void setCellScale(double scale) {
+		float clamped = clampScale((float) scale);
+		cellScaleX = clamped;
+		cellScaleY = clamped;
+	}
+
+	private float clampScale(float value) {
+		if(Float.isNaN(value) || Float.isInfinite(value)) {
+			return 1.0F;
+		}
+		return Math.max(MIN_CELL_SCALE, Math.min(MAX_CELL_SCALE, value));
 	}
 
 	private void plotCirclePoints(int cx, int cy, int x, int y, int cp, int fg, int bg) {
@@ -382,6 +438,11 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 
 	private int clamp(int value, int min, int max) {
 		return Math.max(min, Math.min(max, value));
+	}
+
+	private enum Backend {
+		TERMINAL,
+		CANVAS
 	}
 
 	private int parseColor(String colorValue) {

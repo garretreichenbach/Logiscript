@@ -16,7 +16,19 @@ public class Console extends LuaMadeUserdata {
 	private static final float TRIM_TRIGGER_RATIO = 0.90F;
 	private static final float TRIM_TARGET_RATIO = 0.75F;
 	private StringBuilder textContents = new StringBuilder();
+	private GraphicsFrame graphicsFrame;
+	private long graphicsFrameRevision;
 	private final int[] cursorPos = {0, 0};
+
+	@LuaMadeCallable
+	public synchronized void print(Varargs vargs) {
+		if(graphicsFrame != null) {
+			graphicsFrame = null;
+			graphicsFrameRevision++;
+		}
+		textContents.append(vargs.arg(1).toString()).append("\n");
+		trimScrollbackIfNeeded();
+	}
 
 	public Console(ComputerModule module) {
 		this.module = module;
@@ -32,21 +44,28 @@ public class Console extends LuaMadeUserdata {
 		return Block.wrap(module.getSegmentPiece()); //Block is basically a wrapper class for SegmentPiece
 	}
 
-	@LuaMadeCallable
-	public synchronized void print(Varargs vargs) {
-		textContents.append(vargs.arg(1).toString()).append("\n");
-		trimScrollbackIfNeeded();
-	}
-
 	public synchronized void appendInline(Varargs vargs) {
+		if(graphicsFrame != null) {
+			graphicsFrame = null;
+			graphicsFrameRevision++;
+		}
 		textContents.append(vargs.arg(1).toString());
 		trimScrollbackIfNeeded();
 	}
 
 	public synchronized void clearTextContents() {
 		textContents.setLength(0);
+		graphicsFrame = null;
 		cursorPos[VERTICAL] = 0;
 		cursorPos[HORIZONTAL] = 0;
+	}
+
+	public synchronized void setTextContents(String textContents) {
+		this.textContents = new StringBuilder(textContents);
+		graphicsFrame = null;
+		trimScrollbackIfNeeded();
+		cursorPos[VERTICAL] = getLineNumber();
+		cursorPos[HORIZONTAL] = getLinePos();
 	}
 
 	public SegmentPiece getSegmentPiece() {
@@ -57,11 +76,66 @@ public class Console extends LuaMadeUserdata {
 		return textContents.toString();
 	}
 
-	public synchronized void setTextContents(String textContents) {
-		this.textContents = new StringBuilder(textContents);
-		trimScrollbackIfNeeded();
-		cursorPos[VERTICAL] = getLineNumber();
-		cursorPos[HORIZONTAL] = getLinePos();
+	public synchronized GraphicsFrame getGraphicsFrame() {
+		return graphicsFrame;
+	}
+
+	public synchronized void setGraphicsFrame(GraphicsFrame graphicsFrame) {
+		this.graphicsFrame = graphicsFrame;
+		graphicsFrameRevision++;
+	}
+
+	public synchronized long getGraphicsFrameRevision() {
+		return graphicsFrameRevision;
+	}
+
+	public synchronized void clearGraphicsFrame() {
+		if(graphicsFrame != null) {
+			graphicsFrame = null;
+			graphicsFrameRevision++;
+		}
+	}
+
+	public static class GraphicsFrame {
+		private final String text;
+		private final int width;
+		private final int height;
+		private final float cellScaleX;
+		private final float cellScaleY;
+		private final boolean ansiEnabled;
+
+		public GraphicsFrame(String text, int width, int height, float cellScaleX, float cellScaleY, boolean ansiEnabled) {
+			this.text = text == null ? "" : text;
+			this.width = width;
+			this.height = height;
+			this.cellScaleX = cellScaleX;
+			this.cellScaleY = cellScaleY;
+			this.ansiEnabled = ansiEnabled;
+		}
+
+		public String getText() {
+			return text;
+		}
+
+		public int getWidth() {
+			return width;
+		}
+
+		public int getHeight() {
+			return height;
+		}
+
+		public float getCellScaleX() {
+			return cellScaleX;
+		}
+
+		public float getCellScaleY() {
+			return cellScaleY;
+		}
+
+		public boolean isAnsiEnabled() {
+			return ansiEnabled;
+		}
 	}
 
 	private void trimScrollbackIfNeeded() {

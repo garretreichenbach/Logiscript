@@ -2,6 +2,7 @@ package luamade.gui;
 
 import api.common.GameClient;
 import api.utils.gui.GUIInputDialogPanel;
+import luamade.lua.Console;
 import luamade.manager.ConfigManager;
 import luamade.system.module.ComputerModule;
 import org.schema.game.client.controller.PlayerInput;
@@ -17,6 +18,7 @@ import org.schema.schine.graphicsengine.forms.gui.newgui.GUIContentPane;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIDialogWindow;
 import org.schema.schine.input.InputState;
 
+import javax.vecmath.Vector3f;
 import java.lang.reflect.Field;
 import java.util.Objects;
 
@@ -137,8 +139,10 @@ public class ComputerDialog extends PlayerInput {
 		private boolean focusConsoleOnOpen = true;
 		private ComputerModule.ComputerMode renderedMode = ComputerModule.ComputerMode.OFF;
 		private GUITextOverlay editorHintsOverlay;
+		private GUITextOverlay graphicsFrameOverlay;
 		private GUITextButton docsButton;
 		private String lastEditorHintText = "";
+		private long lastGraphicsFrameRevision = -1L;
 		/** Reference to the content pane so we can adjust text-box height dynamically. */
 		private GUIContentPane mainContentPane;
 		/**
@@ -421,31 +425,11 @@ public class ComputerDialog extends PlayerInput {
 			scrollPanel.scrollVerticalPercent(cursorPercent);
 		}
 
-		/**
-		 * Handles navigation key events intercepted before they reach TextAreaInput.
-		 * Called from EventManager's KeyPressEvent listener.
-		 */
-		public void handleNavigationKey(int glfwKey) {
-			switch(glfwKey) {
-				case GLFW.GLFW_KEY_UP:
-					handleHistoryUp();
-					break;
-				case GLFW.GLFW_KEY_DOWN:
-					handleHistoryDown();
-					break;
-				case GLFW.GLFW_KEY_LEFT:
-					handleCaretLeft();
-					break;
-				case GLFW.GLFW_KEY_RIGHT:
-					handleCaretRight();
-					break;
-				case GLFW.GLFW_KEY_HOME:
-					handleCaretHome();
-					break;
-				case GLFW.GLFW_KEY_END:
-					handleCaretEnd();
-					break;
+		private static String stripAnsi(String text) {
+			if(text == null || text.isEmpty()) {
+				return "";
 			}
+			return text.replaceAll("\\u001B\\[[0-9;]*m", "");
 		}
 
 		private void handleHistoryUp() {
@@ -512,10 +496,43 @@ public class ComputerDialog extends PlayerInput {
 		}
 
 		/**
+		 * Handles navigation key events intercepted before they reach TextAreaInput.
+		 * Called from EventManager's KeyPressEvent listener.
+		 */
+		public void handleNavigationKey(int glfwKey) {
+			if(hasGraphicsFrame()) {
+				return;
+			}
+			switch(glfwKey) {
+				case GLFW.GLFW_KEY_UP:
+					handleHistoryUp();
+					break;
+				case GLFW.GLFW_KEY_DOWN:
+					handleHistoryDown();
+					break;
+				case GLFW.GLFW_KEY_LEFT:
+					handleCaretLeft();
+					break;
+				case GLFW.GLFW_KEY_RIGHT:
+					handleCaretRight();
+					break;
+				case GLFW.GLFW_KEY_HOME:
+					handleCaretHome();
+					break;
+				case GLFW.GLFW_KEY_END:
+					handleCaretEnd();
+					break;
+			}
+		}
+
+		/**
 		 * Executes the current input line as a terminal command
 		 */
 		private void executeCurrentInput() {
 			if(isFileEditMode()) {
+				return;
+			}
+			if(hasGraphicsFrame()) {
 				return;
 			}
 
@@ -547,6 +564,45 @@ public class ComputerDialog extends PlayerInput {
 				refreshPromptStartPositionFromCurrentText();
 				scrollPaneToCursor();
 			}
+		}
+
+		private boolean hasGraphicsFrame() {
+			return computerModule != null && computerModule.getConsole() != null && computerModule.getConsole().getGraphicsFrame() != null;
+		}
+
+		private void hideGraphicsOverlay() {
+			if(graphicsFrameOverlay == null) {
+				return;
+			}
+			graphicsFrameOverlay.setTextSimple("");
+			graphicsFrameOverlay.setScale(new Vector3f(1.0F, 1.0F, 1.0F));
+			lastGraphicsFrameRevision = -1L;
+		}
+
+		private boolean updateGraphicsFrameOverlay() {
+			if(isFileEditMode() || graphicsFrameOverlay == null || computerModule == null || computerModule.getConsole() == null) {
+				hideGraphicsOverlay();
+				return false;
+			}
+
+			Console.GraphicsFrame frame = computerModule.getConsole().getGraphicsFrame();
+			if(frame == null) {
+				hideGraphicsOverlay();
+				return false;
+			}
+
+			long revision = computerModule.getConsole().getGraphicsFrameRevision();
+			if(revision != lastGraphicsFrameRevision) {
+				String frameText = frame.isAnsiEnabled() ? stripAnsi(frame.getText()) : frame.getText();
+				graphicsFrameOverlay.setTextSimple(frameText == null ? "" : frameText);
+				lastGraphicsFrameRevision = revision;
+			}
+
+			if(consolePane != null) {
+				graphicsFrameOverlay.setPos(consolePane.getPos().x + 8.0F, consolePane.getPos().y + 8.0F, 0.0F);
+			}
+			graphicsFrameOverlay.setScale(new Vector3f(frame.getCellScaleX(), frame.getCellScaleY(), 1.0F));
+			return true;
 		}
 
 		@Override
@@ -643,6 +699,9 @@ public class ComputerDialog extends PlayerInput {
 				public void draw() {
 					updateEditorHintOverlay();
 					updateDocsButtonPosition();
+					if(updateGraphicsFrameOverlay()) {
+						return;
+					}
 					activateConsoleFocusIfPending();
 
 					ComputerModule.ComputerMode currentMode = computerModule.getLastMode();
@@ -728,6 +787,12 @@ public class ComputerDialog extends PlayerInput {
 			editorHintsOverlay.setTextSimple("");
 			((GUIDialogWindow) background).attachSuper(editorHintsOverlay);
 
+			graphicsFrameOverlay = new GUITextOverlay(830, TEXT_BOX_HEIGHT, FontLibrary.FontSize.MEDIUM, getState());
+			graphicsFrameOverlay.onInit();
+			graphicsFrameOverlay.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+			graphicsFrameOverlay.setTextSimple("");
+			((GUIDialogWindow) background).attachSuper(graphicsFrameOverlay);
+
 			docsButton = new GUITextButton(getState(), 90, 20, GUITextButton.ColorPalette.OK, "DOCS", getCallback());
 			docsButton.setUserPointer("DOCS");
 			docsButton.setMouseUpdateEnabled(true);
@@ -765,9 +830,11 @@ public class ComputerDialog extends PlayerInput {
 		@Override
 		public void draw() {
 			super.draw();
+			if(!hasGraphicsFrame()) {
+				clampCaretToEditableRegion();
+				scrollPaneToCursor();
+			}
 			updateDocsButtonPosition();
-			clampCaretToEditableRegion();
-			scrollPaneToCursor();
 		}
 	}
 }
