@@ -21,6 +21,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ComputerModuleContainer extends SystemModule {
 
+	// Serializer version intentionally unchanged: gfx backend/scale state is runtime-only
+	// for now and not persisted in module tags until the canvas path is fully stabilized.
 	private final byte VERSION = 2;
 	private static final Set<ComputerModuleContainer> ACTIVE_CONTAINERS = ConcurrentHashMap.newKeySet();
 	private final Long2ObjectOpenHashMap<ComputerModule> computerModules = new Long2ObjectOpenHashMap<>();
