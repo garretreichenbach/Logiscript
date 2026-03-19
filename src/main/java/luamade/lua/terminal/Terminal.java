@@ -496,12 +496,10 @@ public class Terminal extends LuaMadeUserdata {
 		globals.set("termRaw", this);
 		globals.set("net", module.getNetworkInterface());
 		globals.set("peripheral", new PeripheralsApi(module));
-		globals.set("gfx", new TextGraphicsApi(console));
 		globals.set("input", module.getInputApi());
 		globals.set("shell", createShellCompatibilityApi());
 
 		LuaTable utilLibrary = loadBuiltinLibrary(globals, "scripts/lib/util.lua", "util");
-		LuaTable vectorLibrary = loadBuiltinLibrary(globals, "scripts/lib/vector.lua", "vector");
 
 		UtilApi nativeUtil = new UtilApi();
 		if(utilLibrary != null) {
@@ -510,11 +508,6 @@ public class Terminal extends LuaMadeUserdata {
 		} else {
 			globals.set("util", nativeUtil);
 		}
-
-		if(vectorLibrary == null) {
-			globals.set("vector", new LuaTable());
-		}
-		
 		return globals;
 	}
 

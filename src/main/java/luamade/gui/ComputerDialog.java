@@ -2,19 +2,13 @@ package luamade.gui;
 
 import api.common.GameClient;
 import api.utils.gui.GUIInputDialogPanel;
-import luamade.lua.Console;
 import luamade.manager.ConfigManager;
 import luamade.system.module.ComputerModule;
-import org.lwjgl.opengl.GL11;
-import org.newdawn.slick.Color;
-import org.newdawn.slick.SlickException;
-import org.newdawn.slick.UnicodeFont;
 import org.schema.game.client.controller.PlayerInput;
 import org.schema.schine.common.TabCallback;
 import org.schema.schine.common.TextAreaInput;
 import org.schema.schine.common.TextCallback;
 import org.schema.schine.graphicsengine.core.GLFW;
-import org.schema.schine.graphicsengine.core.GlUtil;
 import org.schema.schine.graphicsengine.core.MouseEvent;
 import org.schema.schine.graphicsengine.forms.font.FontLibrary;
 import org.schema.schine.graphicsengine.forms.gui.*;
@@ -22,13 +16,8 @@ import org.schema.schine.graphicsengine.forms.gui.newgui.GUIActivatableTextBar;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIContentPane;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIDialogWindow;
 import org.schema.schine.input.InputState;
-import org.schema.schine.network.client.ClientStateInterface;
 
-import javax.vecmath.Vector3f;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 
 public class ComputerDialog extends PlayerInput {
@@ -89,38 +78,21 @@ public class ComputerDialog extends PlayerInput {
 	@Override
 	public void handleMouseEvent(MouseEvent mouseEvent) {
 		if(computerModule == null) return;
-		int cellX = -1;
-		int cellY = -1;
-		if(computerPanel != null) {
-			int[] mapped = computerPanel.mapMouseToCanvasCell(mouseEvent.x, mouseEvent.y);
-			if(mapped != null) {
-				cellX = mapped[0];
-				cellY = mapped[1];
-			}
-		}
-		// Determine which button triggered this event (-1 = move/scroll only)
 		int button = mouseEvent.button;
 		boolean pressed = mouseEvent.state;
-		// Only report actual button events (button >= 0) or scroll (dWheel != 0)
 		if(button >= 0 || mouseEvent.dWheel != 0) {
-			computerModule.getInputApi().pushMouseEvent(button, pressed, mouseEvent.x, mouseEvent.y, mouseEvent.dx, mouseEvent.dy, mouseEvent.dWheel, cellX, cellY);
+			computerModule.getInputApi().pushMouseEvent(button, pressed, mouseEvent.x, mouseEvent.y, mouseEvent.dx, mouseEvent.dy, mouseEvent.dWheel, -1, -1);
 		}
 	}
 
 	@Override
 	public void onDeactivate() {
-		// Clear the active panel reference so the event listener stops intercepting
 		if(activePanel == computerPanel) {
 			activePanel = null;
 		}
 		if(computerPanel != null) {
-			computerPanel.disposeCanvasOverlays();
-		}
-		// Save current input when closing the dialog
-		if(computerPanel != null) {
 			computerPanel.saveCurrentInput();
 		}
-		// Discard any pending input events so they don't bleed into the next session
 		if(computerModule != null) {
 			computerModule.getInputApi().clear();
 		}
@@ -137,12 +109,8 @@ public class ComputerDialog extends PlayerInput {
 		private static final int TEXT_BOX_HEIGHT = 500;
 		/** Pixels reserved at the bottom for the editor hint bar overlay. */
 		private static final int EDITOR_HINT_RESERVE_PX = 36;
-		private static final float CANVAS_PADDING_X = 8.0F;
-		private static final float CANVAS_PADDING_Y = 8.0F;
 
 		private final ComputerModule computerModule;
-		private final List<CanvasGraphicsOverlay> graphicsFrameOverlays = new ArrayList<>();
-		private final List<CanvasOverlayState> activeCanvasOverlayStates = new ArrayList<>();
 		private GUIScrollablePanel consolePanel;
 		private GUIActivatableTextBar consolePane;
 		private String currentInputLine = "";
@@ -157,7 +125,6 @@ public class ComputerDialog extends PlayerInput {
 		private GUITextOverlay editorHintsOverlay;
 		private GUITextButton docsButton;
 		private String lastEditorHintText = "";
-		private long lastGraphicsFrameRevision = -1L;
 		/** Reference to the content pane so we can adjust text-box height dynamically. */
 		private GUIContentPane mainContentPane;
 		/**
@@ -189,10 +156,6 @@ public class ComputerDialog extends PlayerInput {
 			if(computerModule != null) {
 				computerModule.setSavedTerminalInput(currentInputLine);
 			}
-		}
-
-		public void disposeCanvasOverlays() {
-			shrinkGraphicsOverlayCount(0);
 		}
 
 		public void requestConsoleFocus() {
@@ -258,7 +221,6 @@ public class ComputerDialog extends PlayerInput {
 			userIsTyping = false;
 			lastAutoScrollCursorLine = -1;
 			lastAutoScrollTotalLines = -1;
-			// Restore full text-box height when returning to terminal mode.
 			if(mainContentPane != null) {
 				mainContentPane.setTextBoxHeightLast(TEXT_BOX_HEIGHT);
 			}
@@ -390,7 +352,6 @@ public class ComputerDialog extends PlayerInput {
 			int currentCarrier = textArea.getChatCarrier();
 			if(currentCarrier < promptStartPosition) {
 				textArea.setChatCarrier(promptStartPosition);
-				// Force bufferChanged so update() actually refreshes cacheCarrier
 				textArea.setBufferChanged();
 			}
 		}
@@ -408,9 +369,9 @@ public class ComputerDialog extends PlayerInput {
 			try {
 				Field backgroundField = GUIActivatableTextBar.class.getDeclaredField("background");
 				backgroundField.setAccessible(true);
-				Object background = backgroundField.get(consolePane);
-				if(background instanceof GUIScrollablePanel) {
-					textBarScrollPanel = (GUIScrollablePanel) background;
+				Object bg = backgroundField.get(consolePane);
+				if(bg instanceof GUIScrollablePanel) {
+					textBarScrollPanel = (GUIScrollablePanel) bg;
 				}
 			} catch(Exception ignored) {
 				textBarScrollPanel = null;
@@ -437,8 +398,6 @@ public class ComputerDialog extends PlayerInput {
 			int totalLines = Math.max(1, textArea.getLineIndex() + 1);
 			int cursorLine = Math.max(0, textArea.getCarrierLineIndex());
 
-			// Only force-scroll when cursor/content layout changed.
-			// This prevents per-frame overrides that cause scrollbar jitter.
 			if(cursorLine == lastAutoScrollCursorLine && totalLines == lastAutoScrollTotalLines) {
 				return;
 			}
@@ -456,7 +415,6 @@ public class ComputerDialog extends PlayerInput {
 
 		private void handleHistoryUp() {
 			if(computerModule == null || computerModule.getTerminal() == null) return;
-			// Save current input before navigating away for the first time
 			computerModule.getTerminal().setCurrentInput(currentInputLine);
 			String command = computerModule.getTerminal().getPreviousCommand();
 			setHistoryCommand(command);
@@ -472,10 +430,8 @@ public class ComputerDialog extends PlayerInput {
 			if(command == null) command = "";
 			currentInputLine = command;
 			userIsTyping = !command.isEmpty();
-			// Use setTextWithoutCallback to avoid the guard restoring old content
 			consolePane.setTextWithoutCallback(lastModuleContent + command);
 			refreshPromptStartPositionFromCurrentText();
-			// Move caret to end of the newly set text
 			TextAreaInput textArea = consolePane.getTextArea();
 			if(textArea != null) {
 				textArea.setChatCarrier(textArea.getCache().length());
@@ -489,7 +445,6 @@ public class ComputerDialog extends PlayerInput {
 			if(consolePane == null) return;
 			TextAreaInput textArea = consolePane.getTextArea();
 			if(textArea == null) return;
-			// Only allow moving left if we stay within the editable region
 			if(textArea.getChatCarrier() > promptStartPosition) {
 				textArea.chatKeyLeft();
 			}
@@ -522,9 +477,6 @@ public class ComputerDialog extends PlayerInput {
 		 * Called from EventManager's KeyPressEvent listener.
 		 */
 		public void handleNavigationKey(int glfwKey) {
-			if(hasGraphicsFrame()) {
-				return;
-			}
 			switch(glfwKey) {
 				case GLFW.GLFW_KEY_UP:
 					handleHistoryUp();
@@ -554,180 +506,24 @@ public class ComputerDialog extends PlayerInput {
 			if(isFileEditMode()) {
 				return;
 			}
-			if(hasGraphicsFrame()) {
-				return;
-			}
 
 			if(computerModule != null && computerModule.getTerminal() != null) {
-				// Save the input before clearing it
 				String inputToExecute = currentInputLine;
 				currentInputLine = "";
 
-				// Execute the command
 				computerModule.getTerminal().handleInput(inputToExecute);
-
-				// Save empty input since command is executed
 				computerModule.setSavedTerminalInput("");
 
-				// Reset typing flag and force UI update to show command output
 				userIsTyping = false;
 
-				// Update the display immediately with the new terminal content.
-				// Use setTextWithoutCallback so the guard in onInputChangedCallback
-				// does not fire during the intermediate area.clear() step inside
-				// setText(), which would cause a double-prompt by re-injecting the
-				// old content before the new content is appended.
 				String newContent = computerModule.getLastTextContent();
 				lastModuleContent = newContent;
 				consolePane.setTextWithoutCallback(newContent);
-				// Manually sync state since the callback won't fire.
 				currentInputLine = "";
 				userIsTyping = false;
 				refreshPromptStartPositionFromCurrentText();
 				scrollPaneToCursor();
 			}
-		}
-
-		private Console.GraphicsFrame getActiveCanvasFrame() {
-			if(computerModule == null || computerModule.getConsole() == null) {
-				return null;
-			}
-			Console.GraphicsFrame frame = computerModule.getConsole().getGraphicsFrame();
-			if(frame == null || frame.getBackend() != Console.GraphicsFrame.RenderBackend.CANVAS) {
-				return null;
-			}
-			return frame;
-		}
-
-		private boolean hasGraphicsFrame() {
-			return getActiveCanvasFrame() != null;
-		}
-
-		public int[] mapMouseToCanvasCell(int mouseX, int mouseY) {
-			Console.GraphicsFrame frame = getActiveCanvasFrame();
-			if(frame == null || activeCanvasOverlayStates.isEmpty()) {
-				return null;
-			}
-
-			int baseCharWidth = Math.max(1, FontLibrary.getMetrics(FontLibrary.FontSize.MEDIUM.getFont()).stringWidth("W"));
-			int baseCharHeight = Math.max(1, FontLibrary.FontSize.MEDIUM.getFont().getLineHeight());
-
-			for(int layerIndex = activeCanvasOverlayStates.size() - 1; layerIndex >= 0; layerIndex--) {
-				CanvasOverlayState layerState = activeCanvasOverlayStates.get(layerIndex);
-				float cellWidthPx = Math.max(1.0F, baseCharWidth * layerState.scaleX);
-				float cellHeightPx = Math.max(1.0F, baseCharHeight * layerState.scaleY);
-				float localX = mouseX - layerState.originX;
-				float localY = mouseY - layerState.originY;
-				if(localX < 0 || localY < 0) {
-					continue;
-				}
-
-				int cellX = (int) Math.floor(localX / cellWidthPx) + 1;
-				int cellY = (int) Math.floor(localY / cellHeightPx) + 1;
-				if(cellX < 1 || cellY < 1 || cellX > frame.getWidth() || cellY > frame.getHeight()) {
-					continue;
-				}
-
-				if(layerState.isOpaqueAt(frame.getWidth(), cellX, cellY)) {
-					return new int[]{cellX, cellY};
-				}
-			}
-
-			return null;
-		}
-
-		private void hideGraphicsOverlay() {
-			shrinkGraphicsOverlayCount(0);
-			activeCanvasOverlayStates.clear();
-			lastGraphicsFrameRevision = -1L;
-		}
-
-		private GUIDialogWindow getDialogWindow() {
-			return background instanceof GUIDialogWindow ? (GUIDialogWindow) background : null;
-		}
-
-		private void shrinkGraphicsOverlayCount(int requiredCount) {
-			int targetCount = Math.max(0, requiredCount);
-			GUIDialogWindow window = getDialogWindow();
-			while(graphicsFrameOverlays.size() > targetCount) {
-				CanvasGraphicsOverlay overlay = graphicsFrameOverlays.remove(graphicsFrameOverlays.size() - 1);
-				if(window != null) {
-					window.detachSuper(overlay);
-				}
-				overlay.cleanUp();
-			}
-			while(activeCanvasOverlayStates.size() > targetCount) {
-				activeCanvasOverlayStates.remove(activeCanvasOverlayStates.size() - 1);
-			}
-		}
-
-		private void ensureGraphicsOverlayCount(int requiredCount) {
-			if(requiredCount <= 0 || background == null) {
-				return;
-			}
-
-			GUIDialogWindow window = getDialogWindow();
-			if(window == null) {
-				return;
-			}
-			while(graphicsFrameOverlays.size() < requiredCount) {
-				CanvasGraphicsOverlay overlay = new CanvasGraphicsOverlay(830, TEXT_BOX_HEIGHT);
-				overlay.onInit();
-				overlay.clearLayer();
-				window.attachSuper(overlay);
-				graphicsFrameOverlays.add(overlay);
-			}
-		}
-
-		private boolean updateGraphicsFrameOverlay() {
-			if(isFileEditMode() || computerModule == null || computerModule.getConsole() == null) {
-				hideGraphicsOverlay();
-				return false;
-			}
-
-			Console.GraphicsFrame frame = getActiveCanvasFrame();
-			if(frame == null) {
-				hideGraphicsOverlay();
-				return false;
-			}
-
-			List<Console.GraphicsFrame.GraphicsLayer> layers = frame.getLayers();
-			if(layers == null || layers.isEmpty()) {
-				hideGraphicsOverlay();
-				return false;
-			}
-			ensureGraphicsOverlayCount(layers.size());
-			shrinkGraphicsOverlayCount(layers.size());
-
-			long revision = computerModule.getConsole().getGraphicsFrameRevision();
-			if(revision != lastGraphicsFrameRevision) {
-				activeCanvasOverlayStates.clear();
-				for(int i = 0; i < layers.size(); i++) {
-					Console.GraphicsFrame.GraphicsLayer layer = layers.get(i);
-					String layerText = layer.getText();
-					if(frame.isAnsiEnabled()) {
-						layerText = stripAnsi(layerText);
-					}
-					CanvasGraphicsOverlay overlay = graphicsFrameOverlays.get(i);
-					overlay.setLayerData(frame.getWidth(), frame.getHeight(), layer.getCodePoints(), layer.getForegroundColors(), layer.getBackgroundColors(), layerText == null ? "" : layerText);
-					activeCanvasOverlayStates.add(new CanvasOverlayState(layer.getName(), layer.getCellScaleX(), layer.getCellScaleY(), layer.getCodePoints(), layer.getBackgroundColors()));
-				}
-				lastGraphicsFrameRevision = revision;
-			}
-
-			if(consolePane != null) {
-				float originX = consolePane.getPos().x + CANVAS_PADDING_X;
-				float originY = consolePane.getPos().y + CANVAS_PADDING_Y;
-				for(int i = 0; i < activeCanvasOverlayStates.size(); i++) {
-					CanvasOverlayState layerState = activeCanvasOverlayStates.get(i);
-					layerState.originX = originX;
-					layerState.originY = originY;
-					CanvasGraphicsOverlay overlay = graphicsFrameOverlays.get(i);
-					overlay.setPos(originX, originY, 0.0F);
-					overlay.setScale(new Vector3f(layerState.scaleX, layerState.scaleY, 1.0F));
-				}
-			}
-			return true;
 		}
 
 		@Override
@@ -754,19 +550,15 @@ public class ComputerDialog extends PlayerInput {
 
 				@Override
 				public void onFailedTextCheck(String s) {
-
 				}
 
 				@Override
 				public void onTextEnter(String input, boolean b, boolean b1) {
-					// This is called when Enter is pressed
-					// Send the current input line to the terminal
 					executeCurrentInput();
 				}
 
 				@Override
 				public void newLine() {
-					// Called when a new line is created
 					executeCurrentInput();
 				}
 			}, input -> {
@@ -775,37 +567,29 @@ public class ComputerDialog extends PlayerInput {
 					return input;
 				}
 
-				// Guard: prevent deletion of protected console output / prompt
 				if(input != null && lastModuleContent != null && !lastModuleContent.isEmpty()) {
 					if(!input.startsWith(lastModuleContent)) {
-						// User deleted into protected territory – restore it
 						return lastModuleContent + currentInputLine;
 					}
 				}
 
-				// The input parameter contains the new text content
-				// We need to extract just the current line being typed
 				if(input != null) {
 					String[] lines = input.split("\n");
 					if(lines.length > 0) {
 						String lastLine = lines[lines.length - 1];
-						// Extract input after the final prompt marker (supports name:path $ prompt)
 						int promptIndex = lastLine.lastIndexOf(PROMPT_MARKER);
 						if(promptIndex != -1) {
-							// Calculate the absolute position of the prompt in the full text
 							int lineStartPos = 0;
 							for(int i = 0; i < lines.length - 1; i++) {
-								lineStartPos += lines[i].length() + 1; // +1 for newline
+								lineStartPos += lines[i].length() + 1;
 							}
 							promptStartPosition = lineStartPos + promptIndex + PROMPT_MARKER.length();
 
 							if(lastLine.length() > promptIndex + PROMPT_MARKER.length()) {
 								currentInputLine = lastLine.substring(promptIndex + PROMPT_MARKER.length());
-								// Mark that user is actively typing only when there's actual input
 								userIsTyping = true;
 							} else {
 								currentInputLine = "";
-								// No user input, allow syncing from module
 								userIsTyping = false;
 							}
 						} else {
@@ -815,7 +599,6 @@ public class ComputerDialog extends PlayerInput {
 					}
 				}
 
-				// Clamp caret immediately after input parsing to prevent movement into prompt
 				clampCaretToEditableRegion();
 
 				return input;
@@ -824,15 +607,11 @@ public class ComputerDialog extends PlayerInput {
 				public void draw() {
 					updateEditorHintOverlay();
 					updateDocsButtonPosition();
-					if(updateGraphicsFrameOverlay()) {
-						return;
-					}
 					activateConsoleFocusIfPending();
 
 					ComputerModule.ComputerMode currentMode = computerModule.getLastMode();
 					if(renderedMode != currentMode) {
 						renderedMode = currentMode;
-						// Reset cursor tracker so initial scroll-to-cursor fires on mode entry.
 						lastAutoScrollCursorLine = -1;
 						lastAutoScrollTotalLines = -1;
 						String modeContent = computerModule.getLastTextContent();
@@ -841,7 +620,6 @@ public class ComputerDialog extends PlayerInput {
 						if(isFileEditMode()) {
 							userIsTyping = true;
 							currentInputLine = "";
-							// Shrink text area so bottom lines don't render behind the hint overlay.
 							if(mainContentPane != null) {
 								mainContentPane.setTextBoxHeightLast(TEXT_BOX_HEIGHT - EDITOR_HINT_RESERVE_PX);
 							}
@@ -849,7 +627,6 @@ public class ComputerDialog extends PlayerInput {
 							userIsTyping = false;
 							refreshPromptStartPositionFromCurrentText();
 							requestConsoleFocus();
-							// Restore full height in terminal mode (no hint overlay).
 							if(mainContentPane != null) {
 								mainContentPane.setTextBoxHeightLast(TEXT_BOX_HEIGHT);
 							}
@@ -862,20 +639,14 @@ public class ComputerDialog extends PlayerInput {
 						return;
 					}
 
-					// Save current input line to module for persistence (only when it changes)
 					if(!currentInputLine.equals(lastSavedInput)) {
 						computerModule.setSavedTerminalInput(currentInputLine);
 						lastSavedInput = currentInputLine;
 					}
 
-					// Only update text from module when user is not typing and module content has changed
-					// This prevents user input from being overwritten while typing
 					if(!userIsTyping) {
 						String moduleContent = computerModule.getLastTextContent();
 						if(!Objects.equals(lastModuleContent, moduleContent)) {
-							// Use setTextWithoutCallback – setText internally calls area.clear()
-							// which fires onInputChanged(""), causing the guard to re-inject the
-							// old content before append() adds the new content (double prompt).
 							lastModuleContent = moduleContent;
 							setTextWithoutCallback(moduleContent);
 							currentInputLine = "";
@@ -899,7 +670,6 @@ public class ComputerDialog extends PlayerInput {
 
 				@Override
 				public void onEnter() {
-					// Also handle Enter key press here
 					executeCurrentInput();
 				}
 			};
@@ -912,8 +682,6 @@ public class ComputerDialog extends PlayerInput {
 			editorHintsOverlay.setColor(0.8F, 0.8F, 0.8F, 1.0F);
 			editorHintsOverlay.setTextSimple("");
 			((GUIDialogWindow) background).attachSuper(editorHintsOverlay);
-
-			ensureGraphicsOverlayCount(1);
 
 			docsButton = new GUITextButton(getState(), 90, 20, GUITextButton.ColorPalette.OK, "DOCS", getCallback());
 			docsButton.setUserPointer("DOCS");
@@ -930,7 +698,6 @@ public class ComputerDialog extends PlayerInput {
 				currentInputLine = "";
 				userIsTyping = true;
 			} else {
-				// Restore saved terminal input if available
 				String savedInput = computerModule.getSavedTerminalInput();
 				if(savedInput != null && !savedInput.isEmpty()) {
 					initialContent = initialContent + savedInput;
@@ -951,251 +718,9 @@ public class ComputerDialog extends PlayerInput {
 		@Override
 		public void draw() {
 			super.draw();
-			if(!hasGraphicsFrame()) {
-				clampCaretToEditableRegion();
-				scrollPaneToCursor();
-			}
+			clampCaretToEditableRegion();
+			scrollPaneToCursor();
 			updateDocsButtonPosition();
-		}
-
-		private static final class CanvasGraphicsOverlay extends GUIDrawToTextureOverlay {
-			private static final int ANSI_DEFAULT = -1;
-			private final UnicodeFont font;
-			private int frameWidth;
-			private int frameHeight;
-			private int[] codePoints = new int[0];
-			private int[] foregroundColors = new int[0];
-			private int[] backgroundColors = new int[0];
-			private String glyphText = "";
-			private boolean glyphsDirty;
-
-			private CanvasGraphicsOverlay(int width, int height) {
-				super(width, height, GameClient.getClientState());
-				font = FontLibrary.getCourierNew12White();
-			}
-
-			private void clearLayer() {
-				setLayerData(0, 0, new int[0], new int[0], new int[0], "");
-			}
-
-			private void setLayerData(int frameWidth, int frameHeight, int[] codePoints, int[] foregroundColors, int[] backgroundColors, String glyphText) {
-				this.frameWidth = Math.max(0, frameWidth);
-				this.frameHeight = Math.max(0, frameHeight);
-				int cellCount = this.frameWidth * this.frameHeight;
-				this.codePoints = normalizeIntArray(codePoints, cellCount, ' ');
-				this.foregroundColors = normalizeIntArray(foregroundColors, cellCount, ANSI_DEFAULT);
-				this.backgroundColors = normalizeIntArray(backgroundColors, cellCount, ANSI_DEFAULT);
-				String nextGlyphText = glyphText == null ? "" : glyphText;
-				if(!Objects.equals(this.glyphText, nextGlyphText)) {
-					this.glyphText = nextGlyphText;
-					glyphsDirty = true;
-				}
-			}
-
-			private int[] normalizeIntArray(int[] source, int size, int fill) {
-				if(size <= 0) {
-					return new int[0];
-				}
-				int[] normalized = new int[size];
-				Arrays.fill(normalized, fill);
-				if(source != null && source.length > 0) {
-					System.arraycopy(source, 0, normalized, 0, Math.min(source.length, size));
-				}
-				return normalized;
-			}
-
-			private void ensureGlyphsLoaded() {
-				if(!glyphsDirty || glyphText == null || glyphText.isEmpty()) {
-					return;
-				}
-				try {
-					font.addGlyphs(glyphText);
-					font.loadGlyphs();
-				} catch(SlickException ignored) {
-					// Missing glyphs fall back to Slick replacement glyph.
-				}
-				glyphsDirty = false;
-			}
-
-			@Override
-			public void cleanUp() {
-				if(sprite != null && sprite.getMaterial() != null && sprite.getMaterial().getTexture() != null) {
-					sprite.getMaterial().getTexture().cleanUp();
-					sprite.getMaterial().setTexture(null);
-				}
-			}
-
-			@Override
-			public void updateGUI(ClientStateInterface state) {
-				if(sprite == null || sprite.getMaterial() == null || sprite.getMaterial().getTexture() == null) {
-					onInit();
-				}
-
-				GL11.glViewport(0, 0, texWidth, texHeight);
-
-				GlUtil.glPushMatrix();
-				GlUtil.glLoadIdentity();
-				GlUtil.glMatrixMode(GL11.GL_PROJECTION);
-				GlUtil.glDisable(GL11.GL_LIGHTING);
-				GlUtil.glPushMatrix();
-
-				GlUtil.glLoadIdentity();
-				org.lwjgl.util.glu.GLU.gluOrtho2D(0, texWidth, 0, texHeight);
-				GL11.glClearColor(0.0F, 0.0F, 0.0F, 0.0F);
-				GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
-				drawOverlayTexture(state);
-				GlUtil.glEnable(GL11.GL_TEXTURE_2D);
-				GlUtil.glBindTexture(GL11.GL_TEXTURE_2D, sprite.getMaterial().getTexture().getTextureId());
-				GL11.glCopyTexSubImage2D(GL11.GL_TEXTURE_2D, 0, 0, 0, 0, 0, texWidth, texHeight);
-
-				GlUtil.glPopMatrix();
-				GlUtil.glMatrixMode(GL11.GL_MODELVIEW);
-				GlUtil.glEnable(GL11.GL_DEPTH_TEST);
-				GlUtil.glDisable(GL11.GL_TEXTURE_2D);
-				GlUtil.glEnable(GL11.GL_LIGHTING);
-				GlUtil.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-				GlUtil.glPopMatrix();
-				GL11.glClearColor(0, 0, 0, 0);
-				GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
-				GL11.glViewport(org.schema.schine.graphicsengine.core.Controller.viewport.get(0), org.schema.schine.graphicsengine.core.Controller.viewport.get(1), org.schema.schine.graphicsengine.core.Controller.viewport.get(2), org.schema.schine.graphicsengine.core.Controller.viewport.get(3));
-			}
-
-			@Override
-			public void drawOverlayTexture(ClientStateInterface state) {
-				GL11.glClearColor(0.0F, 0.0F, 0.0F, 0.0F);
-				GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
-				if(frameWidth <= 0 || frameHeight <= 0 || codePoints.length == 0) {
-					return;
-				}
-
-				ensureGlyphsLoaded();
-
-				float cellWidth = Math.max(1.0F, FontLibrary.getMetrics(font).stringWidth("W"));
-				float cellHeight = Math.max(1.0F, font.getLineHeight());
-				float drawHeight = frameHeight * cellHeight;
-				float topY = Math.max(0.0F, texHeight - drawHeight);
-
-				GlUtil.glEnable(GL11.GL_BLEND);
-				GlUtil.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-				GlUtil.glDisable(GL11.GL_LIGHTING);
-				GlUtil.glDisable(GL11.GL_DEPTH_TEST);
-				GlUtil.glDisable(GL11.GL_TEXTURE_2D);
-
-				for(int y = 0; y < frameHeight; y++) {
-					for(int x = 0; x < frameWidth; x++) {
-						int index = (y * frameWidth) + x;
-						int bg = index < backgroundColors.length ? backgroundColors[index] : ANSI_DEFAULT;
-						if(bg < 0) {
-							continue;
-						}
-						float[] bgColor = ansiToRgba(bg, false);
-						float x0 = x * cellWidth;
-						float y0 = topY + ((frameHeight - 1 - y) * cellHeight);
-						GlUtil.glColor4f(bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
-						GL11.glBegin(GL11.GL_QUADS);
-						GL11.glVertex2f(x0, y0);
-						GL11.glVertex2f(x0 + cellWidth, y0);
-						GL11.glVertex2f(x0 + cellWidth, y0 + cellHeight);
-						GL11.glVertex2f(x0, y0 + cellHeight);
-						GL11.glEnd();
-					}
-				}
-
-				GlUtil.glEnable(GL11.GL_TEXTURE_2D);
-				for(int y = 0; y < frameHeight; y++) {
-					for(int x = 0; x < frameWidth; x++) {
-						int index = (y * frameWidth) + x;
-						int cp = index < codePoints.length ? codePoints[index] : ' ';
-						if(cp == ' ') {
-							continue;
-						}
-						int fg = index < foregroundColors.length ? foregroundColors[index] : ANSI_DEFAULT;
-						float[] fgColor = ansiToRgba(fg, true);
-						String glyph;
-						try {
-							glyph = new String(Character.toChars(cp));
-						} catch(IllegalArgumentException ignored) {
-							glyph = "?";
-						}
-						float drawX = x * cellWidth;
-						float drawY = topY + ((frameHeight - 1 - y) * cellHeight);
-						font.drawDisplayList(drawX, drawY, glyph, new Color(fgColor[0], fgColor[1], fgColor[2], fgColor[3]), 0, glyph.length());
-					}
-				}
-
-				GlUtil.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-				GlUtil.glDisable(GL11.GL_BLEND);
-			}
-
-			private float[] ansiToRgba(int ansiColor, boolean foreground) {
-				if(ansiColor < 0) {
-					return foreground ? new float[]{1.0F, 1.0F, 1.0F, 1.0F} : new float[]{0.0F, 0.0F, 0.0F, 0.0F};
-				}
-
-				int[][] basic = {{0, 0, 0}, {205, 49, 49}, {13, 188, 121}, {229, 229, 16}, {36, 114, 200}, {188, 63, 188}, {17, 168, 205}, {229, 229, 229}, {102, 102, 102}, {241, 76, 76}, {35, 209, 139}, {245, 245, 67}, {59, 142, 234}, {214, 112, 214}, {41, 184, 219}, {255, 255, 255}};
-
-				int r;
-				int g;
-				int b;
-				if(ansiColor <= 15) {
-					r = basic[ansiColor][0];
-					g = basic[ansiColor][1];
-					b = basic[ansiColor][2];
-				} else if(ansiColor <= 231) {
-					int index = ansiColor - 16;
-					int rIndex = index / 36;
-					int gIndex = (index % 36) / 6;
-					int bIndex = index % 6;
-					r = toCubeColor(rIndex);
-					g = toCubeColor(gIndex);
-					b = toCubeColor(bIndex);
-				} else {
-					int gray = 8 + ((ansiColor - 232) * 10);
-					r = gray;
-					g = gray;
-					b = gray;
-				}
-
-				return new float[]{r / 255.0F, g / 255.0F, b / 255.0F, 1.0F};
-			}
-
-			private int toCubeColor(int value) {
-				if(value <= 0) {
-					return 0;
-				}
-				return 55 + (value * 40);
-			}
-		}
-
-		private static final class CanvasOverlayState {
-			private final float scaleX;
-			private final float scaleY;
-			private final int[] codePoints;
-			private final int[] backgroundColors;
-			private float originX;
-			private float originY;
-
-			private CanvasOverlayState(String name, float scaleX, float scaleY, int[] codePoints, int[] backgroundColors) {
-				this.scaleX = Math.max(0.1F, scaleX);
-				this.scaleY = Math.max(0.1F, scaleY);
-				this.codePoints = codePoints == null ? new int[0] : codePoints;
-				this.backgroundColors = backgroundColors == null ? new int[0] : backgroundColors;
-			}
-
-			private boolean isOpaqueAt(int frameWidth, int cellX, int cellY) {
-				if(frameWidth <= 0 || cellX <= 0 || cellY <= 0) {
-					return false;
-				}
-				int index = (cellY - 1) * frameWidth + (cellX - 1);
-				if(index < 0 || index >= codePoints.length) {
-					return false;
-				}
-				int cp = codePoints[index];
-				if(cp != ' ') {
-					return true;
-				}
-				return index < backgroundColors.length && backgroundColors[index] >= 0;
-			}
 		}
 	}
 }

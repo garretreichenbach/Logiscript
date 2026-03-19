@@ -1,8 +1,8 @@
 # Graphics Documentation
 
-Graphics APIs for terminal and display rendering.
-Includes the `gfx` text canvas backend with colors, scaling, and overlay layering.
+> **Note:** The graphics system is currently not available. A new Screen Block with
+> worldspace rendering is planned — see `SCREEN_BLOCK_PLAN.md` for the roadmap.
 
-## Contents
+## Planned Contents
 
-- **text-graphics.md** - Text graphics canvas API (`gfx`) with colors, scaling, backends, and layers
+- **Screen Block** - Multi-block worldspace displays scriptable via Lua, similar to ComputerCraft monitors.

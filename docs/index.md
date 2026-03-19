@@ -13,12 +13,6 @@ markdown/core/terminal-api
 markdown/core/util
 ```
 
-```{toctree}
-:maxdepth: 2
-:caption: Graphics
-
-markdown/graphics/text-graphics
-```
 
 ```{toctree}
 :maxdepth: 2

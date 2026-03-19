@@ -124,9 +124,6 @@ public final class ConfigManager {
 		return clampInt(intOrDefault(webFetchMaxBytes, 131072), 1024, 1048576);
 	}
 
-	public static boolean isGfxCanvasBackendEnabled() {
-		return boolOrDefault(gfxCanvasBackendEnabled, true);
-	}
 
 	public static Set<String> getTrustedWebDomains() {
 		return new LinkedHashSet<>(trustedWebDomainsCache);

@@ -8,11 +8,6 @@ import luamade.system.module.ComputerModule;
 import org.luaj.vm2.Varargs;
 import org.schema.game.common.data.SegmentPiece;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 public class Console extends LuaMadeUserdata {
 
 	private final ComputerModule module;
@@ -21,16 +16,10 @@ public class Console extends LuaMadeUserdata {
 	private static final float TRIM_TRIGGER_RATIO = 0.90F;
 	private static final float TRIM_TARGET_RATIO = 0.75F;
 	private StringBuilder textContents = new StringBuilder();
-	private GraphicsFrame graphicsFrame;
-	private long graphicsFrameRevision;
 	private final int[] cursorPos = {0, 0};
 
 	@LuaMadeCallable
 	public synchronized void print(Varargs vargs) {
-		if(graphicsFrame != null) {
-			graphicsFrame = null;
-			graphicsFrameRevision++;
-		}
 		textContents.append(vargs.arg(1).toString()).append("\n");
 		trimScrollbackIfNeeded();
 	}
@@ -46,28 +35,22 @@ public class Console extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public Block getBlock() {
-		return Block.wrap(module.getSegmentPiece()); //Block is basically a wrapper class for SegmentPiece
+		return Block.wrap(module.getSegmentPiece());
 	}
 
 	public synchronized void appendInline(Varargs vargs) {
-		if(graphicsFrame != null) {
-			graphicsFrame = null;
-			graphicsFrameRevision++;
-		}
 		textContents.append(vargs.arg(1).toString());
 		trimScrollbackIfNeeded();
 	}
 
 	public synchronized void clearTextContents() {
 		textContents.setLength(0);
-		graphicsFrame = null;
 		cursorPos[VERTICAL] = 0;
 		cursorPos[HORIZONTAL] = 0;
 	}
 
 	public synchronized void setTextContents(String textContents) {
 		this.textContents = new StringBuilder(textContents);
-		graphicsFrame = null;
 		trimScrollbackIfNeeded();
 		cursorPos[VERTICAL] = getLineNumber();
 		cursorPos[HORIZONTAL] = getLinePos();
@@ -79,177 +62,6 @@ public class Console extends LuaMadeUserdata {
 
 	public synchronized String getTextContents() {
 		return textContents.toString();
-	}
-
-	public synchronized GraphicsFrame getGraphicsFrame() {
-		return graphicsFrame;
-	}
-
-	public synchronized void setGraphicsFrame(GraphicsFrame graphicsFrame) {
-		this.graphicsFrame = graphicsFrame;
-		graphicsFrameRevision++;
-	}
-
-	public synchronized long getGraphicsFrameRevision() {
-		return graphicsFrameRevision;
-	}
-
-	public synchronized void clearGraphicsFrame() {
-		if(graphicsFrame != null) {
-			graphicsFrame = null;
-			graphicsFrameRevision++;
-		}
-	}
-
-	public static class GraphicsFrame {
-		private final RenderBackend backend;
-
-		private final String text;
-		private final int width;
-		private final int height;
-		private final float cellScaleX;
-		private final float cellScaleY;
-		private final boolean ansiEnabled;
-		private final int[] codePoints;
-		private final int[] foregroundColors;
-		private final int[] backgroundColors;
-		private final List<GraphicsLayer> layers;
-		public GraphicsFrame(
-				String text,
-				int width,
-				int height,
-				float cellScaleX,
-				float cellScaleY,
-				boolean ansiEnabled,
-				RenderBackend backend,
-				int[] codePoints,
-				int[] foregroundColors,
-				int[] backgroundColors,
-				List<GraphicsLayer> layers
-		) {
-			this.text = text == null ? "" : text;
-			this.width = width;
-			this.height = height;
-			this.cellScaleX = cellScaleX;
-			this.cellScaleY = cellScaleY;
-			this.ansiEnabled = ansiEnabled;
-			this.backend = backend == null ? RenderBackend.TERMINAL : backend;
-			this.codePoints = codePoints == null ? new int[0] : Arrays.copyOf(codePoints, codePoints.length);
-			this.foregroundColors = foregroundColors == null ? new int[0] : Arrays.copyOf(foregroundColors, foregroundColors.length);
-			this.backgroundColors = backgroundColors == null ? new int[0] : Arrays.copyOf(backgroundColors, backgroundColors.length);
-			if(layers == null || layers.isEmpty()) {
-				List<GraphicsLayer> fallbackLayers = new ArrayList<>(1);
-				fallbackLayers.add(new GraphicsLayer("base", this.text, cellScaleX, cellScaleY, new int[0], new int[0], new int[0]));
-				this.layers = Collections.unmodifiableList(fallbackLayers);
-			} else {
-				this.layers = Collections.unmodifiableList(new ArrayList<>(layers));
-			}
-		}
-
-		public RenderBackend getBackend() {
-			return backend;
-		}
-
-		public String getText() {
-			return text;
-		}
-
-		public int getWidth() {
-			return width;
-		}
-
-		public int getHeight() {
-			return height;
-		}
-
-		public float getCellScaleX() {
-			return cellScaleX;
-		}
-
-		public float getCellScaleY() {
-			return cellScaleY;
-		}
-
-		public boolean isAnsiEnabled() {
-			return ansiEnabled;
-		}
-
-		public int[] getCodePoints() {
-			return Arrays.copyOf(codePoints, codePoints.length);
-		}
-
-		public int[] getForegroundColors() {
-			return Arrays.copyOf(foregroundColors, foregroundColors.length);
-		}
-
-		public int[] getBackgroundColors() {
-			return Arrays.copyOf(backgroundColors, backgroundColors.length);
-		}
-
-		public List<GraphicsLayer> getLayers() {
-			return layers;
-		}
-
-		public static final class GraphicsLayer {
-			private final String name;
-			private final String text;
-			private final float cellScaleX;
-			private final float cellScaleY;
-			private final int[] codePoints;
-			private final int[] foregroundColors;
-			private final int[] backgroundColors;
-
-			public GraphicsLayer(
-					String name,
-					String text,
-					float cellScaleX,
-					float cellScaleY,
-					int[] codePoints,
-					int[] foregroundColors,
-					int[] backgroundColors
-			) {
-				this.name = name == null ? "" : name;
-				this.text = text == null ? "" : text;
-				this.cellScaleX = cellScaleX;
-				this.cellScaleY = cellScaleY;
-				this.codePoints = codePoints == null ? new int[0] : Arrays.copyOf(codePoints, codePoints.length);
-				this.foregroundColors = foregroundColors == null ? new int[0] : Arrays.copyOf(foregroundColors, foregroundColors.length);
-				this.backgroundColors = backgroundColors == null ? new int[0] : Arrays.copyOf(backgroundColors, backgroundColors.length);
-			}
-
-			public String getName() {
-				return name;
-			}
-
-			public String getText() {
-				return text;
-			}
-
-			public float getCellScaleX() {
-				return cellScaleX;
-			}
-
-			public float getCellScaleY() {
-				return cellScaleY;
-			}
-
-			public int[] getCodePoints() {
-				return Arrays.copyOf(codePoints, codePoints.length);
-			}
-
-			public int[] getForegroundColors() {
-				return Arrays.copyOf(foregroundColors, foregroundColors.length);
-			}
-
-			public int[] getBackgroundColors() {
-				return Arrays.copyOf(backgroundColors, backgroundColors.length);
-			}
-		}
-
-		public enum RenderBackend {
-			TERMINAL,
-			CANVAS
-		}
 	}
 
 	private void trimScrollbackIfNeeded() {
