@@ -14,20 +14,20 @@ It renders directly over the terminal text UI and is constrained to the terminal
 
 Layers let scripts separate background, content, and interaction visuals.
 
-- `gfx.setLayer(name)`
-  Sets the active draw layer, creating it if needed.
-- `gfx.createLayer(name, order)`
-  Creates or updates a layer with explicit draw order.
-- `gfx.removeLayer(name)`
-  Removes a layer (except `default`).
+- `gfx.setLayer(name: String)`
+  Sets the active draw layer by name, creating it if it does not exist.
+- `gfx.createLayer(name: String, order: Integer)`
+  Creates or updates a layer with an explicit draw `order`. Lower values render first (behind higher layers).
+- `gfx.removeLayer(name: String)`
+  Removes the named layer and all its draw commands. The `"default"` layer cannot be removed.
 - `gfx.getLayers()`
-  Returns layer names.
-- `gfx.setLayerVisible(name, visible)`
-  Toggles layer rendering.
-- `gfx.clearLayer(name)`
-  Clears one layer.
+  Returns the names of all current layers as a `String[]`.
+- `gfx.setLayerVisible(name: String, visible: Boolean)`
+  Shows (`true`) or hides (`false`) a layer without removing its draw commands.
+- `gfx.clearLayer(name: String)`
+  Discards all draw commands in the named layer.
 - `gfx.clear()`
-  Clears all layers.
+  Discards all draw commands in every layer.
 
 Lower `order` draws first (behind higher layers).
 
@@ -42,11 +42,14 @@ Lower `order` draws first (behind higher layers).
 
 ## Drawing
 
-- `gfx.point(x, y, r, g, b, a)`
-- `gfx.line(x1, y1, x2, y2, r, g, b, a)`
-- `gfx.rect(x, y, width, height, r, g, b, a, filled)`
+- `gfx.point(x: Number, y: Number, r: Number, g: Number, b: Number, a: Number)`
+  Draws a single pixel. Color channels (`r`, `g`, `b`, `a`) are normalized floats in `[0.0, 1.0]`.
 
-Color channels are normalized floats in `[0.0, 1.0]`.
+- `gfx.line(x1: Number, y1: Number, x2: Number, y2: Number, r: Number, g: Number, b: Number, a: Number)`
+  Draws a line from `(x1, y1)` to `(x2, y2)`.
+
+- `gfx.rect(x: Number, y: Number, width: Number, height: Number, r: Number, g: Number, b: Number, a: Number, filled: Boolean)`
+  Draws a rectangle. `filled = true` draws a solid filled rect; `false` draws only the outline.
 
 ## Limits and config
 

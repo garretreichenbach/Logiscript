@@ -5,12 +5,17 @@
 ## Reference
 
 - `getInventoryName()`
+Returns the inventory's custom label as a `String`.
+
 - `getItems()`
-Returns `ItemStack[]` or `nil`.
+Returns `ItemStack[]` for all stored stacks, or `nil` when the inventory is empty.
 
 - `getInventoryVolume()`
+Returns the current volume used by stored items as a `Double`.
+
 - `hasItems()`
+Returns `true` when at least one item stack is present.
 
 ## Notes
 
-- You can obtain this wrapper via `peripheral.wrap(block, "inventory")`.
+- Obtain this wrapper via `peripheral.wrap(block, "inventory")`.

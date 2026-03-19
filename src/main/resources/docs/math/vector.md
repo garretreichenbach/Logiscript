@@ -5,16 +5,36 @@
 ## Reference
 
 - `getX()` / `getY()` / `getZ()`
-- `setX(x)` / `setY(y)` / `setZ(z)`
-- `add(vec)`
-- `sub(vec)`
-- `mul(vec)`
-- `div(vec)`
-- `scale(number)`
+Returns the corresponding integer component.
+
+- `setX(x: Integer)` / `setY(y: Integer)` / `setZ(z: Integer)`
+Sets the corresponding component.
+
+- `add(vec: LuaVec3i)`
+Adds `vec` component-wise. Mutates and returns `self`.
+
+- `sub(vec: LuaVec3i)`
+Subtracts `vec` component-wise. Mutates and returns `self`.
+
+- `mul(vec: LuaVec3i)`
+Multiplies component-wise by `vec`. Mutates and returns `self`.
+
+- `div(vec: LuaVec3i)`
+Divides component-wise by `vec`. Mutates and returns `self`.
+
+- `scale(factor: Number)`
+Multiplies all components by `factor`. Mutates and returns `self`.
+
 - `absolute()`
+Makes all components non-negative. Mutates and returns `self`.
+
 - `negate()`
+Negates all components. Mutates and returns `self`.
+
 - `size()`
+Returns the Euclidean length as a `Double`.
 
 ## Notes
 
-- Most math mutates and returns the same vector instance.
+- All math operations mutate the vector in place and return `self` for chaining.
+- Use `vec3i(x, y, z)` to construct a new vector.
