@@ -33,6 +33,13 @@ markdown/math/vector
 
 ```{toctree}
 :maxdepth: 2
+:caption: Graphics
+
+markdown/graphics/gfx
+```
+
+```{toctree}
+:maxdepth: 2
 :caption: Entities
 
 markdown/entities/entity
