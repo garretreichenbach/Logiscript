@@ -152,6 +152,8 @@ public class ComputerDialog extends PlayerInput {
 		 */
 		private int lastAutoScrollCursorLine = -1;
 		private int lastAutoScrollTotalLines = -1;
+		/** Tracks console text length to follow new output without forcing scroll every frame. */
+		private int lastAutoFollowContentLength = -1;
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
 			super(inputState, "COMPUTER_PANEL", "", "", 850, 650, guiCallback);
@@ -432,6 +434,28 @@ public class ComputerDialog extends PlayerInput {
 			scrollPanel.scrollVerticalPercent(cursorPercent);
 		}
 
+		private void scrollPaneToBottom() {
+			GUIScrollablePanel scrollPanel = resolveTextBarScrollPanel();
+			if(scrollPanel == null) {
+				return;
+			}
+
+			scrollPanel.scrollVerticalPercent(1.0F);
+		}
+
+		private void followOutputIfChanged(String content) {
+			String safeContent = content == null ? "" : content;
+			int length = safeContent.length();
+			if(length == lastAutoFollowContentLength) {
+				return;
+			}
+
+			lastAutoFollowContentLength = length;
+			scrollPaneToBottom();
+			lastAutoScrollCursorLine = -1;
+			lastAutoScrollTotalLines = -1;
+		}
+
 		private void handleHistoryUp() {
 			if(computerModule == null || computerModule.getTerminal() == null) return;
 			computerModule.getTerminal().setCurrentInput(currentInputLine);
@@ -538,6 +562,7 @@ public class ComputerDialog extends PlayerInput {
 				String newContent = computerModule.getLastTextContent();
 				lastModuleContent = newContent;
 				consolePane.setTextWithoutCallback(newContent);
+				followOutputIfChanged(newContent);
 				currentInputLine = "";
 				userIsTyping = false;
 				refreshPromptStartPositionFromCurrentText();
@@ -633,9 +658,11 @@ public class ComputerDialog extends PlayerInput {
 						renderedMode = currentMode;
 						lastAutoScrollCursorLine = -1;
 						lastAutoScrollTotalLines = -1;
+						lastAutoFollowContentLength = -1;
 						String modeContent = computerModule.getLastTextContent();
 						setTextWithoutCallback(modeContent == null ? "" : modeContent);
 						lastModuleContent = modeContent == null ? "" : modeContent;
+						followOutputIfChanged(lastModuleContent);
 						if(isFileEditMode()) {
 							userIsTyping = true;
 							currentInputLine = "";
@@ -668,6 +695,7 @@ public class ComputerDialog extends PlayerInput {
 						if(!Objects.equals(lastModuleContent, moduleContent)) {
 							lastModuleContent = moduleContent;
 							setTextWithoutCallback(moduleContent);
+							followOutputIfChanged(moduleContent);
 							currentInputLine = "";
 							refreshPromptStartPositionFromCurrentText();
 						}
@@ -734,6 +762,7 @@ public class ComputerDialog extends PlayerInput {
 
 			consolePane.setTextWithoutCallback(initialContent);
 			lastModuleContent = computerModule.getLastTextContent();
+			lastAutoFollowContentLength = lastModuleContent == null ? 0 : lastModuleContent.length();
 			renderedMode = computerModule.getLastMode();
 			refreshPromptStartPositionFromCurrentText();
 			scrollPaneToCursor();

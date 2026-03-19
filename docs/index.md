@@ -11,6 +11,7 @@ markdown/core/console
 markdown/core/terminal
 markdown/core/terminal-api
 markdown/core/util
+markdown/core/json
 ```
 
 

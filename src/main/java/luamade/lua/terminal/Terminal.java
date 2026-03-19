@@ -791,11 +791,67 @@ public class Terminal extends LuaMadeUserdata {
 	 */
 	@LuaMadeCallable
 	public void registerCommand(String name, LuaValue callback) {
-		if(name == null || name.isEmpty() || callback == null || !callback.isfunction()) {
+		String normalizedName = normalizeCommandName(name);
+		if(normalizedName == null || callback == null || !callback.isfunction()) {
 			return;
 		}
 
-		commands.put(name, new LuaCommand(name, callback));
+		commands.put(normalizedName, new LuaCommand(normalizedName, callback));
+	}
+
+	@LuaMadeCallable
+	public boolean unregisterCommand(String name) {
+		String normalizedName = normalizeCommandName(name);
+		if(normalizedName == null) {
+			return false;
+		}
+
+		return commands.remove(normalizedName) != null;
+	}
+
+	@LuaMadeCallable
+	public boolean hasCommand(String name) {
+		String normalizedName = normalizeCommandName(name);
+		if(normalizedName == null) {
+			return false;
+		}
+
+		return commands.containsKey(normalizedName);
+	}
+
+	/**
+	 * Wraps an existing command with a Lua callback.
+	 * Callback signature: callback(args, next)
+	 * - args: command arguments string
+	 * - next: function(nextArgs) to invoke original command behavior
+	 */
+	@LuaMadeCallable
+	public boolean wrapCommand(String name, LuaValue callback) {
+		String normalizedName = normalizeCommandName(name);
+		if(normalizedName == null || callback == null || !callback.isfunction()) {
+			return false;
+		}
+
+		Command existing = commands.get(normalizedName);
+		if(existing == null) {
+			return false;
+		}
+
+		commands.put(normalizedName, new LuaWrappedCommand(normalizedName, existing, callback));
+		return true;
+	}
+
+	private String normalizeCommandName(String name) {
+		if(name == null) {
+			return null;
+		}
+
+		String normalized = name.trim();
+		if(normalized.isEmpty() || normalized.contains(" ")) {
+			return null;
+		}
+
+		return normalized;
 	}
 
 	/**
@@ -3175,6 +3231,39 @@ public class Terminal extends LuaMadeUserdata {
 		@Override
 		public void execute(String args) {
 			callback.call(valueOf(args));
+		}
+	}
+
+	private class LuaWrappedCommand extends Command {
+		private final Command original;
+		private final LuaValue wrapper;
+
+		private LuaWrappedCommand(String name, Command original, LuaValue wrapper) {
+			super(name, "Wrapped command");
+			this.original = original;
+			this.wrapper = wrapper;
+		}
+
+		@Override
+		public void execute(String args) {
+			LuaValue next = new OneArgFunction() {
+				@Override
+				public LuaValue call(LuaValue nextArgs) {
+					String effectiveArgs = nextArgs.isnil() ? args : nextArgs.tojstring();
+					original.execute(effectiveArgs);
+					return TRUE;
+				}
+			};
+
+			try {
+				wrapper.call(valueOf(args), next);
+			} catch(LuaError error) {
+				String message = error.getMessage();
+				if(message == null || message.trim().isEmpty()) {
+					message = error.toString();
+				}
+				console.print(valueOf("Lua error in wrapped command '" + getName() + "': " + message));
+			}
 		}
 	}
 

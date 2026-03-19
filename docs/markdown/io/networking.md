@@ -42,6 +42,22 @@ net.sendChannel("ops", "", "hello channel")
 - `receiveLocal(channelName)`
 - `hasLocalMessage(channelName)`
 
+## Entity scope (same ship/station)
+
+- `sendEntity(protocol, message)`
+- `receiveEntity(protocol)`
+- `hasEntityMessage(protocol)`
+
+Delivers protocol messages to other computers on the same entity.
+
+## Computer scope (this computer only)
+
+- `sendComputer(protocol, message)`
+- `receiveComputer(protocol)`
+- `hasComputerMessage(protocol)`
+
+Useful for coordination between foreground commands and background scripts on one computer.
+
 ## Modem (1:1 link)
 
 - `openModem(password)`

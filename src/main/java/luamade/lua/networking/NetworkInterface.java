@@ -19,6 +19,8 @@ public class NetworkInterface extends LuaMadeUserdata {
 	private static final String MAILBOX_DIRECT_PREFIX = "direct:";
 	private static final String MAILBOX_CHANNEL_PREFIX = "channel:";
 	private static final String MAILBOX_LOCAL_PREFIX = "local:";
+	private static final String MAILBOX_ENTITY_PREFIX = "entity:";
+	private static final String MAILBOX_COMPUTER_PREFIX = "computer:";
 	private static final String MAILBOX_MODEM = "modem";
 
 	private final ComputerModule module;
@@ -232,6 +234,77 @@ public class NetworkInterface extends LuaMadeUserdata {
 		return !getOrCreateMailbox(hostname, localMailbox(normalized)).isEmpty();
 	}
 
+	/**
+	 * Sends a protocol message to all other computers on the same entity (ship/station).
+	 */
+	@LuaMadeCallable
+	public boolean sendEntity(String protocol, String message) {
+		if(protocol == null || protocol.isEmpty() || message == null) {
+			return false;
+		}
+
+		String senderEntity = getEntityKey();
+		int delivered = 0;
+		for(NetworkInterface target : networkInterfaces.values()) {
+			if(target == null || target == this) {
+				continue;
+			}
+			if(!senderEntity.equals(target.getEntityKey())) {
+				continue;
+			}
+
+			getOrCreateMailbox(target.hostname, entityMailbox(protocol)).addMessage(new Message(hostname, message, protocol, "entity"));
+			delivered++;
+		}
+		return delivered > 0;
+	}
+
+	@LuaMadeCallable
+	public Message receiveEntity(String protocol) {
+		if(protocol == null || protocol.isEmpty()) {
+			return null;
+		}
+		return getOrCreateMailbox(hostname, entityMailbox(protocol)).getMessage();
+	}
+
+	@LuaMadeCallable
+	public boolean hasEntityMessage(String protocol) {
+		if(protocol == null || protocol.isEmpty()) {
+			return false;
+		}
+		return !getOrCreateMailbox(hostname, entityMailbox(protocol)).isEmpty();
+	}
+
+	/**
+	 * Sends a protocol message to this computer only.
+	 * Useful for foreground/background script coordination.
+	 */
+	@LuaMadeCallable
+	public boolean sendComputer(String protocol, String message) {
+		if(protocol == null || protocol.isEmpty() || message == null) {
+			return false;
+		}
+
+		getOrCreateMailbox(hostname, computerMailbox(protocol)).addMessage(new Message(hostname, message, protocol, "computer"));
+		return true;
+	}
+
+	@LuaMadeCallable
+	public Message receiveComputer(String protocol) {
+		if(protocol == null || protocol.isEmpty()) {
+			return null;
+		}
+		return getOrCreateMailbox(hostname, computerMailbox(protocol)).getMessage();
+	}
+
+	@LuaMadeCallable
+	public boolean hasComputerMessage(String protocol) {
+		if(protocol == null || protocol.isEmpty()) {
+			return false;
+		}
+		return !getOrCreateMailbox(hostname, computerMailbox(protocol)).isEmpty();
+	}
+
 	@LuaMadeCallable
 	public boolean openModem(String password) {
 		ModemConnection activeConnection = modemConnections.get(hostname);
@@ -425,6 +498,14 @@ public class NetworkInterface extends LuaMadeUserdata {
 		return MAILBOX_LOCAL_PREFIX + channelName;
 	}
 
+	private String entityMailbox(String protocol) {
+		return MAILBOX_ENTITY_PREFIX + protocol;
+	}
+
+	private String computerMailbox(String protocol) {
+		return MAILBOX_COMPUTER_PREFIX + protocol;
+	}
+
 	private String normalizeChannelName(String channelName) {
 		if(channelName == null) {
 			return null;
@@ -443,6 +524,10 @@ public class NetworkInterface extends LuaMadeUserdata {
 	private String getSectorKey() {
 		Vector3i sector = module.getSegmentPiece().getSegmentController().getSector(new Vector3i());
 		return sector.x + ":" + sector.y + ":" + sector.z;
+	}
+
+	private String getEntityKey() {
+		return String.valueOf(module.getSegmentPiece().getSegmentController().getId());
 	}
 
 	/**
