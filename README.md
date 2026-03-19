@@ -23,9 +23,6 @@ LuaMade provides a Unix-like computing environment with the following features:
   which, head, tail, wc, protect, unprotect, fsauth, perms, run, runbg, jobs, kill, httpget, httpput, nano, name, echo,
   reboot, clear, help, exit
 
-Planned next commands (in progress): aliases.
-`chmod` is intentionally out of scope for now.
-
 ### Networking
 - Computer-to-computer communication
 - Message passing with different protocols
@@ -150,18 +147,6 @@ The terminal supports the following built-in commands:
 - `reboot` - Reload `/etc/startup.lua` and reset terminal UI state
 - `help` - Show available commands
 - `exit` - Exit the terminal
-
-### Migration Notes (Terminal Behavior)
-
-- `touch` now preserves existing file contents (no truncation).
-- `rm` requires `-r` to remove non-empty directories; use `-f` to suppress missing-path errors.
-- `cp` requires `-r` for directory copies.
-- `history` and `!<n>` are available for command reruns.
-
-### Roadmap
-
-- Command and editor roadmap: `docs/markdown/general/terminal.md`
-- Next UI milestone: interactive file editor pane (`nano`) with save/exit/run hotkeys
 
 ### Writing Lua Scripts
 Scripts executed in the terminal have access to these global variables:
