@@ -2,7 +2,7 @@ package luamade.lua.element.system.shipyard;
 
 import api.utils.game.SegmentControllerUtils;
 import luamade.lua.element.inventory.ItemStack;
-import luamade.lua.entity.RemoteEntity;
+import luamade.lua.entity.Entity;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
@@ -52,8 +52,8 @@ public class Shipyard extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public RemoteEntity getDocked() {
-		if(isDocked()) return new RemoteEntity(getCollectionManager().getCurrentDocked());
+	public Entity getDocked() {
+		if(isDocked()) return Entity.wrap(getCollectionManager().getCurrentDocked());
 		else return null;
 	}
 

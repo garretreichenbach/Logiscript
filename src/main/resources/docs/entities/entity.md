@@ -85,6 +85,15 @@ Returns `Entity[]` of turrets currently docked to this entity.
 - `getDocked()`
 Returns `Entity[]` of all entities currently docked to this entity.
 
+- `getDockedEntities()`
+Alias of `getDocked()`. Returns `Entity[]` of all entities currently docked to this entity.
+
+- `getParent()`
+Returns the parent `Entity` this entity is docked to, or `nil` if this entity has no parent.
+
+- `getRoot()`
+Returns the root `Entity` for this entity's current rail docking chain.
+
 - `isEntityDocked(entity: RemoteEntity)`
 Returns `true` when `entity` is docked to this entity.
 

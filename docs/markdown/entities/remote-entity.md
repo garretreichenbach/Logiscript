@@ -34,13 +34,9 @@ Returns the `ShieldSystem` wrapper.
 - `getEntityType()`
 Returns the entity type string: `"SHIP"` or `"SPACE_STATION"`.
 
-- `getNamedInventory(name: String)`
-Returns the `Inventory` whose custom name matches `name`, or `nil` when not accessible.
-
 - `getPilot()`
 Returns the pilot's player name, or `nil` when unoccupied.
 
 ## Notes
 
 - Use this wrapper for scan/targeting/intel flows where full control is not needed.
-- `getNamedInventory` may return `nil` depending on faction relationship and target type.

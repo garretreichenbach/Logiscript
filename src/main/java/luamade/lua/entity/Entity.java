@@ -208,6 +208,31 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public Entity[] getDockedEntities() {
+		return getDocked();
+	}
+
+	@LuaMadeCallable
+	public Entity getParent() {
+		if(segmentController.railController == null) return null;
+		for(Sendable sendable : segmentController.getState().getLocalAndRemoteObjectContainer().getLocalObjects().values()) {
+			if(sendable instanceof SegmentController) {
+				SegmentController controller = (SegmentController) sendable;
+				if(controller.getId() != segmentController.getId() && segmentController.railController.isChildDock(controller)) {
+					return wrap(controller);
+				}
+			}
+		}
+		return null;
+	}
+
+	@LuaMadeCallable
+	public Entity getRoot() {
+		if(segmentController.railController == null || segmentController.railController.getRoot() == null) return null;
+		return wrap(segmentController.railController.getRoot());
+	}
+
+	@LuaMadeCallable
 	public Boolean isEntityDocked(RemoteEntity entity) {
 		ArrayList<SegmentController> docked = new ArrayList<>();
 		segmentController.railController.getDockedRecusive(docked);

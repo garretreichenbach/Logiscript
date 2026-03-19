@@ -17,7 +17,7 @@ Returns `true` when a ship is physically docked in the shipyard.
 Returns `true` when a blueprint ship is virtually docked (pre-build state).
 
 - `getDocked()`
-Returns the currently docked ship as a `RemoteEntity`, or `nil`.
+Returns the currently docked ship as an `Entity`, or `nil`.
 
 - `canUndock()`
 Returns `true` when undocking is currently permitted.
