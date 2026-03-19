@@ -676,6 +676,7 @@ public class FileSystem extends LuaMadeUserdata {
 			"    - term: Terminal API\n" +
 			"    - net: Network API\n" +
 			"    - util: Utility API\n" +
+					"    - json: JSON encode/decode helpers\n" +
 			"    - args: Table of command-line arguments\n" +
 			"\n" +
 			"Example scripts are located in /bin/:\n" +

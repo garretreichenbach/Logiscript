@@ -9,4 +9,5 @@ Core APIs and fundamental runtime components for LuaMade.
 - **terminal.md** - Terminal UI and command interface
 - **terminal-api.md** - Terminal control API (`term`)
 - **util.md** - Utility library for common operations (`util`)
+- **json.md** - JSON encode/decode library (`json`)
 

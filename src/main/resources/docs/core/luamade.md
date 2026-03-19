@@ -38,6 +38,7 @@ run /home/hello.lua
 - `peripheral`: relative and absolute nearby block access helpers.
 - `args`: script argument array for `run` and direct script execution.
 - `util`: utility helpers from bundled Lua library plus native `now`/`sleep`.
+- `json`: bundled JSON encode/decode helpers (`encode`, `decode`, `null`).
 - `vector`: bundled vector helper library.
 
 Terminal web requests are available through `httpget` / `term.httpGet(url)` and `httpput` /
@@ -50,6 +51,14 @@ config/luamade/trusted_domains.txt
 ```
 
 The file is created automatically with default entries on first startup.
+
+Quick JSON example:
+
+```lua
+raw = json.encode({ status = "ok", count = 3, enabled = true })
+obj = json.decode(raw)
+print(obj.status, obj.count)
+```
 
 ## Typical workflow
 

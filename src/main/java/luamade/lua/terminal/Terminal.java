@@ -547,6 +547,7 @@ public class Terminal extends LuaMadeUserdata {
 		globals.set("input", module.getInputApi());
 		globals.set("shell", createShellCompatibilityApi());
 
+		loadBuiltinLibrary(globals, "scripts/lib/json.lua", "json");
 		LuaTable utilLibrary = loadBuiltinLibrary(globals, "scripts/lib/util.lua", "util");
 
 		UtilApi nativeUtil = new UtilApi();

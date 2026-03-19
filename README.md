@@ -172,6 +172,7 @@ Scripts executed in the terminal have access to these global variables:
 - `term` - Terminal API
 - `net` - Network API
 - `util` - Built-in Lua utility library with native timing helpers
+- `json` - Built-in JSON encode/decode library
 - `vector` - Built-in Lua vector helper library
 - `args` - Table of command-line arguments
 
@@ -179,6 +180,23 @@ Runtime behavior notes:
 
 - Foreground scripts (`run`) are time-budgeted to prevent runaway execution.
 - Background scripts (`runbg`) are limited to a small parallel pool and also time-budgeted.
+
+JSON example:
+
+```lua
+payload = {
+    fleet = "Alpha",
+    command = "recall",
+    priority = 2,
+    online = true
+}
+
+encoded = json.encode(payload)
+print(encoded)
+
+decoded = json.decode(encoded)
+print(decoded.fleet, decoded.command)
+```
 
 ### Utility API
 
