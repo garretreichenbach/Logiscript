@@ -37,6 +37,9 @@ public final class ConfigManager {
 	private static SimpleConfigInt webPutMaxResponseBytes;
 	private static SimpleConfigInt gfxMaxCommandsPerLayer;
 	private static SimpleConfigInt gfxMaxLayers;
+	private static SimpleConfigBool dockingRequirePermissions;
+	private static SimpleConfigBool dockingAllowFriendFactions;
+	private static SimpleConfigInt dockingSnapRadius;
 
 	private static final List<String> DEFAULT_TRUSTED_WEB_DOMAINS = Arrays.asList(
 		"raw.githubusercontent.com",
@@ -72,6 +75,9 @@ public final class ConfigManager {
 		webPutMaxResponseBytes = new SimpleConfigInt(config, "web_put_max_response_bytes", 131072, "Maximum response payload size (bytes) accepted by HTTP PUT.");
 		gfxMaxCommandsPerLayer = new SimpleConfigInt(config, "gfx_max_commands_per_layer", 4096, "Maximum number of queued draw commands in a single gfx layer.");
 		gfxMaxLayers = new SimpleConfigInt(config, "gfx_max_layers", 32, "Maximum number of gfx layers per computer.");
+		dockingRequirePermissions = new SimpleConfigBool(config, "docking_require_permissions", true, "If true, Lua docking helpers require same-faction or friend-faction permissions.");
+		dockingAllowFriendFactions = new SimpleConfigBool(config, "docking_allow_friend_factions", true, "If true, docking permission checks allow faction friends in addition to same faction.");
+		dockingSnapRadius = new SimpleConfigInt(config, "docking_snap_radius", 5, "Maximum block distance used by Lua docking helpers when snapping to rail targets.");
 
 		config.readWriteFields();
 		ensureTrustedDomainsFileExists(instance);
@@ -163,6 +169,18 @@ public final class ConfigManager {
 
 	public static int getGfxMaxLayers() {
 		return clampInt(intOrDefault(gfxMaxLayers, 32), 1, 256);
+	}
+
+	public static boolean isDockingPermissionRequired() {
+		return boolOrDefault(dockingRequirePermissions, true);
+	}
+
+	public static boolean isDockingFriendFactionsAllowed() {
+		return boolOrDefault(dockingAllowFriendFactions, true);
+	}
+
+	public static int getDockingSnapRadius() {
+		return clampInt(intOrDefault(dockingSnapRadius, 5), 1, 50);
 	}
 
 

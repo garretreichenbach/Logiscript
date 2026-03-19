@@ -24,7 +24,10 @@ end
 ## Reference
 
 - `getPos()`
-Returns block world position as `LuaVec3i` (`x`, `y`, `z`).
+Returns block position index as `LuaVec3i` (`x`, `y`, `z`) in segment-space coordinates.
+
+- `getWorldPos()`
+Returns block world position as `LuaVec3f` (`x`, `y`, `z`) using the block's world transform.
 
 - `getId()`
 Returns the element ID for this block.

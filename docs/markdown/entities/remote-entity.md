@@ -20,7 +20,7 @@ Returns current speed in blocks/s as a `Double`.
 Returns total mass as a `Double`.
 
 - `getPos()`
-Returns current world position as `LuaVec3i`.
+Returns current world position as `LuaVec3f`.
 
 - `getSector()`
 Returns current sector coordinates as `LuaVec3i`.

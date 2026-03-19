@@ -3,6 +3,7 @@ package luamade.lua.entity;
 import api.utils.game.SegmentControllerUtils;
 import com.bulletphysics.linearmath.Transform;
 import luamade.lua.faction.Faction;
+import luamade.lua.data.Vec3f;
 import luamade.lua.data.Vec3i;
 import luamade.lua.element.system.shield.ShieldSystem;
 import luamade.luawrap.LuaMadeCallable;
@@ -51,10 +52,8 @@ public class RemoteEntity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Vec3i getPos() {
-		Transform transform = segmentController.getWorldTransform();
-		Vector3i pos = new Vector3i(transform.origin);
-		return new Vec3i(pos.x, pos.y, pos.z);
+	public Vec3f getPos() {
+		return new Vec3f(segmentController.getWorldTransform().origin);
 	}
 
 	@LuaMadeCallable

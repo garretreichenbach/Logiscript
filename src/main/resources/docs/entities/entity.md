@@ -24,7 +24,7 @@ Returns the entity's display name.
 Sets the entity's display name.
 
 - `getPos()`
-Returns current world position as `LuaVec3i`.
+Returns current world position as `LuaVec3f`.
 
 - `getSector()`
 Returns current sector coordinates as `LuaVec3i`.
@@ -104,10 +104,10 @@ Disconnects `entity` from this entity's rail system.
 Releases all docked entities.
 
 - `dockTo(station: RemoteEntity, railDockerBlock: Block)`
-Automatically finds the nearest compatible rail block on `station` and connects `railDockerBlock` to it. Both entities must be in the same sector with a friendly faction relationship.
+Automatically finds the nearest compatible rail block on `station` and connects `railDockerBlock` to it. Docking checks sector validity and server-configured docking permissions, and uses a server-configured snap radius.
 
 - `dockTo(station: RemoteEntity, railDockerBlock: Block, dockPos: LuaVec3i)`
-Docks `railDockerBlock` to the specific rail block at local position `dockPos` on `station`.
+Docks `railDockerBlock` to the specific rail block at local position `dockPos` on `station` when within the server-configured snap radius and permission rules.
 
 - `dockToNearestLoadDock(station: RemoteEntity, railDockerBlock: Block)`
 Dock to the nearest `RAIL_LOAD` block on `station`. For cargo pickup.

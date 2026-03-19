@@ -1,6 +1,7 @@
 package luamade.lua.element.block;
 
 import luamade.element.ElementRegistry;
+import luamade.lua.data.Vec3f;
 import luamade.lua.data.Vec3i;
 import luamade.lua.element.inventory.Inventory;
 import luamade.lua.entity.Entity;
@@ -107,6 +108,11 @@ public class Block extends LuaMadeUserdata {
     @LuaMadeCallable
     public Vec3i getPos() {
         return new Vec3i(segmentPiece.getAbsolutePosX(), segmentPiece.getAbsolutePosY(), segmentPiece.getAbsolutePosZ());
+    }
+
+    @LuaMadeCallable
+    public Vec3f getWorldPos() {
+        return new Vec3f(segmentPiece.getWorldTransform().origin);
     }
 
     @LuaMadeCallable
