@@ -2,7 +2,7 @@ package luamade.lua.entity.ai;
 
 import api.common.GameCommon;
 import api.common.GameServer;
-import com.bulletphysics.linearmath.Transform;
+import luamade.lua.data.Vec3f;
 import luamade.lua.data.Vec3i;
 import luamade.lua.entity.RemoteEntity;
 import luamade.luawrap.LuaMadeCallable;
@@ -226,23 +226,27 @@ public class EntityAI extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
-	public Vec3i getHeading() {
-		Transform t = segmentController.getWorldTransform();
-		// Z+ is the forward axis in StarMade local space; read the 3rd column of the basis matrix
-		float fx = t.basis.m02, fy = t.basis.m12, fz = t.basis.m22;
-		float ax = Math.abs(fx), ay = Math.abs(fy), az = Math.abs(fz);
-		if(ax >= ay && ax >= az) return new Vec3i(fx > 0 ? 1 : -1, 0, 0);
-		if(ay >= ax && ay >= az) return new Vec3i(0, fy > 0 ? 1 : -1, 0);
-		return new Vec3i(0, 0, fz > 0 ? 1 : -1);
+	public Vec3f getHeading() {
+		Vector3f forward = new Vector3f(
+			segmentController.getWorldTransform().basis.m02,
+			segmentController.getWorldTransform().basis.m12,
+			segmentController.getWorldTransform().basis.m22
+		);
+		if(forward.lengthSquared() == 0) return new Vec3f(0, 0, 0);
+		forward.normalize();
+		return new Vec3f(forward);
 	}
 
 	@LuaMadeCallable
-	public Boolean isAlignedWith(Vec3i direction, Float threshold) {
+	public Boolean isAlignedWith(Vec3f direction, Float threshold) {
 		Vector3f dir = new Vector3f(direction.getX(), direction.getY(), direction.getZ());
 		if(dir.lengthSquared() == 0) return false;
 		dir.normalize();
-		Transform t = segmentController.getWorldTransform();
-		Vector3f forward = new Vector3f(t.basis.m02, t.basis.m12, t.basis.m22);
+		Vector3f forward = new Vector3f(
+			segmentController.getWorldTransform().basis.m02,
+			segmentController.getWorldTransform().basis.m12,
+			segmentController.getWorldTransform().basis.m22
+		);
 		forward.normalize();
 		return forward.dot(dir) >= threshold;
 	}
@@ -253,14 +257,17 @@ public class EntityAI extends LuaMadeUserdata {
 		toTarget.sub(segmentController.getWorldTransform().origin);
 		if(toTarget.lengthSquared() == 0) return true;
 		toTarget.normalize();
-		Transform t = segmentController.getWorldTransform();
-		Vector3f forward = new Vector3f(t.basis.m02, t.basis.m12, t.basis.m22);
+		Vector3f forward = new Vector3f(
+			segmentController.getWorldTransform().basis.m02,
+			segmentController.getWorldTransform().basis.m12,
+			segmentController.getWorldTransform().basis.m22
+		);
 		forward.normalize();
 		return forward.dot(toTarget) >= threshold;
 	}
 
 	@LuaMadeCallable
-	public void faceDirection(Vec3i dir) {
+	public void faceDirection(Vec3f dir) {
 		if(!(segmentController instanceof Ship) || !segmentController.isOnServer()) return;
 		try {
 			Vector3f direction = new Vector3f(dir.getX(), dir.getY(), dir.getZ());
@@ -280,7 +287,7 @@ public class EntityAI extends LuaMadeUserdata {
 		toTarget.sub(segmentController.getWorldTransform().origin);
 		if(toTarget.lengthSquared() == 0) return;
 		toTarget.normalize();
-		Vec3i dir = new Vec3i(Math.round(toTarget.x), Math.round(toTarget.y), Math.round(toTarget.z));
+		Vec3f dir = new Vec3f(toTarget);
 		faceDirection(dir);
 	}
 

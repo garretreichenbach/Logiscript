@@ -46,15 +46,15 @@ Stops current AI movement.
 ## Heading and orientation
 
 - `getHeading()`
-Returns the ship's current forward direction snapped to the nearest cardinal axis as a `LuaVec3i` (e.g. `(0,0,1)` = facing +Z).
+Returns the ship's normalized forward direction as a `LuaVec3f`.
 
-- `isAlignedWith(direction: LuaVec3i, threshold: Number)`
+- `isAlignedWith(direction: LuaVec3f, threshold: Number)`
 Returns `true` if the ship's heading dot-product with `direction` is >= `threshold` (range 0.0–1.0). Use `0.9` for roughly aligned, `0.99` for very tight.
 
 - `isFacingTowards(entity: RemoteEntity, threshold: Number)`
 Returns `true` if the ship is facing toward `entity` within the given dot-product threshold.
 
-- `faceDirection(direction: LuaVec3i)`
+- `faceDirection(direction: LuaVec3f)`
 Commands the AI to turn toward `direction`. Also causes the ship to begin moving in that direction — call `stopNavigation()` once aligned.
 
 - `faceTowards(entity: RemoteEntity)`
