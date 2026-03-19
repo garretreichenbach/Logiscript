@@ -24,6 +24,7 @@ The `FileSystem` class implements a Unix-like virtual file system:
 - **VirtualFile**: Wrapper around Java File objects that enforces sandboxing
 - **Compression**: File systems are compressed to `.smdat` files on disk
 - **Isolation**: Each computer has its own isolated file system
+- **Password Scopes**: Path-based permission rules with per-session unlock state
 - **Default Structure**: Automatically creates `/home`, `/bin`, `/usr`, `/etc`, `/tmp`
 - **Default Files**: Includes example scripts and README
 
@@ -37,6 +38,10 @@ Key Methods:
 - `getCurrentDir()` - Get current directory
 - `exists(path)` - Check if file exists
 - `isDir(path)` - Check if path is a directory
+- `protect(path, password[, operations])` - Protect a scope
+- `unprotect(path, password)` - Remove a protection rule
+- `auth(password)` / `clearAuth()` - Manage current auth session
+- `listPermissions()` / `getPermissions(path)` - Inspect rules
 
 ### Terminal
 
@@ -54,6 +59,10 @@ The `Terminal` class provides an interactive command-line interface:
 - `cp <src> <dst>` - Copy file
 - `mv <src> <dst>` - Move/rename file
 - `edit <file> <content>` - Write to file
+- `protect <path> <password> [ops]` - Protect path scope
+- `unprotect <path> <password>` - Remove protection
+- `fsauth <password>` / `fsauth --clear` - Unlock/clear filesystem auth
+- `perms [path]` - Show protection rules
 - `run <script> [args]` - Execute Lua script
 - `echo <text>` - Print text
 - `clear` - Clear terminal
@@ -110,6 +119,7 @@ Each computer's file system is completely isolated:
 - Files are stored in separate directories per computer
 - Virtual files prevent access outside the sandbox
 - Path traversal attacks are prevented by normalization
+- Sensitive paths can be password-protected by operation (`read/write/delete/list`)
 - Maximum file system size can be configured (default: 10MB)
 
 ### Lua Sandboxing
@@ -241,7 +251,7 @@ Run it: `run /home/monitor.lua`
 Potential improvements to consider:
 
 1. **Process Management**: Background processes/daemons
-2. **Permissions**: File permissions and ownership
+2. **Advanced Permissions**: Multi-user ownership and ACL-style rule sets
 3. **Environment Variables**: Shell variables and configuration
 4. **Piping**: Command output piping (cmd1 | cmd2)
 5. **Redirection**: Output redirection (cmd > file)

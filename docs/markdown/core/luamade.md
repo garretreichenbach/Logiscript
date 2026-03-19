@@ -31,7 +31,8 @@ run /home/hello.lua
 ## Core globals
 
 - `console`: output and context access (`getBlock`, `print`, `getTime`).
-- `fs`: virtual filesystem read/write/list APIs.
+- `fs`: virtual filesystem read/write/list APIs, including password-protected path scopes (`protect`, `auth`,
+  `unprotect`).
 - `term`: terminal/session controls and command hooks.
 - `net`: direct, channel, local, and modem networking APIs.
 - `peripheral`: relative and absolute nearby block access helpers.
@@ -75,3 +76,4 @@ Use startup for:
 - Host filesystem and unsafe loaders are not exposed.
 - Execution is controlled by server-configured timeout and parallel limits.
 - Web fetch is server-gated and can be restricted to trusted domains only.
+- Protected filesystem paths require successful auth before gated operations are allowed.

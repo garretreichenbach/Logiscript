@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 
 /**
  * Implements a Unix-like terminal/shell interface for computers in the game.
@@ -105,14 +106,27 @@ public class Terminal extends LuaMadeUserdata {
 		// Move to a new line after the inline prompt when Enter is pressed.
 		console.print(valueOf(""));
 
-		// Add to history
-		if(!submittedInput.trim().isEmpty()) {
-			history.add(submittedInput);
+		String commandLine = submittedInput.trim();
+		if(!commandLine.isEmpty()) {
+			String expandedHistoryCommand = expandHistoryCommand(commandLine);
+			if(expandedHistoryCommand == null) {
+				if(autoPromptEnabled) {
+					printPrompt();
+				}
+				return;
+			}
+
+			if(!expandedHistoryCommand.equals(commandLine)) {
+				console.print(valueOf(expandedHistoryCommand));
+			}
+			commandLine = expandedHistoryCommand;
+
+			history.add(commandLine);
 			historyIndex = history.size();
 		}
 
 		// Process the command
-		List<String> tokens = parseCommandTokens(submittedInput.trim());
+		List<String> tokens = parseCommandTokens(commandLine);
 		if(tokens.isEmpty()) {
 			if(autoPromptEnabled) {
 				printPrompt();
@@ -461,6 +475,40 @@ public class Terminal extends LuaMadeUserdata {
 		return builder.toString();
 	}
 
+	private String expandHistoryCommand(String commandLine) {
+		if(commandLine == null) {
+			return "";
+		}
+
+		String trimmed = commandLine.trim();
+		if(!trimmed.startsWith("!") || trimmed.length() < 2) {
+			return trimmed;
+		}
+
+		String indexToken = trimmed.substring(1);
+		for(int i = 0; i < indexToken.length(); i++) {
+			if(!Character.isDigit(indexToken.charAt(i))) {
+				console.print(valueOf("Error: Usage: !<history-number>"));
+				return null;
+			}
+		}
+
+		int requestedIndex;
+		try {
+			requestedIndex = Integer.parseInt(indexToken);
+		} catch(NumberFormatException numberFormatException) {
+			console.print(valueOf("Error: History index is out of range"));
+			return null;
+		}
+
+		if(requestedIndex < 1 || requestedIndex > history.size()) {
+			console.print(valueOf("Error: History index out of range (1-" + history.size() + ")"));
+			return null;
+		}
+
+		return history.get(requestedIndex - 1);
+	}
+
 	/**
 	 * Creates a sandboxed Lua globals environment for script execution
 	 */
@@ -767,6 +815,14 @@ public class Terminal extends LuaMadeUserdata {
 		return currentDir.startsWith("/") ? currentDir : "/" + currentDir;
 	}
 
+	private String fsErrorOr(String fallback) {
+		String fsError = fileSystem.getLastError();
+		if(fsError == null || fsError.trim().isEmpty()) {
+			return fallback;
+		}
+		return "Error: " + fsError;
+	}
+
 	/**
 	 * Registers the built-in commands
 	 */
@@ -778,6 +834,21 @@ public class Terminal extends LuaMadeUserdata {
 				console.print(valueOf("Available commands:"));
 				for(Command command : commands.values()) {
 					console.print(valueOf("    " + command.getName() + " - " + command.getDescription()));
+				}
+			}
+		});
+
+		// History command
+		commands.put("history", new Command("history", "Shows command history") {
+			@Override
+			public void execute(String args) {
+				if(history.isEmpty()) {
+					console.print(valueOf("No history"));
+					return;
+				}
+
+				for(int i = 0; i < history.size(); i++) {
+					console.print(valueOf((i + 1) + "  " + history.get(i)));
 				}
 			}
 		});
@@ -803,6 +874,88 @@ public class Terminal extends LuaMadeUserdata {
 				} else {
 					console.print(valueOf(target + " not found"));
 				}
+			}
+		});
+
+		commands.put("fsauth", new Command("fsauth", "Unlocks or clears password-gated filesystem scopes") {
+			@Override
+			public void execute(String args) {
+				String trimmed = args == null ? "" : args.trim();
+				if(trimmed.isEmpty()) {
+					console.print(valueOf("Error: Usage: fsauth <password> | fsauth --clear"));
+					return;
+				}
+
+				if("--clear".equals(trimmed)) {
+					fileSystem.clearAuth();
+					console.print(valueOf("Cleared filesystem auth session"));
+					return;
+				}
+
+				if(fileSystem.auth(trimmed)) {
+					console.print(valueOf("Filesystem scopes unlocked"));
+				} else {
+					console.print(valueOf(fsErrorOr("Error: Invalid filesystem password")));
+				}
+			}
+		});
+
+		commands.put("protect", new Command("protect", "Protects a path with a password and optional operations") {
+			@Override
+			public void execute(String args) {
+				List<String> parts = parseCommandTokens(args == null ? "" : args.trim());
+				if(parts.size() < 2) {
+					console.print(valueOf("Error: Usage: protect <path> <password> [read,write,delete,list|copy|move|paste|all]"));
+					return;
+				}
+
+				String path = parts.get(0);
+				String password = parts.get(1);
+				String operations = parts.size() > 2 ? joinTokens(parts, 2) : "all";
+
+				if(fileSystem.protect(path, password, operations)) {
+					console.print(valueOf("Protection enabled for " + fileSystem.normalizePath(path)));
+				} else {
+					console.print(valueOf(fsErrorOr("Error: Could not protect path")));
+				}
+			}
+		});
+
+		commands.put("unprotect", new Command("unprotect", "Removes password protection from a path") {
+			@Override
+			public void execute(String args) {
+				List<String> parts = parseCommandTokens(args == null ? "" : args.trim());
+				if(parts.size() < 2) {
+					console.print(valueOf("Error: Usage: unprotect <path> <password>"));
+					return;
+				}
+
+				if(fileSystem.unprotect(parts.get(0), parts.get(1))) {
+					console.print(valueOf("Protection removed for " + fileSystem.normalizePath(parts.get(0))));
+				} else {
+					console.print(valueOf(fsErrorOr("Error: Could not remove protection")));
+				}
+			}
+		});
+
+		commands.put("perms", new Command("perms", "Shows protected filesystem scopes or rule for a path") {
+			@Override
+			public void execute(String args) {
+				String trimmed = args == null ? "" : args.trim();
+				if(trimmed.isEmpty()) {
+					List<String> rules = fileSystem.listPermissions();
+					if(rules.isEmpty()) {
+						console.print(valueOf("No protected scopes configured"));
+						return;
+					}
+
+					for(String rule : rules) {
+						console.print(valueOf(rule));
+					}
+					return;
+				}
+
+				console.print(valueOf(fileSystem.getPermissions(trimmed)));
 			}
 		});
 
@@ -836,26 +989,23 @@ public class Terminal extends LuaMadeUserdata {
 			public void execute(String args) {
 				String trimmed = args == null ? "" : args.trim();
 				if(trimmed.isEmpty()) {
-					console.print(valueOf("Error: Usage: head <file> [lines]"));
+					console.print(valueOf("Error: Usage: head [-n lines] <file>"));
 					return;
 				}
 
-				String[] parts = trimmed.split("\\s+");
-				String file = parts[0];
-				int lineCount = parsePositiveLineCount(parts.length > 1 ? parts[1] : null, 10);
-				if(lineCount < 1) {
-					console.print(valueOf("Error: lines must be a positive integer"));
+				HeadTailArgs parsed = parseHeadTailArgs(parseCommandTokens(trimmed), 10);
+				if(parsed == null) {
 					return;
 				}
 
-				String content = fileSystem.read(file);
+				String content = fileSystem.read(parsed.filePath);
 				if(content == null) {
 					console.print(valueOf("Error: File not found or is a directory"));
 					return;
 				}
 
 				String[] lines = content.split("\\n", -1);
-				int max = Math.min(lineCount, lines.length);
+				int max = Math.min(parsed.lineCount, lines.length);
 				for(int i = 0; i < max; i++) {
 					console.print(valueOf(lines[i]));
 				}
@@ -868,26 +1018,23 @@ public class Terminal extends LuaMadeUserdata {
 			public void execute(String args) {
 				String trimmed = args == null ? "" : args.trim();
 				if(trimmed.isEmpty()) {
-					console.print(valueOf("Error: Usage: tail <file> [lines]"));
+					console.print(valueOf("Error: Usage: tail [-n lines] <file>"));
 					return;
 				}
 
-				String[] parts = trimmed.split("\\s+");
-				String file = parts[0];
-				int lineCount = parsePositiveLineCount(parts.length > 1 ? parts[1] : null, 10);
-				if(lineCount < 1) {
-					console.print(valueOf("Error: lines must be a positive integer"));
+				HeadTailArgs parsed = parseHeadTailArgs(parseCommandTokens(trimmed), 10);
+				if(parsed == null) {
 					return;
 				}
 
-				String content = fileSystem.read(file);
+				String content = fileSystem.read(parsed.filePath);
 				if(content == null) {
 					console.print(valueOf("Error: File not found or is a directory"));
 					return;
 				}
 
 				String[] lines = content.split("\\n", -1);
-				int start = Math.max(0, lines.length - lineCount);
+				int start = Math.max(0, lines.length - parsed.lineCount);
 				for(int i = start; i < lines.length; i++) {
 					console.print(valueOf(lines[i]));
 				}
@@ -898,11 +1045,12 @@ public class Terminal extends LuaMadeUserdata {
 		commands.put("wc", new Command("wc", "Prints line, word, and byte counts") {
 			@Override
 			public void execute(String args) {
-				String file = args == null ? "" : args.trim();
-				if(file.isEmpty()) {
-					console.print(valueOf("Error: Usage: wc <file>"));
+				WcArgs parsed = parseWcArgs(parseCommandTokens(args == null ? "" : args.trim()));
+				if(parsed == null || parsed.filePath == null) {
+					console.print(valueOf("Error: Usage: wc [-l] [-w] [-c] <file>"));
 					return;
 				}
+				String file = parsed.filePath;
 
 				String content = fileSystem.read(file);
 				if(content == null) {
@@ -911,9 +1059,21 @@ public class Terminal extends LuaMadeUserdata {
 				}
 
 				int lineCount = content.isEmpty() ? 0 : content.split("\\n", -1).length;
-				int wordCount = content.trim().isEmpty() ? 0 : content.trim().split("\\s+").length;
+				int wordCount = countWords(content);
 				int byteCount = content.getBytes(StandardCharsets.UTF_8).length;
-				console.print(valueOf(lineCount + " " + wordCount + " " + byteCount + " " + fileSystem.normalizePath(file)));
+
+				StringBuilder output = new StringBuilder();
+				if(parsed.showLines) {
+					output.append(lineCount).append(' ');
+				}
+				if(parsed.showWords) {
+					output.append(wordCount).append(' ');
+				}
+				if(parsed.showBytes) {
+					output.append(byteCount).append(' ');
+				}
+				output.append(fileSystem.normalizePath(file));
+				console.print(valueOf(output.toString().trim()));
 			}
 		});
 
@@ -921,7 +1081,21 @@ public class Terminal extends LuaMadeUserdata {
 		commands.put("echo", new Command("echo", "Displays a message") {
 			@Override
 			public void execute(String args) {
-				console.print(valueOf(args));
+				List<String> tokens = parseCommandTokens(args == null ? "" : args);
+				boolean noNewline = false;
+				int startIndex = 0;
+
+				if(!tokens.isEmpty() && "-n".equals(tokens.get(0))) {
+					noNewline = true;
+					startIndex = 1;
+				}
+
+				String message = joinTokens(tokens, startIndex);
+				if(noNewline) {
+					console.appendInline(valueOf(message));
+				} else {
+					console.print(valueOf(message));
+				}
 			}
 		});
 
@@ -929,17 +1103,124 @@ public class Terminal extends LuaMadeUserdata {
 		commands.put("ls", new Command("ls", "Lists files in a directory") {
 			@Override
 			public void execute(String args) {
-				List<String> files = fileSystem.list(args);
-				if(files.isEmpty()) {
-					console.print(valueOf("Directory is empty"));
-				} else {
-					for(String file : files) {
-						if(fileSystem.isDir(fileSystem.normalizePath(args + "/" + file))) {
-							console.print(valueOf(file + "/"));
-						} else {
-							console.print(valueOf(file));
-						}
+				LsArgs parsed = parseLsArgs(parseCommandTokens(args == null ? "" : args.trim()));
+				if(parsed == null) {
+					console.print(valueOf("Error: Usage: ls [-a] [-l] [-R] [path]"));
+					return;
+				}
+
+				String targetPath = parsed.path == null ? fileSystem.getCurrentDir() : parsed.path;
+				String normalizedTargetPath = fileSystem.normalizePath(targetPath);
+
+				if(!fileSystem.exists(normalizedTargetPath)) {
+					console.print(valueOf(fsErrorOr("Error: Path not found")));
+					return;
+				}
+
+				if(!fileSystem.isDir(normalizedTargetPath)) {
+					printLsEntry(normalizedTargetPath, baseName(normalizedTargetPath), parsed);
+					return;
+				}
+
+				if(!printLsDirectory(normalizedTargetPath, parsed, false)) {
+					console.print(valueOf(fsErrorOr("Error: Could not list directory")));
+				}
+			}
+		});
+
+		// Find command
+		commands.put("find", new Command("find", "Finds files and directories") {
+			@Override
+			public void execute(String args) {
+				FindArgs parsed = parseFindArgs(parseCommandTokens(args == null ? "" : args.trim()));
+				if(parsed == null) {
+					console.print(valueOf("Error: Usage: find [path] [-name <glob>] [-type f|d] [-maxdepth <n>]"));
+					return;
+				}
+
+				String targetPath = parsed.path == null ? fileSystem.getCurrentDir() : parsed.path;
+				String normalizedTargetPath = fileSystem.normalizePath(targetPath);
+				if(!fileSystem.exists(normalizedTargetPath)) {
+					console.print(valueOf(fsErrorOr("Error: Path not found")));
+					return;
+				}
+
+				if(!walkFind(normalizedTargetPath, parsed, 0)) {
+					console.print(valueOf(fsErrorOr("Error: find traversal failed")));
+				}
+			}
+		});
+
+		// Grep command
+		commands.put("grep", new Command("grep", "Searches for text patterns") {
+			@Override
+			public void execute(String args) {
+				GrepArgs parsed = parseGrepArgs(parseCommandTokens(args == null ? "" : args.trim()));
+				if(parsed == null || parsed.pattern == null || parsed.path == null) {
+					console.print(valueOf("Error: Usage: grep [-n] [-i] [-r] <pattern> <path>"));
+					return;
+				}
+
+				String normalizedPath = fileSystem.normalizePath(parsed.path);
+				if(!fileSystem.exists(normalizedPath)) {
+					console.print(valueOf(fsErrorOr("Error: Path not found")));
+					return;
+				}
+
+				if(fileSystem.isDir(normalizedPath) && !parsed.recursive) {
+					console.print(valueOf("Error: Path is a directory (use -r)"));
+					return;
+				}
+
+				if(!grepPath(normalizedPath, parsed)) {
+					console.print(valueOf(fsErrorOr("Error: grep failed")));
+				}
+			}
+		});
+
+		// Stat command
+		commands.put("stat", new Command("stat", "Shows file or directory metadata") {
+			@Override
+			public void execute(String args) {
+				StatArgs parsed = parseStatArgs(parseCommandTokens(args == null ? "" : args.trim()));
+				if(parsed == null || parsed.paths.isEmpty()) {
+					console.print(valueOf("Error: Usage: stat <path>..."));
+					return;
+				}
+
+				for(int i = 0; i < parsed.paths.size(); i++) {
+					String normalizedPath = fileSystem.normalizePath(parsed.paths.get(i));
+					if(!printStatEntry(normalizedPath)) {
+						console.print(valueOf(fsErrorOr("Error: Could not stat " + normalizedPath)));
 					}
+
+					if(i < parsed.paths.size() - 1) {
+						console.print(valueOf(""));
+					}
+				}
+			}
+		});
+
+		// Tree command
+		commands.put("tree", new Command("tree", "Displays a directory tree") {
+			@Override
+			public void execute(String args) {
+				TreeArgs parsed = parseTreeArgs(parseCommandTokens(args == null ? "" : args.trim()));
+				if(parsed == null) {
+					console.print(valueOf("Error: Usage: tree [-a] [-L depth] [path]"));
+					return;
+				}
+
+				String targetPath = parsed.path == null ? fileSystem.getCurrentDir() : parsed.path;
+				String normalizedTargetPath = fileSystem.normalizePath(targetPath);
+				if(!fileSystem.exists(normalizedTargetPath)) {
+					console.print(valueOf(fsErrorOr("Error: Path not found")));
+					return;
+				}
+
+				console.print(valueOf(normalizedTargetPath));
+				if(!walkTree(normalizedTargetPath, "", true, 0, parsed)) {
+					console.print(valueOf(fsErrorOr("Error: tree traversal failed")));
 				}
 			}
 		});
@@ -955,7 +1236,7 @@ public class Terminal extends LuaMadeUserdata {
 				if(fileSystem.changeDir(args)) {
 					// Success, nothing to print
 				} else {
-					console.print(valueOf("Error: Directory not found"));
+					console.print(valueOf(fsErrorOr("Error: Directory not found")));
 				}
 			}
 		});
@@ -964,7 +1245,19 @@ public class Terminal extends LuaMadeUserdata {
 		commands.put("pwd", new Command("pwd", "Prints the current working directory") {
 			@Override
 			public void execute(String args) {
-				console.print(valueOf(fileSystem.getCurrentDir()));
+				PwdArgs parsed = parsePwdArgs(parseCommandTokens(args == null ? "" : args.trim()));
+				if(parsed == null) {
+					console.print(valueOf("Error: Usage: pwd [-L|-P]"));
+					return;
+				}
+
+				String current = fileSystem.getCurrentDir();
+				if(parsed.physical) {
+					console.print(valueOf(fileSystem.normalizePath(current)));
+					return;
+				}
+
+				console.print(valueOf(current));
 			}
 		});
 
@@ -980,7 +1273,7 @@ public class Terminal extends LuaMadeUserdata {
 				if(fileSystem.makeDir(args)) {
 					console.print(valueOf("Directory created"));
 				} else {
-					console.print(valueOf("Error: Could not create directory"));
+					console.print(valueOf(fsErrorOr("Error: Could not create directory")));
 				}
 			}
 		});
@@ -989,16 +1282,25 @@ public class Terminal extends LuaMadeUserdata {
 		commands.put("cat", new Command("cat", "Displays the contents of a file") {
 			@Override
 			public void execute(String args) {
-				if(args.isEmpty()) {
-					console.print(valueOf("Error: No file specified"));
+				CatArgs parsed = parseCatArgs(parseCommandTokens(args == null ? "" : args.trim()));
+				if(parsed == null || parsed.filePath == null) {
+					console.print(valueOf("Error: Usage: cat [-n] <file>"));
 					return;
 				}
 
-				String content = fileSystem.read(args);
+				String content = fileSystem.read(parsed.filePath);
 				if(content != null) {
-					console.print(valueOf(content));
+					if(!parsed.showLineNumbers) {
+						console.print(valueOf(content));
+						return;
+					}
+
+					String[] lines = content.split("\\n", -1);
+					for(int i = 0; i < lines.length; i++) {
+						console.print(valueOf((i + 1) + "\t" + lines[i]));
+					}
 				} else {
-					console.print(valueOf("Error: File not found or is a directory"));
+					console.print(valueOf(fsErrorOr("Error: File not found or is a directory")));
 				}
 			}
 		});
@@ -1012,10 +1314,10 @@ public class Terminal extends LuaMadeUserdata {
 					return;
 				}
 
-				if(fileSystem.write(args, "")) {
-					console.print(valueOf("File created"));
+				if(fileSystem.touch(args)) {
+					console.print(valueOf("File touched"));
 				} else {
-					console.print(valueOf("Error: Could not create file"));
+					console.print(valueOf(fsErrorOr("Error: Could not create file")));
 				}
 			}
 		});
@@ -1024,15 +1326,48 @@ public class Terminal extends LuaMadeUserdata {
 		commands.put("rm", new Command("rm", "Removes a file or directory") {
 			@Override
 			public void execute(String args) {
-				if(args.isEmpty()) {
+				RmArgs parsed = parseRmArgs(parseCommandTokens(args == null ? "" : args.trim()));
+				if(parsed == null) {
+					console.print(valueOf("Error: Usage: rm [-r] [-f] <path>..."));
+					return;
+				}
+
+				if(parsed.paths.isEmpty()) {
+					if(parsed.force) {
+						return;
+					}
 					console.print(valueOf("Error: No file specified"));
 					return;
 				}
 
-				if(fileSystem.delete(args)) {
+				boolean deletedAny = false;
+				for(String rawPath : parsed.paths) {
+					String normalizedPath = fileSystem.normalizePath(rawPath);
+					if("/".equals(normalizedPath)) {
+						if(!parsed.force) {
+							console.print(valueOf("Error: Refusing to remove root '/'"));
+						}
+						continue;
+					}
+
+					if(parsed.recursive) {
+						if(deleteRecursive(normalizedPath, parsed.force)) {
+							deletedAny = true;
+						} else if(!parsed.force) {
+							console.print(valueOf(fsErrorOr("Error: Could not delete file")));
+						}
+						continue;
+					}
+
+					if(fileSystem.delete(normalizedPath)) {
+						deletedAny = true;
+					} else if(!parsed.force) {
+						console.print(valueOf(fsErrorOr("Error: Could not delete file")));
+					}
+				}
+
+				if(deletedAny) {
 					console.print(valueOf("File deleted"));
-				} else {
-					console.print(valueOf("Error: Could not delete file"));
 				}
 			}
 		});
@@ -1065,24 +1400,46 @@ public class Terminal extends LuaMadeUserdata {
 		commands.put("cp", new Command("cp", "Copies a file") {
 			@Override
 			public void execute(String args) {
-				String[] parts = args.split("\\s+");
-				if(parts.length < 2) {
-					console.print(valueOf("Error: Usage: cp <source> <destination>"));
+				CpArgs parsed = parseCpArgs(parseCommandTokens(args == null ? "" : args.trim()));
+				if(parsed == null || parsed.source == null || parsed.destination == null) {
+					console.print(valueOf("Error: Usage: cp [-r] <source> <destination>"));
 					return;
 				}
 
-				String source = parts[0];
-				String dest = parts[1];
+				String source = fileSystem.normalizePath(parsed.source);
+				String dest = fileSystem.normalizePath(parsed.destination);
+
+				if(!fileSystem.exists(source)) {
+					console.print(valueOf(fsErrorOr("Error: Source file not found")));
+					return;
+				}
+
+				if(fileSystem.isDir(source)) {
+					if(!parsed.recursive) {
+						console.print(valueOf("Error: Source is a directory (use -r)"));
+						return;
+					}
+
+					String destinationRoot = resolveCopyDirectoryDestination(source, dest);
+					if(destinationRoot == null || !copyRecursive(source, destinationRoot)) {
+						console.print(valueOf(fsErrorOr("Error: Could not copy directory")));
+						return;
+					}
+
+					console.print(valueOf("File copied"));
+					return;
+				}
 
 				String content = fileSystem.read(source);
 				if(content != null) {
-					if(fileSystem.write(dest, content)) {
+					String fileDestination = resolveCopyFileDestination(source, dest);
+					if(fileDestination != null && fileSystem.write(fileDestination, content)) {
 						console.print(valueOf("File copied"));
 					} else {
-						console.print(valueOf("Error: Could not write destination file"));
+						console.print(valueOf(fsErrorOr("Error: Could not write destination file")));
 					}
 				} else {
-					console.print(valueOf("Error: Source file not found or is a directory"));
+					console.print(valueOf(fsErrorOr("Error: Source file not found or is a directory")));
 				}
 			}
 		});
@@ -1091,24 +1448,24 @@ public class Terminal extends LuaMadeUserdata {
 		commands.put("mv", new Command("mv", "Moves or renames a file") {
 			@Override
 			public void execute(String args) {
-				String[] parts = args.split("\\s+");
-				if(parts.length < 2) {
+				List<String> parts = parseCommandTokens(args == null ? "" : args.trim());
+				if(parts.size() < 2) {
 					console.print(valueOf("Error: Usage: mv <source> <destination>"));
 					return;
 				}
 
-				String source = parts[0];
-				String dest = parts[1];
+				String source = parts.get(0);
+				String dest = parts.get(1);
 
 				String content = fileSystem.read(source);
 				if(content != null) {
 					if(fileSystem.write(dest, content) && fileSystem.delete(source)) {
 						console.print(valueOf("File moved"));
 					} else {
-						console.print(valueOf("Error: Could not move file"));
+						console.print(valueOf(fsErrorOr("Error: Could not move file")));
 					}
 				} else {
-					console.print(valueOf("Error: Source file not found or is a directory"));
+					console.print(valueOf(fsErrorOr("Error: Source file not found or is a directory")));
 				}
 			}
 		});
@@ -1117,19 +1474,19 @@ public class Terminal extends LuaMadeUserdata {
 		commands.put("edit", new Command("edit", "Creates or overwrites a file with text") {
 			@Override
 			public void execute(String args) {
-				String[] parts = args.split("\\s+", 2);
-				if(parts.length < 2) {
+				List<String> parts = parseCommandTokens(args == null ? "" : args.trim());
+				if(parts.size() < 2) {
 					console.print(valueOf("Error: Usage: edit <file> <content>"));
 					return;
 				}
 
-				String file = parts[0];
-				String content = parts[1];
+				String file = parts.get(0);
+				String content = joinTokens(parts, 1);
 
 				if(fileSystem.write(file, content)) {
 					console.print(valueOf("File written"));
 				} else {
-					console.print(valueOf("Error: Could not write file"));
+					console.print(valueOf(fsErrorOr("Error: Could not write file")));
 				}
 			}
 		});
@@ -1302,6 +1659,878 @@ public class Terminal extends LuaMadeUserdata {
 			return Integer.parseInt(raw.trim());
 		} catch(NumberFormatException ignored) {
 			return -1;
+		}
+	}
+
+	private HeadTailArgs parseHeadTailArgs(List<String> tokens, int defaultLineCount) {
+		if(tokens == null || tokens.isEmpty()) {
+			console.print(valueOf("Error: missing file operand"));
+			return null;
+		}
+
+		String file = null;
+		int lineCount = defaultLineCount;
+		for(int i = 0; i < tokens.size(); i++) {
+			String token = tokens.get(i);
+			if(token == null || token.isEmpty()) {
+				continue;
+			}
+
+			if("-n".equals(token)) {
+				if(i + 1 >= tokens.size()) {
+					console.print(valueOf("Error: missing line count for -n"));
+					return null;
+				}
+				++i;
+				lineCount = parsePositiveLineCount(tokens.get(i), defaultLineCount);
+				if(lineCount < 1) {
+					console.print(valueOf("Error: lines must be a positive integer"));
+					return null;
+				}
+				continue;
+			}
+
+			if(token.startsWith("-n") && token.length() > 2) {
+				lineCount = parsePositiveLineCount(token.substring(2), defaultLineCount);
+				if(lineCount < 1) {
+					console.print(valueOf("Error: lines must be a positive integer"));
+					return null;
+				}
+				continue;
+			}
+
+			if(file == null) {
+				file = token;
+			} else {
+				console.print(valueOf("Error: too many arguments"));
+				return null;
+			}
+		}
+
+		if(file == null || file.trim().isEmpty()) {
+			console.print(valueOf("Error: missing file operand"));
+			return null;
+		}
+
+		return new HeadTailArgs(file, lineCount);
+	}
+
+	private boolean printLsDirectory(String directoryPath, LsArgs options, boolean printHeader) {
+		List<String> children = fileSystem.list(directoryPath);
+		if(children == null) {
+			return false;
+		}
+
+		if(printHeader) {
+			console.print(valueOf(directoryPath + ":"));
+		}
+
+		List<String> displayNames = new ArrayList<>();
+		List<String> recursiveChildren = new ArrayList<>();
+
+		for(String child : children) {
+			if(!options.showAll && child.startsWith(".")) {
+				continue;
+			}
+			displayNames.add(child);
+		}
+		Collections.sort(displayNames);
+
+		for(String child : displayNames) {
+			String childPath = fileSystem.normalizePath(directoryPath + "/" + child);
+			printLsEntry(childPath, child, options);
+			if(options.recursive && fileSystem.isDir(childPath)) {
+				recursiveChildren.add(childPath);
+			}
+		}
+
+		if(options.recursive) {
+			for(String childDir : recursiveChildren) {
+				console.print(valueOf(""));
+				if(!printLsDirectory(childDir, options, true)) {
+					return false;
+				}
+			}
+		}
+
+		if(displayNames.isEmpty() && !options.recursive) {
+			console.print(valueOf("Directory is empty"));
+		}
+
+		return true;
+	}
+
+	private void printLsEntry(String normalizedPath, String displayName, LsArgs options) {
+		boolean isDirectory = fileSystem.isDir(normalizedPath);
+		String name = isDirectory ? displayName + "/" : displayName;
+		if(!options.longFormat) {
+			console.print(valueOf(name));
+			return;
+		}
+
+		long size = 0L;
+		VirtualFileStats stats = getVirtualFileStats(normalizedPath);
+		if(stats != null) {
+			size = stats.size;
+		}
+
+		String type = isDirectory ? "d" : "-";
+		console.print(valueOf(type + " " + size + " " + name));
+	}
+
+	private VirtualFileStats getVirtualFileStats(String normalizedPath) {
+		if(normalizedPath == null || normalizedPath.isEmpty()) {
+			return null;
+		}
+
+		luamade.lua.fs.VirtualFile file = fileSystem.getFile(normalizedPath);
+		if(file == null || file.getInternalFile() == null) {
+			return null;
+		}
+
+		return new VirtualFileStats(file.getInternalFile().length());
+	}
+
+	private String baseName(String normalizedPath) {
+		if(normalizedPath == null || normalizedPath.isEmpty() || "/".equals(normalizedPath)) {
+			return "/";
+		}
+
+		int index = normalizedPath.lastIndexOf('/');
+		if(index < 0 || index >= normalizedPath.length() - 1) {
+			return normalizedPath;
+		}
+		return normalizedPath.substring(index + 1);
+	}
+
+	private boolean deleteRecursive(String normalizedPath, boolean force) {
+		if(!fileSystem.exists(normalizedPath)) {
+			return force;
+		}
+
+		if(fileSystem.isDir(normalizedPath)) {
+			List<String> children = fileSystem.list(normalizedPath);
+			for(String child : children) {
+				String childPath = fileSystem.normalizePath(normalizedPath + "/" + child);
+				if(!deleteRecursive(childPath, force)) {
+					return false;
+				}
+			}
+		}
+
+		return fileSystem.delete(normalizedPath) || force;
+	}
+
+	private String resolveCopyFileDestination(String sourceFile, String destination) {
+		if(fileSystem.exists(destination) && fileSystem.isDir(destination)) {
+			return fileSystem.normalizePath(destination + "/" + baseName(sourceFile));
+		}
+		return destination;
+	}
+
+	private String resolveCopyDirectoryDestination(String sourceDirectory, String destination) {
+		if(fileSystem.exists(destination)) {
+			if(!fileSystem.isDir(destination)) {
+				return null;
+			}
+			return fileSystem.normalizePath(destination + "/" + baseName(sourceDirectory));
+		}
+
+		return destination;
+	}
+
+	private boolean copyRecursive(String sourcePath, String destinationPath) {
+		if(fileSystem.isDir(sourcePath)) {
+			if(fileSystem.exists(destinationPath)) {
+				if(!fileSystem.isDir(destinationPath)) {
+					return false;
+				}
+			} else if(!fileSystem.makeDir(destinationPath)) {
+				return false;
+			}
+
+			List<String> children = fileSystem.list(sourcePath);
+			for(String child : children) {
+				String childSourcePath = fileSystem.normalizePath(sourcePath + "/" + child);
+				String childDestinationPath = fileSystem.normalizePath(destinationPath + "/" + child);
+				if(!copyRecursive(childSourcePath, childDestinationPath)) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		String content = fileSystem.read(sourcePath);
+		return content != null && fileSystem.write(destinationPath, content);
+	}
+
+	private LsArgs parseLsArgs(List<String> tokens) {
+		LsArgs parsed = new LsArgs();
+		if(tokens == null) {
+			return parsed;
+		}
+
+		for(String token : tokens) {
+			if(token.startsWith("-") && token.length() > 1) {
+				for(int i = 1; i < token.length(); i++) {
+					char flag = token.charAt(i);
+					switch(flag) {
+						case 'a':
+							parsed.showAll = true;
+							break;
+						case 'l':
+							parsed.longFormat = true;
+							break;
+						case 'R':
+							parsed.recursive = true;
+							break;
+						default:
+							return null;
+					}
+				}
+				continue;
+			}
+
+			if(parsed.path != null) {
+				return null;
+			}
+			parsed.path = token;
+		}
+
+		return parsed;
+	}
+
+	private RmArgs parseRmArgs(List<String> tokens) {
+		RmArgs parsed = new RmArgs();
+		if(tokens == null) {
+			return parsed;
+		}
+
+		for(String token : tokens) {
+			if(token.startsWith("-") && token.length() > 1) {
+				for(int i = 1; i < token.length(); i++) {
+					char flag = token.charAt(i);
+					switch(flag) {
+						case 'r':
+						case 'R':
+							parsed.recursive = true;
+							break;
+						case 'f':
+							parsed.force = true;
+							break;
+						default:
+							return null;
+					}
+				}
+				continue;
+			}
+
+			parsed.paths.add(token);
+		}
+
+		return parsed;
+	}
+
+	private CpArgs parseCpArgs(List<String> tokens) {
+		if(tokens == null) {
+			return null;
+		}
+
+		CpArgs parsed = new CpArgs();
+		List<String> operands = new ArrayList<>();
+		for(String token : tokens) {
+			if(token.startsWith("-") && token.length() > 1 && operands.isEmpty()) {
+				for(int i = 1; i < token.length(); i++) {
+					char flag = token.charAt(i);
+					if(flag == 'r' || flag == 'R') {
+						parsed.recursive = true;
+					} else {
+						return null;
+					}
+				}
+				continue;
+			}
+
+			operands.add(token);
+		}
+
+		if(operands.size() != 2) {
+			return null;
+		}
+
+		parsed.source = operands.get(0);
+		parsed.destination = operands.get(1);
+		return parsed;
+	}
+
+	private FindArgs parseFindArgs(List<String> tokens) {
+		FindArgs parsed = new FindArgs();
+		if(tokens == null) {
+			return parsed;
+		}
+
+		for(int i = 0; i < tokens.size(); i++) {
+			String token = tokens.get(i);
+			if(token == null || token.isEmpty()) {
+				continue;
+			}
+
+			if("-name".equals(token)) {
+				if(i + 1 >= tokens.size()) {
+					return null;
+				}
+				++i;
+				parsed.nameGlob = tokens.get(i);
+				continue;
+			}
+
+			if("-type".equals(token)) {
+				if(i + 1 >= tokens.size()) {
+					return null;
+				}
+				++i;
+				String kind = tokens.get(i);
+				if(!"f".equals(kind) && !"d".equals(kind)) {
+					return null;
+				}
+				parsed.typeFilter = kind;
+				continue;
+			}
+
+			if("-maxdepth".equals(token)) {
+				if(i + 1 >= tokens.size()) {
+					return null;
+				}
+				try {
+					++i;
+					parsed.maxDepth = Integer.parseInt(tokens.get(i));
+				} catch(NumberFormatException numberFormatException) {
+					return null;
+				}
+				if(parsed.maxDepth < 0) {
+					return null;
+				}
+				continue;
+			}
+
+			if(token.startsWith("-")) {
+				return null;
+			}
+
+			if(parsed.path != null) {
+				return null;
+			}
+			parsed.path = token;
+		}
+
+		return parsed;
+	}
+
+	private boolean walkFind(String path, FindArgs filters, int depth) {
+		if(path == null || filters == null) {
+			return false;
+		}
+
+		boolean isDirectory = fileSystem.isDir(path);
+		if(matchesFindFilters(path, isDirectory, filters)) {
+			console.print(valueOf(path));
+		}
+
+		if(!isDirectory) {
+			return true;
+		}
+		if(filters.maxDepth >= 0 && depth >= filters.maxDepth) {
+			return true;
+		}
+
+		List<String> children = fileSystem.list(path);
+		if(children == null) {
+			return false;
+		}
+		Collections.sort(children);
+
+		for(String child : children) {
+			String childPath = fileSystem.normalizePath(path + "/" + child);
+			if(!walkFind(childPath, filters, depth + 1)) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private boolean matchesFindFilters(String normalizedPath, boolean isDirectory, FindArgs filters) {
+		if(filters == null) {
+			return true;
+		}
+
+		if(filters.typeFilter != null) {
+			if("d".equals(filters.typeFilter) && !isDirectory) {
+				return false;
+			}
+			if("f".equals(filters.typeFilter) && isDirectory) {
+				return false;
+			}
+		}
+
+		if(filters.nameGlob != null) {
+			String name = baseName(normalizedPath);
+			return globMatches(name, filters.nameGlob);
+		}
+
+		return true;
+	}
+
+	private boolean globMatches(String text, String glob) {
+		if(glob == null || glob.isEmpty()) {
+			return true;
+		}
+
+		StringBuilder regex = new StringBuilder();
+		regex.append('^');
+		for(int i = 0; i < glob.length(); i++) {
+			char c = glob.charAt(i);
+			switch(c) {
+				case '*':
+					regex.append(".*");
+					break;
+				case '?':
+					regex.append('.');
+					break;
+				case '.':
+				case '\\':
+				case '+':
+				case '(':
+				case ')':
+				case '[':
+				case ']':
+				case '{':
+				case '}':
+				case '^':
+				case '$':
+				case '|':
+					regex.append('\\').append(c);
+					break;
+				default:
+					regex.append(c);
+			}
+		}
+		regex.append('$');
+
+		return Pattern.matches(regex.toString(), text == null ? "" : text);
+	}
+
+	private GrepArgs parseGrepArgs(List<String> tokens) {
+		if(tokens == null) {
+			return null;
+		}
+
+		GrepArgs parsed = new GrepArgs();
+		List<String> operands = new ArrayList<>();
+		for(String token : tokens) {
+			if(token.startsWith("-") && token.length() > 1 && operands.isEmpty()) {
+				for(int i = 1; i < token.length(); i++) {
+					char flag = token.charAt(i);
+					switch(flag) {
+						case 'n':
+							parsed.showLineNumbers = true;
+							break;
+						case 'i':
+							parsed.ignoreCase = true;
+							break;
+						case 'r':
+						case 'R':
+							parsed.recursive = true;
+							break;
+						default:
+							return null;
+					}
+				}
+				continue;
+			}
+
+			operands.add(token);
+		}
+
+		if(operands.size() != 2) {
+			return null;
+		}
+
+		parsed.pattern = operands.get(0);
+		parsed.path = operands.get(1);
+		return parsed;
+	}
+
+	private PwdArgs parsePwdArgs(List<String> tokens) {
+		PwdArgs parsed = new PwdArgs();
+		if(tokens == null) {
+			return parsed;
+		}
+
+		for(String token : tokens) {
+			if("-L".equals(token)) {
+				parsed.physical = false;
+				continue;
+			}
+			if("-P".equals(token)) {
+				parsed.physical = true;
+				continue;
+			}
+			return null;
+		}
+
+		return parsed;
+	}
+
+	private CatArgs parseCatArgs(List<String> tokens) {
+		if(tokens == null) {
+			return null;
+		}
+
+		CatArgs parsed = new CatArgs();
+		for(String token : tokens) {
+			if(token == null || token.isEmpty()) {
+				continue;
+			}
+
+			if(token.startsWith("-") && token.length() > 1 && parsed.filePath == null) {
+				for(int i = 1; i < token.length(); i++) {
+					char flag = token.charAt(i);
+					if(flag == 'n') {
+						parsed.showLineNumbers = true;
+					} else {
+						return null;
+					}
+				}
+				continue;
+			}
+
+			if(parsed.filePath != null) {
+				return null;
+			}
+			parsed.filePath = token;
+		}
+
+		return parsed;
+	}
+
+	private WcArgs parseWcArgs(List<String> tokens) {
+		if(tokens == null) {
+			return null;
+		}
+
+		WcArgs parsed = new WcArgs();
+		for(String token : tokens) {
+			if(token == null || token.isEmpty()) {
+				continue;
+			}
+
+			if(token.startsWith("-") && token.length() > 1 && parsed.filePath == null) {
+				for(int i = 1; i < token.length(); i++) {
+					char flag = token.charAt(i);
+					switch(flag) {
+						case 'l':
+							parsed.showLines = true;
+							break;
+						case 'w':
+							parsed.showWords = true;
+							break;
+						case 'c':
+							parsed.showBytes = true;
+							break;
+						default:
+							return null;
+					}
+				}
+				continue;
+			}
+
+			if(parsed.filePath != null) {
+				return null;
+			}
+			parsed.filePath = token;
+		}
+
+		if(!parsed.showLines && !parsed.showWords && !parsed.showBytes) {
+			parsed.showLines = true;
+			parsed.showWords = true;
+			parsed.showBytes = true;
+		}
+
+		return parsed;
+	}
+
+	private int countWords(String text) {
+		if(text == null || text.trim().isEmpty()) {
+			return 0;
+		}
+		return text.trim().split("\\s+").length;
+	}
+
+	private StatArgs parseStatArgs(List<String> tokens) {
+		if(tokens == null) {
+			return null;
+		}
+
+		StatArgs parsed = new StatArgs();
+		for(String token : tokens) {
+			if(token == null || token.trim().isEmpty()) {
+				continue;
+			}
+			parsed.paths.add(token);
+		}
+		return parsed;
+	}
+
+	private TreeArgs parseTreeArgs(List<String> tokens) {
+		TreeArgs parsed = new TreeArgs();
+		if(tokens == null) {
+			return parsed;
+		}
+
+		for(int i = 0; i < tokens.size(); i++) {
+			String token = tokens.get(i);
+			if(token == null || token.isEmpty()) {
+				continue;
+			}
+
+			if(token.startsWith("-") && token.length() > 1) {
+				if("-L".equals(token)) {
+					if(i + 1 >= tokens.size()) {
+						return null;
+					}
+					try {
+						++i;
+						parsed.maxDepth = Integer.parseInt(tokens.get(i));
+					} catch(NumberFormatException numberFormatException) {
+						return null;
+					}
+					if(parsed.maxDepth < 0) {
+						return null;
+					}
+					continue;
+				}
+
+				for(int flagIndex = 1; flagIndex < token.length(); flagIndex++) {
+					char flag = token.charAt(flagIndex);
+					if(flag == 'a') {
+						parsed.showAll = true;
+					} else {
+						return null;
+					}
+				}
+				continue;
+			}
+
+			if(parsed.path != null) {
+				return null;
+			}
+			parsed.path = token;
+		}
+
+		return parsed;
+	}
+
+	private boolean printStatEntry(String normalizedPath) {
+		if(!fileSystem.exists(normalizedPath)) {
+			return false;
+		}
+
+		boolean isDirectory = fileSystem.isDir(normalizedPath);
+		luamade.lua.fs.VirtualFile virtualFile = fileSystem.getFile(normalizedPath);
+		if(virtualFile == null || virtualFile.getInternalFile() == null) {
+			return false;
+		}
+
+		File internal = virtualFile.getInternalFile();
+		long size = internal.length();
+		long modified = internal.lastModified();
+
+		console.print(valueOf("Path: " + normalizedPath));
+		console.print(valueOf("Type: " + (isDirectory ? "directory" : "file")));
+		console.print(valueOf("Size: " + size + " bytes"));
+		console.print(valueOf("Modified: " + new Date(modified)));
+		console.print(valueOf("Permissions: " + fileSystem.getPermissions(normalizedPath)));
+		return true;
+	}
+
+	private boolean walkTree(String normalizedPath, String prefix, boolean isLast, int depth, TreeArgs args) {
+		if(!fileSystem.isDir(normalizedPath)) {
+			return true;
+		}
+
+		if(args.maxDepth >= 0 && depth >= args.maxDepth) {
+			return true;
+		}
+
+		List<String> children = fileSystem.list(normalizedPath);
+		if(children == null) {
+			return false;
+		}
+
+		List<String> filtered = new ArrayList<>();
+		for(String child : children) {
+			if(!args.showAll && child.startsWith(".")) {
+				continue;
+			}
+			filtered.add(child);
+		}
+		Collections.sort(filtered);
+
+		for(int i = 0; i < filtered.size(); i++) {
+			String child = filtered.get(i);
+			boolean childIsLast = (i == filtered.size() - 1);
+			String branch = childIsLast ? "`-- " : "|-- ";
+			String childPath = fileSystem.normalizePath(normalizedPath + "/" + child);
+
+			String displayName = child;
+			if(fileSystem.isDir(childPath)) {
+				displayName += "/";
+			}
+			console.print(valueOf(prefix + branch + displayName));
+
+			String childPrefix = prefix + (childIsLast ? "    " : "|   ");
+			if(!walkTree(childPath, childPrefix, childIsLast, depth + 1, args)) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private boolean grepPath(String normalizedPath, GrepArgs args) {
+		if(fileSystem.isDir(normalizedPath)) {
+			if(!args.recursive) {
+				return false;
+			}
+
+			List<String> children = fileSystem.list(normalizedPath);
+			Collections.sort(children);
+			for(String child : children) {
+				String childPath = fileSystem.normalizePath(normalizedPath + "/" + child);
+				if(!grepPath(childPath, args)) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		return grepFile(normalizedPath, args);
+	}
+
+	private boolean grepFile(String normalizedFilePath, GrepArgs args) {
+		String content = fileSystem.read(normalizedFilePath);
+		if(content == null) {
+			return false;
+		}
+
+		String[] lines = content.split("\\n", -1);
+		for(int i = 0; i < lines.length; i++) {
+			String line = lines[i];
+			if(!lineMatches(line, args.pattern, args.ignoreCase)) {
+				continue;
+			}
+
+			if(args.showLineNumbers) {
+				console.print(valueOf(normalizedFilePath + ":" + (i + 1) + ":" + line));
+			} else {
+				console.print(valueOf(normalizedFilePath + ":" + line));
+			}
+		}
+
+		return true;
+	}
+
+	private boolean lineMatches(String line, String pattern, boolean ignoreCase) {
+		if(pattern == null || pattern.isEmpty()) {
+			return true;
+		}
+		if(line == null) {
+			return false;
+		}
+
+		if(ignoreCase) {
+			return line.toLowerCase(Locale.ROOT).contains(pattern.toLowerCase(Locale.ROOT));
+		}
+
+		return line.contains(pattern);
+	}
+
+	private static final class HeadTailArgs {
+		private final String filePath;
+		private final int lineCount;
+
+		private HeadTailArgs(String filePath, int lineCount) {
+			this.filePath = filePath;
+			this.lineCount = lineCount;
+		}
+	}
+
+	private static final class LsArgs {
+		private boolean showAll;
+		private boolean longFormat;
+		private boolean recursive;
+		private String path;
+	}
+
+	private static final class RmArgs {
+		private final List<String> paths = new ArrayList<>();
+		private boolean recursive;
+		private boolean force;
+	}
+
+	private static final class CpArgs {
+		private boolean recursive;
+		private String source;
+		private String destination;
+	}
+
+	private static final class FindArgs {
+		private String path;
+		private String nameGlob;
+		private String typeFilter;
+		private int maxDepth = -1;
+	}
+
+	private static final class GrepArgs {
+		private boolean showLineNumbers;
+		private boolean ignoreCase;
+		private boolean recursive;
+		private String pattern;
+		private String path;
+	}
+
+	private static final class PwdArgs {
+		private boolean physical;
+	}
+
+	private static final class CatArgs {
+		private boolean showLineNumbers;
+		private String filePath;
+	}
+
+	private static final class WcArgs {
+		private boolean showLines;
+		private boolean showWords;
+		private boolean showBytes;
+		private String filePath;
+	}
+
+	private static final class StatArgs {
+		private final List<String> paths = new ArrayList<>();
+	}
+
+	private static final class TreeArgs {
+		private boolean showAll;
+		private int maxDepth = -1;
+		private String path;
+	}
+
+	private static final class VirtualFileStats {
+		private final long size;
+
+		private VirtualFileStats(long size) {
+			this.size = Math.max(size, 0L);
 		}
 	}
 

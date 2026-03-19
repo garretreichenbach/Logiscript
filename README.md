@@ -12,15 +12,17 @@ LuaMade provides a Unix-like computing environment with the following features:
 - Path manipulation with support for relative paths
 - Sandboxed virtual file system per computer
 - Persistent storage compressed to disk
+- Password-protected path scopes with operation-based access control
 
 ### Terminal
 - Interactive command-line interface with built-in Unix-like commands
 - Command history navigation
 - Support for custom Lua commands
 - Direct Lua script execution from terminal
-- Built-in commands: ls, cd, pwd, cat, mkdir, touch, rm, cp, mv, edit, run, echo, clear, help, exit
+- Built-in commands: ls, cd, pwd, cat, mkdir, touch, rm, cp, mv, edit, protect, unprotect, fsauth, perms, run, echo,
+  clear, help, exit
 
-Planned next commands (in progress): `which`, `head`, `tail`, `wc`, `find`, `grep`, `history`, aliases.
+Planned next commands (in progress): aliases.
 `chmod` is intentionally out of scope for now.
 
 ### Networking
@@ -61,6 +63,18 @@ fs.changeDir("/home/user")
 
 -- Get current directory
 currentDir = fs.getCurrentDir()
+
+-- Protect /home/user for read/write/delete/list operations
+fs.protect("/home/user", "secret123", "all")
+
+-- Unlock protected scopes for this session
+fs.auth("secret123")
+
+-- Inspect current rule for a path
+print(fs.getPermissions("/home/user"))
+
+-- Clear auth session
+fs.clearAuth()
 ```
 
 ### Terminal API
@@ -91,27 +105,38 @@ term.reboot()
 ### Terminal Commands
 The terminal supports the following built-in commands:
 
-- `ls [directory]` - List files in a directory
+- `ls [-a] [-l] [-R] [directory]` - List files (`-a` hidden, `-l` long format, `-R` recursive)
 - `cd <directory>` - Change current directory
-- `pwd` - Print working directory
-- `cat <file>` - Display file contents
+- `pwd [-L|-P]` - Print working directory (logical/physical mode)
+- `cat [-n] <file>` - Display file contents (`-n` line numbers)
 - `mkdir <directory>` - Create a new directory
 - `touch <file>` - Create an empty file
-- `rm <file>` - Delete a file or empty directory
-- `cp <source> <dest>` - Copy a file
+- `rm [-r] [-f] <path>...` - Delete files/dirs (`-r` recursive, `-f` ignore missing/errors)
+- `cp [-r] <source> <dest>` - Copy files (`-r` for directories)
 - `mv <source> <dest>` - Move or rename a file
 - `edit <file> <content>` - Write content to a file
+- `find [path] [-name <glob>] [-type f|d] [-maxdepth <n>]` - Search files and directories
+- `grep [-n] [-i] [-r] <pattern> <path>` - Search file contents (`-n` line numbers, `-i` ignore case, `-r` recursive)
+- `history` - Show indexed command history
+- `!<n>` - Re-run history entry number `n`
+- `stat <path>...` - Show metadata for files/directories
+- `tree [-a] [-L depth] [path]` - Print directory tree (`-a` includes dot files)
+- `protect <path> <password> [ops]` - Protect path scope by operations (`read,write,delete,list,all`)
+- `unprotect <path> <password>` - Remove path protection
+- `fsauth <password>` - Unlock protected filesystem scopes for this terminal session
+- `fsauth --clear` - Clear current filesystem auth session
+- `perms [path]` - List protection rules or show effective rule for one path
 - `run <script> [args]` - Execute a Lua script with optional arguments
 - `runbg <script> [args]` - Execute a Lua script in background (limited parallelism)
 - `jobs` - List background script jobs
 - `kill <job-id>` - Stop a background script job
 - `which <command-or-path>` - Resolve built-ins or file paths
 - `name [new-name|--reset]` - Show or change the displayed computer name in the prompt
-- `head <file> [n]` - Show first lines of a file
-- `tail <file> [n]` - Show last lines of a file
-- `wc <file>` - Show line, word, and byte counts
+- `head [-n lines] <file>` - Show first lines of a file
+- `tail [-n lines] <file>` - Show last lines of a file
+- `wc [-l] [-w] [-c] <file>` - Show selected line/word/byte counts
 - `nano <file>` - Open file in editor mode
-- `echo <text>` - Print text to the terminal
+- `echo [-n] <text>` - Print text to the terminal (`-n` suppresses newline)
 - `clear` - Clear the terminal screen
 - `reboot` - Reload `/etc/startup.lua` and reset terminal UI state
 - `help` - Show available commands

@@ -79,33 +79,30 @@ public final class VirtualFile extends LuaMadeUserdata implements SerializationI
 	private String getRelativePathFromRoot(boolean absolute) {
 		File rootFile = fileSystem.getRootDirectory() != null ? fileSystem.getRootDirectory().internalFile : null;
 		if(rootFile == null) {
-			return absolute ? internalFile.getAbsolutePath() : internalFile.getPath();
+			return "";
 		}
 
-		String path = absolute ? internalFile.getAbsolutePath() : internalFile.getPath();
-		String rootPath = absolute ? rootFile.getAbsolutePath() : rootFile.getPath();
+		try {
+			String canonicalPath = internalFile.getCanonicalPath();
+			String canonicalRootPath = rootFile.getCanonicalPath();
 
-		if(!path.startsWith(rootPath)) {
-			try {
-				String canonicalPath = internalFile.getCanonicalPath();
-				String canonicalRootPath = rootFile.getCanonicalPath();
-				if(canonicalPath.startsWith(canonicalRootPath)) {
-					path = canonicalPath;
-					rootPath = canonicalRootPath;
-				}
-			} catch(IOException ignored) {
-				// Fall back to the original path strings if canonical resolution fails.
+			if(canonicalPath.equals(canonicalRootPath)) {
+				return "";
 			}
-		}
+			if(!canonicalPath.startsWith(canonicalRootPath + File.separator)) {
+				return "";
+			}
 
-		if(path.startsWith(rootPath)) {
-			path = path.substring(rootPath.length());
-		}
-		if(path.startsWith(File.separator)) {
-			path = path.substring(1);
-		}
+			String relative = canonicalPath.substring(canonicalRootPath.length());
+			if(relative.startsWith(File.separator)) {
+				relative = relative.substring(1);
+			}
 
-		return path.replace('\\', '/');
+			return relative.replace('\\', '/');
+		} catch(IOException ignored) {
+			// Fail closed if canonical resolution fails.
+			return "";
+		}
 	}
 
 	@LuaMadeCallable
