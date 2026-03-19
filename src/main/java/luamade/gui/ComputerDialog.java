@@ -53,6 +53,9 @@ public class ComputerDialog extends PlayerInput {
 					case "DOCS":
 						openDocumentationPanel();
 						break;
+					case "RESET":
+						resetComputerRuntime();
+						break;
 					case "X":
 					case "CANCEL":
 						deactivate();
@@ -68,6 +71,19 @@ public class ComputerDialog extends PlayerInput {
 	private void openDocumentationPanel() {
 		deactivate();
 		new DocsViewerDialog(computerModule).activate();
+	}
+
+	private void resetComputerRuntime() {
+		if(computerModule == null || computerModule.getTerminal() == null) {
+			return;
+		}
+
+		computerModule.setLastMode(ComputerModule.ComputerMode.TERMINAL);
+		computerModule.setSavedTerminalInput("");
+		computerModule.getTerminal().hardReset();
+		if(computerPanel != null) {
+			computerPanel.requestConsoleFocus();
+		}
 	}
 
 	@Override
@@ -105,6 +121,7 @@ public class ComputerDialog extends PlayerInput {
 		private static final String EDITOR_HINT_PREFIX = "Editor: Ctrl+S Save | Ctrl+X Exit | Ctrl+R Save & Run";
 		private static final int DOCS_BUTTON_OFFSET_X = 12;
 		private static final int DOCS_BUTTON_OFFSET_Y = 30;
+		private static final int RESET_BUTTON_GAP_X = 8;
 		/** Pixel height of the console text-box in terminal mode. */
 		private static final int TEXT_BOX_HEIGHT = 500;
 		/** Pixels reserved at the bottom for the editor hint bar overlay. */
@@ -124,6 +141,7 @@ public class ComputerDialog extends PlayerInput {
 		private ComputerModule.ComputerMode renderedMode = ComputerModule.ComputerMode.OFF;
 		private GUITextOverlay editorHintsOverlay;
 		private GUITextButton docsButton;
+		private GUITextButton resetButton;
 		private String lastEditorHintText = "";
 		/** Reference to the content pane so we can adjust text-box height dynamically. */
 		private GUIContentPane mainContentPane;
@@ -279,8 +297,8 @@ public class ComputerDialog extends PlayerInput {
 			editorHintsOverlay.setPos(x, y, 0.0F);
 		}
 
-		private void updateDocsButtonPosition() {
-			if(docsButton == null || getButtonOK() == null) {
+		private void updateActionButtonPositions() {
+			if(docsButton == null || resetButton == null || getButtonOK() == null) {
 				return;
 			}
 
@@ -290,6 +308,7 @@ public class ComputerDialog extends PlayerInput {
 				y = (int) (background.getHeight() - (42 + docsButton.getHeight())) + DOCS_BUTTON_OFFSET_Y;
 			}
 			docsButton.setPos(x, y, 0);
+			resetButton.setPos(x + docsButton.getWidth() + RESET_BUTTON_GAP_X, y, 0);
 		}
 
 		private void activateConsoleFocusIfPending() {
@@ -606,7 +625,7 @@ public class ComputerDialog extends PlayerInput {
 				@Override
 				public void draw() {
 					updateEditorHintOverlay();
-					updateDocsButtonPosition();
+					updateActionButtonPositions();
 					activateConsoleFocusIfPending();
 
 					ComputerModule.ComputerMode currentMode = computerModule.getLastMode();
@@ -687,8 +706,15 @@ public class ComputerDialog extends PlayerInput {
 			docsButton.setUserPointer("DOCS");
 			docsButton.setMouseUpdateEnabled(true);
 			docsButton.onInit();
-			updateDocsButtonPosition();
+
+			resetButton = new GUITextButton(getState(), 90, 20, GUITextButton.ColorPalette.NEUTRAL, "RESET", getCallback());
+			resetButton.setUserPointer("RESET");
+			resetButton.setMouseUpdateEnabled(true);
+			resetButton.onInit();
+
+			updateActionButtonPositions();
 			((GUIDialogWindow) background).attachSuper(docsButton);
+			((GUIDialogWindow) background).attachSuper(resetButton);
 
 			consolePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);
 			consolePane.getTextArea().setLinewrap(LINE_WRAP);
@@ -720,7 +746,7 @@ public class ComputerDialog extends PlayerInput {
 			super.draw();
 			clampCaretToEditableRegion();
 			scrollPaneToCursor();
-			updateDocsButtonPosition();
+			updateActionButtonPositions();
 		}
 	}
 }

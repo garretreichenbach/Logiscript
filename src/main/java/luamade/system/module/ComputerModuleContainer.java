@@ -12,7 +12,9 @@ import org.schema.game.common.data.SegmentPiece;
 import org.schema.schine.graphicsengine.core.Timer;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ComputerModuleContainer extends SystemModule {
 
-	private final byte VERSION = 4;
+	private final byte VERSION = 6;
 	private static final Set<ComputerModuleContainer> ACTIVE_CONTAINERS = ConcurrentHashMap.newKeySet();
 	private final Long2ObjectOpenHashMap<ComputerModule> computerModules = new Long2ObjectOpenHashMap<>();
 	private final Long2ObjectOpenHashMap<PendingModuleState> pendingModuleStates = new Long2ObjectOpenHashMap<>();
@@ -92,17 +94,41 @@ public class ComputerModuleContainer extends SystemModule {
 	@Override
 	public void onTagSerialize(PacketWriteBuffer buffer) throws IOException {
 		buffer.writeByte(VERSION);
-		buffer.writeInt(computerModules.size());
+		Map<Long, PendingModuleState> statesToSerialize = new LinkedHashMap<>();
+
+		synchronized(pendingLock) {
+			for(long abs : pendingModuleStates.keySet().toLongArray()) {
+				PendingModuleState pending = pendingModuleStates.get(abs);
+				if(pending != null) {
+					statesToSerialize.put(abs, pending);
+				}
+			}
+		}
+
 		for(ComputerModule module : computerModules.values()) {
+			if(module == null || module.getSegmentPiece() == null) {
+				continue;
+			}
+
 			long abs = module.getSegmentPiece().getAbsoluteIndex();
+			statesToSerialize.put(abs, PendingModuleState.fromModule(module));
+		}
+
+		buffer.writeInt(statesToSerialize.size());
+		for(Map.Entry<Long, PendingModuleState> entry : statesToSerialize.entrySet()) {
+			long abs = entry.getKey();
+			PendingModuleState state = entry.getValue();
+
 			buffer.writeLong(abs);
-			buffer.writeByte((byte) module.getLastMode().ordinal());
-			buffer.writeString(safeString(module.getLastOpenFile()));
-			buffer.writeString(safeString(module.getSavedTerminalInput()));
-			buffer.writeString(safeString(module.getNetworkInterface().getHostname()));
-			buffer.writeString(safeString(module.getDisplayName()));
-			buffer.writeString(safeString(module.getLastDocsTopicPath()));
-			Set<String> collapsedSections = module.getCollapsedDocsSections();
+			buffer.writeString(safeString(state.stableUUID));
+			buffer.writeByte(state.modeOrdinal);
+			buffer.writeString(safeString(state.lastOpenFile));
+			buffer.writeString(safeString(state.savedTerminalInput));
+			buffer.writeString(safeString(state.hostname));
+			buffer.writeString(safeString(state.displayName));
+			buffer.writeString(safeString(state.lastDocsTopicPath));
+
+			Set<String> collapsedSections = state.collapsedDocsSections == null ? new HashSet<String>() : state.collapsedDocsSections;
 			buffer.writeInt(collapsedSections.size());
 			for(String sectionKey : collapsedSections) {
 				buffer.writeString(safeString(sectionKey));
@@ -132,6 +158,7 @@ public class ComputerModuleContainer extends SystemModule {
 			int count = buffer.readInt();
 			for(int i = 0; i < count; i++) {
 				long abs = buffer.readLong();
+				String stableUUID = version >= 5 ? buffer.readString() : ComputerModule.generateLegacyComputerUUID(abs);
 				byte modeOrdinal = buffer.readByte();
 				String lastOpenFile = buffer.readString();
 				String savedTerminalInput = buffer.readString();
@@ -146,7 +173,7 @@ public class ComputerModuleContainer extends SystemModule {
 					}
 				}
 
-				pendingModuleStates.put(abs, new PendingModuleState(modeOrdinal, lastOpenFile, savedTerminalInput, hostname, displayName, lastDocsTopicPath, collapsedDocsSections));
+				pendingModuleStates.put(abs, new PendingModuleState(stableUUID, modeOrdinal, lastOpenFile, savedTerminalInput, hostname, displayName, lastDocsTopicPath, collapsedDocsSections));
 			}
 			// Do NOT call restorePendingModules() here – the segment buffer may not be
 			// fully populated yet during deserialization.  handle(Timer) will pick it up.
@@ -155,7 +182,7 @@ public class ComputerModuleContainer extends SystemModule {
 
 	public void addModule(SegmentPiece segmentPiece) {
 		if(!computerModules.containsKey(segmentPiece.getAbsoluteIndex())) {
-			String stableUUID = ComputerModule.generateComputerUUID(segmentPiece.getAbsoluteIndex());
+			String stableUUID = ComputerModule.generateComputerUUID(segmentPiece);
 			ComputerModule module = new ComputerModule(segmentPiece, stableUUID);
 			applyPendingState(segmentPiece.getAbsoluteIndex(), module);
 			computerModules.put(segmentPiece.getAbsoluteIndex(), module);
@@ -209,7 +236,12 @@ public class ComputerModuleContainer extends SystemModule {
 
 		synchronized(pendingLock) {
 			for(long abs : pendingModuleStates.keySet().toLongArray()) {
-				uuids.add(ComputerModule.generateComputerUUID(abs));
+				PendingModuleState pendingState = pendingModuleStates.get(abs);
+				if(pendingState != null && pendingState.stableUUID != null && !pendingState.stableUUID.isEmpty()) {
+					uuids.add(pendingState.stableUUID);
+				} else {
+					uuids.add(ComputerModule.generateLegacyComputerUUID(abs));
+				}
 			}
 		}
 	}
@@ -247,7 +279,9 @@ public class ComputerModuleContainer extends SystemModule {
 			pendingModuleStates.remove(abs);
 
 			if(!computerModules.containsKey(abs)) {
-				String stableUUID = ComputerModule.generateComputerUUID(abs);
+				String stableUUID = state.stableUUID == null || state.stableUUID.isEmpty()
+					? ComputerModule.generateComputerUUID(piece)
+					: state.stableUUID;
 				ComputerModule module = new ComputerModule(piece, stableUUID);
 				applyStateToModule(module, state);
 				computerModules.put(abs, module);
@@ -283,6 +317,7 @@ public class ComputerModuleContainer extends SystemModule {
 	}
 
 	private static final class PendingModuleState {
+		private final String stableUUID;
 		private final byte modeOrdinal;
 		private final String lastOpenFile;
 		private final String savedTerminalInput;
@@ -291,7 +326,8 @@ public class ComputerModuleContainer extends SystemModule {
 		private final String lastDocsTopicPath;
 		private final Set<String> collapsedDocsSections;
 
-		private PendingModuleState(byte modeOrdinal, String lastOpenFile, String savedTerminalInput, String hostname, String displayName, String lastDocsTopicPath, Set<String> collapsedDocsSections) {
+		private PendingModuleState(String stableUUID, byte modeOrdinal, String lastOpenFile, String savedTerminalInput, String hostname, String displayName, String lastDocsTopicPath, Set<String> collapsedDocsSections) {
+			this.stableUUID = stableUUID == null ? "" : stableUUID;
 			this.modeOrdinal = modeOrdinal;
 			this.lastOpenFile = lastOpenFile;
 			this.savedTerminalInput = savedTerminalInput;
@@ -299,6 +335,23 @@ public class ComputerModuleContainer extends SystemModule {
 			this.displayName = displayName;
 			this.lastDocsTopicPath = lastDocsTopicPath;
 			this.collapsedDocsSections = collapsedDocsSections == null ? new HashSet<>() : new HashSet<>(collapsedDocsSections);
+		}
+
+		private static PendingModuleState fromModule(ComputerModule module) {
+			if(module == null) {
+				return new PendingModuleState("", (byte) ComputerModule.ComputerMode.OFF.ordinal(), "", "", "", "", "", new HashSet<String>());
+			}
+
+			return new PendingModuleState(
+				module.getUUID(),
+				(byte) module.getLastMode().ordinal(),
+				module.getLastOpenFile(),
+				module.getSavedTerminalInput(),
+				module.getNetworkInterface() == null ? "" : module.getNetworkInterface().getHostname(),
+				module.getDisplayName(),
+				module.getLastDocsTopicPath(),
+				module.getCollapsedDocsSections()
+			);
 		}
 	}
 }

@@ -50,6 +50,17 @@ public class ComputerModule {
 		return UUID.nameUUIDFromBytes((String.valueOf(absIndex)).getBytes(StandardCharsets.UTF_8)).toString();
 	}
 
+	public static String generateLegacyComputerUUID(long absIndex) {
+		return generateComputerUUID(absIndex);
+	}
+
+	public static String generateComputerUUID(SegmentPiece segmentPiece) {
+		if(segmentPiece == null) {
+			return generateComputerUUID(0L);
+		}
+		return generateComputerUUID(segmentPiece.getAbsoluteIndex());
+	}
+
 	public SegmentPiece getSegmentPiece() {
 		return segmentPiece;
 	}

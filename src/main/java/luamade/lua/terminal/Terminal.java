@@ -20,6 +20,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
@@ -38,6 +39,8 @@ public class Terminal extends LuaMadeUserdata {
 	private final Map<Integer, BackgroundJob> backgroundJobs = new ConcurrentHashMap<>();
 	private final ExecutorService scriptExecutor;
 	private final ScheduledExecutorService scriptScheduler;
+	private final ThreadLocal<ScriptExecutionContext> scriptContextThreadLocal = new ThreadLocal<>();
+	private final AtomicBoolean promptDeferredByCommand = new AtomicBoolean(false);
 	private volatile Semaphore scriptSlots;
 	private volatile int maxParallelSlots;
 	private final List<String> history = new ArrayList<>();
@@ -78,15 +81,47 @@ public class Terminal extends LuaMadeUserdata {
 	 */
 	@LuaMadeCallable
 	public void stop() {
+		cancelAllBackgroundJobs(false);
 		running = false;
 	}
 
 	@LuaMadeCallable
 	public void reboot() {
+		hardReset();
+	}
+
+	@LuaMadeCallable
+	public void hardReset() {
 		if(!running) {
 			running = true;
 		}
+		cancelAllBackgroundJobs(true);
 		bootTerminal(true);
+	}
+
+	private int cancelAllBackgroundJobs(boolean clearRegistry) {
+		refreshBackgroundJobs();
+
+		int canceled = 0;
+		for(BackgroundJob job : backgroundJobs.values()) {
+			if(job == null || job.getStatus() != JobStatus.RUNNING) {
+				continue;
+			}
+
+			Future<Boolean> future = job.getFuture();
+			if(future != null && !future.isDone()) {
+				job.getContext().requestCancel(false);
+				job.setStatus(JobStatus.CANCELED);
+				future.cancel(true);
+				canceled++;
+			}
+		}
+
+		if(clearRegistry) {
+			backgroundJobs.clear();
+		}
+
+		return canceled;
 	}
 
 	/**
@@ -97,6 +132,8 @@ public class Terminal extends LuaMadeUserdata {
 		if(!running) {
 			return;
 		}
+
+		promptDeferredByCommand.set(false);
 
 		String submittedInput = input == null ? "" : input;
 
@@ -150,7 +187,7 @@ public class Terminal extends LuaMadeUserdata {
 			}
 		}
 
-		if(autoPromptEnabled) {
+		if(autoPromptEnabled && running && !promptDeferredByCommand.get()) {
 			printPrompt();
 		}
 	}
@@ -159,9 +196,14 @@ public class Terminal extends LuaMadeUserdata {
 	 * Executes a Lua script with arguments
 	 */
 	private boolean executeScript(String scriptPath, String script, List<String> args) {
+		ScriptExecutionContext context = scriptContextThreadLocal.get();
+		if(context != null) {
+			context.throwIfCancellationRequested();
+		}
+
 		try {
 			// Create a sandboxed Lua environment
-			Globals globals = createSandboxedGlobals();
+			Globals globals = createSandboxedGlobals(context);
 			
 			// Set up arguments
 			LuaTable argsTable = new LuaTable();
@@ -172,9 +214,15 @@ public class Terminal extends LuaMadeUserdata {
 			
 			// Execute the script
 			LuaValue chunk = globals.load(script, scriptPath);
+			if(context != null) {
+				context.throwIfCancellationRequested();
+			}
 			chunk.call();
 			return true;
 		} catch(LuaError error) {
+			if(context != null && context.isCancellationRequested()) {
+				return false;
+			}
 			String message = error.getMessage();
 			if(message == null || message.trim().isEmpty()) {
 				message = error.toString();
@@ -187,12 +235,15 @@ public class Terminal extends LuaMadeUserdata {
 		}
 	}
 
-	private Future<Boolean> submitScriptTask(String scriptPath, String script, List<String> args) {
+	private Future<Boolean> submitScriptTask(String scriptPath, String script, List<String> args, ScriptExecutionContext context) {
 		return scriptExecutor.submit(() -> {
+			scriptContextThreadLocal.set(context);
+			context.bindToCurrentThread();
 			activeScripts.incrementAndGet();
 			try {
 				return executeScript(scriptPath, script, args);
 			} finally {
+				scriptContextThreadLocal.remove();
 				activeScripts.decrementAndGet();
 				scriptSlots.release();
 			}
@@ -253,16 +304,19 @@ public class Terminal extends LuaMadeUserdata {
 			return false;
 		}
 
-		Future<Boolean> future = submitScriptTask(scriptPath, script, args);
+		ScriptExecutionContext context = new ScriptExecutionContext();
+		Future<Boolean> future = submitScriptTask(scriptPath, script, args, context);
 		try {
 			Boolean success = future.get(timeoutMs, TimeUnit.MILLISECONDS);
 			return Boolean.TRUE.equals(success);
 		} catch(TimeoutException timeoutException) {
+			context.requestCancel(true);
 			future.cancel(true);
 			console.print(valueOf("Error: Script exceeded time budget (" + timeoutMs + "ms)"));
 			return false;
 		} catch(InterruptedException interruptedException) {
 			Thread.currentThread().interrupt();
+			context.requestCancel(false);
 			future.cancel(true);
 			console.print(valueOf("Error: Script execution interrupted"));
 			return false;
@@ -272,6 +326,54 @@ public class Terminal extends LuaMadeUserdata {
 		}
 	}
 
+	private boolean startForegroundScript(String scriptPath, String script, List<String> args, long timeoutMs) {
+		if(!acquireScriptSlot()) {
+			ScriptOverloadMode mode = ScriptOverloadMode.fromConfigValue(ConfigManager.getScriptOverloadMode());
+			if(mode == ScriptOverloadMode.HARD_STOP) {
+				console.print(valueOf("Error: Script rejected due to server load (hard-stop mode)"));
+			} else if(mode == ScriptOverloadMode.HYBRID) {
+				console.print(valueOf("Error: Script queue wait expired under load"));
+			} else {
+				console.print(valueOf("Error: Script scheduling interrupted"));
+			}
+			return false;
+		}
+
+		ScriptExecutionContext context = new ScriptExecutionContext();
+		Future<Boolean> future = submitScriptTask(scriptPath, script, args, context);
+		AtomicBoolean promptPrinted = new AtomicBoolean(false);
+
+		scriptScheduler.schedule(() -> {
+			if(!future.isDone()) {
+				context.requestCancel(true);
+				future.cancel(true);
+				console.print(valueOf("Error: Script exceeded time budget (" + timeoutMs + "ms)"));
+				if(autoPromptEnabled && running && promptPrinted.compareAndSet(false, true)) {
+					printPrompt();
+				}
+			}
+		}, timeoutMs, TimeUnit.MILLISECONDS);
+
+		scriptExecutor.submit(() -> {
+			try {
+				future.get();
+			} catch(InterruptedException interruptedException) {
+				Thread.currentThread().interrupt();
+			} catch(CancellationException cancellationException) {
+				// Cancellation and timeout messages are handled by cancellation/timeout callers.
+			} catch(ExecutionException executionException) {
+				console.print(valueOf("Error executing script: " + executionException.getMessage()));
+			} finally {
+				if(autoPromptEnabled && running && promptPrinted.compareAndSet(false, true)) {
+					printPrompt();
+				}
+			}
+		});
+
+		deferPromptAfterCommand();
+		return true;
+	}
+
 	private int startBackgroundScript(String scriptPath, String script, List<String> args) {
 		refreshBackgroundJobs();
 		if(!acquireScriptSlot()) {
@@ -279,13 +381,15 @@ public class Terminal extends LuaMadeUserdata {
 		}
 
 		int jobId = nextJobId.getAndIncrement();
-		BackgroundJob job = new BackgroundJob(jobId, scriptPath);
-		Future<Boolean> future = submitScriptTask(scriptPath, script, args);
+		ScriptExecutionContext context = new ScriptExecutionContext();
+		BackgroundJob job = new BackgroundJob(jobId, scriptPath, context);
+		Future<Boolean> future = submitScriptTask(scriptPath, script, args, context);
 		job.setFuture(future);
 		backgroundJobs.put(jobId, job);
 
 		scriptScheduler.schedule(() -> {
 			if(!future.isDone()) {
+				context.requestCancel(true);
 				job.setStatus(JobStatus.TIMED_OUT);
 				future.cancel(true);
 			}
@@ -307,10 +411,18 @@ public class Terminal extends LuaMadeUserdata {
 
 			try {
 				Boolean success = future.get();
-				job.setStatus(Boolean.TRUE.equals(success) ? JobStatus.COMPLETED : JobStatus.FAILED);
+				if(Boolean.TRUE.equals(success)) {
+					job.setStatus(JobStatus.COMPLETED);
+				} else if(job.getContext().isTimedOut()) {
+					job.setStatus(JobStatus.TIMED_OUT);
+				} else if(job.getContext().isCancellationRequested()) {
+					job.setStatus(JobStatus.CANCELED);
+				} else {
+					job.setStatus(JobStatus.FAILED);
+				}
 			} catch(CancellationException cancellationException) {
 				if(job.getStatus() == JobStatus.RUNNING) {
-					job.setStatus(JobStatus.CANCELED);
+					job.setStatus(job.getContext().isTimedOut() ? JobStatus.TIMED_OUT : JobStatus.CANCELED);
 				}
 			} catch(InterruptedException interruptedException) {
 				Thread.currentThread().interrupt();
@@ -321,15 +433,15 @@ public class Terminal extends LuaMadeUserdata {
 		}
 	}
 
-	private void runScriptAtPath(String scriptPath, List<String> args) {
+	private boolean runScriptAtPath(String scriptPath, List<String> args) {
 		String script = fileSystem.read(scriptPath);
 		if(script == null) {
 			console.print(valueOf("Error: Could not read script file: " + scriptPath));
-			return;
+			return false;
 		}
 
 		console.print(valueOf("Running script: " + scriptPath));
-		executeScriptWithBudget(scriptPath, script, args, ConfigManager.getScriptTimeoutMs());
+		return startForegroundScript(scriptPath, script, args, ConfigManager.getScriptTimeoutMs());
 	}
 
 	private void bootTerminal(boolean clearConsole) {
@@ -338,13 +450,12 @@ public class Terminal extends LuaMadeUserdata {
 		}
 
 		resetRuntimeConfiguration();
-		boolean startupHandled = runStartupScript();
-		if(!startupHandled) {
+		boolean startupStarted = runStartupScriptAsync();
+		if(!startupStarted) {
 			printDefaultStartupBanner();
-		}
-
-		if(autoPromptEnabled && running) {
-			printPrompt();
+			if(autoPromptEnabled && running) {
+				printPrompt();
+			}
 		}
 	}
 
@@ -353,7 +464,7 @@ public class Terminal extends LuaMadeUserdata {
 		promptTemplate = DEFAULT_PROMPT_TEMPLATE;
 	}
 
-	private boolean runStartupScript() {
+	private boolean runStartupScriptAsync() {
 		if(!fileSystem.exists(STARTUP_SCRIPT_PATH) || fileSystem.isDir(STARTUP_SCRIPT_PATH)) {
 			return false;
 		}
@@ -364,7 +475,7 @@ public class Terminal extends LuaMadeUserdata {
 			return false;
 		}
 
-		return executeScriptWithBudget(STARTUP_SCRIPT_PATH, script, new ArrayList<String>(), ConfigManager.getStartupScriptTimeoutMs());
+		return startForegroundScript(STARTUP_SCRIPT_PATH, script, new ArrayList<String>(), ConfigManager.getStartupScriptTimeoutMs());
 	}
 
 	private void printDefaultStartupBanner() {
@@ -512,7 +623,7 @@ public class Terminal extends LuaMadeUserdata {
 	/**
 	 * Creates a sandboxed Lua globals environment for script execution
 	 */
-	private Globals createSandboxedGlobals() {
+	private Globals createSandboxedGlobals(ScriptExecutionContext context) {
 		Globals globals = new Globals();
 		
 		// Load only safe libraries
@@ -550,7 +661,7 @@ public class Terminal extends LuaMadeUserdata {
 		loadBuiltinLibrary(globals, "scripts/lib/json.lua", "json");
 		LuaTable utilLibrary = loadBuiltinLibrary(globals, "scripts/lib/util.lua", "util");
 
-		UtilApi nativeUtil = new UtilApi();
+		UtilApi nativeUtil = new UtilApi(context == null ? null : context::throwIfCancellationRequested);
 		if(utilLibrary != null) {
 			utilLibrary.set("now", nativeUtil.get("now"));
 			utilLibrary.set("sleep", nativeUtil.get("sleep"));
@@ -1430,6 +1541,7 @@ public class Terminal extends LuaMadeUserdata {
 		commands.put("reboot", new Command("reboot", "Reloads startup script and resets terminal UI") {
 			@Override
 			public void execute(String args) {
+				deferPromptAfterCommand();
 				reboot();
 			}
 		});
@@ -1711,6 +1823,7 @@ public class Terminal extends LuaMadeUserdata {
 
 				Future<Boolean> future = job.getFuture();
 				if(future != null && !future.isDone()) {
+					job.getContext().requestCancel(false);
 					job.setStatus(JobStatus.CANCELED);
 					future.cancel(true);
 					if(parsed.signalName == null) {
@@ -1724,6 +1837,10 @@ public class Terminal extends LuaMadeUserdata {
 				}
 			}
 		});
+	}
+
+	private void deferPromptAfterCommand() {
+		promptDeferredByCommand.set(true);
 	}
 
 	public String getTextContents() {
@@ -3090,12 +3207,14 @@ public class Terminal extends LuaMadeUserdata {
 	private static final class BackgroundJob {
 		private final int id;
 		private final String scriptPath;
+		private final ScriptExecutionContext context;
 		private volatile JobStatus status = JobStatus.RUNNING;
 		private volatile Future<Boolean> future;
 
-		private BackgroundJob(int id, String scriptPath) {
+		private BackgroundJob(int id, String scriptPath, ScriptExecutionContext context) {
 			this.id = id;
 			this.scriptPath = scriptPath;
+			this.context = context;
 		}
 
 		private int getId() {
@@ -3110,6 +3229,10 @@ public class Terminal extends LuaMadeUserdata {
 			return status;
 		}
 
+		private ScriptExecutionContext getContext() {
+			return context;
+		}
+
 		private void setStatus(JobStatus status) {
 			this.status = status;
 		}
@@ -3120,6 +3243,44 @@ public class Terminal extends LuaMadeUserdata {
 
 		private void setFuture(Future<Boolean> future) {
 			this.future = future;
+		}
+	}
+
+	private static final class ScriptExecutionContext {
+		private final AtomicBoolean cancellationRequested = new AtomicBoolean(false);
+		private final AtomicBoolean timedOut = new AtomicBoolean(false);
+		private volatile Thread workerThread;
+
+		private void bindToCurrentThread() {
+			workerThread = Thread.currentThread();
+		}
+
+		private void requestCancel(boolean wasTimeout) {
+			if(wasTimeout) {
+				timedOut.set(true);
+			}
+			cancellationRequested.set(true);
+			Thread runningThread = workerThread;
+			if(runningThread != null) {
+				runningThread.interrupt();
+			}
+		}
+
+		private boolean isCancellationRequested() {
+			return cancellationRequested.get();
+		}
+
+		private boolean isTimedOut() {
+			return timedOut.get();
+		}
+
+		private void throwIfCancellationRequested() {
+			if(cancellationRequested.get()) {
+				if(timedOut.get()) {
+					throw new LuaError("Script timed out");
+				}
+				throw new LuaError("Script canceled");
+			}
 		}
 	}
 
