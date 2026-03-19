@@ -138,8 +138,8 @@ public class Console extends LuaMadeUserdata {
 			this.foregroundColors = foregroundColors == null ? new int[0] : Arrays.copyOf(foregroundColors, foregroundColors.length);
 			this.backgroundColors = backgroundColors == null ? new int[0] : Arrays.copyOf(backgroundColors, backgroundColors.length);
 			if(layers == null || layers.isEmpty()) {
-				List<GraphicsLayer> fallbackLayers = new ArrayList<GraphicsLayer>(1);
-				fallbackLayers.add(new GraphicsLayer(this.text, cellScaleX, cellScaleY, new int[0]));
+				List<GraphicsLayer> fallbackLayers = new ArrayList<>(1);
+				fallbackLayers.add(new GraphicsLayer("base", this.text, cellScaleX, cellScaleY, new int[0]));
 				this.layers = Collections.unmodifiableList(fallbackLayers);
 			} else {
 				this.layers = Collections.unmodifiableList(new ArrayList<GraphicsLayer>(layers));

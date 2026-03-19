@@ -15,6 +15,7 @@ graphics/INDEX.md
 graphics/text-graphics.md
 io/INDEX.md
 io/filesystem.md
+io/input.md
 io/networking.md
 io/virtualfile.md
 math/INDEX.md
