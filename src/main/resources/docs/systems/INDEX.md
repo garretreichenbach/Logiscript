@@ -14,6 +14,7 @@ Game systems including blocks, modules, inventories, and specialized mechanics.
 - **block.md** - Base block wrapper
 - **block-info.md** - Block information reference
 - **chamber.md** - Reactor chamber wrapper
+- **disk-drive-block.md** - Disk drive block wrapper
 - **display-module-block.md** - Display module wrapper
 - **inventory-block.md** - Inventory container wrapper
 - **reactor.md** - Reactor system wrapper

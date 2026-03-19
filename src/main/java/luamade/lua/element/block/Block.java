@@ -1,10 +1,12 @@
 package luamade.lua.element.block;
 
+import luamade.element.ElementRegistry;
 import luamade.lua.data.Vec3i;
 import luamade.lua.element.inventory.Inventory;
 import luamade.lua.entity.Entity;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import luamade.system.module.ComputerModule;
 import org.schema.game.client.controller.element.world.ClientSegmentProvider;
 import org.schema.game.common.controller.SendableSegmentProvider;
 import org.schema.game.common.data.ManagedSegmentController;
@@ -18,16 +20,30 @@ import java.util.Locale;
 
 public class Block extends LuaMadeUserdata {
     private final SegmentPiece segmentPiece;
+    private final ComputerModule module;
 
     public Block(SegmentPiece piece) {
+        this(piece, null);
+    }
+
+    public Block(SegmentPiece piece, ComputerModule module) {
         this.segmentPiece = piece;
+        this.module = module;
     }
 
     public static Block wrap(SegmentPiece piece) {
-        return wrapAs(piece, "auto");
+        return wrapAs(piece, "auto", null);
+    }
+
+    public static Block wrap(SegmentPiece piece, ComputerModule module) {
+        return wrapAs(piece, "auto", module);
     }
 
     public static Block wrapAs(SegmentPiece piece, String target) {
+        return wrapAs(piece, target, null);
+    }
+
+    public static Block wrapAs(SegmentPiece piece, String target, ComputerModule module) {
         if(piece == null) {
             return null;
         }
@@ -35,7 +51,7 @@ public class Block extends LuaMadeUserdata {
         String kind = target == null ? "auto" : target.trim().toLowerCase(Locale.ROOT);
 
         if("block".equals(kind) || "base".equals(kind)) {
-            return new Block(piece);
+            return new Block(piece, module);
         }
 
         if("display".equals(kind) || "displaymodule".equals(kind) || "display_module".equals(kind)) {
@@ -46,8 +62,18 @@ public class Block extends LuaMadeUserdata {
         }
 
         if("inventory".equals(kind)) {
+            if(piece.getType() == ElementRegistry.DISK_DRIVE.getId()) {
+                return new DiskDriveBlock(piece, module);
+            }
             if(hasInventoryAt(piece)) {
                 return new InventoryBlock(piece);
+            }
+            return null;
+        }
+
+        if("diskdrive".equals(kind) || "disk_drive".equals(kind) || "disk-drive".equals(kind)) {
+            if(piece.getType() == ElementRegistry.DISK_DRIVE.getId()) {
+                return new DiskDriveBlock(piece, module);
             }
             return null;
         }
@@ -56,11 +82,15 @@ public class Block extends LuaMadeUserdata {
             return new DisplayModule(piece);
         }
 
+        if(piece.getType() == ElementRegistry.DISK_DRIVE.getId()) {
+            return new DiskDriveBlock(piece, module);
+        }
+
         if(hasInventoryAt(piece)) {
             return new InventoryBlock(piece);
         }
 
-        return new Block(piece);
+        return new Block(piece, module);
     }
 
     @LuaMadeCallable
@@ -149,6 +179,10 @@ public class Block extends LuaMadeUserdata {
 
     public SegmentPiece getSegmentPiece() {
         return segmentPiece;
+    }
+
+    protected ComputerModule getModule() {
+        return module;
     }
 
     private static Inventory getInventoryAt(SegmentPiece piece) {

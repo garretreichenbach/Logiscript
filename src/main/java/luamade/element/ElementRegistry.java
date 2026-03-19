@@ -3,6 +3,8 @@ package luamade.element;
 import api.config.BlockConfig;
 import luamade.LuaMade;
 import luamade.element.block.Computer;
+import luamade.element.block.DiskDrive;
+import luamade.element.item.Disk;
 import org.schema.game.common.data.element.ElementInformation;
 
 
@@ -11,7 +13,9 @@ import org.schema.game.common.data.element.ElementInformation;
  */
 public enum ElementRegistry {
 
-	COMPUTER(new Computer());
+	COMPUTER(new Computer()),
+	DISK_DRIVE(new DiskDrive()),
+	DISK(new Disk());
 
 	public final ElementInterface elementInterface;
 

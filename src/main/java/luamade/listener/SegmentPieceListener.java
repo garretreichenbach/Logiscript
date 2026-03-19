@@ -6,6 +6,7 @@ import api.listener.fastevents.segmentpiece.SegmentPiecePlayerInteractListener;
 import api.listener.fastevents.segmentpiece.SegmentPieceRemoveListener;
 import luamade.element.ElementRegistry;
 import luamade.gui.ComputerDialog;
+import luamade.gui.DiskDriveDialog;
 import luamade.system.module.ComputerModule;
 import luamade.system.module.ComputerModuleContainer;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -31,6 +32,16 @@ public class SegmentPieceListener implements SegmentPiecePlayerInteractListener,
 					if(module != null) {
 						(new ComputerDialog(module)).activate();
 					}
+				}
+			} else if(segmentPiece.getType() == ElementRegistry.DISK_DRIVE.getId()) {
+				if(!DiskDriveDialog.isSingleSlotUiAvailable()) {
+					return;
+				}
+
+				ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentPiece.getSegmentController();
+				org.schema.game.common.data.player.inventory.Inventory inventory = controller.getManagerContainer().getInventory(segmentPiece.getAbsoluteIndex());
+				if(inventory != null) {
+					(new DiskDriveDialog(inventory)).activate();
 				}
 			}
 		}

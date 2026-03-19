@@ -24,16 +24,6 @@ public class Computer extends Block {
 
 	@Override
 	public void postInitData() {
-		blockInfo.controlledBy.add((short) 405);
-		blockInfo.controlledBy.add((short) 993);
-		blockInfo.controlledBy.add((short) 666);
-		blockInfo.controlledBy.add((short) 399);
-
-		ElementKeyMap.getInfo(405).controlling.add(getId());
-		ElementKeyMap.getInfo(993).controlling.add(getId());
-		ElementKeyMap.getInfo(666).controlling.add(getId());
-		ElementKeyMap.getInfo(399).controlling.add(getId());
-
 		BlockConfig.addRecipe(blockInfo, ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).getProducedInFactoryType(), (int) ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).getFactoryBakeTime(), new FactoryResource(1, ElementKeyMap.TEXT_BOX), new FactoryResource(50, (short) 220));
 	}
 

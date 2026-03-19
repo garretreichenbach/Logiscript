@@ -63,4 +63,19 @@ public class Inventory extends LuaMadeUserdata {
 	private Boolean isInventory() {
 		return inventory != null;
 	}
+
+	public org.schema.game.common.data.player.inventory.Inventory getBackingInventory() {
+		return inventory;
+	}
+
+	public InventorySlot getSlotAt(int index) {
+		if(!isInventory() || index < 0) {
+			return null;
+		}
+		try {
+			return inventory.getSlot(index);
+		} catch(Exception ignored) {
+			return null;
+		}
+	}
 }
