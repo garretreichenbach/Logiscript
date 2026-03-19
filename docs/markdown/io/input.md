@@ -91,6 +91,16 @@ Events are captured only while the computer's terminal dialog is open and are au
 - `input.isMouseConsumed()`
   Returns `true` while a script has signalled exclusive mouse ownership.
 
+## Remote sessions
+
+When a player links a `Remote Control` item to a bound remote access point and activates that access point, key and mouse button input is forwarded into the target computer's `input` queue even while its UI is closed.
+
+Remote sessions also forward mouse movement deltas (`dx`/`dy`) for cursor-driven overlays.
+
+Players receive immediate status feedback when a remote session links or disconnects.
+
+`Escape` is always reserved for safety: pressing it disconnects the active remote session instead of forwarding the key to Lua.
+
 ## Common key codes
 
 | Key   | Code | Key       | Code  |

@@ -143,6 +143,18 @@ public class ComputerModuleContainer extends SystemModule {
 		return null;
 	}
 
+	public ComputerModule getModuleByUUID(String uuid) {
+		if(uuid == null || uuid.trim().isEmpty()) {
+			return null;
+		}
+		for(ComputerModule module : computerModules.values()) {
+			if(module != null && uuid.equals(module.getUUID())) {
+				return module;
+			}
+		}
+		return null;
+	}
+
 	@Override
 	public void onTagDeserialize(PacketReadBuffer buffer) throws IOException {
 		synchronized(pendingLock) {

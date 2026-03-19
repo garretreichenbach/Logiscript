@@ -78,12 +78,23 @@ public class Block extends LuaMadeUserdata {
             return null;
         }
 
+        if("accesspoint".equals(kind) || "remoteaccesspoint".equals(kind) || "remote_access_point".equals(kind) || "remote-access-point".equals(kind)) {
+            if(piece.getType() == ElementRegistry.REMOTE_ACCESS_POINT.getId()) {
+                return new RemoteAccessPointBlock(piece, module);
+            }
+            return null;
+        }
+
         if(piece.getType() == ElementKeyMap.TEXT_BOX) {
             return new DisplayModule(piece);
         }
 
         if(piece.getType() == ElementRegistry.DISK_DRIVE.getId()) {
             return new DiskDriveBlock(piece, module);
+        }
+
+        if(piece.getType() == ElementRegistry.REMOTE_ACCESS_POINT.getId()) {
+            return new RemoteAccessPointBlock(piece, module);
         }
 
         if(hasInventoryAt(piece)) {

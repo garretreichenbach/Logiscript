@@ -66,12 +66,40 @@ Returns supported side names.
 - Relative sides are resolved from the current computer block position.
 - `front`/`back`/`left`/`right`/`top`/`bottom` are resolved relative to the computer block's facing/orientation.
 - If no block exists at a location/side, methods return `nil` (or `false` for `hasRelative`).
-- `wrap(..., asType)` supports: `display`, `inventory`, `diskdrive`, `block`/`base`, and `auto`.
+- `wrap(..., asType)` supports: `display`, `inventory`, `diskdrive`, `accesspoint`, `block`/`base`, and `auto`.
 - `display` exposes display helpers like `setText()`/`getText()`.
 - `inventory` exposes helpers like `getItems()` and `getInventoryName()`.
 - `diskdrive` exposes disk methods like `saveProgram()`, `installProgram()`, and `listPrograms()`.
+- `accesspoint` exposes remote access methods described below.
+
+## Remote access point wrapper
+
+When a remote access point block is wrapped from a computer script, it can be bound to that computer:
+
+- `connect()`
+Binds the access point to the current computer. Returns `true` on success.
+
+- `disconnect()`
+Removes the computer binding from the access point.
+
+- `isConnected()`
+Returns `true` when the access point is currently bound to a computer.
+
+- `getLinkedComputerUUID()`
+Returns the UUID of the linked computer, or `nil` when unbound.
+
+- `getLinkedComputerName()`
+Returns the linked computer display name, or `nil` when unavailable.
+
+- `isSessionActive()`
+Returns `true` when this access point currently has an active remote control session.
 
 ```lua
+local access = peripheral.wrapRelative("front", "accesspoint")
+if access ~= nil then
+  access:connect()
+end
+
 local topBlock = peripheral.getRelative("top")
 
 local display = peripheral.wrap(topBlock, "display")

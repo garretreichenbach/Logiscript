@@ -4,7 +4,9 @@ import api.config.BlockConfig;
 import luamade.LuaMade;
 import luamade.element.block.Computer;
 import luamade.element.block.DiskDrive;
+import luamade.element.block.RemoteAccessPoint;
 import luamade.element.item.Disk;
+import luamade.element.item.RemoteControl;
 import org.schema.game.common.data.element.ElementInformation;
 
 
@@ -15,7 +17,9 @@ public enum ElementRegistry {
 
 	COMPUTER(new Computer()),
 	DISK_DRIVE(new DiskDrive()),
-	DISK(new Disk());
+	REMOTE_ACCESS_POINT(new RemoteAccessPoint()),
+	DISK(new Disk()),
+	REMOTE_CONTROL(new RemoteControl());
 
 	public final ElementInterface elementInterface;
 
