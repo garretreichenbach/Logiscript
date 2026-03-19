@@ -19,6 +19,10 @@ public class Vec3f extends LuaMadeUserdata {
         this(v.x, v.y, v.z);
     }
 
+    public Vec3f(Vec3f v) {
+        this(v.x, v.y, v.z);
+    }
+
     @LuaMadeCallable
     public Float getX() {
         return x;
@@ -47,6 +51,67 @@ public class Vec3f extends LuaMadeUserdata {
     @LuaMadeCallable
     public void setZ(Float z) {
         this.z = z;
+    }
+
+    @LuaMadeCallable
+    public Vec3f add(Vec3f vec) {
+        x += vec.x;
+        y += vec.y;
+        z += vec.z;
+        return this;
+    }
+
+    @LuaMadeCallable
+    public Vec3f sub(Vec3f vec) {
+        x -= vec.x;
+        y -= vec.y;
+        z -= vec.z;
+        return this;
+    }
+
+    @LuaMadeCallable
+    public Vec3f mul(Vec3f vec) {
+        x *= vec.x;
+        y *= vec.y;
+        z *= vec.z;
+        return this;
+    }
+
+    @LuaMadeCallable
+    public Vec3f div(Vec3f vec) {
+        x /= vec.x;
+        y /= vec.y;
+        z /= vec.z;
+        return this;
+    }
+
+    @LuaMadeCallable
+    public Vec3f scale(Float scale) {
+        x *= scale;
+        y *= scale;
+        z *= scale;
+        return this;
+    }
+
+    @LuaMadeCallable
+    public Vec3f absolute() {
+        x = Math.abs(x);
+        y = Math.abs(y);
+        z = Math.abs(z);
+        return this;
+    }
+
+    @LuaMadeCallable
+    public Vec3f negate() {
+        x = -x;
+        y = -y;
+        z = -z;
+        return this;
+    }
+
+    @LuaMadeCallable
+    public Double size() {
+        return Math.sqrt(x * x + y * y + z * z);
     }
 
     @Override
