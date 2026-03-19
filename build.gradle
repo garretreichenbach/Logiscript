@@ -3,13 +3,18 @@ plugins {
     id 'application'
 }
 
-def starmadeDirectory = project.property("starmade_root")
+def configuredStarmadeRoot = (project.findProperty("starmade_root") ?: "").toString().trim()
+def autoPreparedStarmadeRoot = layout.projectDirectory.dir('.ci/starmade/StarMade').asFile.absolutePath + File.separator
+def useAutoPreparedStarmadeRoot = configuredStarmadeRoot.isEmpty() || configuredStarmadeRoot == 'STARMADE_PATH'
+def starmadeDirectory = useAutoPreparedStarmadeRoot ? autoPreparedStarmadeRoot : configuredStarmadeRoot
 def modName = project.property("mod_name")
 def docsSourceDir = layout.projectDirectory.dir('docs/markdown')
 def docsResourceDir = layout.projectDirectory.dir('src/main/resources/docs')
 group = project.property('mod_org_id')
 version = project.property('mod_version')
 mainClassName = group + modName
+def starmadeJar = file(starmadeDirectory + "StarMade.jar")
+def starmadeLibDir = file(starmadeDirectory + "lib")
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
@@ -30,8 +35,30 @@ repositories {
 dependencies {
     implementation "org.commonmark:commonmark:0.21.0"
     implementation 'org.lz4:lz4-java:1.8.1'
-    compileOnly(files(starmadeDirectory + "StarMade.jar"))
-    compileOnly(fileTree(dir: (starmadeDirectory + "lib"), include: "*.jar"))
+    compileOnly(files(starmadeJar))
+    compileOnly(fileTree(dir: starmadeLibDir, include: "*.jar"))
+}
+
+tasks.register('prepareStarmadeCompileDependencies', Exec) {
+    group = 'build setup'
+    description = 'Downloads and stages StarMade compile dependencies under .ci/starmade/StarMade/.'
+
+    commandLine 'bash', '.github/scripts/prepare_starmade.sh'
+    environment 'WORK_ROOT', layout.projectDirectory.dir('.ci/starmade').asFile.absolutePath
+
+    def starmadeBuildUrl = (project.findProperty('starmade_build_url') ?: '').toString().trim()
+    if (!starmadeBuildUrl.isEmpty()) {
+        environment 'STARMADE_BUILD_URL', starmadeBuildUrl
+    }
+
+    outputs.file(layout.projectDirectory.file('.ci/starmade/StarMade/StarMade.jar'))
+    outputs.dir(layout.projectDirectory.dir('.ci/starmade/StarMade/lib'))
+}
+
+tasks.withType(JavaCompile).configureEach {
+    if (useAutoPreparedStarmadeRoot && (!starmadeJar.exists() || !starmadeLibDir.exists())) {
+        dependsOn(tasks.named('prepareStarmadeCompileDependencies'))
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {

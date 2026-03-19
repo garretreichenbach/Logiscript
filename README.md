@@ -278,7 +278,7 @@ end
 This repository now includes a GitHub Actions workflow at [.github/workflows/release-mod.yml](.github/workflows/release-mod.yml) that can:
 
 - Download StarMade compile dependencies from:
-    - https://files-origin.star-made.org/build/dev/
+    - http://files-origin.star-made.org/build/dev/
 - Build the mod jar with Gradle (`clean jar`)
 - Publish jar and checksum files to a GitHub Release
 
@@ -293,6 +293,27 @@ How to use:
 Notes:
 
 - The workflow auto-discovers a recent StarMade build zip from the dev feed unless `starmade_build_url` is provided.
+
+## Local Codespaces Build With StarMade Dependencies
+
+You can build in Codespaces without manually installing StarMade locally.
+
+When `starmade_root` is left as `STARMADE_PATH`, Gradle now auto-downloads and stages compile dependencies into `.ci/starmade/StarMade/`.
+
+If dev-feed discovery fails in your environment, set `starmade_build_url` in `gradle.properties` (this repo already includes a pinned default).
+
+Examples:
+
+```bash
+# Auto-discover newest dev zip from files-origin.star-made.org
+./gradlew clean jar
+
+# Force a specific build zip
+./gradlew clean jar -Pstarmade_build_url="http://files-origin.star-made.org/build/dev/starmade-build_20260319_094639.zip"
+
+# Use your own existing StarMade directory instead of auto-download
+./gradlew clean jar -Pstarmade_root="/path/to/StarMade/"
+```
 
 Web request commands:
 

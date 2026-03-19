@@ -15,6 +15,8 @@ import org.schema.schine.graphicsengine.forms.gui.newgui.GUIContentPane;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIDialogWindow;
 import org.schema.schine.input.InputState;
 
+import java.lang.reflect.Constructor;
+
 public class DiskDriveDialog extends PlayerInput {
 
 	private final DiskDrivePanel panel;
@@ -43,6 +45,22 @@ public class DiskDriveDialog extends PlayerInput {
 
 	@Override
 	public void handleMouseEvent(MouseEvent mouseEvent) {
+	}
+
+	@Override
+	public void onDeactivate() {
+	}
+
+	public static boolean isSingleSlotUiAvailable() {
+		for(Constructor<?> constructor : SingleInventorySlotIcon.class.getConstructors()) {
+			Class<?>[] parameterTypes = constructor.getParameterTypes();
+			if(parameterTypes.length >= 3
+				&& GameClientState.class.isAssignableFrom(parameterTypes[0])
+				&& Inventory.class.isAssignableFrom(parameterTypes[1])) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static final class DiskDrivePanel extends GUIInputDialogPanel {
@@ -74,7 +92,7 @@ public class DiskDriveDialog extends PlayerInput {
 			}
 
 			try {
-				SingleInventorySlotIcon slotWidget = new SingleInventorySlotIcon(getState(), inventory, 0, "Disk");
+				SingleInventorySlotIcon slotWidget = new SingleInventorySlotIcon(GameClient.getClientState(), inventory, 0, "Disk");
 				slotWidget.setPos(48, 64, 0);
 				slotWidget.onInit();
 				root.attach(slotWidget);

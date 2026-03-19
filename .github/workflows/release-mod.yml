@@ -42,7 +42,7 @@ jobs:
       - name: Prepare StarMade compile dependencies
         id: starmade
         env:
-          STARMADE_DEV_BASE_URL: https://files-origin.star-made.org/build/dev/
+          STARMADE_DEV_BASE_URL: http://files-origin.star-made.org/build/dev/
           STARMADE_BUILD_URL: ${{ github.event.inputs.starmade_build_url }}
           STARMADE_DOWNLOAD_PATTERN: ^starmade-build_[0-9]{8}_[0-9]{6}\.zip$
         run: bash .github/scripts/prepare_starmade.sh

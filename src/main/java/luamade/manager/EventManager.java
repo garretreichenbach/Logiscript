@@ -41,6 +41,7 @@ public class EventManager {
 			@Override
 			public void onEvent(KeyPressEvent event) {
 				int key = event.getKey();
+				char typedChar = event.getChar();
 				boolean ctrlDown = Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_CONTROL) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_CONTROL);
 				boolean shiftDown = Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_SHIFT);
 				boolean altDown = Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_ALT) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_ALT);
@@ -51,7 +52,7 @@ public class EventManager {
 						event.setCanceled(true);
 						return;
 					}
-					RemoteSessionManager.forwardKeyEvent(key, event.getChar().isEmpty() ? 0 : event.getChar().charAt(0), event.isKeyDown(), shiftDown, ctrlDown, altDown);
+					RemoteSessionManager.forwardKeyEvent(key, typedChar, event.isKeyDown(), shiftDown, ctrlDown, altDown);
 					event.setCanceled(true);
 					return;
 				}
@@ -84,7 +85,7 @@ public class EventManager {
 				if(module != null) {
 					module.getInputApi().pushKeyEvent(
 							key,
-							event.getChar().isEmpty() ? 0 : event.getChar().charAt(0),
+							typedChar,
 							event.isKeyDown(),
 							shiftDown,
 							ctrlDown,
@@ -137,13 +138,13 @@ public class EventManager {
 			Class<?> mouseMoveEventClass = Class.forName("api.listener.events.input.MouseMoveEvent");
 			StarLoader.registerListener((Class) mouseMoveEventClass, new Listener() {
 				@Override
-				public void onEvent(Event event) {
+				public void onEvent(Object event) {
 					if(!RemoteSessionManager.isActive()) {
 						return;
 					}
 					MouseEvent rawMouseEvent = extractRawMouseEvent(event);
-					if(rawMouseEvent != null && RemoteSessionManager.forwardMouseEvent(rawMouseEvent)) {
-						event.setCanceled(true);
+					if(rawMouseEvent != null && RemoteSessionManager.forwardMouseEvent(rawMouseEvent) && event instanceof Event) {
+						((Event) event).setCanceled(true);
 					}
 				}
 			}, instance);
