@@ -819,7 +819,7 @@ public class ComputerDialog extends PlayerInput {
 			consolePane.onInit();
 			contentPane.getContent(0).attach(consolePane);
 
-			terminalGfxOverlay = new TerminalGfxOverlay(1, 1, getState(), computerModule.getGfxApi());
+			terminalGfxOverlay = new TerminalGfxOverlay(1, 1, GameClient.getClientState(), computerModule.getGfxApi());
 			terminalGfxOverlay.onInit();
 			terminalGfxOverlay.setMouseUpdateEnabled(false);
 			contentPane.getContent(0).attach(terminalGfxOverlay);
