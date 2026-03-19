@@ -6,6 +6,7 @@ import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * Wrapper for a file in the file system. Prevents access to the underlying file system outside the sandbox.
@@ -64,16 +65,7 @@ public final class VirtualFile extends LuaMadeUserdata implements SerializationI
 
 	@LuaMadeCallable
 	public String getPath() {
-		//Only include the path relative to the file system root
-		String path = internalFile.getPath();
-		String rootPath = fileSystem.getRootDirectory().getInternalFile().getPath();
-		if(path.startsWith(rootPath)) {
-			path = path.substring(rootPath.length());
-		}
-		if(path.startsWith(File.separator)) {
-			path = path.substring(1);
-		}
-		return path;
+		return getRelativePathFromRoot(false);
 	}
 
 	@LuaMadeCallable
@@ -81,15 +73,39 @@ public final class VirtualFile extends LuaMadeUserdata implements SerializationI
 		if(fileSystem == null || fileSystem.getRootDirectory() == null) {
 			throw new IllegalStateException("FileSystem or rootDirectory is not initialized for VirtualFile: " + (internalFile != null ? internalFile.getAbsolutePath() : "null"));
 		}
-		String path = internalFile.getAbsolutePath();
-		String rootAbs = fileSystem.getRootDirectory().getInternalFile().getAbsolutePath();
-		if(path.startsWith(rootAbs)) {
-			path = path.substring(rootAbs.length());
+		return getRelativePathFromRoot(true);
+	}
+
+	private String getRelativePathFromRoot(boolean absolute) {
+		File rootFile = fileSystem.getRootDirectory() != null ? fileSystem.getRootDirectory().internalFile : null;
+		if(rootFile == null) {
+			return absolute ? internalFile.getAbsolutePath() : internalFile.getPath();
+		}
+
+		String path = absolute ? internalFile.getAbsolutePath() : internalFile.getPath();
+		String rootPath = absolute ? rootFile.getAbsolutePath() : rootFile.getPath();
+
+		if(!path.startsWith(rootPath)) {
+			try {
+				String canonicalPath = internalFile.getCanonicalPath();
+				String canonicalRootPath = rootFile.getCanonicalPath();
+				if(canonicalPath.startsWith(canonicalRootPath)) {
+					path = canonicalPath;
+					rootPath = canonicalRootPath;
+				}
+			} catch(IOException ignored) {
+				// Fall back to the original path strings if canonical resolution fails.
+			}
+		}
+
+		if(path.startsWith(rootPath)) {
+			path = path.substring(rootPath.length());
 		}
 		if(path.startsWith(File.separator)) {
 			path = path.substring(1);
 		}
-		return path;
+
+		return path.replace('\\', '/');
 	}
 
 	@LuaMadeCallable

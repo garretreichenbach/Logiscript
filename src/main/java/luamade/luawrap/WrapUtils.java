@@ -11,33 +11,31 @@ import java.util.Set;
 public class WrapUtils {
 	public static LuaValue wrapSingle(Object o) {
 		if(o instanceof LuaValue) return (LuaValue) o;
-
 		else if(o instanceof Boolean) return LuaValue.valueOf((Boolean) o);
-
 		else if(o instanceof Integer) return LuaValue.valueOf((Integer) o);
-
 		else if(o instanceof Long) return LuaValue.valueOf((Long) o);
-
 		else if(o instanceof Double) return LuaValue.valueOf((Double) o);
-
 		else if(o instanceof Float) return LuaValue.valueOf(((Float) o).doubleValue());
-
 		else if(o instanceof String) return LuaValue.valueOf((String) o);
-
 		else if(o == null) return LuaValue.NIL;
-
 		throw new LuaError(String.format("Object %s not wrapable.", o.getClass()));
 	}
 
-	public static LuaTable wrapArray(Object[] o) {
+	public static LuaTable wrapArray(Object o) {
+		if(o == null || !o.getClass().isArray()) {
+			throw new LuaError("Only arrays can be wrapped as Lua tables.");
+		}
+
+		int length = Array.getLength(o);
 		LuaTable t = new LuaTable();
-		for(int i = 0; i < o.length; ++i)
-			t.rawset(i + 1, wrapSingle(o[i]));
+		for(int i = 0; i < length; ++i) {
+			t.rawset(i + 1, wrapSingle(Array.get(o, i)));
+		}
 		return t;
 	}
 
 	public static Varargs wrap(Object o) {
-		if(o instanceof Object[]) return wrapArray((Object[]) o);
+		if(o != null && o.getClass().isArray()) return wrapArray(o);
 		else return wrapSingle(o);
 	}
 
@@ -65,7 +63,7 @@ public class WrapUtils {
 		throw new LuaError(String.format("Cannot unwrap %s to %s.", o.getClass(), clazz));
 	}
 
-	public static Object[] unwrapArray(LuaValue o, Class<?> clazz) {
+	public static Object unwrapArray(LuaValue o, Class<?> clazz) {
 		if(!clazz.isArray()) throw new LuaError("Only conversions to arrays.");
 		Class<?> et = clazz.getComponentType();
 		if(et.isArray()) throw new LuaError("No nested arrays.");
@@ -77,10 +75,10 @@ public class WrapUtils {
 			arr.add(unwrapSingle(e, et));
 		}
 
-		Object[] out = (Object[]) (Array.newInstance(et, arr.size()));
+		Object out = Array.newInstance(et, arr.size());
 
-		for(int i = 0; i < out.length; ++i)
-			out[i] = arr.get(i);
+		for(int i = 0; i < arr.size(); ++i)
+			Array.set(out, i, arr.get(i));
 
 		if(clazz.isInstance(out)) return out;
 

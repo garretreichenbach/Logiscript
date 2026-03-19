@@ -5,12 +5,7 @@ import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.manager.ConfigManager;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Text-based graphics API for terminal scripts.
@@ -45,7 +40,7 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 	/** Insertion-ordered named layers. Empty = single-layer (flat buffer) mode. */
 	private final LinkedHashMap<String, CanvasLayer> explicitLayers = new LinkedHashMap<String, CanvasLayer>();
 	/** Non-null when an explicit layer is active; null = flat buffer. */
-	private CanvasLayer activeLayer = null;
+	private CanvasLayer activeLayer;
 
 	@LuaMadeCallable
 	public void render() {
@@ -536,6 +531,8 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 		if(explicitLayers.isEmpty()) {
 			Map<ScaleKey, Integer> layerIndices = new LinkedHashMap<ScaleKey, Integer>();
 			List<int[]> layerBuffers = new ArrayList<int[]>();
+			List<int[]> layerFgBuffers = new ArrayList<int[]>();
+			List<int[]> layerBgBuffers = new ArrayList<int[]>();
 			List<ScaleKey> layerKeys = new ArrayList<ScaleKey>();
 			ScaleKey fallbackKey = new ScaleKey(cellScaleX, cellScaleY);
 
@@ -551,42 +548,54 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 								layerIndices.put(fallbackKey, idx);
 								layerKeys.add(fallbackKey);
 								layerBuffers.add(createEmptyLayerBuffer());
+								layerFgBuffers.add(createEmptyColorBuffer());
+								layerBgBuffers.add(createEmptyColorBuffer());
 							}
 						} else {
 							idx = layerBuffers.size();
 							layerIndices.put(key, idx);
 							layerKeys.add(key);
 							layerBuffers.add(createEmptyLayerBuffer());
+							layerFgBuffers.add(createEmptyColorBuffer());
+							layerBgBuffers.add(createEmptyColorBuffer());
 						}
 					}
-					layerBuffers.get(idx)[(y * width) + x] = cells[y][x];
+					int flatIndex = (y * width) + x;
+					layerBuffers.get(idx)[flatIndex] = cells[y][x];
+					layerFgBuffers.get(idx)[flatIndex] = fgColors[y][x];
+					layerBgBuffers.get(idx)[flatIndex] = bgColors[y][x];
 				}
 			}
 
 			if(layerBuffers.isEmpty()) {
 				result.add(new Console.GraphicsFrame.GraphicsLayer(
-						"", frameWithoutAnsi(), cellScaleX, cellScaleY, flattenCodePoints()));
+						"", frameWithoutAnsi(), cellScaleX, cellScaleY, flattenCodePoints(), flattenColors(fgColors), flattenColors(bgColors)));
 				return result;
 			}
 
 			for(int i = 0; i < layerBuffers.size(); i++) {
 				ScaleKey key = layerKeys.get(i);
 				int[] buf = layerBuffers.get(i);
+				int[] fg = layerFgBuffers.get(i);
+				int[] bg = layerBgBuffers.get(i);
 				result.add(new Console.GraphicsFrame.GraphicsLayer(
-						"", buildLayerText(buf), key.scaleX, key.scaleY, buf));
+						"", buildLayerText(buf), key.scaleX, key.scaleY, buf, fg, bg));
 			}
 			return result;
 		}
 
 		// --- explicit-layer mode: flat buffer is the base (z = -1), then named layers in z-order ---
 		// Flat base (always bottom)
+		int[] baseCodePoints = flattenCodePoints();
 		result.add(new Console.GraphicsFrame.GraphicsLayer(
-				"", buildLayerText(flattenCodePoints()), cellScaleX, cellScaleY, flattenCodePoints()));
+				"", buildLayerText(baseCodePoints), cellScaleX, cellScaleY, baseCodePoints, flattenColors(fgColors), flattenColors(bgColors)));
 
 		for(CanvasLayer layer : sortedLayers()) {
 			int[] buf = layer.flattenCodePoints(width, height);
+			int[] fg = layer.flattenColors(layer.fgColors, width, height);
+			int[] bg = layer.flattenColors(layer.bgColors, width, height);
 			result.add(new Console.GraphicsFrame.GraphicsLayer(
-					layer.name, buildLayerText(buf), layer.scaleX, layer.scaleY, buf));
+					layer.name, buildLayerText(buf), layer.scaleX, layer.scaleY, buf, fg, bg));
 		}
 		return result;
 	}
@@ -594,6 +603,12 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 	private int[] createEmptyLayerBuffer() {
 		int[] buffer = new int[width * height];
 		Arrays.fill(buffer, ' ');
+		return buffer;
+	}
+
+	private int[] createEmptyColorBuffer() {
+		int[] buffer = new int[width * height];
+		Arrays.fill(buffer, ANSI_DEFAULT);
 		return buffer;
 	}
 
@@ -882,9 +897,9 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 			this.scaleX = scaleX;
 			this.scaleY = scaleY;
 			this.zIndex = zIndex;
-			this.cells = new int[h][w];
-			this.fgColors = new int[h][w];
-			this.bgColors = new int[h][w];
+			cells = new int[h][w];
+			fgColors = new int[h][w];
+			bgColors = new int[h][w];
 			clear(fillCp, ANSI_DEFAULT);
 		}
 
@@ -925,7 +940,21 @@ public class TextGraphicsApi extends LuaMadeUserdata {
 			int idx = 0;
 			for(int y = 0; y < h; y++) {
 				for(int x = 0; x < w; x++) {
-					out[idx++] = cells[y][x];
+					out[idx] = cells[y][x];
+					idx++;
+				}
+			}
+			return out;
+		}
+
+		private int[] flattenColors(int[][] colors, int w, int h) {
+			int[] out = new int[w * h];
+			Arrays.fill(out, ANSI_DEFAULT);
+			int idx = 0;
+			for(int y = 0; y < h; y++) {
+				for(int x = 0; x < w; x++) {
+					out[idx] = colors[y][x];
+					idx++;
 				}
 			}
 			return out;

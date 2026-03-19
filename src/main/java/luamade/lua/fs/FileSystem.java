@@ -7,14 +7,7 @@ import luamade.system.module.ComputerModule;
 import luamade.utils.CompressionUtils;
 import luamade.utils.DataUtils;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +25,7 @@ public class FileSystem extends LuaMadeUserdata {
 	public static int MAX_FS_SIZE = 2 * 1024 * 1024; //2MB
 
 	private static final File computerStorage = resolveComputerStorage();
-	private static volatile boolean storagePathLogged = false;
+	private static volatile boolean storagePathLogged;
 	private static final String STARTUP_SCRIPT_PATH = "/etc/startup.lua";
 	private static final String STARTUP_BACKUP_PATH = "/etc/startup.lua.bak";
 	private static final String STARTUP_MANAGED_HEADER = "-- /etc/startup.lua";
@@ -181,7 +174,9 @@ public class FileSystem extends LuaMadeUserdata {
 		installDefaultScriptFromResource("scripts/bin/listall.lua", "/bin/listall.lua");
 		installDefaultScriptFromResource("scripts/bin/channel_chat.lua", "/bin/channel_chat.lua");
 		installDefaultScriptFromResource("scripts/bin/modem.lua", "/bin/modem.lua");
-		
+		installDefaultScriptFromResource("scripts/bin/gfx_demo.lua", "/bin/gfx_demo.lua");
+		installDefaultScriptFromResource("scripts/bin/gfx_interactive.lua", "/bin/gfx_interactive.lua");
+
 		// Create a README file
 		String readme = 
 			"LuaMade Terminal\n" +
@@ -223,11 +218,50 @@ public class FileSystem extends LuaMadeUserdata {
 			"  - channel_chat.lua: Galaxy/local channel messaging\n" +
 			"  - modem.lua: Long-range 1-to-1 modem helper\n" +
 			"  - listall.lua: Recursively list all files\n" +
+					"  - gfx_demo.lua: 2D text graphics API demo\n" +
+					"  - gfx_interactive.lua: Interactive gfx showcase\n" +
 			"\n" +
 			"Try: run /bin/hello.lua YourName\n";
 		
 		if(!exists("/home/README.txt")) {
 			write("/home/README.txt", readme);
+		}
+	}
+
+	private void migrateManagedScriptIfMissingMarker(String destinationPath, String resourcePath, String requiredMarker) {
+		if(destinationPath == null || resourcePath == null || requiredMarker == null) {
+			return;
+		}
+		if(!exists(destinationPath) || isDir(destinationPath)) {
+			return;
+		}
+
+		String currentScript = read(destinationPath);
+		if(currentScript == null) {
+			return;
+		}
+
+		String normalizedCurrent = normalizeLineEndings(currentScript);
+		// Only auto-upgrade bundled scripts; do not overwrite user-authored files.
+		if(!normalizedCurrent.startsWith("-- /bin/")) {
+			return;
+		}
+		if(normalizedCurrent.contains(requiredMarker)) {
+			return;
+		}
+
+		String latestScript = readResourceText(resourcePath);
+		if(latestScript == null) {
+			return;
+		}
+
+		String normalizedLatest = normalizeLineEndings(latestScript);
+		if(!normalizedLatest.contains(requiredMarker)) {
+			return;
+		}
+
+		if(write(destinationPath, latestScript)) {
+			LuaMade.getInstance().logInfo("Updated managed script " + destinationPath + " for computer " + computerUUID + ".");
 		}
 	}
 

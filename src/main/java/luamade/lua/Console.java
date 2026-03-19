@@ -139,10 +139,10 @@ public class Console extends LuaMadeUserdata {
 			this.backgroundColors = backgroundColors == null ? new int[0] : Arrays.copyOf(backgroundColors, backgroundColors.length);
 			if(layers == null || layers.isEmpty()) {
 				List<GraphicsLayer> fallbackLayers = new ArrayList<>(1);
-				fallbackLayers.add(new GraphicsLayer("base", this.text, cellScaleX, cellScaleY, new int[0]));
+				fallbackLayers.add(new GraphicsLayer("base", this.text, cellScaleX, cellScaleY, new int[0], new int[0], new int[0]));
 				this.layers = Collections.unmodifiableList(fallbackLayers);
 			} else {
-				this.layers = Collections.unmodifiableList(new ArrayList<GraphicsLayer>(layers));
+				this.layers = Collections.unmodifiableList(new ArrayList<>(layers));
 			}
 		}
 
@@ -196,13 +196,25 @@ public class Console extends LuaMadeUserdata {
 			private final float cellScaleX;
 			private final float cellScaleY;
 			private final int[] codePoints;
+			private final int[] foregroundColors;
+			private final int[] backgroundColors;
 
-			public GraphicsLayer(String name, String text, float cellScaleX, float cellScaleY, int[] codePoints) {
+			public GraphicsLayer(
+					String name,
+					String text,
+					float cellScaleX,
+					float cellScaleY,
+					int[] codePoints,
+					int[] foregroundColors,
+					int[] backgroundColors
+			) {
 				this.name = name == null ? "" : name;
 				this.text = text == null ? "" : text;
 				this.cellScaleX = cellScaleX;
 				this.cellScaleY = cellScaleY;
 				this.codePoints = codePoints == null ? new int[0] : Arrays.copyOf(codePoints, codePoints.length);
+				this.foregroundColors = foregroundColors == null ? new int[0] : Arrays.copyOf(foregroundColors, foregroundColors.length);
+				this.backgroundColors = backgroundColors == null ? new int[0] : Arrays.copyOf(backgroundColors, backgroundColors.length);
 			}
 
 			public String getName() {
@@ -223,6 +235,14 @@ public class Console extends LuaMadeUserdata {
 
 			public int[] getCodePoints() {
 				return Arrays.copyOf(codePoints, codePoints.length);
+			}
+
+			public int[] getForegroundColors() {
+				return Arrays.copyOf(foregroundColors, foregroundColors.length);
+			}
+
+			public int[] getBackgroundColors() {
+				return Arrays.copyOf(backgroundColors, backgroundColors.length);
 			}
 		}
 

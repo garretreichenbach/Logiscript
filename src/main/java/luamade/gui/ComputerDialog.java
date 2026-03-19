@@ -5,11 +5,16 @@ import api.utils.gui.GUIInputDialogPanel;
 import luamade.lua.Console;
 import luamade.manager.ConfigManager;
 import luamade.system.module.ComputerModule;
+import org.lwjgl.opengl.GL11;
+import org.newdawn.slick.Color;
+import org.newdawn.slick.SlickException;
+import org.newdawn.slick.UnicodeFont;
 import org.schema.game.client.controller.PlayerInput;
 import org.schema.schine.common.TabCallback;
 import org.schema.schine.common.TextAreaInput;
 import org.schema.schine.common.TextCallback;
 import org.schema.schine.graphicsengine.core.GLFW;
+import org.schema.schine.graphicsengine.core.GlUtil;
 import org.schema.schine.graphicsengine.core.MouseEvent;
 import org.schema.schine.graphicsengine.forms.font.FontLibrary;
 import org.schema.schine.graphicsengine.forms.gui.*;
@@ -17,29 +22,30 @@ import org.schema.schine.graphicsengine.forms.gui.newgui.GUIActivatableTextBar;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIContentPane;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIDialogWindow;
 import org.schema.schine.input.InputState;
+import org.schema.schine.network.client.ClientStateInterface;
 
 import javax.vecmath.Vector3f;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
 public class ComputerDialog extends PlayerInput {
 
-	protected final ComputerModule computerModule;
-	private final ComputerPanel computerPanel;
-
 	/** Tracks the currently open ComputerPanel so event listeners can access it. */
 	private static ComputerPanel activePanel;
-
-	public static ComputerPanel getActivePanel() {
-		return activePanel;
-	}
+	protected final ComputerModule computerModule;
+	private final ComputerPanel computerPanel;
 
 	public ComputerDialog(ComputerModule computerModule) {
 		super(GameClient.getClientState());
 		this.computerModule = computerModule;
 		computerPanel = new ComputerPanel(getState(), this, computerModule);
+	}
+
+	public static ComputerPanel getActivePanel() {
+		return activePanel;
 	}
 
 	@Override
@@ -97,17 +103,7 @@ public class ComputerDialog extends PlayerInput {
 		boolean pressed = mouseEvent.state;
 		// Only report actual button events (button >= 0) or scroll (dWheel != 0)
 		if(button >= 0 || mouseEvent.dWheel != 0) {
-			computerModule.getInputApi().pushMouseEvent(
-					button,
-					pressed,
-					mouseEvent.x,
-					mouseEvent.y,
-					mouseEvent.dx,
-					mouseEvent.dy,
-					mouseEvent.dWheel,
-					cellX,
-					cellY
-			);
+			computerModule.getInputApi().pushMouseEvent(button, pressed, mouseEvent.x, mouseEvent.y, mouseEvent.dx, mouseEvent.dy, mouseEvent.dWheel, cellX, cellY);
 		}
 	}
 
@@ -116,6 +112,9 @@ public class ComputerDialog extends PlayerInput {
 		// Clear the active panel reference so the event listener stops intercepting
 		if(activePanel == computerPanel) {
 			activePanel = null;
+		}
+		if(computerPanel != null) {
+			computerPanel.disposeCanvasOverlays();
 		}
 		// Save current input when closing the dialog
 		if(computerPanel != null) {
@@ -142,6 +141,8 @@ public class ComputerDialog extends PlayerInput {
 		private static final float CANVAS_PADDING_Y = 8.0F;
 
 		private final ComputerModule computerModule;
+		private final List<CanvasGraphicsOverlay> graphicsFrameOverlays = new ArrayList<>();
+		private final List<CanvasOverlayState> activeCanvasOverlayStates = new ArrayList<>();
 		private GUIScrollablePanel consolePanel;
 		private GUIActivatableTextBar consolePane;
 		private String currentInputLine = "";
@@ -154,8 +155,6 @@ public class ComputerDialog extends PlayerInput {
 		private boolean focusConsoleOnOpen = true;
 		private ComputerModule.ComputerMode renderedMode = ComputerModule.ComputerMode.OFF;
 		private GUITextOverlay editorHintsOverlay;
-		private final List<GUITextOverlay> graphicsFrameOverlays = new ArrayList<GUITextOverlay>();
-		private final List<CanvasOverlayState> activeCanvasOverlayStates = new ArrayList<CanvasOverlayState>();
 		private GUITextButton docsButton;
 		private String lastEditorHintText = "";
 		private long lastGraphicsFrameRevision = -1L;
@@ -176,6 +175,13 @@ public class ComputerDialog extends PlayerInput {
 			setOkButton(true);
 		}
 
+		private static String stripAnsi(String text) {
+			if(text == null || text.isEmpty()) {
+				return "";
+			}
+			return text.replaceAll("\\u001B\\[[0-9;]*m", "");
+		}
+
 		/**
 		 * Saves the current input line to the computer module for persistence
 		 */
@@ -183,6 +189,10 @@ public class ComputerDialog extends PlayerInput {
 			if(computerModule != null) {
 				computerModule.setSavedTerminalInput(currentInputLine);
 			}
+		}
+
+		public void disposeCanvasOverlays() {
+			shrinkGraphicsOverlayCount(0);
 		}
 
 		public void requestConsoleFocus() {
@@ -444,13 +454,6 @@ public class ComputerDialog extends PlayerInput {
 			scrollPanel.scrollVerticalPercent(cursorPercent);
 		}
 
-		private static String stripAnsi(String text) {
-			if(text == null || text.isEmpty()) {
-				return "";
-			}
-			return text.replaceAll("\\u001B\\[[0-9;]*m", "");
-		}
-
 		private void handleHistoryUp() {
 			if(computerModule == null || computerModule.getTerminal() == null) return;
 			// Save current input before navigating away for the first time
@@ -634,12 +637,28 @@ public class ComputerDialog extends PlayerInput {
 		}
 
 		private void hideGraphicsOverlay() {
-			for(GUITextOverlay overlay : graphicsFrameOverlays) {
-				overlay.setTextSimple("");
-				overlay.setScale(new Vector3f(1.0F, 1.0F, 1.0F));
-			}
+			shrinkGraphicsOverlayCount(0);
 			activeCanvasOverlayStates.clear();
 			lastGraphicsFrameRevision = -1L;
+		}
+
+		private GUIDialogWindow getDialogWindow() {
+			return background instanceof GUIDialogWindow ? (GUIDialogWindow) background : null;
+		}
+
+		private void shrinkGraphicsOverlayCount(int requiredCount) {
+			int targetCount = Math.max(0, requiredCount);
+			GUIDialogWindow window = getDialogWindow();
+			while(graphicsFrameOverlays.size() > targetCount) {
+				CanvasGraphicsOverlay overlay = graphicsFrameOverlays.remove(graphicsFrameOverlays.size() - 1);
+				if(window != null) {
+					window.detachSuper(overlay);
+				}
+				overlay.cleanUp();
+			}
+			while(activeCanvasOverlayStates.size() > targetCount) {
+				activeCanvasOverlayStates.remove(activeCanvasOverlayStates.size() - 1);
+			}
 		}
 
 		private void ensureGraphicsOverlayCount(int requiredCount) {
@@ -647,12 +666,14 @@ public class ComputerDialog extends PlayerInput {
 				return;
 			}
 
-			GUIDialogWindow window = (GUIDialogWindow) background;
+			GUIDialogWindow window = getDialogWindow();
+			if(window == null) {
+				return;
+			}
 			while(graphicsFrameOverlays.size() < requiredCount) {
-				GUITextOverlay overlay = new GUITextOverlay(830, TEXT_BOX_HEIGHT, FontLibrary.FontSize.MEDIUM, getState());
+				CanvasGraphicsOverlay overlay = new CanvasGraphicsOverlay(830, TEXT_BOX_HEIGHT);
 				overlay.onInit();
-				overlay.setColor(1.0F, 1.0F, 1.0F, 1.0F);
-				overlay.setTextSimple("");
+				overlay.clearLayer();
 				window.attachSuper(overlay);
 				graphicsFrameOverlays.add(overlay);
 			}
@@ -676,6 +697,7 @@ public class ComputerDialog extends PlayerInput {
 				return false;
 			}
 			ensureGraphicsOverlayCount(layers.size());
+			shrinkGraphicsOverlayCount(layers.size());
 
 			long revision = computerModule.getConsole().getGraphicsFrameRevision();
 			if(revision != lastGraphicsFrameRevision) {
@@ -686,18 +708,9 @@ public class ComputerDialog extends PlayerInput {
 					if(frame.isAnsiEnabled()) {
 						layerText = stripAnsi(layerText);
 					}
-					GUITextOverlay overlay = graphicsFrameOverlays.get(i);
-					overlay.setTextSimple(layerText == null ? "" : layerText);
-					activeCanvasOverlayStates.add(new CanvasOverlayState(
-							layer.getName(),
-							layer.getCellScaleX(),
-							layer.getCellScaleY(),
-							layer.getCodePoints()
-					));
-				}
-				for(int i = layers.size(); i < graphicsFrameOverlays.size(); i++) {
-					graphicsFrameOverlays.get(i).setTextSimple("");
-					graphicsFrameOverlays.get(i).setScale(new Vector3f(1.0F, 1.0F, 1.0F));
+					CanvasGraphicsOverlay overlay = graphicsFrameOverlays.get(i);
+					overlay.setLayerData(frame.getWidth(), frame.getHeight(), layer.getCodePoints(), layer.getForegroundColors(), layer.getBackgroundColors(), layerText == null ? "" : layerText);
+					activeCanvasOverlayStates.add(new CanvasOverlayState(layer.getName(), layer.getCellScaleX(), layer.getCellScaleY(), layer.getCodePoints(), layer.getBackgroundColors()));
 				}
 				lastGraphicsFrameRevision = revision;
 			}
@@ -709,39 +722,12 @@ public class ComputerDialog extends PlayerInput {
 					CanvasOverlayState layerState = activeCanvasOverlayStates.get(i);
 					layerState.originX = originX;
 					layerState.originY = originY;
-					GUITextOverlay overlay = graphicsFrameOverlays.get(i);
+					CanvasGraphicsOverlay overlay = graphicsFrameOverlays.get(i);
 					overlay.setPos(originX, originY, 0.0F);
 					overlay.setScale(new Vector3f(layerState.scaleX, layerState.scaleY, 1.0F));
 				}
 			}
 			return true;
-		}
-
-		private static final class CanvasOverlayState {
-			private final String name;
-			private final float scaleX;
-			private final float scaleY;
-			private final int[] codePoints;
-			private float originX;
-			private float originY;
-
-			private CanvasOverlayState(String name, float scaleX, float scaleY, int[] codePoints) {
-				this.name = name == null ? "" : name;
-				this.scaleX = Math.max(0.1F, scaleX);
-				this.scaleY = Math.max(0.1F, scaleY);
-				this.codePoints = codePoints == null ? new int[0] : codePoints;
-			}
-
-			private boolean isOpaqueAt(int frameWidth, int cellX, int cellY) {
-				if(frameWidth <= 0 || cellX <= 0 || cellY <= 0) {
-					return false;
-				}
-				int index = (cellY - 1) * frameWidth + (cellX - 1);
-				if(index < 0 || index >= codePoints.length) {
-					return false;
-				}
-				return codePoints[index] != ' ';
-			}
 		}
 
 		@Override
@@ -962,7 +948,6 @@ public class ComputerDialog extends PlayerInput {
 			requestConsoleFocus();
 		}
 
-
 		@Override
 		public void draw() {
 			super.draw();
@@ -971,6 +956,246 @@ public class ComputerDialog extends PlayerInput {
 				scrollPaneToCursor();
 			}
 			updateDocsButtonPosition();
+		}
+
+		private static final class CanvasGraphicsOverlay extends GUIDrawToTextureOverlay {
+			private static final int ANSI_DEFAULT = -1;
+			private final UnicodeFont font;
+			private int frameWidth;
+			private int frameHeight;
+			private int[] codePoints = new int[0];
+			private int[] foregroundColors = new int[0];
+			private int[] backgroundColors = new int[0];
+			private String glyphText = "";
+			private boolean glyphsDirty;
+
+			private CanvasGraphicsOverlay(int width, int height) {
+				super(width, height, GameClient.getClientState());
+				font = FontLibrary.getCourierNew12White();
+			}
+
+			private void clearLayer() {
+				setLayerData(0, 0, new int[0], new int[0], new int[0], "");
+			}
+
+			private void setLayerData(int frameWidth, int frameHeight, int[] codePoints, int[] foregroundColors, int[] backgroundColors, String glyphText) {
+				this.frameWidth = Math.max(0, frameWidth);
+				this.frameHeight = Math.max(0, frameHeight);
+				int cellCount = this.frameWidth * this.frameHeight;
+				this.codePoints = normalizeIntArray(codePoints, cellCount, ' ');
+				this.foregroundColors = normalizeIntArray(foregroundColors, cellCount, ANSI_DEFAULT);
+				this.backgroundColors = normalizeIntArray(backgroundColors, cellCount, ANSI_DEFAULT);
+				String nextGlyphText = glyphText == null ? "" : glyphText;
+				if(!Objects.equals(this.glyphText, nextGlyphText)) {
+					this.glyphText = nextGlyphText;
+					glyphsDirty = true;
+				}
+			}
+
+			private int[] normalizeIntArray(int[] source, int size, int fill) {
+				if(size <= 0) {
+					return new int[0];
+				}
+				int[] normalized = new int[size];
+				Arrays.fill(normalized, fill);
+				if(source != null && source.length > 0) {
+					System.arraycopy(source, 0, normalized, 0, Math.min(source.length, size));
+				}
+				return normalized;
+			}
+
+			private void ensureGlyphsLoaded() {
+				if(!glyphsDirty || glyphText == null || glyphText.isEmpty()) {
+					return;
+				}
+				try {
+					font.addGlyphs(glyphText);
+					font.loadGlyphs();
+				} catch(SlickException ignored) {
+					// Missing glyphs fall back to Slick replacement glyph.
+				}
+				glyphsDirty = false;
+			}
+
+			@Override
+			public void cleanUp() {
+				if(sprite != null && sprite.getMaterial() != null && sprite.getMaterial().getTexture() != null) {
+					sprite.getMaterial().getTexture().cleanUp();
+					sprite.getMaterial().setTexture(null);
+				}
+			}
+
+			@Override
+			public void updateGUI(ClientStateInterface state) {
+				if(sprite == null || sprite.getMaterial() == null || sprite.getMaterial().getTexture() == null) {
+					onInit();
+				}
+
+				GL11.glViewport(0, 0, texWidth, texHeight);
+
+				GlUtil.glPushMatrix();
+				GlUtil.glLoadIdentity();
+				GlUtil.glMatrixMode(GL11.GL_PROJECTION);
+				GlUtil.glDisable(GL11.GL_LIGHTING);
+				GlUtil.glPushMatrix();
+
+				GlUtil.glLoadIdentity();
+				org.lwjgl.util.glu.GLU.gluOrtho2D(0, texWidth, 0, texHeight);
+				GL11.glClearColor(0.0F, 0.0F, 0.0F, 0.0F);
+				GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+				drawOverlayTexture(state);
+				GlUtil.glEnable(GL11.GL_TEXTURE_2D);
+				GlUtil.glBindTexture(GL11.GL_TEXTURE_2D, sprite.getMaterial().getTexture().getTextureId());
+				GL11.glCopyTexSubImage2D(GL11.GL_TEXTURE_2D, 0, 0, 0, 0, 0, texWidth, texHeight);
+
+				GlUtil.glPopMatrix();
+				GlUtil.glMatrixMode(GL11.GL_MODELVIEW);
+				GlUtil.glEnable(GL11.GL_DEPTH_TEST);
+				GlUtil.glDisable(GL11.GL_TEXTURE_2D);
+				GlUtil.glEnable(GL11.GL_LIGHTING);
+				GlUtil.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+				GlUtil.glPopMatrix();
+				GL11.glClearColor(0, 0, 0, 0);
+				GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+				GL11.glViewport(org.schema.schine.graphicsengine.core.Controller.viewport.get(0), org.schema.schine.graphicsengine.core.Controller.viewport.get(1), org.schema.schine.graphicsengine.core.Controller.viewport.get(2), org.schema.schine.graphicsengine.core.Controller.viewport.get(3));
+			}
+
+			@Override
+			public void drawOverlayTexture(ClientStateInterface state) {
+				GL11.glClearColor(0.0F, 0.0F, 0.0F, 0.0F);
+				GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
+				if(frameWidth <= 0 || frameHeight <= 0 || codePoints.length == 0) {
+					return;
+				}
+
+				ensureGlyphsLoaded();
+
+				float cellWidth = Math.max(1.0F, FontLibrary.getMetrics(font).stringWidth("W"));
+				float cellHeight = Math.max(1.0F, font.getLineHeight());
+				float drawHeight = frameHeight * cellHeight;
+				float topY = Math.max(0.0F, texHeight - drawHeight);
+
+				GlUtil.glEnable(GL11.GL_BLEND);
+				GlUtil.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+				GlUtil.glDisable(GL11.GL_LIGHTING);
+				GlUtil.glDisable(GL11.GL_DEPTH_TEST);
+				GlUtil.glDisable(GL11.GL_TEXTURE_2D);
+
+				for(int y = 0; y < frameHeight; y++) {
+					for(int x = 0; x < frameWidth; x++) {
+						int index = (y * frameWidth) + x;
+						int bg = index < backgroundColors.length ? backgroundColors[index] : ANSI_DEFAULT;
+						if(bg < 0) {
+							continue;
+						}
+						float[] bgColor = ansiToRgba(bg, false);
+						float x0 = x * cellWidth;
+						float y0 = topY + ((frameHeight - 1 - y) * cellHeight);
+						GlUtil.glColor4f(bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
+						GL11.glBegin(GL11.GL_QUADS);
+						GL11.glVertex2f(x0, y0);
+						GL11.glVertex2f(x0 + cellWidth, y0);
+						GL11.glVertex2f(x0 + cellWidth, y0 + cellHeight);
+						GL11.glVertex2f(x0, y0 + cellHeight);
+						GL11.glEnd();
+					}
+				}
+
+				GlUtil.glEnable(GL11.GL_TEXTURE_2D);
+				for(int y = 0; y < frameHeight; y++) {
+					for(int x = 0; x < frameWidth; x++) {
+						int index = (y * frameWidth) + x;
+						int cp = index < codePoints.length ? codePoints[index] : ' ';
+						if(cp == ' ') {
+							continue;
+						}
+						int fg = index < foregroundColors.length ? foregroundColors[index] : ANSI_DEFAULT;
+						float[] fgColor = ansiToRgba(fg, true);
+						String glyph;
+						try {
+							glyph = new String(Character.toChars(cp));
+						} catch(IllegalArgumentException ignored) {
+							glyph = "?";
+						}
+						float drawX = x * cellWidth;
+						float drawY = topY + ((frameHeight - 1 - y) * cellHeight);
+						font.drawDisplayList(drawX, drawY, glyph, new Color(fgColor[0], fgColor[1], fgColor[2], fgColor[3]), 0, glyph.length());
+					}
+				}
+
+				GlUtil.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+				GlUtil.glDisable(GL11.GL_BLEND);
+			}
+
+			private float[] ansiToRgba(int ansiColor, boolean foreground) {
+				if(ansiColor < 0) {
+					return foreground ? new float[]{1.0F, 1.0F, 1.0F, 1.0F} : new float[]{0.0F, 0.0F, 0.0F, 0.0F};
+				}
+
+				int[][] basic = {{0, 0, 0}, {205, 49, 49}, {13, 188, 121}, {229, 229, 16}, {36, 114, 200}, {188, 63, 188}, {17, 168, 205}, {229, 229, 229}, {102, 102, 102}, {241, 76, 76}, {35, 209, 139}, {245, 245, 67}, {59, 142, 234}, {214, 112, 214}, {41, 184, 219}, {255, 255, 255}};
+
+				int r;
+				int g;
+				int b;
+				if(ansiColor <= 15) {
+					r = basic[ansiColor][0];
+					g = basic[ansiColor][1];
+					b = basic[ansiColor][2];
+				} else if(ansiColor <= 231) {
+					int index = ansiColor - 16;
+					int rIndex = index / 36;
+					int gIndex = (index % 36) / 6;
+					int bIndex = index % 6;
+					r = toCubeColor(rIndex);
+					g = toCubeColor(gIndex);
+					b = toCubeColor(bIndex);
+				} else {
+					int gray = 8 + ((ansiColor - 232) * 10);
+					r = gray;
+					g = gray;
+					b = gray;
+				}
+
+				return new float[]{r / 255.0F, g / 255.0F, b / 255.0F, 1.0F};
+			}
+
+			private int toCubeColor(int value) {
+				if(value <= 0) {
+					return 0;
+				}
+				return 55 + (value * 40);
+			}
+		}
+
+		private static final class CanvasOverlayState {
+			private final float scaleX;
+			private final float scaleY;
+			private final int[] codePoints;
+			private final int[] backgroundColors;
+			private float originX;
+			private float originY;
+
+			private CanvasOverlayState(String name, float scaleX, float scaleY, int[] codePoints, int[] backgroundColors) {
+				this.scaleX = Math.max(0.1F, scaleX);
+				this.scaleY = Math.max(0.1F, scaleY);
+				this.codePoints = codePoints == null ? new int[0] : codePoints;
+				this.backgroundColors = backgroundColors == null ? new int[0] : backgroundColors;
+			}
+
+			private boolean isOpaqueAt(int frameWidth, int cellX, int cellY) {
+				if(frameWidth <= 0 || cellX <= 0 || cellY <= 0) {
+					return false;
+				}
+				int index = (cellY - 1) * frameWidth + (cellX - 1);
+				if(index < 0 || index >= codePoints.length) {
+					return false;
+				}
+				int cp = codePoints[index];
+				if(cp != ' ') {
+					return true;
+				}
+				return index < backgroundColors.length && backgroundColors[index] >= 0;
+			}
 		}
 	}
 }
