@@ -37,7 +37,7 @@ public class DocsViewerDialog extends PlayerInput {
 	public DocsViewerDialog(ComputerModule reopenComputerModule) {
 		super(GameClient.getClientState());
 		this.reopenComputerModule = reopenComputerModule;
-		docsPanel = new DocsPanel(getState(), this);
+		docsPanel = new DocsPanel(getState(), this, reopenComputerModule);
 	}
 
 	@Override
@@ -101,6 +101,7 @@ public class DocsViewerDialog extends PlayerInput {
 		private final List<DocTopic> allTopics = new ArrayList<>(DocsRepository.getTopics());
 		private final List<DocTopic> filteredTopics = new ArrayList<>();
 		private final java.util.Set<String> collapsedSections = new java.util.HashSet<>();
+		private final ComputerModule computerModule;
 		private DocTopic selectedTopic;
 		private String searchQuery = "";
 
@@ -117,8 +118,9 @@ public class DocsViewerDialog extends PlayerInput {
 		private GUIContentPane mainContentPane;
 		private GUIAncor rootContentPane;
 
-		public DocsPanel(InputState inputState, GUICallback guiCallback) {
+		public DocsPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
 			super(inputState, "LUAMADE_DOCS", "LuaMade Documentation", "", WINDOW_WIDTH, WINDOW_HEIGHT, guiCallback);
+			this.computerModule = computerModule;
 			setCancelButton(false);
 			setOkButton(false);
 		}
@@ -227,9 +229,29 @@ public class DocsViewerDialog extends PlayerInput {
 			contentPane.attach(contentScrollPanel);
 
 			filterTopics();
+			selectedTopic = resolveInitialTopic();
 			rebuildTopicButtons();
 			selectTopic(selectedTopic != null ? selectedTopic : (filteredTopics.isEmpty() ? null : filteredTopics.get(0)));
 			layoutComponents();
+		}
+
+		private DocTopic resolveInitialTopic() {
+			if(computerModule == null) {
+				return null;
+			}
+
+			String lastTopicPath = computerModule.getLastDocsTopicPath();
+			if(lastTopicPath == null || lastTopicPath.trim().isEmpty()) {
+				return null;
+			}
+
+			for(DocTopic topic : allTopics) {
+				if(topic != null && lastTopicPath.equals(topic.getResourcePath())) {
+					return topic;
+				}
+			}
+
+			return null;
 		}
 
 		@Override
@@ -437,6 +459,9 @@ public class DocsViewerDialog extends PlayerInput {
 
 		private void selectTopic(DocTopic topic) {
 			selectedTopic = topic;
+			if(computerModule != null) {
+				computerModule.setLastDocsTopicPath(topic == null ? "" : topic.getResourcePath());
+			}
 			// Auto-expand the section if the selected topic is in a collapsed one
 			if(topic != null) {
 				collapsedSections.remove(topic.getSectionKey());

@@ -27,6 +27,7 @@ public class ComputerModule {
 	private long lastTouched;
 	private String lastOpenFile = "";
 	private String savedTerminalInput = "";
+	private String lastDocsTopicPath = "";
 	private String displayName;
 
 	public ComputerModule(SegmentPiece segmentPiece, String uuid) {
@@ -189,6 +190,14 @@ public class ComputerModule {
 		savedTerminalInput = input;
 	}
 
+	public String getLastDocsTopicPath() {
+		return lastDocsTopicPath;
+	}
+
+	public void setLastDocsTopicPath(String topicPath) {
+		lastDocsTopicPath = topicPath == null ? "" : topicPath;
+	}
+
 	public boolean openFileInEditor(String file) {
 		if(file == null || file.trim().isEmpty()) {
 			return false;
@@ -202,12 +211,13 @@ public class ComputerModule {
 	 * Restores lightweight module state from container serialization.
 	 * File-system contents are loaded independently by FileSystem using computer UUID.
 	 */
-	public void restoreSerializedState(ComputerMode mode, String openFile, String savedInput, String hostname, String displayName) {
+	public void restoreSerializedState(ComputerMode mode, String openFile, String savedInput, String hostname, String displayName, String lastDocsTopicPath) {
 		if(mode != null) {
 			lastMode = mode;
 		}
 		lastOpenFile = openFile == null ? "" : openFile;
 		savedTerminalInput = savedInput == null ? "" : savedInput;
+		this.lastDocsTopicPath = lastDocsTopicPath == null ? "" : lastDocsTopicPath;
 
 		if(hostname != null && !hostname.isEmpty()) {
 			networkInterface.setHostname(hostname);
