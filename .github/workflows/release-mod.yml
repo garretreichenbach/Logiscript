@@ -44,6 +44,7 @@ jobs:
         env:
           STARMADE_DEV_BASE_URL: https://files-origin.star-made.org/build/dev/
           STARMADE_BUILD_URL: ${{ github.event.inputs.starmade_build_url }}
+          STARMADE_DOWNLOAD_PATTERN: ^starmade-build_[0-9]{8}_[0-9]{6}\.zip$
         run: bash .github/scripts/prepare_starmade.sh
 
       - name: Build mod jar
@@ -56,9 +57,9 @@ jobs:
         run: |
           mkdir -p dist
           shopt -s nullglob
-          jars=("${{ steps.starmade.outputs.starmade_root }}mods"/*.jar)
+          jars=(build/libs/*.jar)
           if [[ ${#jars[@]} -eq 0 ]]; then
-            echo "No mod jar produced under ${{ steps.starmade.outputs.starmade_root }}mods" >&2
+            echo "No mod jar produced under build/libs" >&2
             exit 1
           fi
           for jar in "${jars[@]}"; do

@@ -3,7 +3,7 @@ set -euo pipefail
 
 BASE_URL="${STARMADE_DEV_BASE_URL:-https://files-origin.star-made.org/build/dev/}"
 DIRECT_URL="${STARMADE_BUILD_URL:-}"
-DOWNLOAD_PATTERN="${STARMADE_DOWNLOAD_PATTERN:-\.zip$}"
+DOWNLOAD_PATTERN="${STARMADE_DOWNLOAD_PATTERN:-^starmade-build_[0-9]{8}_[0-9]{6}\.zip$}"
 WORK_ROOT="${WORK_ROOT:-$PWD/.ci/starmade}"
 STAGE_ROOT="$WORK_ROOT/stage"
 ARCHIVE_PATH="$WORK_ROOT/starmade_build.zip"
@@ -25,17 +25,6 @@ join_url() {
 
 extract_links() {
   sed -nE 's/.*href="([^"]+)".*/\1/p'
-}
-
-discover_latest_subdir() {
-  local url="$1"
-  curl -fsSL "$url" \
-    | extract_links \
-    | grep -E '/$' \
-    | grep -Ev '^\.\.?/$' \
-    | sed 's#/$##' \
-    | sort -V \
-    | tail -n 1
 }
 
 discover_zip_links() {
