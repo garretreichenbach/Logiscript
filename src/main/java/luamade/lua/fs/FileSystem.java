@@ -31,16 +31,64 @@ public class FileSystem extends LuaMadeUserdata {
 	//Todo: This might be too generous idk
 	public static int MAX_FS_SIZE = 2 * 1024 * 1024; //2MB
 
-	private static final File computerStorage = new File(DataUtils.getWorldDataPath(), "computers");
+	private static final File computerStorage = resolveComputerStorage();
+	private static volatile boolean storagePathLogged = false;
+	private static final String STARTUP_SCRIPT_PATH = "/etc/startup.lua";
+	private static final String STARTUP_BACKUP_PATH = "/etc/startup.lua.bak";
+	private static final String STARTUP_MANAGED_HEADER = "-- /etc/startup.lua";
+	private static final String STARTUP_BANNER_LINE = "print(\"LuaMade Terminal v1.0\")";
+	private static final String STARTUP_HELP_LINE = "print(\"Type 'help' for a list of commands\")";
+	private static final String LEGACY_STARTUP_SCRIPT_V1 =
+		"-- /etc/startup.lua\n" +
+		"-- Executed whenever the terminal boots or when you run: reboot\n" +
+		"-- Prompt placeholders: {name}, {display}, {hostname}, {dir}\n" +
+		"\n" +
+		"term.setAutoPrompt(true)\n" +
+		"term.setPromptTemplate(\"{name}:{dir} $ \")\n" +
+		"\n" +
+		"print(\"LuaMade Terminal v1.0\")\n" +
+		"print(\"Type 'help' for a list of commands\")";
 	private VirtualFile rootDirectory;
 	private VirtualFile currentDirectory;
 	private final String computerUUID;
 
 	public static FileSystem initNewFileSystem(ComputerModule module) {
+		logStoragePathOnce();
 		if(!computerStorage.exists()) {
 			computerStorage.mkdirs();
 		}
 		return new FileSystem(module);
+	}
+
+	private static File resolveComputerStorage() {
+		String worldDataPath = DataUtils.getWorldDataPath();
+		if(worldDataPath != null && !worldDataPath.trim().isEmpty()) {
+			return new File(worldDataPath, "computers");
+		}
+
+		// Client contexts may not expose server world paths. Use a stable mod-local fallback.
+		String fallbackRoot = DataUtils.getResourcesPath() + "/data/luamade-local";
+		return new File(fallbackRoot, "computers");
+	}
+
+	private static void logStoragePathOnce() {
+		if(storagePathLogged) {
+			return;
+		}
+
+		synchronized(FileSystem.class) {
+			if(storagePathLogged) {
+				return;
+			}
+			storagePathLogged = true;
+
+			String worldDataPath = DataUtils.getWorldDataPath();
+			if(worldDataPath == null || worldDataPath.trim().isEmpty()) {
+				LuaMade.getInstance().logWarning("World data path unavailable; using fallback computer storage: " + computerStorage.getAbsolutePath());
+			} else {
+				LuaMade.getInstance().logInfo("Using computer storage: " + computerStorage.getAbsolutePath());
+			}
+		}
 	}
 
 	public FileSystem(ComputerModule module) {
@@ -62,12 +110,16 @@ public class FileSystem extends LuaMadeUserdata {
 		// Each computer file system is stored in a compressed file
 		File compressedFile = new File(computerStorage, "computer_" + module.getUUID() + "_fs.smdat");
 		File rootDirectory = new File(computerStorage, "computer_" + module.getUUID() + "_fs");
+		boolean hasCompressedArchive = compressedFile.exists() && compressedFile.length() > 0;
 
 		if(rootDirectory.exists()) {
-			// If the uncompressed root is left behind, keep it only if it has content.
+			// If an unpacked filesystem already exists, reuse it. This is normal before
+			// the first archive save; only warn when an archive is also present.
 			File[] children = rootDirectory.listFiles();
 			if(children != null && children.length > 0) {
-				LuaMade.getInstance().logWarning("File system for computer " + module.getUUID() + " was not cleaned up properly on server shutdown!");
+				if(hasCompressedArchive) {
+					LuaMade.getInstance().logWarning("File system for computer " + module.getUUID() + " was not cleaned up properly on server shutdown!");
+				}
 				this.rootDirectory = new VirtualFile(this, rootDirectory);
 				currentDirectory = this.rootDirectory;
 				return true;
@@ -76,8 +128,7 @@ public class FileSystem extends LuaMadeUserdata {
 			deleteRecursive(rootDirectory);
 		}
 
-		boolean exists = compressedFile.exists() && compressedFile.length() > 0;
-		if(!exists) {
+		if(!hasCompressedArchive) {
 			return false;
 		}
 
@@ -122,7 +173,8 @@ public class FileSystem extends LuaMadeUserdata {
 	 * Creates default files for a new file system
 	 */
 	private void createDefaultFiles() {
-		installDefaultScriptFromResource("scripts/etc/startup.lua", "/etc/startup.lua");
+		installDefaultScriptFromResource("scripts/etc/startup.lua", STARTUP_SCRIPT_PATH);
+		migrateLegacyStartupScript();
 		installDefaultScriptFromResource("scripts/bin/shell.lua", "/bin/shell.lua");
 		installDefaultScriptFromResource("scripts/bin/hello.lua", "/bin/hello.lua");
 		installDefaultScriptFromResource("scripts/bin/chat.lua", "/bin/chat.lua");
@@ -177,6 +229,59 @@ public class FileSystem extends LuaMadeUserdata {
 		if(!exists("/home/README.txt")) {
 			write("/home/README.txt", readme);
 		}
+	}
+
+	private void migrateLegacyStartupScript() {
+		if(!exists(STARTUP_SCRIPT_PATH) || isDir(STARTUP_SCRIPT_PATH)) {
+			return;
+		}
+
+		String currentStartup = read(STARTUP_SCRIPT_PATH);
+		if(currentStartup == null || !shouldUpgradeManagedStartupScript(currentStartup)) {
+			return;
+		}
+
+		String upgradedStartup = readResourceText("scripts/etc/startup.lua");
+		if(upgradedStartup == null) {
+			return;
+		}
+
+		if(!exists(STARTUP_BACKUP_PATH)) {
+			write(STARTUP_BACKUP_PATH, currentStartup);
+		}
+
+		if(write(STARTUP_SCRIPT_PATH, upgradedStartup)) {
+			LuaMade.getInstance().logInfo("Updated legacy startup script for computer " + computerUUID + ".");
+		}
+	}
+
+	private boolean shouldUpgradeManagedStartupScript(String startupScript) {
+		String normalized = normalizeLineEndings(startupScript);
+		if(normalized.isEmpty()) {
+			return false;
+		}
+
+		if(normalized.equals(LEGACY_STARTUP_SCRIPT_V1)) {
+			return true;
+		}
+
+		// Only migrate scripts that still look like LuaMade-managed defaults.
+		boolean managedDefaultLike = normalized.startsWith(STARTUP_MANAGED_HEADER)
+			&& normalized.contains(STARTUP_BANNER_LINE)
+			&& normalized.contains(STARTUP_HELP_LINE);
+		if(!managedDefaultLike) {
+			return false;
+		}
+
+		// Known fragile startup variants from older builds.
+		return normalized.contains("term.setAutoPrompt(")
+			|| normalized.contains("term.setPromptTemplate(")
+			|| normalized.contains("terminalApi.setAutoPrompt ~= nil")
+			|| normalized.contains("terminalApi.setPromptTemplate ~= nil");
+	}
+
+	private String normalizeLineEndings(String text) {
+		return text.replace("\r\n", "\n").trim();
 	}
 
 	private void installDefaultScriptFromResource(String resourcePath, String destinationPath) {

@@ -469,6 +469,8 @@ public class Terminal extends LuaMadeUserdata {
 		
 		// Load only safe libraries
 		globals.load(new BaseLib());
+		// String/Table libs register themselves via package.loaded in LuaJ.
+		globals.load(new PackageLib());
 		globals.load(new StringLib());
 		globals.load(new TableLib());
 		globals.load(new JseMathLib());
@@ -484,11 +486,14 @@ public class Terminal extends LuaMadeUserdata {
 		
 		// Expose safe APIs
 		globals.set("console", console);
-		globals.set("print", console.get("print"));
+ 		globals.set("print", createConsolePrintBridge());
 		globals.set("fs", fileSystem);
-		globals.set("term", this);
+		LuaTable terminalApi = createSafeTerminalApiProxy();
+		globals.set("term", terminalApi);
 		// Backward compatibility for older scripts that used `terminal`.
-		globals.set("terminal", this);
+		globals.set("terminal", terminalApi);
+		// Expose raw userdata for advanced scripts that rely on userdata behavior.
+		globals.set("termRaw", this);
 		globals.set("net", module.getNetworkInterface());
 		globals.set("peripheral", new PeripheralsApi(module));
 		globals.set("gfx", new TextGraphicsApi(console));
@@ -511,6 +516,40 @@ public class Terminal extends LuaMadeUserdata {
 		}
 		
 		return globals;
+	}
+
+	private LuaFunction createConsolePrintBridge() {
+		return new VarArgFunction() {
+			@Override
+			public Varargs invoke(Varargs vargs) {
+				console.print(vargs);
+				return NONE;
+			}
+		};
+	}
+
+	private LuaTable createSafeTerminalApiProxy() {
+		LuaTable proxy = new LuaTable();
+		LuaTable metatable = new LuaTable();
+
+		metatable.set(INDEX, new TwoArgFunction() {
+			@Override
+			public LuaValue call(LuaValue table, LuaValue key) {
+				if(!key.isstring()) {
+					return NIL;
+				}
+
+				try {
+					return Terminal.this.get(key);
+				} catch(LuaError error) {
+					// Unknown methods should resolve to nil like regular Lua tables.
+					return NIL;
+				}
+			}
+		});
+
+		proxy.setmetatable(metatable);
+		return proxy;
 	}
 
 	private LuaTable createShellCompatibilityApi() {
