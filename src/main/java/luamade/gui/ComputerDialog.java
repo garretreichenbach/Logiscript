@@ -162,10 +162,12 @@ public class ComputerDialog extends PlayerInput {
 		/** Reference to the content pane so we can adjust text-box height dynamically. */
 		private GUIContentPane mainContentPane;
 		/**
-		 * Last cursor line at which we forced auto-scroll. In editor mode we skip
-		 * the auto-scroll when the cursor hasn't moved so the user can scroll freely.
+		 * Last cursor state at which we forced auto-scroll. We skip repeated
+		 * frame-forced scrolling when neither the cursor line nor wrapped line count
+		 * changed so users can manually scroll in both terminal and editor modes.
 		 */
 		private int lastAutoScrollCursorLine = -1;
+		private int lastAutoScrollTotalLines = -1;
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
 			super(inputState, "COMPUTER_PANEL", "", "", 850, 650, guiCallback);
@@ -245,6 +247,7 @@ public class ComputerDialog extends PlayerInput {
 			currentInputLine = "";
 			userIsTyping = false;
 			lastAutoScrollCursorLine = -1;
+			lastAutoScrollTotalLines = -1;
 			// Restore full text-box height when returning to terminal mode.
 			if(mainContentPane != null) {
 				mainContentPane.setTextBoxHeightLast(TEXT_BOX_HEIGHT);
@@ -424,13 +427,13 @@ public class ComputerDialog extends PlayerInput {
 			int totalLines = Math.max(1, textArea.getLineIndex() + 1);
 			int cursorLine = Math.max(0, textArea.getCarrierLineIndex());
 
-			// In editor mode, only force-scroll when the cursor line has actually moved.
-			// Without this guard the scroll is overridden every frame, making the
-			// scroll bar impossible to use while editing.
-			if(isFileEditMode() && cursorLine == lastAutoScrollCursorLine) {
+			// Only force-scroll when cursor/content layout changed.
+			// This prevents per-frame overrides that cause scrollbar jitter.
+			if(cursorLine == lastAutoScrollCursorLine && totalLines == lastAutoScrollTotalLines) {
 				return;
 			}
 			lastAutoScrollCursorLine = cursorLine;
+			lastAutoScrollTotalLines = totalLines;
 
 			if(totalLines <= 1) {
 				scrollPanel.scrollVerticalPercent(0.0F);
@@ -845,6 +848,7 @@ public class ComputerDialog extends PlayerInput {
 						renderedMode = currentMode;
 						// Reset cursor tracker so initial scroll-to-cursor fires on mode entry.
 						lastAutoScrollCursorLine = -1;
+						lastAutoScrollTotalLines = -1;
 						String modeContent = computerModule.getLastTextContent();
 						setTextWithoutCallback(modeContent == null ? "" : modeContent);
 						lastModuleContent = modeContent == null ? "" : modeContent;
