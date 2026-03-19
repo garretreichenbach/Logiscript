@@ -51,7 +51,7 @@ public class EventManager {
 						event.setCanceled(true);
 						return;
 					}
-					RemoteSessionManager.forwardKeyEvent(key, event.getChar().isEmpty() ? 0 : event.getChar().charAt(0), event.isKeyDown(), shiftDown, ctrlDown, altDown);
+					RemoteSessionManager.forwardKeyEvent(key, event.getChar(), event.isKeyDown(), shiftDown, ctrlDown, altDown);
 					event.setCanceled(true);
 					return;
 				}
@@ -84,7 +84,7 @@ public class EventManager {
 				if(module != null) {
 					module.getInputApi().pushKeyEvent(
 							key,
-							event.getChar().isEmpty() ? 0 : event.getChar().charAt(0),
+							event.getChar(),
 							event.isKeyDown(),
 							shiftDown,
 							ctrlDown,
