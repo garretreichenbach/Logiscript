@@ -52,9 +52,10 @@ public class EventManager {
 						event.setCanceled(true);
 						return;
 					}
-					RemoteSessionManager.forwardKeyEvent(key, typedChar, event.isKeyDown(), shiftDown, ctrlDown, altDown);
-					event.setCanceled(true);
-					return;
+					if(RemoteSessionManager.forwardKeyEvent(event.getGlfwKey(), event.getCharacter(), event.isDown(), event.isShiftDown(), event.isCtrlDown(), event.isAltDown())) {
+						event.setCanceled(true);
+						return;
+					}
 				}
 
 				ComputerDialog.ComputerPanel panel = ComputerDialog.getActivePanel();
