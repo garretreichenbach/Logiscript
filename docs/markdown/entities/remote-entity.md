@@ -1,21 +1,44 @@
 # RemoteEntity API
 
-`RemoteEntity` is a restricted, mostly read-only wrapper for nearby entities.
+`RemoteEntity` is a restricted, mostly read-only wrapper for nearby entities returned by scans and targeting methods.
 
 ## Reference
 
 - `getId()`
+Returns the numeric entity ID.
+
 - `getName()`
+Returns the entity's display name.
+
 - `getFaction()`
+Returns the `Faction` this entity belongs to.
+
 - `getSpeed()`
+Returns current speed in blocks/s as a `Double`.
+
 - `getMass()`
+Returns total mass as a `Double`.
+
 - `getPos()`
+Returns current world position as `LuaVec3i`.
+
 - `getSector()`
+Returns current sector coordinates as `LuaVec3i`.
+
 - `getSystem()`
+Returns current solar system coordinates as `LuaVec3i`.
+
 - `getShieldSystem()`
+Returns the `ShieldSystem` wrapper.
+
 - `getEntityType()`
-- `getNamedInventory(name)`
+Returns the entity type string: `"SHIP"` or `"SPACE_STATION"`.
+
+- `getNamedInventory(name: String)`
+Returns the `Inventory` whose custom name matches `name`, or `nil` when not accessible.
+
 - `getPilot()`
+Returns the pilot's player name, or `nil` when unoccupied.
 
 ## Notes
 

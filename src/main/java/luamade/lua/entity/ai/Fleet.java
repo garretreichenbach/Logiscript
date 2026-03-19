@@ -85,4 +85,42 @@ public class Fleet extends LuaMadeUserdata {
 	public void setCurrentCommand(String command, Object... args) {
 		fleet.sendFleetCommand(FleetCommandTypes.valueOf(command.toUpperCase(Locale.ROOT)),  args);
 	}
+
+	@LuaMadeCallable
+	public void moveToSector(Vec3i sector) {
+		fleet.sendFleetCommand(FleetCommandTypes.MOVE_FLEET, new Vector3i(sector.getX(), sector.getY(), sector.getZ()));
+	}
+
+	@LuaMadeCallable
+	public void patrolSectors(Vec3i[] sectors) {
+		if(sectors == null || sectors.length < 2) return;
+		Vector3i[] targets = new Vector3i[sectors.length];
+		for(int i = 0; i < sectors.length; i++) targets[i] = new Vector3i(sectors[i].getX(), sectors[i].getY(), sectors[i].getZ());
+		fleet.sendFleetCommand(FleetCommandTypes.PATROL_FLEET, (Object[]) targets);
+	}
+
+	@LuaMadeCallable
+	public void attackSector(Vec3i sector) {
+		fleet.sendFleetCommand(FleetCommandTypes.FLEET_ATTACK, new Vector3i(sector.getX(), sector.getY(), sector.getZ()));
+	}
+
+	@LuaMadeCallable
+	public void defendSector(Vec3i sector) {
+		fleet.sendFleetCommand(FleetCommandTypes.FLEET_DEFEND, new Vector3i(sector.getX(), sector.getY(), sector.getZ()));
+	}
+
+	@LuaMadeCallable
+	public void escort() {
+		fleet.sendFleetCommand(FleetCommandTypes.ESCORT);
+	}
+
+	@LuaMadeCallable
+	public void repair() {
+		fleet.sendFleetCommand(FleetCommandTypes.REPAIR);
+	}
+
+	@LuaMadeCallable
+	public void idle() {
+		fleet.sendFleetCommand(FleetCommandTypes.IDLE);
+	}
 }

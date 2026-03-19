@@ -5,10 +5,10 @@
 ## Reference
 
 - `getCommand()`
-Returns command enum name.
+Returns the command enum name as a `String` (e.g. `"MOVE_FLEET"`, `"PATROL_FLEET"`).
 
 - `getTarget()`
-Attempts to parse command args into a sector target (`LuaVec3i`).
+Attempts to parse command args into a sector target. Returns `LuaVec3i`, or `nil` when no target is present.
 
 - `getArgs()`
-Returns raw command arguments as strings.
+Returns raw command arguments as a `String[]`.

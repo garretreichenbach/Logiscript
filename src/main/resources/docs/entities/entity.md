@@ -50,7 +50,31 @@ print("Reactor HP:", reactor.getHP(), "/", reactor.getMaxHP())
 - `undockEntity(remoteEntity)`
 - `undockAll()`
 - `dockTo(remoteEntity, railDockerBlock)`
+Dock to the nearest rail block on `remoteEntity` within range.
+
 - `dockTo(remoteEntity, railDockerBlock, dockPos)`
+Dock to a specific rail block position on `remoteEntity`.
+
+- `dockToNearestLoadDock(remoteEntity, railDockerBlock)`
+Dock to the nearest `RAIL_LOAD` block. For cargo pickup.
+
+- `dockToNearestUnloadDock(remoteEntity, railDockerBlock)`
+Dock to the nearest `RAIL_UNLOAD` block. For cargo delivery.
+
+- `dockToNearestBasicRail(remoteEntity, railDockerBlock)`
+Dock to the nearest `RAIL_BLOCK_BASIC` block.
+
+- `dockToNearestDockerRail(remoteEntity, railDockerBlock)`
+Dock to the nearest `RAIL_BLOCK_DOCKER` block.
+
+- `dockToNearestPickupArea(remoteEntity, railDockerBlock)`
+Dock to the nearest `PICKUP_AREA` block. Used for carrier launch/recovery.
+
+- `dockToNearestPickupRail(remoteEntity, railDockerBlock)`
+Dock to the nearest `PICKUP_RAIL` block.
+
+- `dockToNearestExitShootRail(remoteEntity, railDockerBlock)`
+Dock to the nearest `EXIT_SHOOT_RAIL` block.
 
 ## AI / status
 

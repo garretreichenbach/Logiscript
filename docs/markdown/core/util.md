@@ -5,7 +5,7 @@
 ## Reference
 
 - `now()`
-Returns current Unix time in milliseconds.
+Returns current Unix time in milliseconds as a `Long`.
 
-- `sleep(millis)`
-Sleeps for up to configured script timeout clamp and returns actual sleep duration.
+- `sleep(millis: Number)`
+Pauses execution for `millis` milliseconds. The actual sleep is clamped by the server timeout configuration. Returns the actual duration slept in milliseconds.

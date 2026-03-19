@@ -327,6 +327,82 @@ public class Entity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public void dockToNearestLoadDock(RemoteEntity station, Block railDocker) {
+		dockToRailType(station, railDocker, ElementKeyMap.RAIL_LOAD);
+	}
+
+	@LuaMadeCallable
+	public void dockToNearestUnloadDock(RemoteEntity station, Block railDocker) {
+		dockToRailType(station, railDocker, ElementKeyMap.RAIL_UNLOAD);
+	}
+
+	@LuaMadeCallable
+	public void dockToNearestBasicRail(RemoteEntity station, Block railDocker) {
+		dockToRailType(station, railDocker, ElementKeyMap.RAIL_BLOCK_BASIC);
+	}
+
+	@LuaMadeCallable
+	public void dockToNearestDockerRail(RemoteEntity station, Block railDocker) {
+		dockToRailType(station, railDocker, ElementKeyMap.RAIL_BLOCK_DOCKER);
+	}
+
+	@LuaMadeCallable
+	public void dockToNearestPickupArea(RemoteEntity station, Block railDocker) {
+		dockToRailType(station, railDocker, ElementKeyMap.PICKUP_AREA);
+	}
+
+	@LuaMadeCallable
+	public void dockToNearestPickupRail(RemoteEntity station, Block railDocker) {
+		dockToRailType(station, railDocker, ElementKeyMap.PICKUP_RAIL);
+	}
+
+	@LuaMadeCallable
+	public void dockToNearestExitShootRail(RemoteEntity station, Block railDocker) {
+		dockToRailType(station, railDocker, ElementKeyMap.EXIT_SHOOT_RAIL);
+	}
+
+	private void dockToRailType(RemoteEntity station, Block railDocker, short railType) {
+		if(!segmentController.getSector(new Vector3i()).equals(station.getSegmentController().getSector(new Vector3i())) || isEntityDocked(station) || segmentController.railController.getRoot().equals(station.getSegmentController().railController.getRoot())) {
+			return;
+		}
+		if(segmentController.getFactionId() == 0 || station.getSegmentController().getFactionId() == 0) return;
+		if(!getFaction().isSameFaction(station.getFaction()) && !getFaction().isFriend(station.getFaction())) return;
+		int searchRadius = 20;
+		SegmentBufferInterface thisBuffer = segmentController.getSegmentBuffer();
+		SegmentBufferInterface remoteBuffer = station.getSegmentController().getSegmentBuffer();
+		SegmentPiece dockerPiece = thisBuffer.getPointUnsave(railDocker.getPos().getX(), railDocker.getPos().getY(), railDocker.getPos().getZ());
+		if(dockerPiece == null) return;
+		Transform transform = new Transform();
+		dockerPiece.getTransform(transform);
+		Block closestBlock = null;
+		double closestDistance = Double.MAX_VALUE;
+		Vector3i posTemp = new Vector3i();
+		for(int x = -searchRadius; x <= searchRadius; x++) {
+			for(int y = -searchRadius; y <= searchRadius; y++) {
+				for(int z = -searchRadius; z <= searchRadius; z++) {
+					posTemp.set(x, y, z);
+					if(remoteBuffer.existsPointUnsave(posTemp.x, posTemp.y, posTemp.z)) {
+						SegmentPiece piece = remoteBuffer.getPointUnsave(posTemp.x, posTemp.y, posTemp.z);
+						if(piece != null && piece.getType() == railType) {
+							Transform remoteTransform = new Transform();
+							piece.getTransform(remoteTransform);
+							Vector3f remotePos = remoteTransform.origin;
+							Vector3f dockerPos = transform.origin;
+							double distance = Math.sqrt(Math.pow(remotePos.x - dockerPos.x, 2) + Math.pow(remotePos.y - dockerPos.y, 2) + Math.pow(remotePos.z - dockerPos.z, 2));
+							if(distance < closestDistance && distance <= searchRadius) {
+								closestBlock = Block.wrap(piece);
+								closestDistance = distance;
+							}
+						}
+					}
+				}
+			}
+		}
+		if(closestBlock != null)
+			segmentController.railController.connectServer(dockerPiece, closestBlock.getSegmentPiece());
+	}
+
+	@LuaMadeCallable
 	public Double getSpeed() {
 		return (double) segmentController.getSpeedCurrent();
 	}

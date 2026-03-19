@@ -2,6 +2,7 @@ package luamade.lua.entity.ai;
 
 import api.common.GameCommon;
 import api.common.GameServer;
+import com.bulletphysics.linearmath.Transform;
 import luamade.lua.data.Vec3i;
 import luamade.lua.entity.RemoteEntity;
 import luamade.luawrap.LuaMadeCallable;
@@ -188,6 +189,99 @@ public class EntityAI extends LuaMadeUserdata {
 				exception.printStackTrace();
 			}
 		}
+	}
+
+	@LuaMadeCallable
+	public void navigateToPos(Vec3i pos, Integer stopRadius) {
+		if(!(segmentController instanceof Ship) || !segmentController.isOnServer()) return;
+		Vector3f target = new Vector3f(pos.getX(), pos.getY(), pos.getZ());
+		Vector3f currentPos = new Vector3f(segmentController.getWorldTransform().origin);
+		float dx = target.x - currentPos.x;
+		float dy = target.y - currentPos.y;
+		float dz = target.z - currentPos.z;
+		float distSq = dx * dx + dy * dy + dz * dz;
+		float threshold = Math.max(1, stopRadius);
+		if(distSq <= threshold * threshold) {
+			stop();
+			return;
+		}
+		moveToPos(pos);
+	}
+
+	@LuaMadeCallable
+	public Boolean hasReachedPos(Vec3i pos, Integer radius) {
+		Vector3f target = new Vector3f(pos.getX(), pos.getY(), pos.getZ());
+		Vector3f currentPos = new Vector3f(segmentController.getWorldTransform().origin);
+		float dx = target.x - currentPos.x;
+		float dy = target.y - currentPos.y;
+		float dz = target.z - currentPos.z;
+		float distSq = dx * dx + dy * dy + dz * dz;
+		float threshold = Math.max(1, radius);
+		return distSq <= threshold * threshold;
+	}
+
+	@LuaMadeCallable
+	public void stopNavigation() {
+		stop();
+	}
+
+	@LuaMadeCallable
+	public Vec3i getHeading() {
+		Transform t = segmentController.getWorldTransform();
+		// Z+ is the forward axis in StarMade local space; read the 3rd column of the basis matrix
+		float fx = t.basis.m02, fy = t.basis.m12, fz = t.basis.m22;
+		float ax = Math.abs(fx), ay = Math.abs(fy), az = Math.abs(fz);
+		if(ax >= ay && ax >= az) return new Vec3i(fx > 0 ? 1 : -1, 0, 0);
+		if(ay >= ax && ay >= az) return new Vec3i(0, fy > 0 ? 1 : -1, 0);
+		return new Vec3i(0, 0, fz > 0 ? 1 : -1);
+	}
+
+	@LuaMadeCallable
+	public Boolean isAlignedWith(Vec3i direction, Float threshold) {
+		Vector3f dir = new Vector3f(direction.getX(), direction.getY(), direction.getZ());
+		if(dir.lengthSquared() == 0) return false;
+		dir.normalize();
+		Transform t = segmentController.getWorldTransform();
+		Vector3f forward = new Vector3f(t.basis.m02, t.basis.m12, t.basis.m22);
+		forward.normalize();
+		return forward.dot(dir) >= threshold;
+	}
+
+	@LuaMadeCallable
+	public Boolean isFacingTowards(RemoteEntity entity, Float threshold) {
+		Vector3f toTarget = new Vector3f(entity.getSegmentController().getWorldTransform().origin);
+		toTarget.sub(segmentController.getWorldTransform().origin);
+		if(toTarget.lengthSquared() == 0) return true;
+		toTarget.normalize();
+		Transform t = segmentController.getWorldTransform();
+		Vector3f forward = new Vector3f(t.basis.m02, t.basis.m12, t.basis.m22);
+		forward.normalize();
+		return forward.dot(toTarget) >= threshold;
+	}
+
+	@LuaMadeCallable
+	public void faceDirection(Vec3i dir) {
+		if(!(segmentController instanceof Ship) || !segmentController.isOnServer()) return;
+		try {
+			Vector3f direction = new Vector3f(dir.getX(), dir.getY(), dir.getZ());
+			if(direction.lengthSquared() == 0) return;
+			direction.normalize();
+			ShipAIEntity aiEntity = ((Ship) segmentController).getAiConfiguration().getAiEntityState();
+			aiEntity.moveTo(GameServer.getServerState().getController().getTimer(), direction, true);
+		} catch(Exception exception) {
+			exception.printStackTrace();
+		}
+	}
+
+	@LuaMadeCallable
+	public void faceTowards(RemoteEntity entity) {
+		if(!(segmentController instanceof Ship) || !segmentController.isOnServer()) return;
+		Vector3f toTarget = new Vector3f(entity.getSegmentController().getWorldTransform().origin);
+		toTarget.sub(segmentController.getWorldTransform().origin);
+		if(toTarget.lengthSquared() == 0) return;
+		toTarget.normalize();
+		Vec3i dir = new Vec3i(Math.round(toTarget.x), Math.round(toTarget.y), Math.round(toTarget.z));
+		faceDirection(dir);
 	}
 
 	private static Vector3f calculateMoveToPos(SegmentController segmentController, SegmentController target) {

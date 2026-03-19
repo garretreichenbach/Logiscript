@@ -46,6 +46,41 @@ public class Inventory extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public Boolean isEmpty() {
+		if(!isInventory()) return true;
+		return inventory.getCountFilledSlots() == 0;
+	}
+
+	@LuaMadeCallable
+	public Boolean isFull() {
+		if(!isInventory()) return true;
+		return !inventory.hasFreeSlot();
+	}
+
+	@LuaMadeCallable
+	public Boolean hasFreeSlot() {
+		if(!isInventory()) return false;
+		return inventory.hasFreeSlot();
+	}
+
+	@LuaMadeCallable
+	public Long getItemCount(Integer id) {
+		if(!isInventory()) return 0L;
+		return (long) InventoryUtils.getItemAmount(inventory, (short)(int) id);
+	}
+
+	@LuaMadeCallable
+	public Long getTotalItemCount() {
+		if(!isInventory()) return 0L;
+		long total = 0;
+		for(int s : inventory.getSlots()) {
+			InventorySlot slot = inventory.getSlot(s);
+			if(slot != null) total += slot.count();
+		}
+		return total;
+	}
+
+	@LuaMadeCallable
 	public Boolean transferTo(Inventory to, ItemStack[] items) {
 		if(isInventory() && to.isInventory() && !inventory.equals(to.inventory) && !segmentPiece.equals(to.segmentPiece)) {
 			for(ItemStack itemStack : items) {
