@@ -30,7 +30,6 @@ repositories {
 dependencies {
     implementation "org.commonmark:commonmark:0.21.0"
     implementation 'org.lz4:lz4-java:1.8.1'
-    compileOnly(files('lib/ModGlossar.jar'))
     compileOnly(files(starmadeDirectory + "StarMade.jar"))
     compileOnly(fileTree(dir: (starmadeDirectory + "lib"), include: "*.jar"))
 }
@@ -80,7 +79,7 @@ tasks.register("updateVersion") {
 jar {
     dependsOn("updateVersion")
     duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
-    destinationDirectory.set(file(starmadeDirectory + "mods"))
+    //destinationDirectory.set(file(starmadeDirectory + "mods"))
     archiveFileName = modName + 'v' + getVersion() + '.jar'
     manifest.attributes('Main-Class': mainClassName)
     from {

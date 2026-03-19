@@ -1,0 +1,118 @@
+name: Release Mod
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag to create/use for this release (e.g. v2.1.0)"
+        required: true
+        type: string
+      release_name:
+        description: "Release title (optional)"
+        required: false
+        type: string
+      starmade_build_url:
+        description: "Optional direct StarMade build zip URL override"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Temurin JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "8"
+          cache: gradle
+
+      - name: Prepare StarMade compile dependencies
+        id: starmade
+        env:
+          STARMADE_DEV_BASE_URL: https://files-origin.star-made.org/build/dev/
+          STARMADE_BUILD_URL: ${{ github.event.inputs.starmade_build_url }}
+        run: bash .github/scripts/prepare_starmade.sh
+
+      - name: Build mod jar
+        run: |
+          chmod +x gradlew
+          ./gradlew clean jar -Pstarmade_root="${{ steps.starmade.outputs.starmade_root }}"
+
+      - name: Collect artifacts
+        id: collect
+        run: |
+          mkdir -p dist
+          shopt -s nullglob
+          jars=("${{ steps.starmade.outputs.starmade_root }}mods"/*.jar)
+          if [[ ${#jars[@]} -eq 0 ]]; then
+            echo "No mod jar produced under ${{ steps.starmade.outputs.starmade_root }}mods" >&2
+            exit 1
+          fi
+          for jar in "${jars[@]}"; do
+            cp "$jar" dist/
+            sha256sum "dist/$(basename "$jar")" > "dist/$(basename "$jar").sha256"
+          done
+          echo "artifact_count=$(ls -1 dist | wc -l | tr -d ' ')" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ github.event.inputs.tag_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Resolve release title
+        id: title
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && -n "${{ github.event.inputs.release_name }}" ]]; then
+            echo "value=${{ github.event.inputs.release_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ steps.tag.outputs.value }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create tag on workflow_dispatch if missing
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          TAG_NAME: ${{ steps.tag.outputs.value }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/$TAG_NAME" >/dev/null; then
+            echo "Tag $TAG_NAME already exists"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag "$TAG_NAME"
+            git push origin "$TAG_NAME"
+          fi
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.value }}
+          name: ${{ steps.title.outputs.value }}
+          body: |
+            Automated release build.
+
+            StarMade dependency source:
+            - ${{ steps.starmade.outputs.download_url }}
+
+            Build inputs:
+            - Java: Temurin 8
+            - Gradle task: clean jar
+          files: |
+            dist/*.jar
+            dist/*.sha256

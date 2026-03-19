@@ -258,7 +258,6 @@ Consolidated wrapper examples:
 ```lua
 block = console.getBlock()
 entity = block.getEntity()
-
 print(entity.getName())
 print(entity.getSector().x, entity.getSector().y, entity.getSector().z)
 
@@ -273,6 +272,27 @@ if topBlock ~= nil then
     print("Top block:", topBlock.getInfo().getName())
 end
 ```
+
+## GitHub Release Automation
+
+This repository now includes a GitHub Actions workflow at [.github/workflows/release-mod.yml](.github/workflows/release-mod.yml) that can:
+
+- Download StarMade compile dependencies from:
+    - https://files-origin.star-made.org/build/dev/
+- Build the mod jar with Gradle (`clean jar`)
+- Publish jar and checksum files to a GitHub Release
+
+How to use:
+
+1. Push a tag like `v2.1.0`, or run the workflow manually via Actions > Release Mod.
+2. For manual runs, provide:
+     - `tag_name` (required)
+     - `release_name` (optional)
+     - `starmade_build_url` (optional direct zip URL override)
+
+Notes:
+
+- The workflow auto-discovers a recent StarMade build zip from the dev feed unless `starmade_build_url` is provided.
 
 Web request commands:
 
