@@ -20,7 +20,7 @@ LuaMade provides a Unix-like computing environment with the following features:
 - Support for custom Lua commands
 - Direct Lua script execution from terminal
 - Built-in commands include: ls, cd, pwd, cat, mkdir, touch, rm, cp, mv, edit, find, grep, history, stat, tree,
-  which, head, tail, wc, protect, unprotect, fsauth, perms, run, runbg, jobs, kill, httpget, nano, name, echo,
+  which, head, tail, wc, protect, unprotect, fsauth, perms, run, runbg, jobs, kill, httpget, httpput, nano, name, echo,
   reboot, clear, help, exit
 
 Planned next commands (in progress): aliases.
@@ -99,6 +99,11 @@ end)
 term.setPromptTemplate("[{hostname}] {dir} > ")
 term.setAutoPrompt(true)
 
+-- Web requests (subject to server config and domain allowlist)
+body = term.httpGet("https://example.com/status")
+response = term.httpPut("https://example.com/api/fleet", "{\"command\":\"recall\"}")
+jsonResponse = term.httpPut("https://example.com/api/fleet", "{\"command\":\"recall\"}", "application/json")
+
 -- Re-run /etc/startup.lua and reset terminal state
 term.reboot()
 ```
@@ -132,6 +137,9 @@ The terminal supports the following built-in commands:
 - `jobs` - List background script jobs
 - `kill [-TERM|-KILL|-INT|-HUP|-15|-9|-2|-1] <job-id>` - Stop a background script job
 - `which [-a] <command-or-path>` - Resolve built-ins or file paths (`-a` shows all matches)
+- `httpget <url> [output-file]` - Fetch web content using HTTP GET
+- `httpput [--content-type <mime>] <url> <payload|@file> [output-file]` - Send web content using HTTP PUT (`@file` reads
+  payload from VFS file)
 - `name [new-name|--reset]` - Show or change the displayed computer name in the prompt
 - `head [-n lines] <file>` - Show first lines of a file
 - `tail [-n lines] <file>` - Show last lines of a file
@@ -263,10 +271,12 @@ if topBlock ~= nil then
 end
 ```
 
-Web fetch command:
+Web request commands:
 
 ```text
 httpget <url> [output-file]
+httpput <url> <payload|@file> [output-file]
+httpput --content-type <mime> <url> <payload|@file> [output-file]
 ```
 
 Examples:
@@ -274,6 +284,9 @@ Examples:
 ```text
 httpget https://raw.githubusercontent.com/user/repo/main/data.txt
 httpget https://raw.githubusercontent.com/user/repo/main/data.txt /home/data.txt
+httpput https://example.com/api/fleet '{"command":"recall"}'
+httpput --content-type application/json https://example.com/api/fleet '{"command":"recall"}'
+httpput https://example.com/api/fleet @/home/payload.json /home/put-response.json
 ```
 
 Server config options:
@@ -282,6 +295,11 @@ Server config options:
 - `web_fetch_trusted_domains_only` restricts fetches to trusted domains only (default `true`).
 - `web_fetch_timeout_ms` sets connect/read timeout.
 - `web_fetch_max_bytes` sets max response size.
+- `web_put_enabled` enables/disables HTTP PUT (default `false`).
+- `web_put_trusted_domains_only` restricts PUT to trusted domains only (default `true`).
+- `web_put_timeout_ms` sets PUT connect/read timeout.
+- `web_put_max_request_bytes` sets max UTF-8 request payload size.
+- `web_put_max_response_bytes` sets max response size for PUT responses.
 
 Trusted domain list is configurable in:
 

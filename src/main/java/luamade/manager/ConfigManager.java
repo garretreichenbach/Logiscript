@@ -30,7 +30,12 @@ public final class ConfigManager {
 	private static SimpleConfigBool webFetchTrustedDomainsOnly;
 	private static SimpleConfigInt webFetchTimeoutMs;
 	private static SimpleConfigInt webFetchMaxBytes;
-	private static SimpleConfigBool gfxCanvasBackendEnabled;
+	private static SimpleConfigBool webPutEnabled;
+	private static SimpleConfigBool webPutTrustedDomainsOnly;
+	private static SimpleConfigInt webPutTimeoutMs;
+	private static SimpleConfigInt webPutMaxRequestBytes;
+	private static SimpleConfigInt webPutMaxResponseBytes;
+
 	private static final List<String> DEFAULT_TRUSTED_WEB_DOMAINS = Arrays.asList(
 		"raw.githubusercontent.com",
 		"gist.githubusercontent.com",
@@ -58,7 +63,11 @@ public final class ConfigManager {
 		webFetchTrustedDomainsOnly = new SimpleConfigBool(config, "web_fetch_trusted_domains_only", true, "If true, web fetch is limited to a built-in trusted domain allowlist.");
 		webFetchTimeoutMs = new SimpleConfigInt(config, "web_fetch_timeout_ms", 4000, "Web fetch connect/read timeout in milliseconds.");
 		webFetchMaxBytes = new SimpleConfigInt(config, "web_fetch_max_bytes", 131072, "Maximum response payload size (bytes) accepted by web fetch.");
-		gfxCanvasBackendEnabled = new SimpleConfigBool(config, "gfx_canvas_backend_enabled", true, "If true, enables the gfx canvas overlay backend. If false, gfx renders through terminal text mode.");
+		webPutEnabled = new SimpleConfigBool(config, "web_put_enabled", false, "If true, allows terminal/scripts to send HTTP(S) PUT requests.");
+		webPutTrustedDomainsOnly = new SimpleConfigBool(config, "web_put_trusted_domains_only", true, "If true, HTTP PUT is limited to domains in trusted_domains.txt.");
+		webPutTimeoutMs = new SimpleConfigInt(config, "web_put_timeout_ms", 4000, "HTTP PUT connect/read timeout in milliseconds.");
+		webPutMaxRequestBytes = new SimpleConfigInt(config, "web_put_max_request_bytes", 32768, "Maximum UTF-8 request payload size (bytes) for HTTP PUT.");
+		webPutMaxResponseBytes = new SimpleConfigInt(config, "web_put_max_response_bytes", 131072, "Maximum response payload size (bytes) accepted by HTTP PUT.");
 
 		config.readWriteFields();
 		ensureTrustedDomainsFileExists(instance);
@@ -122,6 +131,26 @@ public final class ConfigManager {
 
 	public static int getWebFetchMaxBytes() {
 		return clampInt(intOrDefault(webFetchMaxBytes, 131072), 1024, 1048576);
+	}
+
+	public static boolean isWebPutEnabled() {
+		return boolOrDefault(webPutEnabled, false);
+	}
+
+	public static boolean isWebPutTrustedDomainsOnly() {
+		return boolOrDefault(webPutTrustedDomainsOnly, true);
+	}
+
+	public static int getWebPutTimeoutMs() {
+		return clampInt(intOrDefault(webPutTimeoutMs, 4000), 250, 30000);
+	}
+
+	public static int getWebPutMaxRequestBytes() {
+		return clampInt(intOrDefault(webPutMaxRequestBytes, 32768), 256, 1048576);
+	}
+
+	public static int getWebPutMaxResponseBytes() {
+		return clampInt(intOrDefault(webPutMaxResponseBytes, 131072), 1024, 1048576);
 	}
 
 

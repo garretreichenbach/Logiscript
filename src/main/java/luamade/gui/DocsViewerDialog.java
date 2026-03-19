@@ -228,6 +228,8 @@ public class DocsViewerDialog extends PlayerInput {
 			contentScrollPanel.setContent(contentBlocks);
 			contentPane.attach(contentScrollPanel);
 
+			restoreCollapsedSectionsFromModule();
+
 			filterTopics();
 			selectedTopic = resolveInitialTopic();
 			rebuildTopicButtons();
@@ -360,17 +362,20 @@ public class DocsViewerDialog extends PlayerInput {
 			} else {
 				collapsedSections.add(sectionKey);
 			}
+			persistCollapsedSections();
 			rebuildTopicButtons();
 		}
 
 		private void collapseAllSections() {
 			collapsedSections.clear();
 			collapsedSections.addAll(getAllSectionKeys());
+			persistCollapsedSections();
 			rebuildTopicButtons();
 		}
 
 		private void expandAllSections() {
 			collapsedSections.clear();
+			persistCollapsedSections();
 			rebuildTopicButtons();
 		}
 
@@ -466,6 +471,7 @@ public class DocsViewerDialog extends PlayerInput {
 			if(topic != null) {
 				collapsedSections.remove(topic.getSectionKey());
 			}
+			persistCollapsedSections();
 			rebuildTopicButtons();
 			rebuildRenderedContent();
 			if(contentScrollPanel != null) {
@@ -498,6 +504,39 @@ public class DocsViewerDialog extends PlayerInput {
 			}
 
 			contentBlocks.setHeight(Math.max(y + 12.0F, contentScrollPanel.getHeight()));
+		}
+
+		private void restoreCollapsedSectionsFromModule() {
+			if(computerModule == null) {
+				return;
+			}
+
+			java.util.Set<String> validSectionKeys = getAllSectionKeys();
+			collapsedSections.clear();
+			for(String sectionKey : computerModule.getCollapsedDocsSections()) {
+				if(validSectionKeys.contains(sectionKey)) {
+					collapsedSections.add(sectionKey);
+				}
+			}
+			persistCollapsedSections();
+		}
+
+		private void persistCollapsedSections() {
+			if(computerModule == null) {
+				return;
+			}
+
+			java.util.Set<String> validSectionKeys = getAllSectionKeys();
+			java.util.Set<String> normalizedCollapsed = new java.util.HashSet<>();
+			for(String sectionKey : collapsedSections) {
+				if(validSectionKeys.contains(sectionKey)) {
+					normalizedCollapsed.add(sectionKey);
+				}
+			}
+
+			collapsedSections.clear();
+			collapsedSections.addAll(normalizedCollapsed);
+			computerModule.setCollapsedDocsSections(normalizedCollapsed);
 		}
 
 		private int addRenderedBlock(int width, int y, MarkdownDocRenderer.RenderedBlock block) {

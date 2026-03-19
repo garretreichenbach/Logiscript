@@ -21,9 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ComputerModuleContainer extends SystemModule {
 
-	// Serializer version intentionally unchanged: gfx backend/scale state is runtime-only
-	// for now and not persisted in module tags until the canvas path is fully stabilized.
-	private final byte VERSION = 3;
+	private final byte VERSION = 4;
 	private static final Set<ComputerModuleContainer> ACTIVE_CONTAINERS = ConcurrentHashMap.newKeySet();
 	private final Long2ObjectOpenHashMap<ComputerModule> computerModules = new Long2ObjectOpenHashMap<>();
 	private final Long2ObjectOpenHashMap<PendingModuleState> pendingModuleStates = new Long2ObjectOpenHashMap<>();
@@ -104,6 +102,11 @@ public class ComputerModuleContainer extends SystemModule {
 			buffer.writeString(safeString(module.getNetworkInterface().getHostname()));
 			buffer.writeString(safeString(module.getDisplayName()));
 			buffer.writeString(safeString(module.getLastDocsTopicPath()));
+			Set<String> collapsedSections = module.getCollapsedDocsSections();
+			buffer.writeInt(collapsedSections.size());
+			for(String sectionKey : collapsedSections) {
+				buffer.writeString(safeString(sectionKey));
+			}
 		}
 	}
 
@@ -135,8 +138,15 @@ public class ComputerModuleContainer extends SystemModule {
 				String hostname = buffer.readString();
 				String displayName = version >= 2 ? buffer.readString() : "";
 				String lastDocsTopicPath = version >= 3 ? buffer.readString() : "";
+				Set<String> collapsedDocsSections = new HashSet<>();
+				if(version >= 4) {
+					int collapsedCount = buffer.readInt();
+					for(int collapsedIndex = 0; collapsedIndex < collapsedCount; collapsedIndex++) {
+						collapsedDocsSections.add(buffer.readString());
+					}
+				}
 
-				pendingModuleStates.put(abs, new PendingModuleState(modeOrdinal, lastOpenFile, savedTerminalInput, hostname, displayName, lastDocsTopicPath));
+				pendingModuleStates.put(abs, new PendingModuleState(modeOrdinal, lastOpenFile, savedTerminalInput, hostname, displayName, lastDocsTopicPath, collapsedDocsSections));
 			}
 			// Do NOT call restorePendingModules() here – the segment buffer may not be
 			// fully populated yet during deserialization.  handle(Timer) will pick it up.
@@ -265,7 +275,7 @@ public class ComputerModuleContainer extends SystemModule {
 			mode = modes[state.modeOrdinal];
 		}
 
-		module.restoreSerializedState(mode, state.lastOpenFile, state.savedTerminalInput, state.hostname, state.displayName, state.lastDocsTopicPath);
+		module.restoreSerializedState(mode, state.lastOpenFile, state.savedTerminalInput, state.hostname, state.displayName, state.lastDocsTopicPath, state.collapsedDocsSections);
 	}
 
 	private String safeString(String value) {
@@ -279,14 +289,16 @@ public class ComputerModuleContainer extends SystemModule {
 		private final String hostname;
 		private final String displayName;
 		private final String lastDocsTopicPath;
+		private final Set<String> collapsedDocsSections;
 
-		private PendingModuleState(byte modeOrdinal, String lastOpenFile, String savedTerminalInput, String hostname, String displayName, String lastDocsTopicPath) {
+		private PendingModuleState(byte modeOrdinal, String lastOpenFile, String savedTerminalInput, String hostname, String displayName, String lastDocsTopicPath, Set<String> collapsedDocsSections) {
 			this.modeOrdinal = modeOrdinal;
 			this.lastOpenFile = lastOpenFile;
 			this.savedTerminalInput = savedTerminalInput;
 			this.hostname = hostname;
 			this.displayName = displayName;
 			this.lastDocsTopicPath = lastDocsTopicPath;
+			this.collapsedDocsSections = collapsedDocsSections == null ? new HashSet<>() : new HashSet<>(collapsedDocsSections);
 		}
 	}
 }

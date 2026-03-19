@@ -58,7 +58,8 @@ The `Terminal` class provides an interactive command-line interface:
 - `history`, `!<n>`, `which [-a] <name-or-path>`, `stat <path>...`, `tree [-a] [-L depth] [path]`
 - `protect <path> <password> [ops]`, `unprotect <path> <password>`, `fsauth <password>|--clear`, `perms [path]`
 - `run <script> [args]`, `runbg <script> [args]`, `jobs`, `kill [-TERM|-KILL|-INT|-HUP|-15|-9|-2|-1] <job-id>`
-- `nano <file>`, `name [new-name|--reset]`, `httpget <url> [output-file]`
+- `nano <file>`, `name [new-name|--reset]`, `httpget <url> [output-file]`,
+  `httpput [--content-type <mime>] <url> <payload|@file> [output-file]`
 - `echo [-n] <text>`, `reboot`, `clear`, `help`, `exit`
 
 #### Script Execution

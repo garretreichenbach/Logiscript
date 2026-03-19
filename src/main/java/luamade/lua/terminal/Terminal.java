@@ -753,6 +753,16 @@ public class Terminal extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public String httpPut(String url, String body) {
+		return putWebData(url, body == null ? "" : body, null);
+	}
+
+	@LuaMadeCallable
+	public String httpPut(String url, String body, String contentType) {
+		return putWebData(url, body == null ? "" : body, contentType);
+	}
+
+	@LuaMadeCallable
 	public void setPromptTemplate(String template) {
 		if(template == null || template.trim().isEmpty()) {
 			promptTemplate = DEFAULT_PROMPT_TEMPLATE;
@@ -1580,6 +1590,50 @@ public class Terminal extends LuaMadeUserdata {
 				}
 
 				console.print(valueOf(payload));
+			}
+		});
+
+		// Httpput command
+		commands.put("httpput", new Command("httpput", "Sends HTTP/HTTPS PUT data; optionally save response to a file") {
+			@Override
+			public void execute(String args) {
+				HttpPutArgs parsed = parseHttpPutArgs(parseCommandTokens(args == null ? "" : args.trim()));
+				if(parsed == null || parsed.url == null || parsed.payloadArg == null) {
+					console.print(valueOf("Error: Usage: httpput [--content-type <mime>] <url> <payload|@file> [output-file]"));
+					return;
+				}
+
+				String payload = parsed.payloadArg;
+				if(parsed.payloadArg.startsWith("@") && parsed.payloadArg.length() > 1) {
+					String sourcePath = parsed.payloadArg.substring(1);
+					String filePayload = fileSystem.read(sourcePath);
+					if(filePayload == null) {
+						console.print(valueOf("Error: Could not read payload file: " + sourcePath));
+						return;
+					}
+					payload = filePayload;
+				}
+
+				String response = putWebData(parsed.url, payload, parsed.contentType);
+				if(response == null) {
+					return;
+				}
+
+				if(parsed.outputPath != null) {
+					String outputPath = parsed.outputPath;
+					if(fileSystem.write(outputPath, response)) {
+						console.print(valueOf("Saved " + response.getBytes(StandardCharsets.UTF_8).length + " bytes to " + fileSystem.normalizePath(outputPath)));
+					} else {
+						console.print(valueOf("Error: Could not write output file"));
+					}
+					return;
+				}
+
+				if(response.isEmpty()) {
+					console.print(valueOf("PUT request completed (empty response body)"));
+				} else {
+					console.print(valueOf(response));
+				}
 			}
 		});
 
@@ -2453,6 +2507,48 @@ public class Terminal extends LuaMadeUserdata {
 		}
 	}
 
+	private HttpPutArgs parseHttpPutArgs(List<String> tokens) {
+		if(tokens == null) {
+			return null;
+		}
+
+		HttpPutArgs parsed = new HttpPutArgs();
+		List<String> operands = new ArrayList<>();
+		for(int i = 0; i < tokens.size(); i++) {
+			String token = tokens.get(i);
+			if(token == null || token.isEmpty()) {
+				continue;
+			}
+
+			if(operands.isEmpty() && token.startsWith("--content-type")) {
+				if("--content-type".equals(token)) {
+					if(i + 1 >= tokens.size()) {
+						return null;
+					}
+					++i;
+					parsed.contentType = tokens.get(i);
+					continue;
+				}
+
+				if(token.startsWith("--content-type=")) {
+					parsed.contentType = token.substring("--content-type=".length());
+					continue;
+				}
+			}
+
+			operands.add(token);
+		}
+
+		if(operands.size() < 2 || operands.size() > 3) {
+			return null;
+		}
+
+		parsed.url = operands.get(0);
+		parsed.payloadArg = operands.get(1);
+		parsed.outputPath = operands.size() > 2 ? operands.get(2) : null;
+		return parsed;
+	}
+
 	private String formatWcOutput(WcArgs parsed, long lineCount, long wordCount, long byteCount, String label) {
 		StringBuilder output = new StringBuilder();
 		if(parsed.showLines) {
@@ -2762,6 +2858,20 @@ public class Terminal extends LuaMadeUserdata {
 		private String signalName;
 	}
 
+	private String fetchWebData(String rawUrl) {
+		if(!ConfigManager.isWebFetchEnabled()) {
+			console.print(valueOf("Error: Web fetch is disabled by server config"));
+			return null;
+		}
+
+		URL url = validateWebUrl(rawUrl, ConfigManager.isWebFetchTrustedDomainsOnly());
+		if(url == null) {
+			return null;
+		}
+
+		return executeWebRequest(url, "GET", null, null, ConfigManager.getWebFetchTimeoutMs(), ConfigManager.getWebFetchMaxBytes(), "web_fetch_max_bytes");
+	}
+
 	private static final class StatArgs {
 		private final List<String> paths = new ArrayList<>();
 	}
@@ -2780,12 +2890,28 @@ public class Terminal extends LuaMadeUserdata {
 		}
 	}
 
-	private String fetchWebData(String rawUrl) {
-		if(!ConfigManager.isWebFetchEnabled()) {
-			console.print(valueOf("Error: Web fetch is disabled by server config"));
+	private String putWebData(String rawUrl, String payload, String contentType) {
+		if(!ConfigManager.isWebPutEnabled()) {
+			console.print(valueOf("Error: Web PUT is disabled by server config"));
 			return null;
 		}
 
+		URL url = validateWebUrl(rawUrl, ConfigManager.isWebPutTrustedDomainsOnly());
+		if(url == null) {
+			return null;
+		}
+
+		byte[] requestBytes = (payload == null ? "" : payload).getBytes(StandardCharsets.UTF_8);
+		int maxRequestBytes = ConfigManager.getWebPutMaxRequestBytes();
+		if(requestBytes.length > maxRequestBytes) {
+			console.print(valueOf("Error: Request exceeded web_put_max_request_bytes limit (" + maxRequestBytes + ")"));
+			return null;
+		}
+
+		return executeWebRequest(url, "PUT", requestBytes, contentType, ConfigManager.getWebPutTimeoutMs(), ConfigManager.getWebPutMaxResponseBytes(), "web_put_max_response_bytes");
+	}
+
+	private URL validateWebUrl(String rawUrl, boolean trustedDomainsOnly) {
 		URL url;
 		try {
 			url = new URL(rawUrl);
@@ -2806,47 +2932,51 @@ public class Terminal extends LuaMadeUserdata {
 			return null;
 		}
 
-		if(ConfigManager.isWebFetchTrustedDomainsOnly() && !ConfigManager.isTrustedWebDomain(host)) {
+		if(trustedDomainsOnly && !ConfigManager.isTrustedWebDomain(host)) {
 			console.print(valueOf("Error: Domain is not in trusted allowlist"));
 			return null;
 		}
 
+		return url;
+	}
+
+	private String executeWebRequest(URL url, String method, byte[] requestBytes, String contentType, int timeoutMs, int maxResponseBytes, String responseLimitConfigName) {
 		HttpURLConnection connection = null;
 		try {
 			connection = (HttpURLConnection) url.openConnection();
-			connection.setRequestMethod("GET");
-			connection.setConnectTimeout(ConfigManager.getWebFetchTimeoutMs());
-			connection.setReadTimeout(ConfigManager.getWebFetchTimeoutMs());
+			connection.setRequestMethod(method);
+			connection.setConnectTimeout(timeoutMs);
+			connection.setReadTimeout(timeoutMs);
 			connection.setRequestProperty("User-Agent", "LuaMade/1.0");
 
+			if(requestBytes != null) {
+				connection.setDoOutput(true);
+				String effectiveContentType = (contentType == null || contentType.trim().isEmpty()) ? "text/plain; charset=UTF-8" : contentType.trim();
+				connection.setRequestProperty("Content-Type", effectiveContentType);
+				connection.setRequestProperty("Content-Length", String.valueOf(requestBytes.length));
+				OutputStream outputStream = connection.getOutputStream();
+				outputStream.write(requestBytes);
+				outputStream.flush();
+				outputStream.close();
+			}
+
 			int status = connection.getResponseCode();
-			if(status < 200 || status >= 300) {
-				console.print(valueOf("Error: HTTP status " + status));
+			InputStream input = status >= 200 && status < 300 ? connection.getInputStream() : connection.getErrorStream();
+			String responseBody = readResponseWithLimit(input, maxResponseBytes, responseLimitConfigName);
+			if(responseBody == null) {
 				return null;
 			}
 
-			InputStream input = connection.getInputStream();
-			ByteArrayOutputStream output = new ByteArrayOutputStream();
-			byte[] buffer = new byte[4096];
-			int maxBytes = ConfigManager.getWebFetchMaxBytes();
-			int total = 0;
-
-			while(true) {
-				int read = input.read(buffer);
-				if(read < 0) {
-					break;
+			if(status < 200 || status >= 300) {
+				if(responseBody.trim().isEmpty()) {
+					console.print(valueOf("Error: HTTP status " + status));
+				} else {
+					console.print(valueOf("Error: HTTP status " + status + " - " + responseBody));
 				}
-
-				total += read;
-				if(total > maxBytes) {
-					console.print(valueOf("Error: Response exceeded web_fetch_max_bytes limit (" + maxBytes + ")"));
-					return null;
-				}
-
-				output.write(buffer, 0, read);
+				return null;
 			}
 
-			return output.toString(StandardCharsets.UTF_8.name());
+			return responseBody;
 		} catch(IOException ioException) {
 			console.print(valueOf("Error fetching URL: " + ioException.getMessage()));
 			return null;
@@ -2855,6 +2985,39 @@ public class Terminal extends LuaMadeUserdata {
 				connection.disconnect();
 			}
 		}
+	}
+
+	private String readResponseWithLimit(InputStream input, int maxBytes, String configName) throws IOException {
+		if(input == null) {
+			return "";
+		}
+
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		byte[] buffer = new byte[4096];
+		int total = 0;
+		while(true) {
+			int read = input.read(buffer);
+			if(read < 0) {
+				break;
+			}
+
+			total += read;
+			if(total > maxBytes) {
+				console.print(valueOf("Error: Response exceeded " + configName + " limit (" + maxBytes + ")"));
+				return null;
+			}
+
+			output.write(buffer, 0, read);
+		}
+
+		return output.toString(StandardCharsets.UTF_8.name());
+	}
+
+	private static final class HttpPutArgs {
+		private String url;
+		private String payloadArg;
+		private String outputPath;
+		private String contentType;
 	}
 
 	/**

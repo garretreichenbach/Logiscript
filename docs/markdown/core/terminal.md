@@ -33,6 +33,7 @@ The terminal is the command shell and script runner for each computer.
 - `kill [-TERM|-KILL|-INT|-HUP|-15|-9|-2|-1] <job-id>` to stop a background job.
 - `nano <file>` to open the file editor pane.
 - `httpget <url> [output-file]` to fetch web content (if enabled by server config).
+- `httpput [--content-type <mime>] <url> <payload|@file> [output-file]` to send web content via HTTP PUT.
 - `reboot` to re-run startup flow and reset prompt behavior.
 
 If trusted-only mode is enabled, allowed domains come from:
@@ -69,6 +70,9 @@ Returns true while scripts are running.
 
 - `httpGet(url)`
 Fetches HTTP(S) response body as text, subject to server web-fetch settings.
+
+- `httpPut(url, body)` / `httpPut(url, body, contentType)`
+  Sends HTTP(S) PUT request body and returns response text, subject to server web-put settings.
 
 - `setPromptTemplate(template)`
 Sets the shell prompt format.

@@ -8,6 +8,9 @@ import luamade.lua.terminal.Terminal;
 import org.schema.game.common.data.SegmentPiece;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -28,6 +31,7 @@ public class ComputerModule {
 	private String lastOpenFile = "";
 	private String savedTerminalInput = "";
 	private String lastDocsTopicPath = "";
+	private final Set<String> collapsedDocsSections = new LinkedHashSet<>();
 	private String displayName;
 
 	public ComputerModule(SegmentPiece segmentPiece, String uuid) {
@@ -198,6 +202,27 @@ public class ComputerModule {
 		lastDocsTopicPath = topicPath == null ? "" : topicPath;
 	}
 
+	public Set<String> getCollapsedDocsSections() {
+		return new LinkedHashSet<>(collapsedDocsSections);
+	}
+
+	public void setCollapsedDocsSections(Collection<String> sectionKeys) {
+		collapsedDocsSections.clear();
+		if(sectionKeys == null) {
+			return;
+		}
+
+		for(String key : sectionKeys) {
+			if(key == null) {
+				continue;
+			}
+			String normalized = key.trim();
+			if(!normalized.isEmpty()) {
+				collapsedDocsSections.add(normalized);
+			}
+		}
+	}
+
 	public boolean openFileInEditor(String file) {
 		if(file == null || file.trim().isEmpty()) {
 			return false;
@@ -211,13 +236,14 @@ public class ComputerModule {
 	 * Restores lightweight module state from container serialization.
 	 * File-system contents are loaded independently by FileSystem using computer UUID.
 	 */
-	public void restoreSerializedState(ComputerMode mode, String openFile, String savedInput, String hostname, String displayName, String lastDocsTopicPath) {
+	public void restoreSerializedState(ComputerMode mode, String openFile, String savedInput, String hostname, String displayName, String lastDocsTopicPath, Collection<String> collapsedDocsSections) {
 		if(mode != null) {
 			lastMode = mode;
 		}
 		lastOpenFile = openFile == null ? "" : openFile;
 		savedTerminalInput = savedInput == null ? "" : savedInput;
 		this.lastDocsTopicPath = lastDocsTopicPath == null ? "" : lastDocsTopicPath;
+		setCollapsedDocsSections(collapsedDocsSections);
 
 		if(hostname != null && !hostname.isEmpty()) {
 			networkInterface.setHostname(hostname);

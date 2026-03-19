@@ -40,9 +40,10 @@ run /home/hello.lua
 - `util`: utility helpers from bundled Lua library plus native `now`/`sleep`.
 - `vector`: bundled vector helper library.
 
-Terminal web fetch is available through `httpget` and `term.httpGet(url)` when enabled in server config.
+Terminal web requests are available through `httpget` / `term.httpGet(url)` and `httpput` /
+`term.httpPut(url, body[, contentType])` when enabled in server config.
 
-When `web_fetch_trusted_domains_only` is enabled, trusted domains are loaded from:
+When `web_fetch_trusted_domains_only` or `web_put_trusted_domains_only` is enabled, trusted domains are loaded from:
 
 ```text
 config/luamade/trusted_domains.txt
