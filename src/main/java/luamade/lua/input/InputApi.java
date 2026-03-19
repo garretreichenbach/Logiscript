@@ -103,9 +103,15 @@ public class InputApi extends LuaMadeUserdata {
 	 * @param wheel    scroll wheel delta
 	 * @param cellX    mapped canvas cell X (1-based), or -1 when unavailable
 	 * @param cellY    mapped canvas cell Y (1-based), or -1 when unavailable
+	 * @param uiX      x position relative to terminal gfx canvas, or -1 when unavailable
+	 * @param uiY      y position relative to terminal gfx canvas, or -1 when unavailable
+	 * @param insideCanvas true when the pointer is inside the terminal gfx canvas bounds
+	 * @param dragging true while any mouse button is currently held down
+	 * @param dragButton active drag button name: left/right/middle/none
 	 */
 	public void pushMouseEvent(int button, boolean pressed,
-	                           int x, int y, int dx, int dy, int wheel, int cellX, int cellY) {
+	                           int x, int y, int dx, int dy, int wheel, int cellX, int cellY,
+	                           int uiX, int uiY, boolean insideCanvas, boolean dragging, String dragButton) {
 		if(!enabled) return;
 		LuaTable t = new LuaTable();
 		t.set("type", valueOf("mouse"));
@@ -119,6 +125,11 @@ public class InputApi extends LuaMadeUserdata {
 		t.set("wheel", valueOf(wheel));
 		t.set("cellX", cellX > 0 ? valueOf(cellX) : NIL);
 		t.set("cellY", cellY > 0 ? valueOf(cellY) : NIL);
+		t.set("uiX", uiX >= 0 ? valueOf(uiX) : NIL);
+		t.set("uiY", uiY >= 0 ? valueOf(uiY) : NIL);
+		t.set("insideCanvas", valueOf(insideCanvas));
+		t.set("dragging", valueOf(dragging));
+		t.set("dragButton", valueOf(dragButton == null ? "none" : dragButton));
 		eventQueue.offer(t);
 	}
 

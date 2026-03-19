@@ -30,8 +30,13 @@ Events are captured only while the computer's terminal dialog is open and are au
     released = false, -- true on button-up
     x = 120, -- absolute x position in dialog pixels
     y = 45, -- absolute y position in dialog pixels
-    cellX = 5, -- optional 1-based canvas cell X when gfx canvas frame is active
-    cellY = 3, -- optional 1-based canvas cell Y when gfx canvas frame is active
+  uiX = 28, -- optional x inside gfx canvas (0-based), nil when outside
+  uiY = 12, -- optional y inside gfx canvas (0-based), nil when outside
+  insideCanvas = true, -- true when pointer is currently inside terminal gfx bounds
+  dragging = false, -- true while any mouse button is held
+  dragButton = "none", -- active drag button: left|right|middle|none
+  cellX = nil, -- reserved for future text-cell mapping
+  cellY = nil, -- reserved for future text-cell mapping
     dx = 0, -- delta x since last event
     dy = 0, -- delta y since last event
     wheel = 0, -- scroll wheel delta (positive = up)
@@ -98,62 +103,46 @@ Events are captured only while the computer's terminal dialog is open and are au
 
 > **Tip:** Print `e.key` to discover the code for any key.
 
-## Example — interactive menu
+## Example — draggable panel
 
 ```lua
-term.setAutoPrompt(false)
-gfx.setAnsiEnabled(true)
 input.clear()
+input.consumeMouse()
 
-local items = { "Start Game", "Options", "Quit" }
-local sel = 1
+gfx.createLayer("widgets", 10)
+gfx.setLayer("widgets")
+
+local panel = { x = 30, y = 24, w = 150, h = 80 }
+local drag = nil
+
+local function hit(rect, x, y)
+  return x and y and x >= rect.x and y >= rect.y and x < (rect.x + rect.w) and y < (rect.y + rect.h)
+end
 
 local function render()
-    gfx.setSize(30, #items + 4)
-    gfx.clear(" ", "white", "blue")
-    gfx.setColor("bright_white", "blue")
-    gfx.text(2, 1, "== Main Menu ==")
-    for i, item in ipairs(items) do
-        if i == sel then
-            gfx.setColor("black", "cyan")
-        else
-            gfx.setColor("white", "blue")
-        end
-        gfx.text(3, i + 2, (i == sel and "> " or "  ") .. item)
-    end
-    gfx.render()
+  gfx.clearLayer("widgets")
+  gfx.setLayer("widgets")
+  gfx.rect(panel.x, panel.y, panel.w, panel.h, 0.1, 0.6, 1.0, 0.9, true)
+  gfx.rect(panel.x, panel.y, panel.w, 16, 0.05, 0.3, 0.8, 1.0, true)
 end
 
 render()
 
 while true do
-    local e = input.waitFor(5000)
-    if e == nil then
-        break
-    end  -- timeout / closed
-
-    if e.type == "key" and e.down then
-        if e.key == 200 then
-            -- UP arrow
-            sel = sel > 1 and sel - 1 or #items
-            render()
-        elseif e.key == 208 then
-            -- DOWN arrow
-            sel = sel < #items and sel + 1 or 1
-            render()
-        elseif e.key == 28 then
-            -- ENTER
-            console.print("Selected: " .. items[sel])
-            break
-        elseif e.key == 1 then
-            -- ESC
-            break
+  local e = input.waitFor(33)
+  if e and e.type == "mouse" then
+    if e.pressed and e.button == "left" and e.insideCanvas and hit(panel, e.uiX, e.uiY) then
+      drag = { ox = e.uiX - panel.x, oy = e.uiY - panel.y }
+    elseif e.released and e.button == "left" then
+      drag = nil
+    elseif drag and e.dragging and e.uiX and e.uiY then
+      panel.x = e.uiX - drag.ox
+      panel.y = e.uiY - drag.oy
         end
+
+    render()
     end
 end
-
-term.setAutoPrompt(true)
-term.reboot()
 ```
 
 ## Notes
@@ -162,6 +151,7 @@ term.reboot()
   normally.
 - The queue holds up to **256 events**. Older events are silently dropped if the script doesn't read fast enough.
 - Key codes match LWJGL keyboard constants (same values as the GLFW wrapper in StarMade).
-- Mouse `x`/`y` are pixel coordinates within the computer dialog window.
-- Mouse `cellX`/`cellY` are provided only when a `gfx` canvas frame is active and the pointer is inside that frame.
+- Mouse `x`/`y` are absolute dialog coordinates.
+- Mouse `uiX`/`uiY` are local coordinates within the terminal gfx canvas when inside bounds.
+- Mouse move events are queued (not only click/release), enabling drag interactions.
 

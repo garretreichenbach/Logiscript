@@ -656,6 +656,7 @@ public class Terminal extends LuaMadeUserdata {
 		globals.set("net", module.getNetworkInterface());
 		globals.set("peripheral", new PeripheralsApi(module));
 		globals.set("input", module.getInputApi());
+		globals.set("gfx", module.getGfxApi());
 		globals.set("shell", createShellCompatibilityApi());
 
 		loadBuiltinLibrary(globals, "scripts/lib/json.lua", "json");

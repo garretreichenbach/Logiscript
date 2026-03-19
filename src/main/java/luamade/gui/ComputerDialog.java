@@ -94,10 +94,8 @@ public class ComputerDialog extends PlayerInput {
 	@Override
 	public void handleMouseEvent(MouseEvent mouseEvent) {
 		if(computerModule == null) return;
-		int button = mouseEvent.button;
-		boolean pressed = mouseEvent.state;
-		if(button >= 0 || mouseEvent.dWheel != 0) {
-			computerModule.getInputApi().pushMouseEvent(button, pressed, mouseEvent.x, mouseEvent.y, mouseEvent.dx, mouseEvent.dy, mouseEvent.dWheel, -1, -1);
+		if(computerPanel != null) {
+			computerPanel.pushMouseEvent(mouseEvent);
 		}
 	}
 
@@ -108,6 +106,7 @@ public class ComputerDialog extends PlayerInput {
 		}
 		if(computerPanel != null) {
 			computerPanel.saveCurrentInput();
+			computerPanel.resetMouseState();
 		}
 		if(computerModule != null) {
 			computerModule.getInputApi().clear();
@@ -142,6 +141,7 @@ public class ComputerDialog extends PlayerInput {
 		private GUITextOverlay editorHintsOverlay;
 		private GUITextButton docsButton;
 		private GUITextButton resetButton;
+		private TerminalGfxOverlay terminalGfxOverlay;
 		private String lastEditorHintText = "";
 		/** Reference to the content pane so we can adjust text-box height dynamically. */
 		private GUIContentPane mainContentPane;
@@ -154,6 +154,9 @@ public class ComputerDialog extends PlayerInput {
 		private int lastAutoScrollTotalLines = -1;
 		/** Tracks console text length to follow new output without forcing scroll every frame. */
 		private int lastAutoFollowContentLength = -1;
+		private boolean leftMouseDown;
+		private boolean rightMouseDown;
+		private boolean middleMouseDown;
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
 			super(inputState, "COMPUTER_PANEL", "", "", 850, 650, guiCallback);
@@ -181,6 +184,88 @@ public class ComputerDialog extends PlayerInput {
 		public void requestConsoleFocus() {
 			focusConsoleOnOpen = true;
 			activateConsoleFocusIfPending();
+		}
+
+		public void pushMouseEvent(MouseEvent mouseEvent) {
+			if(mouseEvent == null || computerModule == null) {
+				return;
+			}
+
+			int button = mouseEvent.button;
+			boolean pressed = mouseEvent.state;
+			boolean hasMovement = mouseEvent.dx != 0 || mouseEvent.dy != 0;
+			if(button < 0 && mouseEvent.dWheel == 0 && !hasMovement) {
+				return;
+			}
+
+			updateMouseButtonState(button, pressed);
+			boolean dragging = leftMouseDown || rightMouseDown || middleMouseDown;
+			String dragButton = dragButtonName();
+
+			int uiX = -1;
+			int uiY = -1;
+			boolean insideCanvas = false;
+			if(consolePane != null) {
+				int width = Math.max(1, Math.round(consolePane.getWidth()));
+				int height = Math.max(1, Math.round(consolePane.getHeight()));
+				int localX = Math.round(mouseEvent.x - consolePane.getPos().x);
+				int localY = Math.round(mouseEvent.y - consolePane.getPos().y);
+				insideCanvas = localX >= 0 && localY >= 0 && localX < width && localY < height;
+				if(insideCanvas) {
+					uiX = localX;
+					uiY = localY;
+				}
+			}
+
+			computerModule.getInputApi().pushMouseEvent(
+				button,
+				pressed,
+				mouseEvent.x,
+				mouseEvent.y,
+				mouseEvent.dx,
+				mouseEvent.dy,
+				mouseEvent.dWheel,
+				-1,
+				-1,
+				uiX,
+				uiY,
+				insideCanvas,
+				dragging,
+				dragButton
+			);
+		}
+
+		private void updateMouseButtonState(int button, boolean pressed) {
+			switch(button) {
+				case 0:
+					leftMouseDown = pressed;
+					break;
+				case 1:
+					rightMouseDown = pressed;
+					break;
+				case 2:
+					middleMouseDown = pressed;
+					break;
+			}
+		}
+
+		private String dragButtonName() {
+			if(leftMouseDown) {
+				return "left";
+			}
+			if(rightMouseDown) {
+				return "right";
+			}
+			if(middleMouseDown) {
+				return "middle";
+			}
+			return "none";
+		}
+
+		public void resetMouseState() {
+			leftMouseDown = false;
+			rightMouseDown = false;
+			middleMouseDown = false;
 		}
 
 		public boolean isFileEditMode() {
@@ -335,6 +420,17 @@ public class ComputerDialog extends PlayerInput {
 			scrollPaneToCursor();
 
 			focusConsoleOnOpen = getState().getController().getInputController().getCurrentActiveField() != textArea;
+		}
+
+		private void updateGfxOverlayBounds() {
+			if(consolePane == null || terminalGfxOverlay == null) {
+				return;
+			}
+
+			int width = Math.max(1, Math.round(consolePane.getWidth()));
+			int height = Math.max(1, Math.round(consolePane.getHeight()));
+			terminalGfxOverlay.setCanvasBounds(consolePane.getPos().x, consolePane.getPos().y, width, height);
+			terminalGfxOverlay.setInvisible(isFileEditMode());
 		}
 
 		private void refreshPromptStartPositionFromCurrentText() {
@@ -723,6 +819,12 @@ public class ComputerDialog extends PlayerInput {
 			consolePane.onInit();
 			contentPane.getContent(0).attach(consolePane);
 
+			terminalGfxOverlay = new TerminalGfxOverlay(1, 1, getState(), computerModule.getGfxApi());
+			terminalGfxOverlay.onInit();
+			terminalGfxOverlay.setMouseUpdateEnabled(false);
+			contentPane.getContent(0).attach(terminalGfxOverlay);
+			updateGfxOverlayBounds();
+
 			editorHintsOverlay = new GUITextOverlay(830, 16, FontLibrary.FontSize.SMALL, getState());
 			editorHintsOverlay.setTextSimple(EDITOR_HINT_PREFIX);
 			editorHintsOverlay.onInit();
@@ -764,6 +866,7 @@ public class ComputerDialog extends PlayerInput {
 			lastModuleContent = computerModule.getLastTextContent();
 			lastAutoFollowContentLength = lastModuleContent == null ? 0 : lastModuleContent.length();
 			renderedMode = computerModule.getLastMode();
+			updateGfxOverlayBounds();
 			refreshPromptStartPositionFromCurrentText();
 			scrollPaneToCursor();
 			updateEditorHintOverlay();
@@ -772,6 +875,7 @@ public class ComputerDialog extends PlayerInput {
 
 		@Override
 		public void draw() {
+			updateGfxOverlayBounds();
 			super.draw();
 			clampCaretToEditableRegion();
 			scrollPaneToCursor();
