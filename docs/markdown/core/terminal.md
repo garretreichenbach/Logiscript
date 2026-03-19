@@ -12,15 +12,16 @@ The terminal is the command shell and script runner for each computer.
 ## Key commands
 
 - `help`: list built-in commands.
-- `which <name-or-path>`: resolve commands and script paths.
-- `ls [-a] [-l] [-R] [path]`, `cd`, `pwd [-L|-P]`, `mkdir`, `cat [-n] <file>`, `touch`.
-- `rm [-r] [-f] <path>...`, `cp [-r] <src> <dst>`, `mv`, `edit`.
+- `which [-a] <name-or-path>`: resolve commands and script paths (`-a` shows all matches).
+- `ls [-a] [-l] [-R] [path]`, `cd <directory>`, `pwd [-L|-P]`, `mkdir [-p] <directory>...`, `cat [-n] [-A] <file>...`,
+  `touch <file>`.
+- `rm [-r] [-f] <path>...`, `cp [-r] <source> <destination>`, `mv <source> <destination>`, `edit <file> <content>`.
 - `find [path] [-name <glob>] [-type f|d] [-maxdepth <n>]` for recursive search.
 - `grep [-n] [-i] [-r] <pattern> <path>` for content search.
 - `history` to list indexed commands and `!<n>` to re-run a history entry.
 - `stat <path>...` for file/directory metadata.
 - `tree [-a] [-L depth] [path]` for directory visualization.
-- `head [-n lines] <file>`, `tail [-n lines] <file>`, `wc [-l] [-w] [-c] <file>` for file inspection.
+- `head [-n lines] <file>`, `tail [-n lines] <file>`, `wc [-l] [-w] [-c] <file>...` for file inspection.
 - `echo [-n] <text>` for output (`-n` suppresses trailing newline).
 - `protect <path> <password> [ops]` to protect paths by operation scope.
 - `unprotect <path> <password>` to remove path protection.
@@ -29,7 +30,7 @@ The terminal is the command shell and script runner for each computer.
 - `run <script> [args...]` to execute Lua.
 - `runbg <script> [args...]` to execute in background.
 - `jobs` to list background jobs.
-- `kill <jobId>` to stop a background job.
+- `kill [-TERM|-KILL|-INT|-HUP|-15|-9|-2|-1] <job-id>` to stop a background job.
 - `nano <file>` to open the file editor pane.
 - `httpget <url> [output-file]` to fetch web content (if enabled by server config).
 - `reboot` to re-run startup flow and reset prompt behavior.

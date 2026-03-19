@@ -34,6 +34,9 @@ Returns file/directory names in `path`.
 - `makeDir(path)`
 Creates a directory recursively. Returns `true` on success.
 
+- `touch(path)`
+  Creates a file if missing and preserves existing file contents.
+
 - `read(path)`
 Reads a file and returns text content, or `nil`.
 
@@ -84,6 +87,7 @@ Returns canonical virtual path (resolves `.`, `..`, and relative paths).
 - Paths are sandboxed to this computer's virtual root.
 - Escaping the sandbox via traversal is blocked.
 - `delete` will not remove non-empty directories.
+- `makeDir` returns `false` when the path already exists.
 - Protection rules are path-scoped and inherited by child paths (longest matching scope wins).
 - Supported operation tokens: `read`, `write`, `delete`, `list`, `all`.
 - Aliases: `copy` (`read+write`), `move` (`read + write + delete`), `paste` (`write`), `rw` (`read + write`).

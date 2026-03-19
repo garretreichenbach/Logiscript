@@ -857,22 +857,20 @@ public class Terminal extends LuaMadeUserdata {
 		commands.put("which", new Command("which", "Shows where a command or file resolves") {
 			@Override
 			public void execute(String args) {
-				String target = args == null ? "" : args.trim();
-				if(target.isEmpty()) {
-					console.print(valueOf("Error: Usage: which <command-or-path>"));
+				WhichArgs parsed = parseWhichArgs(parseCommandTokens(args == null ? "" : args.trim()));
+				if(parsed == null || parsed.target == null || parsed.target.trim().isEmpty()) {
+					console.print(valueOf("Error: Usage: which [-a] <command-or-path>"));
 					return;
 				}
 
-				if(commands.containsKey(target)) {
-					console.print(valueOf(target + ": shell built-in"));
+				List<String> matches = findWhichMatches(parsed.target, parsed.showAll);
+				if(matches.isEmpty()) {
+					console.print(valueOf(parsed.target + " not found"));
 					return;
 				}
 
-				String resolvedPath = fileSystem.normalizePath(target);
-				if(fileSystem.exists(resolvedPath)) {
-					console.print(valueOf(resolvedPath));
-				} else {
-					console.print(valueOf(target + " not found"));
+				for(String match : matches) {
+					console.print(valueOf(match));
 				}
 			}
 		});
@@ -1046,34 +1044,39 @@ public class Terminal extends LuaMadeUserdata {
 			@Override
 			public void execute(String args) {
 				WcArgs parsed = parseWcArgs(parseCommandTokens(args == null ? "" : args.trim()));
-				if(parsed == null || parsed.filePath == null) {
-					console.print(valueOf("Error: Usage: wc [-l] [-w] [-c] <file>"));
-					return;
-				}
-				String file = parsed.filePath;
-
-				String content = fileSystem.read(file);
-				if(content == null) {
-					console.print(valueOf("Error: File not found or is a directory"));
+				if(parsed == null || parsed.filePaths.isEmpty()) {
+					console.print(valueOf("Error: Usage: wc [-l] [-w] [-c] <file>..."));
 					return;
 				}
 
-				int lineCount = content.isEmpty() ? 0 : content.split("\\n", -1).length;
-				int wordCount = countWords(content);
-				int byteCount = content.getBytes(StandardCharsets.UTF_8).length;
+				long totalLines = 0L;
+				long totalWords = 0L;
+				long totalBytes = 0L;
+				int printed = 0;
 
-				StringBuilder output = new StringBuilder();
-				if(parsed.showLines) {
-					output.append(lineCount).append(' ');
+				for(String rawPath : parsed.filePaths) {
+					String normalizedPath = fileSystem.normalizePath(rawPath);
+					String content = fileSystem.read(normalizedPath);
+					if(content == null) {
+						console.print(valueOf(fsErrorOr("Error: File not found or is a directory")));
+						continue;
+					}
+
+					int lineCount = content.isEmpty() ? 0 : content.split("\\n", -1).length;
+					int wordCount = countWords(content);
+					int byteCount = content.getBytes(StandardCharsets.UTF_8).length;
+
+					totalLines += lineCount;
+					totalWords += wordCount;
+					totalBytes += byteCount;
+					printed++;
+
+					console.print(valueOf(formatWcOutput(parsed, lineCount, wordCount, byteCount, normalizedPath)));
 				}
-				if(parsed.showWords) {
-					output.append(wordCount).append(' ');
+
+				if(printed > 1) {
+					console.print(valueOf(formatWcOutput(parsed, totalLines, totalWords, totalBytes, "total")));
 				}
-				if(parsed.showBytes) {
-					output.append(byteCount).append(' ');
-				}
-				output.append(fileSystem.normalizePath(file));
-				console.print(valueOf(output.toString().trim()));
 			}
 		});
 
@@ -1265,15 +1268,33 @@ public class Terminal extends LuaMadeUserdata {
 		commands.put("mkdir", new Command("mkdir", "Creates a new directory") {
 			@Override
 			public void execute(String args) {
-				if(args.isEmpty()) {
-					console.print(valueOf("Error: No directory name specified"));
+				MkdirArgs parsed = parseMkdirArgs(parseCommandTokens(args == null ? "" : args.trim()));
+				if(parsed == null || parsed.paths.isEmpty()) {
+					console.print(valueOf("Error: Usage: mkdir [-p] <directory>..."));
 					return;
 				}
 
-				if(fileSystem.makeDir(args)) {
+				boolean createdAny = false;
+				for(String rawPath : parsed.paths) {
+					String normalizedPath = fileSystem.normalizePath(rawPath);
+					if(fileSystem.exists(normalizedPath)) {
+						if(fileSystem.isDir(normalizedPath) && parsed.parents) {
+							createdAny = true;
+							continue;
+						}
+						console.print(valueOf("Error: Directory already exists: " + normalizedPath));
+						continue;
+					}
+
+					if(fileSystem.makeDir(normalizedPath)) {
+						createdAny = true;
+					} else {
+						console.print(valueOf(fsErrorOr("Error: Could not create directory")));
+					}
+				}
+
+				if(createdAny) {
 					console.print(valueOf("Directory created"));
-				} else {
-					console.print(valueOf(fsErrorOr("Error: Could not create directory")));
 				}
 			}
 		});
@@ -1283,24 +1304,30 @@ public class Terminal extends LuaMadeUserdata {
 			@Override
 			public void execute(String args) {
 				CatArgs parsed = parseCatArgs(parseCommandTokens(args == null ? "" : args.trim()));
-				if(parsed == null || parsed.filePath == null) {
-					console.print(valueOf("Error: Usage: cat [-n] <file>"));
+				if(parsed == null || parsed.filePaths.isEmpty()) {
+					console.print(valueOf("Error: Usage: cat [-n] [-A] <file>..."));
 					return;
 				}
 
-				String content = fileSystem.read(parsed.filePath);
-				if(content != null) {
-					if(!parsed.showLineNumbers) {
-						console.print(valueOf(content));
-						return;
+				int lineNumber = 1;
+				for(String rawPath : parsed.filePaths) {
+					String normalizedPath = fileSystem.normalizePath(rawPath);
+					String content = fileSystem.read(normalizedPath);
+					if(content == null) {
+						console.print(valueOf(fsErrorOr("Error: File not found or is a directory")));
+						continue;
 					}
 
 					String[] lines = content.split("\\n", -1);
-					for(int i = 0; i < lines.length; i++) {
-						console.print(valueOf((i + 1) + "\t" + lines[i]));
+					for(String line : lines) {
+						String rendered = parsed.showAllChars ? renderCatAll(line) : line;
+						if(parsed.showLineNumbers) {
+							console.print(valueOf(lineNumber + "\t" + rendered));
+							lineNumber++;
+						} else {
+							console.print(valueOf(rendered));
+						}
 					}
-				} else {
-					console.print(valueOf(fsErrorOr("Error: File not found or is a directory")));
 				}
 			}
 		});
@@ -1613,19 +1640,13 @@ public class Terminal extends LuaMadeUserdata {
 		commands.put("kill", new Command("kill", "Stops a background job") {
 			@Override
 			public void execute(String args) {
-				String raw = args == null ? "" : args.trim();
-				if(raw.isEmpty()) {
-					console.print(valueOf("Error: Usage: kill <job-id>"));
+				KillArgs parsed = parseKillArgs(parseCommandTokens(args == null ? "" : args.trim()));
+				if(parsed == null || parsed.jobId < 1) {
+					console.print(valueOf("Error: Usage: kill [-TERM|-KILL|-INT|-HUP|-15|-9|-2|-1] <job-id>"));
 					return;
 				}
 
-				int jobId;
-				try {
-					jobId = Integer.parseInt(raw);
-				} catch(NumberFormatException exception) {
-					console.print(valueOf("Error: job-id must be an integer"));
-					return;
-				}
+				int jobId = parsed.jobId;
 
 				BackgroundJob job = backgroundJobs.get(jobId);
 				if(job == null) {
@@ -1637,7 +1658,11 @@ public class Terminal extends LuaMadeUserdata {
 				if(future != null && !future.isDone()) {
 					job.setStatus(JobStatus.CANCELED);
 					future.cancel(true);
-					console.print(valueOf("Canceled job #" + jobId));
+					if(parsed.signalName == null) {
+						console.print(valueOf("Canceled job #" + jobId));
+					} else {
+						console.print(valueOf("Canceled job #" + jobId + " with signal " + parsed.signalName));
+					}
 				} else {
 					refreshBackgroundJobs();
 					console.print(valueOf("Job #" + jobId + " is already " + job.getStatus().name().toLowerCase()));
@@ -2161,6 +2186,86 @@ public class Terminal extends LuaMadeUserdata {
 		return parsed;
 	}
 
+	private WhichArgs parseWhichArgs(List<String> tokens) {
+		if(tokens == null) {
+			return null;
+		}
+
+		WhichArgs parsed = new WhichArgs();
+		for(String token : tokens) {
+			if(token == null || token.isEmpty()) {
+				continue;
+			}
+
+			if(token.startsWith("-") && parsed.target == null) {
+				for(int i = 1; i < token.length(); i++) {
+					char flag = token.charAt(i);
+					if(flag == 'a') {
+						parsed.showAll = true;
+					} else {
+						return null;
+					}
+				}
+				continue;
+			}
+
+			if(parsed.target != null) {
+				return null;
+			}
+			parsed.target = token;
+		}
+
+		return parsed;
+	}
+
+	private List<String> findWhichMatches(String target, boolean showAll) {
+		LinkedHashSet<String> matches = new LinkedHashSet<>();
+
+		if(commands.containsKey(target)) {
+			matches.add(target + ": shell built-in");
+			if(!showAll) {
+				return new ArrayList<>(matches);
+			}
+		}
+
+		for(String candidate : resolveWhichPathCandidates(target)) {
+			if(candidate == null || candidate.isEmpty()) {
+				continue;
+			}
+			if(fileSystem.exists(candidate) && !fileSystem.isDir(candidate)) {
+				matches.add(candidate);
+				if(!showAll) {
+					break;
+				}
+			}
+		}
+
+		return new ArrayList<>(matches);
+	}
+
+	private List<String> resolveWhichPathCandidates(String target) {
+		LinkedHashSet<String> candidates = new LinkedHashSet<>();
+		if(target == null || target.trim().isEmpty()) {
+			return new ArrayList<>(candidates);
+		}
+
+		String trimmed = target.trim();
+		candidates.add(fileSystem.normalizePath(trimmed));
+
+		if(!trimmed.endsWith(".lua")) {
+			candidates.add(fileSystem.normalizePath(trimmed + ".lua"));
+		}
+
+		if(!trimmed.startsWith("/")) {
+			candidates.add(fileSystem.normalizePath("/bin/" + trimmed));
+			if(!trimmed.endsWith(".lua")) {
+				candidates.add(fileSystem.normalizePath("/bin/" + trimmed + ".lua"));
+			}
+		}
+
+		return new ArrayList<>(candidates);
+	}
+
 	private PwdArgs parsePwdArgs(List<String> tokens) {
 		PwdArgs parsed = new PwdArgs();
 		if(tokens == null) {
@@ -2193,11 +2298,13 @@ public class Terminal extends LuaMadeUserdata {
 				continue;
 			}
 
-			if(token.startsWith("-") && token.length() > 1 && parsed.filePath == null) {
+			if(token.startsWith("-") && token.length() > 1 && parsed.filePaths.isEmpty()) {
 				for(int i = 1; i < token.length(); i++) {
 					char flag = token.charAt(i);
 					if(flag == 'n') {
 						parsed.showLineNumbers = true;
+					} else if(flag == 'A') {
+						parsed.showAllChars = true;
 					} else {
 						return null;
 					}
@@ -2205,10 +2312,7 @@ public class Terminal extends LuaMadeUserdata {
 				continue;
 			}
 
-			if(parsed.filePath != null) {
-				return null;
-			}
-			parsed.filePath = token;
+			parsed.filePaths.add(token);
 		}
 
 		return parsed;
@@ -2225,7 +2329,7 @@ public class Terminal extends LuaMadeUserdata {
 				continue;
 			}
 
-			if(token.startsWith("-") && token.length() > 1 && parsed.filePath == null) {
+			if(token.startsWith("-") && token.length() > 1 && parsed.filePaths.isEmpty()) {
 				for(int i = 1; i < token.length(); i++) {
 					char flag = token.charAt(i);
 					switch(flag) {
@@ -2245,10 +2349,7 @@ public class Terminal extends LuaMadeUserdata {
 				continue;
 			}
 
-			if(parsed.filePath != null) {
-				return null;
-			}
-			parsed.filePath = token;
+			parsed.filePaths.add(token);
 		}
 
 		if(!parsed.showLines && !parsed.showWords && !parsed.showBytes) {
@@ -2258,6 +2359,135 @@ public class Terminal extends LuaMadeUserdata {
 		}
 
 		return parsed;
+	}
+
+	private MkdirArgs parseMkdirArgs(List<String> tokens) {
+		if(tokens == null) {
+			return null;
+		}
+
+		MkdirArgs parsed = new MkdirArgs();
+		for(String token : tokens) {
+			if(token == null || token.isEmpty()) {
+				continue;
+			}
+
+			if(token.startsWith("-") && parsed.paths.isEmpty()) {
+				for(int i = 1; i < token.length(); i++) {
+					char flag = token.charAt(i);
+					if(flag == 'p') {
+						parsed.parents = true;
+					} else {
+						return null;
+					}
+				}
+				continue;
+			}
+
+			parsed.paths.add(token);
+		}
+
+		return parsed;
+	}
+
+	private KillArgs parseKillArgs(List<String> tokens) {
+		if(tokens == null || tokens.isEmpty()) {
+			return null;
+		}
+
+		KillArgs parsed = new KillArgs();
+		int index = 0;
+
+		String first = tokens.get(0);
+		if(first != null && first.startsWith("-") && first.length() > 1) {
+			String signalToken = first.substring(1).toUpperCase(Locale.ROOT);
+			String normalizedSignal = normalizeKillSignal(signalToken);
+			if(normalizedSignal == null) {
+				return null;
+			}
+			parsed.signalName = normalizedSignal;
+			index = 1;
+		}
+
+		if(index >= tokens.size()) {
+			return null;
+		}
+
+		if(tokens.size() - index != 1) {
+			return null;
+		}
+
+		try {
+			parsed.jobId = Integer.parseInt(tokens.get(index));
+		} catch(NumberFormatException numberFormatException) {
+			return null;
+		}
+
+		return parsed;
+	}
+
+	private String normalizeKillSignal(String signalToken) {
+		if(signalToken == null || signalToken.isEmpty()) {
+			return null;
+		}
+
+		if(signalToken.startsWith("SIG") && signalToken.length() > 3) {
+			signalToken = signalToken.substring(3);
+		}
+
+		switch(signalToken) {
+			case "9":
+			case "KILL":
+				return "KILL";
+			case "15":
+			case "TERM":
+				return "TERM";
+			case "2":
+			case "INT":
+				return "INT";
+			case "1":
+			case "HUP":
+				return "HUP";
+			default:
+				return null;
+		}
+	}
+
+	private String formatWcOutput(WcArgs parsed, long lineCount, long wordCount, long byteCount, String label) {
+		StringBuilder output = new StringBuilder();
+		if(parsed.showLines) {
+			output.append(lineCount).append(' ');
+		}
+		if(parsed.showWords) {
+			output.append(wordCount).append(' ');
+		}
+		if(parsed.showBytes) {
+			output.append(byteCount).append(' ');
+		}
+		output.append(label == null ? "" : label);
+		return output.toString().trim();
+	}
+
+	private String renderCatAll(String line) {
+		if(line == null) {
+			return "$";
+		}
+
+		StringBuilder out = new StringBuilder();
+		for(int i = 0; i < line.length(); i++) {
+			char c = line.charAt(i);
+			if(c == '\t') {
+				out.append("^I");
+				continue;
+			}
+			if(c < 32 || c == 127) {
+				out.append('^').append((char) ((c == 127) ? '?' : (c + 64)));
+				continue;
+			}
+			out.append(c);
+		}
+		out.append('$');
+		return out.toString();
 	}
 
 	private int countWords(String text) {
@@ -2500,20 +2730,36 @@ public class Terminal extends LuaMadeUserdata {
 		private String path;
 	}
 
+	private static final class WhichArgs {
+		private boolean showAll;
+		private String target;
+	}
+
 	private static final class PwdArgs {
 		private boolean physical;
 	}
 
 	private static final class CatArgs {
 		private boolean showLineNumbers;
-		private String filePath;
+		private final List<String> filePaths = new ArrayList<>();
+		private boolean showAllChars;
 	}
 
 	private static final class WcArgs {
 		private boolean showLines;
 		private boolean showWords;
 		private boolean showBytes;
-		private String filePath;
+		private final List<String> filePaths = new ArrayList<>();
+	}
+
+	private static final class MkdirArgs {
+		private final List<String> paths = new ArrayList<>();
+		private boolean parents;
+	}
+
+	private static final class KillArgs {
+		private int jobId;
+		private String signalName;
 	}
 
 	private static final class StatArgs {

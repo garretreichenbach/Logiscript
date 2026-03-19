@@ -49,25 +49,17 @@ The `Terminal` class provides an interactive command-line interface:
 
 #### Built-in Commands
 
-- `ls [dir]` - List files
-- `cd <dir>` - Change directory
-- `pwd` - Print working directory
-- `cat <file>` - Display file contents
-- `mkdir <dir>` - Create directory
-- `touch <file>` - Create empty file
-- `rm <file>` - Delete file
-- `cp <src> <dst>` - Copy file
-- `mv <src> <dst>` - Move/rename file
-- `edit <file> <content>` - Write to file
-- `protect <path> <password> [ops]` - Protect path scope
-- `unprotect <path> <password>` - Remove protection
-- `fsauth <password>` / `fsauth --clear` - Unlock/clear filesystem auth
-- `perms [path]` - Show protection rules
-- `run <script> [args]` - Execute Lua script
-- `echo <text>` - Print text
-- `clear` - Clear terminal
-- `help` - Show commands
-- `exit` - Exit terminal
+- `ls [-a] [-l] [-R] [path]`, `cd`, `pwd [-L|-P]`
+- `cat [-n] [-A] <file>...`, `mkdir [-p] <directory>...`, `touch <file>`
+- `rm [-r] [-f] <path>...`, `cp [-r] <source> <destination>`, `mv <source> <destination>`
+- `find [path] [-name <glob>] [-type f|d] [-maxdepth <n>]`
+- `grep [-n] [-i] [-r] <pattern> <path>`, `head [-n lines] <file>`, `tail [-n lines] <file>`,
+  `wc [-l] [-w] [-c] <file>...`
+- `history`, `!<n>`, `which [-a] <name-or-path>`, `stat <path>...`, `tree [-a] [-L depth] [path]`
+- `protect <path> <password> [ops]`, `unprotect <path> <password>`, `fsauth <password>|--clear`, `perms [path]`
+- `run <script> [args]`, `runbg <script> [args]`, `jobs`, `kill [-TERM|-KILL|-INT|-HUP|-15|-9|-2|-1] <job-id>`
+- `nano <file>`, `name [new-name|--reset]`, `httpget <url> [output-file]`
+- `echo [-n] <text>`, `reboot`, `clear`, `help`, `exit`
 
 #### Script Execution
 

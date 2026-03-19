@@ -19,8 +19,9 @@ LuaMade provides a Unix-like computing environment with the following features:
 - Command history navigation
 - Support for custom Lua commands
 - Direct Lua script execution from terminal
-- Built-in commands: ls, cd, pwd, cat, mkdir, touch, rm, cp, mv, edit, protect, unprotect, fsauth, perms, run, echo,
-  clear, help, exit
+- Built-in commands include: ls, cd, pwd, cat, mkdir, touch, rm, cp, mv, edit, find, grep, history, stat, tree,
+  which, head, tail, wc, protect, unprotect, fsauth, perms, run, runbg, jobs, kill, httpget, nano, name, echo,
+  reboot, clear, help, exit
 
 Planned next commands (in progress): aliases.
 `chmod` is intentionally out of scope for now.
@@ -108,8 +109,8 @@ The terminal supports the following built-in commands:
 - `ls [-a] [-l] [-R] [directory]` - List files (`-a` hidden, `-l` long format, `-R` recursive)
 - `cd <directory>` - Change current directory
 - `pwd [-L|-P]` - Print working directory (logical/physical mode)
-- `cat [-n] <file>` - Display file contents (`-n` line numbers)
-- `mkdir <directory>` - Create a new directory
+- `cat [-n] [-A] <file>...` - Display file contents (`-n` line numbers, `-A` visible control chars)
+- `mkdir [-p] <directory>...` - Create directories (`-p` tolerates existing dirs)
 - `touch <file>` - Create an empty file
 - `rm [-r] [-f] <path>...` - Delete files/dirs (`-r` recursive, `-f` ignore missing/errors)
 - `cp [-r] <source> <dest>` - Copy files (`-r` for directories)
@@ -129,18 +130,25 @@ The terminal supports the following built-in commands:
 - `run <script> [args]` - Execute a Lua script with optional arguments
 - `runbg <script> [args]` - Execute a Lua script in background (limited parallelism)
 - `jobs` - List background script jobs
-- `kill <job-id>` - Stop a background script job
-- `which <command-or-path>` - Resolve built-ins or file paths
+- `kill [-TERM|-KILL|-INT|-HUP|-15|-9|-2|-1] <job-id>` - Stop a background script job
+- `which [-a] <command-or-path>` - Resolve built-ins or file paths (`-a` shows all matches)
 - `name [new-name|--reset]` - Show or change the displayed computer name in the prompt
 - `head [-n lines] <file>` - Show first lines of a file
 - `tail [-n lines] <file>` - Show last lines of a file
-- `wc [-l] [-w] [-c] <file>` - Show selected line/word/byte counts
+- `wc [-l] [-w] [-c] <file>...` - Show selected line/word/byte counts (`total` for multi-file)
 - `nano <file>` - Open file in editor mode
 - `echo [-n] <text>` - Print text to the terminal (`-n` suppresses newline)
 - `clear` - Clear the terminal screen
 - `reboot` - Reload `/etc/startup.lua` and reset terminal UI state
 - `help` - Show available commands
 - `exit` - Exit the terminal
+
+### Migration Notes (Terminal Behavior)
+
+- `touch` now preserves existing file contents (no truncation).
+- `rm` requires `-r` to remove non-empty directories; use `-f` to suppress missing-path errors.
+- `cp` requires `-r` for directory copies.
+- `history` and `!<n>` are available for command reruns.
 
 ### Roadmap
 
@@ -389,7 +397,7 @@ The terminal UI now supports:
 - **Real-time typing**: Type commands directly in the terminal window
 - **Command execution**: Press Enter to run your command
 - **Output display**: See command results immediately in the terminal
-- **Command history**: Navigate through previous commands (upcoming feature)
+- **Command history**: Navigate previous commands and re-run entries with `history` and `!<n>`
 - **File editing**: Use commands like `edit`, `cat`, and text-based file manipulation
 
 Example session:

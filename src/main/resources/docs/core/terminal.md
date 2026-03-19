@@ -12,13 +12,25 @@ The terminal is the command shell and script runner for each computer.
 ## Key commands
 
 - `help`: list built-in commands.
-- `which <name-or-path>`: resolve commands and script paths.
-- `ls`, `cd`, `pwd`, `mkdir`, `cat`, `touch`, `rm`, `cp`, `mv`, `edit`.
-- `head`, `tail`, `wc` for file inspection.
+- `which [-a] <name-or-path>`: resolve commands and script paths (`-a` shows all matches).
+- `ls [-a] [-l] [-R] [path]`, `cd <directory>`, `pwd [-L|-P]`, `mkdir [-p] <directory>...`, `cat [-n] [-A] <file>...`,
+  `touch <file>`.
+- `rm [-r] [-f] <path>...`, `cp [-r] <source> <destination>`, `mv <source> <destination>`, `edit <file> <content>`.
+- `find [path] [-name <glob>] [-type f|d] [-maxdepth <n>]` for recursive search.
+- `grep [-n] [-i] [-r] <pattern> <path>` for content search.
+- `history` to list indexed commands and `!<n>` to re-run a history entry.
+- `stat <path>...` for file/directory metadata.
+- `tree [-a] [-L depth] [path]` for directory visualization.
+- `head [-n lines] <file>`, `tail [-n lines] <file>`, `wc [-l] [-w] [-c] <file>...` for file inspection.
+- `echo [-n] <text>` for output (`-n` suppresses trailing newline).
+- `protect <path> <password> [ops]` to protect paths by operation scope.
+- `unprotect <path> <password>` to remove path protection.
+- `fsauth <password>` and `fsauth --clear` to manage filesystem auth session.
+- `perms [path]` to inspect configured protection rules.
 - `run <script> [args...]` to execute Lua.
 - `runbg <script> [args...]` to execute in background.
 - `jobs` to list background jobs.
-- `kill <jobId>` to stop a background job.
+- `kill [-TERM|-KILL|-INT|-HUP|-15|-9|-2|-1] <job-id>` to stop a background job.
 - `nano <file>` to open the file editor pane.
 - `httpget <url> [output-file]` to fetch web content (if enabled by server config).
 - `reboot` to re-run startup flow and reset prompt behavior.
@@ -97,3 +109,21 @@ Prompt placeholders:
 - `{dir}` current working directory.
 
 Use this guide for runtime command behavior and script-side terminal control.
+
+## Filesystem protection workflow
+
+```text
+/ $ protect /home secret123 all
+Protection enabled for /home
+/ $ cat /home/README.txt
+Error: Permission denied: read requires password for /home
+/ $ fsauth secret123
+Filesystem scopes unlocked
+/ $ cat /home/README.txt
+...file contents...
+/ $ fsauth --clear
+Cleared filesystem auth session
+```
+
+Operation scopes for `protect` are `read`, `write`, `delete`, `list`, `all`, plus aliases `copy`, `move`, `paste`, `rw`.
+

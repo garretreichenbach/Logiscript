@@ -15,6 +15,15 @@ end
 for _, name in ipairs(fs.list("/home")) do
   print(name)
 end
+
+-- Protect a scope and require auth for writes
+fs.protect("/home/logs", "secret123", "write, delete")
+print(fs.write("/home/logs/boot.txt", "denied until auth")) -- false
+
+fs.auth("secret123")
+print(fs.write("/home/logs/boot.txt", "allowed after auth")) -- true
+
+fs.clearAuth()
 ```
 
 ## Reference
@@ -24,6 +33,9 @@ Returns file/directory names in `path`.
 
 - `makeDir(path)`
 Creates a directory recursively. Returns `true` on success.
+
+- `touch(path)`
+  Creates a file if missing and preserves existing file contents.
 
 - `read(path)`
 Reads a file and returns text content, or `nil`.
@@ -49,8 +61,35 @@ Returns whether a path is a directory.
 - `normalizePath(path)`
 Returns canonical virtual path (resolves `.`, `..`, and relative paths).
 
+- `protect(path, password, [operations])`
+  Adds or updates password protection for a path scope.
+
+- `unprotect(path, password)`
+  Removes protection rule from a path when password matches.
+
+- `auth(password)`
+  Unlocks all matching protected scopes for the current session.
+
+- `clearAuth()`
+  Clears the current filesystem auth session.
+
+- `listPermissions()`
+  Returns all configured protection rules with lock state.
+
+- `getPermissions(path)`
+  Returns the effective protection rule for `path`, or `none`.
+
+- `getLastError()`
+  Returns the last filesystem error (including permission-denied reason).
+
 ## Notes
 
 - Paths are sandboxed to this computer's virtual root.
 - Escaping the sandbox via traversal is blocked.
 - `delete` will not remove non-empty directories.
+- `makeDir` returns `false` when the path already exists.
+- Protection rules are path-scoped and inherited by child paths (longest matching scope wins).
+- Supported operation tokens: `read`, `write`, `delete`, `list`, `all`.
+- Aliases: `copy` (`read+write`), `move` (`read + write + delete`), `paste` (`write`), `rw` (`read + write`).
+- `auth(password)` unlocks matching scopes until `clearAuth()` or computer/session reset.
+- Protection metadata is persisted under `/etc/.fs_permissions` by the runtime.

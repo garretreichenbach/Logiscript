@@ -39,31 +39,31 @@ Last updated: 2026-03-18
 ### Parity Notes (Current Gaps to Track)
 
 - [x] `pwd` does not support `-L` / `-P`.
-- [ ] `cat` still lacks `-A` and multi-file concat (now supports `-n`).
-- [ ] `mkdir` currently behaves similar to always-`-p` but does not parse flags.
-- [ ] `wc` still limited (single-file only; no multi-file summary).
-- [ ] `which` is basic (no options like `-a`).
-- [ ] `kill` has no signal support (job cancel only).
+- [x] `cat` supports `-n`, `-A`, and multi-file concat.
+- [x] `mkdir` parses `-p` and supports multi-path creation.
+- [x] `wc` supports `-l`, `-w`, `-c`, and multi-file `total` summary.
+- [x] `which` supports `-a` to show all matches.
+- [x] `kill` accepts common signal forms (`-TERM`, `-KILL`, `-INT`, `-HUP`, numeric aliases) and maps to cancel.
 
 ### Suggested Implementation Order
 
 - [x] 
-    1) Parser unification + `touch` fix.
+  1) Parser unification + `touch` fix.
 - [x] 
-    2) Add minimal flags for `ls`, `rm`, `cp`, `head`, `tail`, `echo`.
+  2) Add minimal flags for `ls`, `rm`, `cp`, `head`, `tail`, `echo`.
 - [x] 
-    3) Implement `find`.
+  3) Implement `find`.
 - [x] 
-    4) Implement `grep`.
+  4) Implement `grep`.
 - [x] 
-    5) Add `history` + optional `!<n>` rerun.
+  5) Add `history` + optional `!<n>` rerun.
 - [x] 
-    6) Add `stat` and `tree`.
+  6) Add `stat` and `tree`.
 
 ### Documentation Follow-Ups
 
 - [x] Update `README.md` command list and flag examples after each phase.
 - [x] Update `docs/markdown/core/terminal.md` with option reference.
-- [ ] Update `docs/markdown/io/filesystem.md` where file-operation behavior changes.
-- [ ] Add migration notes for behavior changes (especially `touch`, `rm -r`, `cp -r`).
+- [x] Update `docs/markdown/io/filesystem.md` where file-operation behavior changes.
+- [x] Add migration notes for behavior changes (especially `touch`, `rm -r`, `cp -r`).
 
