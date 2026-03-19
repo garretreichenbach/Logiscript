@@ -35,6 +35,8 @@ public final class ConfigManager {
 	private static SimpleConfigInt webPutTimeoutMs;
 	private static SimpleConfigInt webPutMaxRequestBytes;
 	private static SimpleConfigInt webPutMaxResponseBytes;
+	private static SimpleConfigInt gfxMaxCommandsPerLayer;
+	private static SimpleConfigInt gfxMaxLayers;
 
 	private static final List<String> DEFAULT_TRUSTED_WEB_DOMAINS = Arrays.asList(
 		"raw.githubusercontent.com",
@@ -68,6 +70,8 @@ public final class ConfigManager {
 		webPutTimeoutMs = new SimpleConfigInt(config, "web_put_timeout_ms", 4000, "HTTP PUT connect/read timeout in milliseconds.");
 		webPutMaxRequestBytes = new SimpleConfigInt(config, "web_put_max_request_bytes", 32768, "Maximum UTF-8 request payload size (bytes) for HTTP PUT.");
 		webPutMaxResponseBytes = new SimpleConfigInt(config, "web_put_max_response_bytes", 131072, "Maximum response payload size (bytes) accepted by HTTP PUT.");
+		gfxMaxCommandsPerLayer = new SimpleConfigInt(config, "gfx_max_commands_per_layer", 4096, "Maximum number of queued draw commands in a single gfx layer.");
+		gfxMaxLayers = new SimpleConfigInt(config, "gfx_max_layers", 32, "Maximum number of gfx layers per computer.");
 
 		config.readWriteFields();
 		ensureTrustedDomainsFileExists(instance);
@@ -151,6 +155,14 @@ public final class ConfigManager {
 
 	public static int getWebPutMaxResponseBytes() {
 		return clampInt(intOrDefault(webPutMaxResponseBytes, 131072), 1024, 1048576);
+	}
+
+	public static int getGfxMaxCommandsPerLayer() {
+		return clampInt(intOrDefault(gfxMaxCommandsPerLayer, 4096), 64, 32768);
+	}
+
+	public static int getGfxMaxLayers() {
+		return clampInt(intOrDefault(gfxMaxLayers, 32), 1, 256);
 	}
 
 
