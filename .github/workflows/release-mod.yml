@@ -47,6 +47,31 @@ jobs:
           STARMADE_DOWNLOAD_PATTERN: ^starmade-build_[0-9]{8}_[0-9]{6}\.zip$
         run: bash .github/scripts/prepare_starmade.sh
 
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ github.event.inputs.tag_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Sync version from tag
+        env:
+          TAG_NAME: ${{ steps.tag.outputs.value }}
+        run: |
+          tag="$TAG_NAME"
+          version="$tag"
+          version="${version#v}"
+
+          if [[ -z "$version" ]]; then
+            echo "Resolved version is empty from tag '$tag'" >&2
+            exit 1
+          fi
+
+          sed -i -E "s/^mod_version=.*/mod_version=${version}/" gradle.properties
+          sed -i -E "s/(\"version\"\s*:\s*\")[^\"]+(\")/\1${version}\2/" src/main/resources/mod.json
+
       - name: Build mod jar
         run: |
           chmod +x gradlew
@@ -56,26 +81,25 @@ jobs:
         id: collect
         run: |
           mkdir -p dist
-          shopt -s nullglob
-          jars=(build/libs/*.jar)
-          if [[ ${#jars[@]} -eq 0 ]]; then
-            echo "No mod jar produced under build/libs" >&2
+          mod_name="$(grep -E '^mod_name=' gradle.properties | head -n 1 | cut -d '=' -f 2- | tr -d '\r')"
+          mod_version="$(grep -E '^mod_version=' gradle.properties | head -n 1 | cut -d '=' -f 2- | tr -d '\r')"
+
+          if [[ -z "$mod_name" || -z "$mod_version" ]]; then
+            echo "Failed to resolve mod_name/mod_version from gradle.properties" >&2
             exit 1
           fi
-          for jar in "${jars[@]}"; do
-            cp "$jar" dist/
-            sha256sum "dist/$(basename "$jar")" > "dist/$(basename "$jar").sha256"
-          done
-          echo "artifact_count=$(ls -1 dist | wc -l | tr -d ' ')" >> "$GITHUB_OUTPUT"
 
-      - name: Resolve release tag
-        id: tag
-        run: |
-          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
-            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
-          else
-            echo "value=${{ github.event.inputs.tag_name }}" >> "$GITHUB_OUTPUT"
+          jar_path="build/libs/${mod_name}v${mod_version}.jar"
+          if [[ ! -f "$jar_path" ]]; then
+            echo "Expected mod jar not found: $jar_path" >&2
+            echo "Available jars under build/libs:" >&2
+            ls -la build/libs || true
+            exit 1
           fi
+
+          cp "$jar_path" dist/
+          sha256sum "dist/$(basename "$jar_path")" > "dist/$(basename "$jar_path").sha256"
+          echo "artifact_count=$(ls -1 dist | wc -l | tr -d ' ')" >> "$GITHUB_OUTPUT"
 
       - name: Resolve release title
         id: title
