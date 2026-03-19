@@ -85,7 +85,7 @@ public class EventManager {
 				if(module != null) {
 					module.getInputApi().pushKeyEvent(
 							key,
-							typedChar,
+							event.getChar().isEmpty() ? 0 : event.getChar().charAt(0),
 							event.isKeyDown(),
 							shiftDown,
 							ctrlDown,
