@@ -1710,10 +1710,35 @@ public class Terminal extends LuaMadeUserdata {
 		commands.put("help", new Command("help", "Displays a list of available commands") {
 			@Override
 			public void execute(String args) {
-				console.print(valueOf("Available commands:"));
-				for(Command command : commands.values()) {
-					console.print(valueOf("    " + command.getName() + " - " + command.getDescription()));
+				String trimmed = args == null ? "" : args.trim();
+				if(trimmed.isEmpty()) {
+					printHelpIndex();
+					return;
 				}
+
+				List<String> tokens = parseCommandTokens(trimmed);
+				if(tokens.isEmpty()) {
+					printHelpIndex();
+					return;
+				}
+
+				String targetName = normalizeCommandName(tokens.get(0));
+				if(targetName == null) {
+					console.print(valueOf("Error: Usage: help [command]"));
+					return;
+				}
+
+				Command target = commands.get(targetName);
+				if(target == null) {
+					console.print(valueOf("Error: Unknown command: " + targetName));
+					List<String> suggestions = getCommandSuggestions(targetName);
+					if(!suggestions.isEmpty()) {
+						console.print(valueOf("Try: help " + suggestions.get(0)));
+					}
+					return;
+				}
+
+				printCommandHelp(target);
 			}
 		});
 
@@ -2601,6 +2626,76 @@ public class Terminal extends LuaMadeUserdata {
 				}
 			}
 		});
+
+		applyBuiltInCommandHelp();
+	}
+
+	private void printHelpIndex() {
+		List<Command> sortedCommands = new ArrayList<>(commands.values());
+		sortedCommands.sort(Comparator.comparing(Command::getName, String.CASE_INSENSITIVE_ORDER));
+		console.print(valueOf("Available commands (use 'help <command>' for details):"));
+		for(Command command : sortedCommands) {
+			console.print(valueOf("    " + command.getName() + " - " + command.getDescription()));
+		}
+	}
+
+	private void printCommandHelp(Command command) {
+		if(command == null) {
+			return;
+		}
+
+		console.print(valueOf(command.getName() + " - " + command.getDescription()));
+		console.print(valueOf("Usage: " + command.getUsage()));
+		if(command.hasGuidance()) {
+			console.print(valueOf("Details: " + command.getGuidance()));
+		}
+	}
+
+	private void applyBuiltInCommandHelp() {
+		setCommandHelp("help", "help [command]", "Without args lists commands. With a command name, shows usage and arguments.");
+		setCommandHelp("history", "history", "Shows previously executed command lines with indices for !<n> replay.");
+		setCommandHelp("which", "which [-a] <command-or-path>", "Resolve command names or file/script paths. Use -a to print all matches.");
+		setCommandHelp("fsauth", "fsauth <password> | fsauth --clear", "Unlock protected filesystem scopes for the current session or clear auth state.");
+		setCommandHelp("protect", "protect <path> <password> [read,write,delete,list|copy|move|paste|all]", "Protects a path and limits operations until authenticated.");
+		setCommandHelp("unprotect", "unprotect <path> <password>", "Removes password protection rule from a path.");
+		setCommandHelp("perms", "perms [path]", "Without args lists all protection rules; with a path prints the effective rule.");
+		setCommandHelp("name", "name [--reset|<display-name>]", "Show current display name, set a new one, or reset to default.");
+		setCommandHelp("head", "head [-n lines] <file>", "Print first lines from a file. Default line count is 10.");
+		setCommandHelp("tail", "tail [-n lines] <file>", "Print last lines from a file. Default line count is 10.");
+		setCommandHelp("wc", "wc [-l] [-w] [-c] <file>...", "Count lines, words, and UTF-8 bytes for one or more files.");
+		setCommandHelp("echo", "echo [-n] <text>", "Print text. Use -n to suppress trailing newline.");
+		setCommandHelp("ls", "ls [-a] [-l] [-R] [path]", "List directory entries. -a shows dotfiles, -l long format, -R recursive.");
+		setCommandHelp("find", "find [path] [-name <glob>] [-type f|d] [-maxdepth <n>]", "Traverse directories and filter matches by name, type, and depth.");
+		setCommandHelp("grep", "grep [-n] [-i] [-r] <pattern> <path>", "Search text in files or directories. Use -r for recursive directory search.");
+		setCommandHelp("stat", "stat <path>...", "Show metadata for each file or directory path.");
+		setCommandHelp("tree", "tree [-a] [-L depth] [path]", "Render a directory tree. -a includes dotfiles, -L limits depth.");
+		setCommandHelp("cd", "cd <directory>", "Change current working directory. With no args, moves to root '/'.");
+		setCommandHelp("pwd", "pwd [-L|-P]", "Print working directory. -P prints normalized physical-style path.");
+		setCommandHelp("mkdir", "mkdir [-p] <directory>...", "Create directories. -p creates intermediate directories when needed.");
+		setCommandHelp("cat", "cat [-n] [-A] <file>...", "Print file contents. -n adds line numbers, -A renders control characters.");
+		setCommandHelp("touch", "touch <file>", "Create an empty file when it does not already exist.");
+		setCommandHelp("rm", "rm [-r] [-f] <path>...", "Remove files/dirs. -r recursive delete, -f ignore missing/errors and suppress warnings.");
+		setCommandHelp("clear", "clear", "Clear terminal transcript.");
+		setCommandHelp("exit", "exit", "Stop the terminal session.");
+		setCommandHelp("reboot", "reboot", "Hard reset terminal state and rerun startup flow.");
+		setCommandHelp("cp", "cp [-r] <source> <destination>", "Copy file or directory. Use -r when source is a directory.");
+		setCommandHelp("mv", "mv <source> <destination>", "Move or rename a file path.");
+		setCommandHelp("edit", "edit <file> <content>", "Write provided content to a file in one command.");
+		setCommandHelp("nano", "nano <file>", "Open file in the in-game editor view.");
+		setCommandHelp("run", "run <script> [args...]", "Execute a Lua script in foreground with optional script arguments.");
+		setCommandHelp("httpget", "httpget <url> [output-file]", "Fetch HTTP/HTTPS response and print or save it.");
+		setCommandHelp("httpput", "httpput [--content-type <mime>] <url> <payload|@file> [output-file]", "Send PUT data and print or save response body.");
+		setCommandHelp("pkg", "pkg <search|info|fetch|install|list|remove> ...", "Trusted package manager operations for discovery and install/remove.");
+		setCommandHelp("runbg", "runbg <script> [args...]", "Execute a Lua script as a background job.");
+		setCommandHelp("jobs", "jobs", "List active and completed background jobs.");
+		setCommandHelp("kill", "kill [-TERM|-KILL|-INT|-HUP|-15|-9|-2|-1] <job-id>", "Cancel a background job, optionally with signal semantics.");
+	}
+
+	private void setCommandHelp(String name, String usage, String guidance) {
+		Command command = commands.get(name);
+		if(command != null) {
+			command.setHelp(usage, guidance);
+		}
 	}
 
 	private void deferPromptAfterCommand() {
@@ -3908,10 +4003,18 @@ public class Terminal extends LuaMadeUserdata {
 	private abstract static class Command {
 		private final String name;
 		private final String description;
+		private String usage;
+		private String guidance;
 
 		protected Command(String name, String description) {
+			this(name, description, name + " [args]", "");
+		}
+
+		protected Command(String name, String description, String usage, String guidance) {
 			this.name = name;
 			this.description = description;
+			this.usage = usage == null || usage.trim().isEmpty() ? name + " [args]" : usage.trim();
+			this.guidance = guidance == null ? "" : guidance.trim();
 		}
 
 		public String getName() {
@@ -3920,6 +4023,25 @@ public class Terminal extends LuaMadeUserdata {
 
 		public String getDescription() {
 			return description;
+		}
+
+		public String getUsage() {
+			return usage;
+		}
+
+		public String getGuidance() {
+			return guidance;
+		}
+
+		public boolean hasGuidance() {
+			return guidance != null && !guidance.isEmpty();
+		}
+
+		public void setHelp(String usage, String guidance) {
+			if(usage != null && !usage.trim().isEmpty()) {
+				this.usage = usage.trim();
+			}
+			this.guidance = guidance == null ? "" : guidance.trim();
 		}
 
 		public abstract void execute(String args);
@@ -3932,7 +4054,7 @@ public class Terminal extends LuaMadeUserdata {
 		private final LuaValue callback;
 
 		public LuaCommand(String name, LuaValue callback) {
-			super(name, "User-defined command");
+			super(name, "User-defined command", name + " [args]", "Registered at runtime via term.registerCommand(name, callback).");
 			this.callback = callback;
 		}
 
@@ -3947,7 +4069,7 @@ public class Terminal extends LuaMadeUserdata {
 		private final LuaValue wrapper;
 
 		private LuaWrappedCommand(String name, Command original, LuaValue wrapper) {
-			super(name, "Wrapped command");
+			super(name, "Wrapped command", original.getUsage(), original.hasGuidance() ? original.getGuidance() : "Wrapped command; behavior may be extended by Lua callback.");
 			this.original = original;
 			this.wrapper = wrapper;
 		}

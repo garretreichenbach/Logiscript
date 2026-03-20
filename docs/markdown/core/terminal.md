@@ -21,7 +21,7 @@ The terminal is the command shell and script runner for each computer.
 
 ## Key commands
 
-- `help`: list built-in commands.
+- `help [command]`: list commands or show usage/details for one command (for example `help rm`).
 - `which [-a] <name-or-path>`: resolve commands and script paths (`-a` shows all matches).
 - `ls [-a] [-l] [-R] [path]`, `cd <directory>`, `pwd [-L|-P]`, `mkdir [-p] <directory>...`, `cat [-n] [-A] <file>...`,
   `touch <file>`.
