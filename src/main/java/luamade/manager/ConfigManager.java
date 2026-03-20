@@ -23,8 +23,6 @@ public final class ConfigManager {
 	private static SimpleConfigInt consoleCharacterLimit;
 	private static SimpleConfigInt consoleLineLimit;
 	private static SimpleConfigInt scriptMaxParallel;
-	private static SimpleConfigInt scriptTimeoutMs;
-	private static SimpleConfigInt startupScriptTimeoutMs;
 	private static SimpleConfigInt scriptQueueWaitMs;
 	private static SimpleConfigInt scriptOverloadMode;
 	private static SimpleConfigBool webFetchEnabled;
@@ -70,8 +68,6 @@ public final class ConfigManager {
 		consoleCharacterLimit = new SimpleConfigInt(config, "console_character_limit", 30000, "Maximum number of characters retained in the computer terminal UI.");
 		consoleLineLimit = new SimpleConfigInt(config, "console_line_limit", 1000, "Maximum number of lines retained in the computer terminal UI.");
 		scriptMaxParallel = new SimpleConfigInt(config, "script_max_parallel", 2, "Maximum number of Lua scripts that may run at once per computer.");
-		scriptTimeoutMs = new SimpleConfigInt(config, "script_timeout_ms", 5000, "Foreground/background script timeout in milliseconds.");
-		startupScriptTimeoutMs = new SimpleConfigInt(config, "startup_script_timeout_ms", 2000, "Startup script timeout in milliseconds.");
 		scriptQueueWaitMs = new SimpleConfigInt(config, "script_queue_wait_ms", 250, "Queue wait budget in milliseconds used by hybrid overload mode.");
 		scriptOverloadMode = new SimpleConfigInt(config, "script_overload_mode", 2, "Script overload policy: 0=hard-stop, 1=stall, 2=hybrid.");
 		webFetchEnabled = new SimpleConfigBool(config, "web_fetch_enabled", true, "If true, allows terminal/scripts to fetch HTTP(S) data from the web.");
@@ -124,13 +120,6 @@ public final class ConfigManager {
 		return clampInt(intOrDefault(scriptMaxParallel, 2), 1, 8);
 	}
 
-	public static int getScriptTimeoutMs() {
-		return clampInt(intOrDefault(scriptTimeoutMs, 5000), 100, 120000);
-	}
-
-	public static int getStartupScriptTimeoutMs() {
-		return clampInt(intOrDefault(startupScriptTimeoutMs, 2000), 100, 60000);
-	}
 
 	public static int getScriptQueueWaitMs() {
 		return clampInt(intOrDefault(scriptQueueWaitMs, 250), 0, 60000);

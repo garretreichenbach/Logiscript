@@ -42,7 +42,6 @@ public class Terminal extends LuaMadeUserdata {
 	private final Map<String, Command> commands = new ConcurrentHashMap<>();
 	private final Map<Integer, BackgroundJob> backgroundJobs = new ConcurrentHashMap<>();
 	private final ExecutorService scriptExecutor;
-	private final ScheduledExecutorService scriptScheduler;
 	private final ThreadLocal<ScriptExecutionContext> scriptContextThreadLocal = new ThreadLocal<>();
 	private final AtomicBoolean promptDeferredByCommand = new AtomicBoolean(false);
 	private volatile Semaphore scriptSlots;
@@ -65,7 +64,6 @@ public class Terminal extends LuaMadeUserdata {
 		maxParallelSlots = ConfigManager.getScriptMaxParallel();
 		scriptSlots = new Semaphore(maxParallelSlots, true);
 		scriptExecutor = Executors.newCachedThreadPool(new ScriptThreadFactory("luamade-script"));
-		scriptScheduler = Executors.newSingleThreadScheduledExecutor(new ScriptThreadFactory("luamade-script-watchdog"));
 
 		// Register built-in commands
 		registerBuiltInCommands();
@@ -116,7 +114,7 @@ public class Terminal extends LuaMadeUserdata {
 
 			Future<Boolean> future = job.getFuture();
 			if(future != null && !future.isDone()) {
-				job.getContext().requestCancel(false);
+				job.getContext().requestCancel();
 				job.setStatus(JobStatus.CANCELED);
 				future.cancel(true);
 				canceled++;
@@ -423,42 +421,7 @@ public class Terminal extends LuaMadeUserdata {
 		}
 	}
 
-	private boolean executeScriptWithBudget(String scriptPath, String script, List<String> args, long timeoutMs) {
-		if(!acquireScriptSlot()) {
-			ScriptOverloadMode mode = ScriptOverloadMode.fromConfigValue(ConfigManager.getScriptOverloadMode());
-			if(mode == ScriptOverloadMode.HARD_STOP) {
-				console.print(valueOf("Error: Script rejected due to server load (hard-stop mode)"));
-			} else if(mode == ScriptOverloadMode.HYBRID) {
-				console.print(valueOf("Error: Script queue wait expired under load"));
-			} else {
-				console.print(valueOf("Error: Script scheduling interrupted"));
-			}
-			return false;
-		}
-
-		ScriptExecutionContext context = new ScriptExecutionContext();
-		Future<Boolean> future = submitScriptTask(scriptPath, script, args, context);
-		try {
-			Boolean success = future.get(timeoutMs, TimeUnit.MILLISECONDS);
-			return Boolean.TRUE.equals(success);
-		} catch(TimeoutException timeoutException) {
-			context.requestCancel(true);
-			future.cancel(true);
-			console.print(valueOf("Error: Script exceeded time budget (" + timeoutMs + "ms)"));
-			return false;
-		} catch(InterruptedException interruptedException) {
-			Thread.currentThread().interrupt();
-			context.requestCancel(false);
-			future.cancel(true);
-			console.print(valueOf("Error: Script execution interrupted"));
-			return false;
-		} catch(ExecutionException executionException) {
-			console.print(valueOf("Error executing script: " + executionException.getMessage()));
-			return false;
-		}
-	}
-
-	private boolean startForegroundScript(String scriptPath, String script, List<String> args, long timeoutMs) {
+	private boolean startForegroundScript(String scriptPath, String script, List<String> args) {
 		if(!acquireScriptSlot()) {
 			ScriptOverloadMode mode = ScriptOverloadMode.fromConfigValue(ConfigManager.getScriptOverloadMode());
 			if(mode == ScriptOverloadMode.HARD_STOP) {
@@ -477,24 +440,13 @@ public class Terminal extends LuaMadeUserdata {
 		activeForegroundFuture = future;
 		AtomicBoolean promptPrinted = new AtomicBoolean(false);
 
-		scriptScheduler.schedule(() -> {
-			if(!future.isDone()) {
-				context.requestCancel(true);
-				future.cancel(true);
-				console.print(valueOf("Error: Script exceeded time budget (" + timeoutMs + "ms)"));
-				if(autoPromptEnabled && running && promptPrinted.compareAndSet(false, true)) {
-					printPrompt();
-				}
-			}
-		}, timeoutMs, TimeUnit.MILLISECONDS);
-
 		scriptExecutor.submit(() -> {
 			try {
 				future.get();
 			} catch(InterruptedException interruptedException) {
 				Thread.currentThread().interrupt();
 			} catch(CancellationException cancellationException) {
-				// Cancellation and timeout messages are handled by cancellation/timeout callers.
+				// Cancellation messages are handled by the callers that requested it.
 			} catch(ExecutionException executionException) {
 				console.print(valueOf("Error executing script: " + executionException.getMessage()));
 			} finally {
@@ -525,14 +477,6 @@ public class Terminal extends LuaMadeUserdata {
 		job.setFuture(future);
 		backgroundJobs.put(jobId, job);
 
-		scriptScheduler.schedule(() -> {
-			if(!future.isDone()) {
-				context.requestCancel(true);
-				job.setStatus(JobStatus.TIMED_OUT);
-				future.cancel(true);
-			}
-		}, ConfigManager.getScriptTimeoutMs(), TimeUnit.MILLISECONDS);
-
 		return jobId;
 	}
 
@@ -551,8 +495,6 @@ public class Terminal extends LuaMadeUserdata {
 				Boolean success = future.get();
 				if(Boolean.TRUE.equals(success)) {
 					job.setStatus(JobStatus.COMPLETED);
-				} else if(job.getContext().isTimedOut()) {
-					job.setStatus(JobStatus.TIMED_OUT);
 				} else if(job.getContext().isCancellationRequested()) {
 					job.setStatus(JobStatus.CANCELED);
 				} else {
@@ -560,7 +502,7 @@ public class Terminal extends LuaMadeUserdata {
 				}
 			} catch(CancellationException cancellationException) {
 				if(job.getStatus() == JobStatus.RUNNING) {
-					job.setStatus(job.getContext().isTimedOut() ? JobStatus.TIMED_OUT : JobStatus.CANCELED);
+					job.setStatus(JobStatus.CANCELED);
 				}
 			} catch(InterruptedException interruptedException) {
 				Thread.currentThread().interrupt();
@@ -579,7 +521,7 @@ public class Terminal extends LuaMadeUserdata {
 		}
 
 		console.print(valueOf("Running script: " + scriptPath));
-		return startForegroundScript(scriptPath, script, args, ConfigManager.getScriptTimeoutMs());
+		return startForegroundScript(scriptPath, script, args);
 	}
 
 	private void bootTerminal(boolean clearConsole) {
@@ -613,7 +555,7 @@ public class Terminal extends LuaMadeUserdata {
 			return false;
 		}
 
-		return startForegroundScript(STARTUP_SCRIPT_PATH, script, new ArrayList<String>(), ConfigManager.getStartupScriptTimeoutMs());
+		return startForegroundScript(STARTUP_SCRIPT_PATH, script, new ArrayList<String>());
 	}
 
 	private void printDefaultStartupBanner() {
@@ -1381,7 +1323,7 @@ public class Terminal extends LuaMadeUserdata {
 		if(ctx == null) {
 			return false;
 		}
-		ctx.requestCancel(false);
+		ctx.requestCancel();
 		if(future != null) {
 			future.cancel(true);
 		}
@@ -2398,7 +2340,7 @@ public class Terminal extends LuaMadeUserdata {
 
 				Future<Boolean> future = job.getFuture();
 				if(future != null && !future.isDone()) {
-					job.getContext().requestCancel(false);
+					job.getContext().requestCancel();
 					job.setStatus(JobStatus.CANCELED);
 					future.cancel(true);
 					if(parsed.signalName == null) {
@@ -3808,7 +3750,6 @@ public class Terminal extends LuaMadeUserdata {
 		RUNNING,
 		COMPLETED,
 		FAILED,
-		TIMED_OUT,
 		CANCELED
 	}
 
@@ -3856,17 +3797,13 @@ public class Terminal extends LuaMadeUserdata {
 
 	private static final class ScriptExecutionContext {
 		private final AtomicBoolean cancellationRequested = new AtomicBoolean(false);
-		private final AtomicBoolean timedOut = new AtomicBoolean(false);
 		private volatile Thread workerThread;
 
 		private void bindToCurrentThread() {
 			workerThread = Thread.currentThread();
 		}
 
-		private void requestCancel(boolean wasTimeout) {
-			if(wasTimeout) {
-				timedOut.set(true);
-			}
+		private void requestCancel() {
 			cancellationRequested.set(true);
 			Thread runningThread = workerThread;
 			if(runningThread != null) {
@@ -3878,15 +3815,8 @@ public class Terminal extends LuaMadeUserdata {
 			return cancellationRequested.get();
 		}
 
-		private boolean isTimedOut() {
-			return timedOut.get();
-		}
-
 		private void throwIfCancellationRequested() {
 			if(cancellationRequested.get()) {
-				if(timedOut.get()) {
-					throw new LuaError("Script timed out");
-				}
 				throw new LuaError("Script canceled");
 			}
 		}

@@ -151,8 +151,7 @@ Use startup for:
 
 - Scripts run in a sandboxed Lua environment.
 - Host filesystem and unsafe loaders are not exposed.
-- Execution is controlled by server-configured timeout and parallel limits.
-- Coroutines are cooperative (single script thread), not parallel workers, and still share the same timeout/cancel
-  budget.
+- Execution is controlled by server-configured parallel limits and manual interruption/cancellation.
+- Coroutines are cooperative (single script thread) and do not create parallel workers.
 - Web fetch is server-gated and can be restricted to trusted domains only.
 - Protected filesystem paths require successful auth before gated operations are allowed.

@@ -14,4 +14,4 @@ local util = require("util")
 Returns current Unix time in milliseconds as a `Long`.
 
 - `util.sleep(millis: Number)`
-Pauses execution for `millis` milliseconds. The actual sleep is clamped by the server timeout configuration. Returns the actual duration slept in milliseconds.
+  Pauses execution for `millis` milliseconds. Returns the actual duration slept in milliseconds.

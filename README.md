@@ -179,9 +179,9 @@ Module loading notes:
 
 Runtime behavior notes:
 
-- Foreground scripts (`run`) are time-budgeted to prevent runaway execution.
-- Background scripts (`runbg`) are limited to a small parallel pool and also time-budgeted.
-- Coroutines are enabled but cooperative: they run on the same script thread and share the same timeout/cancel budget.
+- Foreground scripts (`run`) keep running until they finish or are interrupted/rebooted.
+- Background scripts (`runbg`) are limited by the per-computer parallel pool, but are not auto-timed-out.
+- Coroutines are enabled but cooperative: they run on the same script thread and do not create parallel workers.
 
 JSON example:
 
@@ -240,8 +240,6 @@ length = v:length()
 Server resource controls (config):
 
 - `script_max_parallel` controls max concurrent scripts per computer.
-- `script_timeout_ms` controls foreground/background script timeout.
-- `startup_script_timeout_ms` controls startup script timeout.
 - `script_overload_mode` controls behavior when at capacity:
     - `0` hard-stop (reject immediately)
     - `1` stall (wait until a slot is available)

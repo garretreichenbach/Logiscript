@@ -2,7 +2,6 @@ package luamade.lua.util;
 
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
-import luamade.manager.ConfigManager;
 import org.luaj.vm2.LuaError;
 
 public class UtilApi extends LuaMadeUserdata {
@@ -35,7 +34,7 @@ public class UtilApi extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public int sleep(int millis) {
-		int clamped = Math.max(0, Math.min(millis, ConfigManager.getScriptTimeoutMs()));
+		int clamped = Math.max(0, millis);
 		int slept = 0;
 		try {
 			while(slept < clamped) {
