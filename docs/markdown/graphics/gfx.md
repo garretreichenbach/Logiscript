@@ -48,8 +48,35 @@ Lower `order` draws first (behind higher layers).
 - `gfx.line(x1: Number, y1: Number, x2: Number, y2: Number, r: Number, g: Number, b: Number, a: Number)`
   Draws a line from `(x1, y1)` to `(x2, y2)`.
 
+- `gfx.line(x1, y1, x2, y2, r, g, b, a, thickness: Number)`
+  Draws a line with configurable stroke thickness (`1..16`, default `1`).
+
 - `gfx.rect(x: Number, y: Number, width: Number, height: Number, r: Number, g: Number, b: Number, a: Number, filled: Boolean)`
   Draws a rectangle. `filled = true` draws a solid filled rect; `false` draws only the outline.
+
+- `gfx.circle(x: Number, y: Number, radius: Number, r: Number, g: Number, b: Number, a: Number, filled: Boolean, segments: Integer)`
+  Draws a circle centered at `(x, y)`. `segments` controls smoothness (`8..128`, default `24`).
+
+- `gfx.circle(x, y, radius, r, g, b, a, filled, segments, thickness: Number)`
+  Draws a circle with configurable outline thickness when `filled = false`.
+
+- `gfx.polygon(points: Number[], r: Number, g: Number, b: Number, a: Number, filled: Boolean)`
+  Draws a polygon from a flat vertex list (`{x1, y1, x2, y2, ...}`). At least 3 points are required.
+
+- `gfx.polygon(points, r, g, b, a, filled, thickness: Number)`
+  Draws a polygon with configurable outline thickness when `filled = false`.
+
+- `gfx.text(x: Number, y: Number, text: String, r: Number, g: Number, b: Number, a: Number, scale: Integer)`
+  Draws text using a built-in pixel font. `scale` multiplies glyph size (`1..16`, default `1`). Supports `\n` line breaks.
+
+- `gfx.text(x, y, text, r, g, b, a, scale, maxWidth: Integer, maxHeight: Integer, align: String, wrap: Boolean)`
+  Extended text rendering with optional clipping and layout:
+  - `maxWidth` / `maxHeight`: clip bounds in pixels (`nil` disables bound)
+  - `align`: `"left"` (default), `"center"`, or `"right"`
+  - `wrap`: when `true`, wraps text to fit `maxWidth`
+
+- `gfx.bitmap(x: Number, y: Number, width: Integer, height: Integer, rgbaPixels: Integer[])`
+  Draws packed bitmap data. `rgbaPixels` is row-major and uses `0xRRGGBBAA` per pixel.
 
 ## Limits and config
 
@@ -75,8 +102,31 @@ gfx.rect(0, 0, w, h, 0.05, 0.05, 0.08, 0.85, true)
 gfx.rect(8, 8, w - 16, h - 16, 0.3, 0.5, 1.0, 0.9, false)
 
 gfx.setLayer("widgets")
-gfx.line(16, 32, w - 16, 32, 0.2, 0.9, 0.8, 1.0)
+gfx.line(16, 32, w - 16, 32, 0.2, 0.9, 0.8, 1.0, 2)
+gfx.circle(w * 0.5, h * 0.5, 28, 1.0, 0.5, 0.2, 0.9, false, 32, 3)
+gfx.text(20, h - 24, "GFX HUD", 1.0, 1.0, 1.0, 1.0, 2, w - 40, 24, "center", true)
 ```
+
+## Bitmap Helper Library (`gfxlib`)
+
+`gfxlib` is a Lua helper module for creating bitmap payloads for `gfx.bitmap`.
+
+```lua
+local gfxlib = require("gfxlib")
+
+local bmp = gfxlib.checkerBitmap(16, 16, 0xFFAA22FF, 0x223344CC, 2)
+gfx.bitmap(8, 8, bmp.width, bmp.height, bmp.pixels)
+```
+
+Useful helpers:
+
+- `gfxlib.pack(r, g, b, a)` / `gfxlib.unpack(color)`
+- `gfxlib.newBitmap(width, height, fillColor)`
+- `gfxlib.setPixel(bitmap, x, y, color)` / `gfxlib.getPixel(bitmap, x, y)`
+- `gfxlib.checkerBitmap(width, height, colorA, colorB, cellSize)`
+- `gfxlib.grayscaleBitmap(width, height, values, alpha)`
+- `gfxlib.textMaskBitmap(rows, onColor, offColor, onChars)`
+- `gfxlib.draw(gfx, x, y, bitmap)`
 
 ## Interactive UI pattern
 

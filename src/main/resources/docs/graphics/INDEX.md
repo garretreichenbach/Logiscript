@@ -4,7 +4,7 @@ Graphics APIs for rendering 2D overlays inside the computer terminal UI.
 
 ## Contents
 
-- **gfx.md** - Layered terminal graphics API (`gfx`) for lines, rectangles, and points
+- **gfx.md** - Layered terminal graphics API (`gfx`) for primitives, text, polygons, circles, and bitmaps
 
 ## Notes
 

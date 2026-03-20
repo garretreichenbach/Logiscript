@@ -1,7 +1,9 @@
 core/INDEX.md
+core/azure-package-registry-setup.md
 core/console.md
 core/json.md
 core/luamade.md
+core/package-manager.md
 core/terminal-api.md
 core/terminal.md
 core/util.md

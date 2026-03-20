@@ -3,6 +3,7 @@
 -- Usage: run /bin/gfx_demo.lua [seconds]
 
 local seconds = tonumber(args[1]) or 10
+local gfxlib = require("gfxlib")
 if seconds < 1 then
     seconds = 1
 end
@@ -26,6 +27,7 @@ gfx.createLayer("bg", 0)
 gfx.createLayer("grid", 2)
 gfx.createLayer("shapes", 6)
 gfx.createLayer("fx", 12)
+gfx.createLayer("text", 16)
 
 local w = gfx.getWidth()
 local h = gfx.getHeight()
@@ -65,6 +67,7 @@ for i = 0, totalFrames do
 
     gfx.clearLayer("shapes")
     gfx.clearLayer("fx")
+    gfx.clearLayer("text")
 
     local cx = math.floor(w * 0.5)
     local cy = math.floor(h * 0.5)
@@ -82,8 +85,14 @@ for i = 0, totalFrames do
     gfx.setLayer("shapes")
     gfx.rect(x, y, boxW, boxH, 0.1, 0.8, 0.95, 0.55, true)
     gfx.rect(x, y, boxW, boxH, 0.9, 0.98, 1.0, 1.0, false)
-    gfx.line(0, cy, w - 1, cy, 0.9, 0.2, 0.35, 0.7)
-    gfx.line(cx, 0, cx, h - 1, 0.9, 0.2, 0.35, 0.7)
+    gfx.circle(cx, cy, 22 + math.floor((math.sin(t * 2.2) + 1) * 6), 1.0, 0.45, 0.2, 0.8, false, 36, 3)
+    gfx.polygon({
+        cx, clamp(cy - 26, 0, h - 1),
+        clamp(cx + 22, 0, w - 1), clamp(cy + 20, 0, h - 1),
+        clamp(cx - 22, 0, w - 1), clamp(cy + 20, 0, h - 1)
+    }, 0.95, 0.8, 0.25, 0.85, true)
+    gfx.line(0, cy, w - 1, cy, 0.9, 0.2, 0.35, 0.7, 2)
+    gfx.line(cx, 0, cx, h - 1, 0.9, 0.2, 0.35, 0.7, 2)
 
     -- Accent points and a blinking layer visibility toggle.
     gfx.setLayer("fx")
@@ -93,6 +102,22 @@ for i = 0, totalFrames do
     local p2y = clamp(cy + math.floor(math.cos(t * 1.9) * (h * 0.28)), 0, h - 1)
     gfx.point(p1x, p1y, 1.0, 0.9, 0.2, 1.0)
     gfx.point(p2x, p2y, 0.3, 1.0, 0.35, 1.0)
+
+    local checker = gfxlib.checkerBitmap(8, 8, 0xFF9933FF, 0x223344CC, 1)
+    gfxlib.draw(gfx, 10, 10, checker)
+
+    local mask = gfxlib.textMaskBitmap({
+        "##..##",
+        ".####.",
+        ".####.",
+        "##..##",
+    }, 0x66DDFFFF, 0x00000000, "#")
+    gfxlib.draw(gfx, w - 20, 10, mask)
+
+    gfx.setLayer("text")
+    gfx.text(24, 10, "GFX+", 0.95, 0.98, 1.0, 1.0, 2)
+    gfx.text(24, 26, "circle polygon bitmap", 0.5, 0.9, 1.0, 0.95, 1)
+    gfx.text(24, h - 28, "thick lines + wrapped center text layout", 0.92, 0.96, 1.0, 1.0, 1, w - 48, 20, "center", true)
 
     if (i % 24) < 12 then
         gfx.setLayerVisible("fx", true)
