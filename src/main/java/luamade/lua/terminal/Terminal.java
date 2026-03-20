@@ -737,12 +737,16 @@ public class Terminal extends LuaMadeUserdata {
 
 		LuaTable jsonLibrary = loadBuiltinLibrary(globals, "scripts/lib/json.lua", "json");
 		LuaTable utilLibrary = loadBuiltinLibrary(globals, "scripts/lib/util.lua", "util");
+		LuaTable vectorLibrary = loadBuiltinLibrary(globals, "scripts/lib/vector.lua", "vector");
 		LuaTable loadedModules = sandboxPackage.get("loaded").checktable();
 		if(jsonLibrary != null) {
 			loadedModules.set("json", jsonLibrary);
 		}
 		if(utilLibrary != null) {
 			loadedModules.set("util", utilLibrary);
+		}
+		if(vectorLibrary != null) {
+			loadedModules.set("vector", vectorLibrary);
 		}
 
 		UtilApi nativeUtil = new UtilApi(context == null ? null : context::throwIfCancellationRequested);

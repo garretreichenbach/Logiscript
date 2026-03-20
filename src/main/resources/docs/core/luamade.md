@@ -96,7 +96,7 @@ The file is created automatically with safe defaults (`json`, `util`, `vector`).
 Bundled module compatibility:
 
 - `json` and `util` are exposed as globals and are also available through `require("json")` / `require("util")`.
-- `vector` is available through `require("vector")` when allowlisted.
+- `vector` is exposed as a global and is also available through `require("vector")`.
 
 Shared library examples:
 
