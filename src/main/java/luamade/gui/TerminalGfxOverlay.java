@@ -2,26 +2,20 @@ package luamade.gui;
 
 import luamade.lua.gfx.GfxApi;
 import org.lwjgl.opengl.GL11;
+import org.newdawn.slick.UnicodeFont;
 import org.schema.schine.graphicsengine.core.Controller;
 import org.schema.schine.graphicsengine.core.GlUtil;
+import org.schema.schine.graphicsengine.forms.font.FontLibrary;
 import org.schema.schine.graphicsengine.forms.gui.GUIDrawToTextureOverlay;
+import org.schema.schine.graphicsengine.forms.gui.GUITextOverlay;
 import org.schema.schine.network.client.ClientState;
 import org.schema.schine.network.client.ClientStateInterface;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-/**
- * Draws the Lua gfx command buffer onto a texture-backed GUI overlay.
- */
+/** Draws Lua gfx geometry onto a texture-backed overlay and text via GUITextOverlay instances. */
 public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
-	private static final int FONT_GLYPH_WIDTH = 5;
-	private static final int FONT_GLYPH_HEIGHT = 7;
-	private static final int FONT_GLYPH_SPACING = 1;
-	private static final Map<Character, String[]> TINY_FONT = buildTinyFont();
-
 	private final GfxApi gfxApi;
 	private int lastTextureId = -1;
 	private boolean canvasEnabled = true;
@@ -112,102 +106,48 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		super.cleanUp();
 	}
 
-	@Override
-	public void drawOverlayTexture(ClientStateInterface state) {
-		if(gfxApi == null) {
-			return;
-		}
-
-		GfxApi.FrameSnapshot frame = gfxApi.snapshot();
-
-		// Only render (and cover the terminal) when at least one visible layer has commands.
-		boolean hasCommands = false;
-		for(GfxApi.LayerSnapshot layer : frame.layers) {
-			if(layer.visible && !layer.commands.isEmpty()) {
-				hasCommands = true;
-				break;
-			}
-		}
-		if(!hasCommands) {
-			return;
-		}
-
-		GlUtil.glDisable(GL11.GL_TEXTURE_2D);
-		GlUtil.glDisable(GL11.GL_LIGHTING);
-		GlUtil.glDisable(GL11.GL_DEPTH_TEST);
-		GlUtil.glEnable(GL11.GL_BLEND);
-		GlUtil.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-
-		GlUtil.glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
-		GL11.glBegin(GL11.GL_QUADS);
-		GL11.glVertex3f(0.0f, 0.0f, 0.0F);
-		GL11.glVertex3f(frame.width, 0.0f, 0.0F);
-		GL11.glVertex3f(frame.width, frame.height, 0.0F);
-		GL11.glVertex3f(0.0f, frame.height, 0.0F);
-		GL11.glEnd();
-
-		for(GfxApi.LayerSnapshot layer : frame.layers) {
-			if(!layer.visible || layer.commands.isEmpty()) {
+	private static List<String> layoutTextLines(String text, int maxWidth, boolean wrap, UnicodeFont font) {
+		List<String> lines = new ArrayList<>();
+		String[] rawLines = text.split("\\n", -1);
+		for(String raw : rawLines) {
+			if(!wrap || maxWidth == Integer.MAX_VALUE || font.getWidth(raw) <= maxWidth) {
+				lines.add(raw);
 				continue;
 			}
-			drawLayer(layer);
+			lines.addAll(wrapLineByWidth(raw, maxWidth, font));
 		}
-
-		GlUtil.glDisable(GL11.GL_BLEND);
-		GlUtil.glEnable(GL11.GL_TEXTURE_2D);
-		GlUtil.glEnable(GL11.GL_LIGHTING);
-		GlUtil.glEnable(GL11.GL_DEPTH_TEST);
-		GlUtil.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		return lines;
 	}
 
-	private void drawLayer(GfxApi.LayerSnapshot layer) {
-		for(GfxApi.DrawCommand command : layer.commands) {
-			GlUtil.glColor4f(command.r, command.g, command.b, command.a);
-			switch(command.kind) {
-				case POINT:
-					GL11.glBegin(GL11.GL_POINTS);
-					GL11.glVertex3f(command.x1, command.y1, 0.0F);
-					GL11.glEnd();
-					break;
-				case LINE:
-					applyLineWidth(command.lineWidth);
-					GL11.glBegin(GL11.GL_LINES);
-					GL11.glVertex3f(command.x1, command.y1, 0.0F);
-					GL11.glVertex3f(command.x2, command.y2, 0.0F);
-					GL11.glEnd();
-					resetLineWidth();
-					break;
-				case RECT:
-					if(command.filled) {
-						GL11.glBegin(GL11.GL_QUADS);
-						GL11.glVertex3f(command.x1, command.y1, 0.0F);
-						GL11.glVertex3f(command.x2, command.y1, 0.0F);
-						GL11.glVertex3f(command.x2, command.y2, 0.0F);
-						GL11.glVertex3f(command.x1, command.y2, 0.0F);
-						GL11.glEnd();
-					} else {
-						GL11.glBegin(GL11.GL_LINE_LOOP);
-						GL11.glVertex3f(command.x1, command.y1, 0.0F);
-						GL11.glVertex3f(command.x2, command.y1, 0.0F);
-						GL11.glVertex3f(command.x2, command.y2, 0.0F);
-						GL11.glVertex3f(command.x1, command.y2, 0.0F);
-						GL11.glEnd();
-					}
-					break;
-				case CIRCLE:
-					drawCircle(command);
-					break;
-				case POLYGON:
-					drawPolygon(command);
-					break;
-				case TEXT:
-					drawText(command);
-					break;
-				case BITMAP:
-					drawBitmap(command);
-					break;
+	private static List<String> wrapLineByWidth(String text, int maxWidth, UnicodeFont font) {
+		List<String> wrapped = new ArrayList<>();
+		if(text.isEmpty()) {
+			wrapped.add("");
+			return wrapped;
+		}
+
+		StringBuilder currentLine = new StringBuilder();
+		for(int i = 0; i < text.length(); i++) {
+			char character = text.charAt(i);
+			currentLine.append(character);
+			if(font.getWidth(currentLine.toString()) > maxWidth) {
+				if(currentLine.length() == 1) {
+					wrapped.add(currentLine.toString());
+					currentLine.setLength(0);
+				} else {
+					char overflow = currentLine.charAt(currentLine.length() - 1);
+					currentLine.setLength(currentLine.length() - 1);
+					wrapped.add(currentLine.toString());
+					currentLine.setLength(0);
+					currentLine.append(overflow);
+				}
 			}
 		}
+
+		if(currentLine.length() > 0) {
+			wrapped.add(currentLine.toString());
+		}
+		return wrapped;
 	}
 
 	private void drawCircle(GfxApi.DrawCommand command) {
@@ -259,58 +199,65 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		}
 	}
 
-	private void drawText(GfxApi.DrawCommand command) {
-		if(command.text == null || command.text.isEmpty()) {
+	private static FontLibrary.FontSize resolveFontSize(int textScale) {
+		if(textScale <= 1) {
+			return FontLibrary.FontSize.SMALL;
+		}
+		if(textScale <= 3) {
+			return FontLibrary.FontSize.MEDIUM;
+		}
+		return FontLibrary.FontSize.BIG;
+	}
+
+	@Override
+	public void drawOverlayTexture(ClientStateInterface state) {
+		if(gfxApi == null) {
 			return;
 		}
 
-		float scale = Math.max(1, command.textScale);
-		float charAdvance = (FONT_GLYPH_WIDTH + FONT_GLYPH_SPACING) * scale;
-		float lineHeight = (FONT_GLYPH_HEIGHT + FONT_GLYPH_SPACING) * scale;
-		float clipX1 = command.x1;
-		float clipY1 = command.y1;
-		float clipX2 = command.textMaxWidth > 0 ? command.x1 + command.textMaxWidth : Float.POSITIVE_INFINITY;
-		float clipY2 = command.textMaxHeight > 0 ? command.y1 + command.textMaxHeight : Float.POSITIVE_INFINITY;
+		GfxApi.FrameSnapshot frame = gfxApi.snapshot();
+		List<TextOverlaySpec> textOverlays = new ArrayList<>();
 
-		int maxCharsPerLine = Integer.MAX_VALUE;
-		if(command.textWrap && command.textMaxWidth > 0) {
-			maxCharsPerLine = Math.max(1, (int) Math.floor(command.textMaxWidth / Math.max(1.0f, charAdvance)));
-		}
-
-		List<String> lines = layoutTextLines(command.text, maxCharsPerLine);
-		if(lines.isEmpty()) {
-			return;
-		}
-
-		GL11.glBegin(GL11.GL_QUADS);
-		for(int lineIndex = 0; lineIndex < lines.size(); lineIndex++) {
-			float lineY = command.y1 + (lineIndex * lineHeight);
-			if(lineY >= clipY2) {
+		// Only render (and cover the terminal) when at least one visible layer has commands.
+		boolean hasCommands = false;
+		for(GfxApi.LayerSnapshot layer : frame.layers) {
+			if(layer.visible && !layer.commands.isEmpty()) {
+				hasCommands = true;
 				break;
 			}
-
-			String line = lines.get(lineIndex);
-			float lineWidth = line.length() * charAdvance;
-			float lineX = command.x1;
-			if(command.textMaxWidth > 0) {
-				if("center".equals(command.textAlign)) {
-					lineX = command.x1 + ((command.textMaxWidth - lineWidth) * 0.5f);
-				} else if("right".equals(command.textAlign)) {
-					lineX = command.x1 + (command.textMaxWidth - lineWidth);
-				}
-			}
-
-			float cursorX = lineX;
-			for(int i = 0; i < line.length(); i++) {
-				char ch = line.charAt(i);
-				String[] glyph = lookupGlyph(ch);
-				if(glyph != null) {
-					drawGlyphQuadBatch(cursorX, lineY, scale, glyph, clipX1, clipY1, clipX2, clipY2);
-				}
-				cursorX += charAdvance;
-			}
 		}
+		if(!hasCommands) {
+			return;
+		}
+
+		GlUtil.glDisable(GL11.GL_TEXTURE_2D);
+		GlUtil.glDisable(GL11.GL_LIGHTING);
+		GlUtil.glDisable(GL11.GL_DEPTH_TEST);
+		GlUtil.glEnable(GL11.GL_BLEND);
+		GlUtil.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+		GlUtil.glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
+		GL11.glBegin(GL11.GL_QUADS);
+		GL11.glVertex3f(0.0f, 0.0f, 0.0F);
+		GL11.glVertex3f(frame.width, 0.0f, 0.0F);
+		GL11.glVertex3f(frame.width, frame.height, 0.0F);
+		GL11.glVertex3f(0.0f, frame.height, 0.0F);
 		GL11.glEnd();
+
+		for(GfxApi.LayerSnapshot layer : frame.layers) {
+			if(!layer.visible || layer.commands.isEmpty()) {
+				continue;
+			}
+			drawLayer(layer, textOverlays);
+		}
+
+		GlUtil.glDisable(GL11.GL_BLEND);
+		GlUtil.glEnable(GL11.GL_TEXTURE_2D);
+		GlUtil.glEnable(GL11.GL_LIGHTING);
+		GlUtil.glEnable(GL11.GL_DEPTH_TEST);
+		GlUtil.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+
+		drawTextOverlays(textOverlays);
 	}
 
 	private void drawBitmap(GfxApi.DrawCommand command) {
@@ -344,58 +291,111 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		GL11.glEnd();
 	}
 
-	private static String[] lookupGlyph(char ch) {
-		char normalized = Character.toUpperCase(ch);
-		String[] glyph = TINY_FONT.get(normalized);
-		if(glyph != null) {
-			return glyph;
-		}
-		return TINY_FONT.get('?');
-	}
-
-	private void drawGlyphQuadBatch(float x, float y, float scale, String[] glyph, float clipX1, float clipY1, float clipX2, float clipY2) {
-		for(int row = 0; row < glyph.length; row++) {
-			String rowBits = glyph[row];
-			for(int col = 0; col < rowBits.length(); col++) {
-				if(rowBits.charAt(col) != '1') {
-					continue;
-				}
-
-				float x1 = x + (col * scale);
-				float y1 = y + (row * scale);
-				addClippedQuad(x1, y1, x1 + scale, y1 + scale, clipX1, clipY1, clipX2, clipY2);
+	private void drawLayer(GfxApi.LayerSnapshot layer, List<TextOverlaySpec> textOverlays) {
+		for(GfxApi.DrawCommand command : layer.commands) {
+			GlUtil.glColor4f(command.r, command.g, command.b, command.a);
+			switch(command.kind) {
+				case POINT:
+					GL11.glBegin(GL11.GL_POINTS);
+					GL11.glVertex3f(command.x1, command.y1, 0.0F);
+					GL11.glEnd();
+					break;
+				case LINE:
+					applyLineWidth(command.lineWidth);
+					GL11.glBegin(GL11.GL_LINES);
+					GL11.glVertex3f(command.x1, command.y1, 0.0F);
+					GL11.glVertex3f(command.x2, command.y2, 0.0F);
+					GL11.glEnd();
+					resetLineWidth();
+					break;
+				case RECT:
+					if(command.filled) {
+						GL11.glBegin(GL11.GL_QUADS);
+						GL11.glVertex3f(command.x1, command.y1, 0.0F);
+						GL11.glVertex3f(command.x2, command.y1, 0.0F);
+						GL11.glVertex3f(command.x2, command.y2, 0.0F);
+						GL11.glVertex3f(command.x1, command.y2, 0.0F);
+						GL11.glEnd();
+					} else {
+						GL11.glBegin(GL11.GL_LINE_LOOP);
+						GL11.glVertex3f(command.x1, command.y1, 0.0F);
+						GL11.glVertex3f(command.x2, command.y1, 0.0F);
+						GL11.glVertex3f(command.x2, command.y2, 0.0F);
+						GL11.glVertex3f(command.x1, command.y2, 0.0F);
+						GL11.glEnd();
+					}
+					break;
+				case CIRCLE:
+					drawCircle(command);
+					break;
+				case POLYGON:
+					drawPolygon(command);
+					break;
+				case TEXT:
+					collectTextOverlaySpecs(command, textOverlays);
+					break;
+				case BITMAP:
+					drawBitmap(command);
+					break;
 			}
 		}
 	}
 
-	private void addClippedQuad(float x1, float y1, float x2, float y2, float clipX1, float clipY1, float clipX2, float clipY2) {
-		float cx1 = Math.max(x1, clipX1);
-		float cy1 = Math.max(y1, clipY1);
-		float cx2 = Math.min(x2, clipX2);
-		float cy2 = Math.min(y2, clipY2);
-		if(cx2 <= cx1 || cy2 <= cy1) {
+	private void collectTextOverlaySpecs(GfxApi.DrawCommand command, List<TextOverlaySpec> textOverlays) {
+		if(command.text == null || command.text.isEmpty()) {
 			return;
 		}
-		addQuad(cx1, cy1, cx2, cy2);
+
+		FontLibrary.FontSize fontSize = resolveFontSize(command.textScale);
+		UnicodeFont font = fontSize.getFont();
+		int lineHeight = Math.max(1, font.getLineHeight());
+		int maxWidth = command.textMaxWidth > 0 ? command.textMaxWidth : Integer.MAX_VALUE;
+		List<String> lines = layoutTextLines(command.text, maxWidth, command.textWrap, font);
+		if(lines.isEmpty()) {
+			return;
+		}
+
+		float clipY2 = command.textMaxHeight > 0 ? command.y1 + command.textMaxHeight : Float.POSITIVE_INFINITY;
+		for(int lineIndex = 0; lineIndex < lines.size(); lineIndex++) {
+			float lineY = command.y1 + (lineIndex * lineHeight);
+			if(lineY >= clipY2) {
+				break;
+			}
+
+			String line = lines.get(lineIndex);
+			int textWidth = Math.max(1, font.getWidth(line));
+			float lineX = command.x1;
+			if(command.textMaxWidth > 0) {
+				if("center".equals(command.textAlign)) {
+					lineX = command.x1 + ((command.textMaxWidth - textWidth) * 0.5f);
+				} else if("right".equals(command.textAlign)) {
+					lineX = command.x1 + (command.textMaxWidth - textWidth);
+				}
+			}
+
+			textOverlays.add(new TextOverlaySpec(line, lineX, lineY, command.r, command.g, command.b, command.a,
+					Math.max(textWidth + 8, command.textMaxWidth > 0 ? command.textMaxWidth : textWidth + 8),
+					lineHeight + 4, fontSize));
+		}
 	}
 
-	private static List<String> layoutTextLines(String text, int maxCharsPerLine) {
-		List<String> lines = new ArrayList<>();
-		String[] rawLines = text.split("\\n", -1);
-		for(String raw : rawLines) {
-			if(maxCharsPerLine == Integer.MAX_VALUE || raw.length() <= maxCharsPerLine) {
-				lines.add(raw);
-				continue;
-			}
-
-			int index = 0;
-			while(index < raw.length()) {
-				int end = Math.min(raw.length(), index + maxCharsPerLine);
-				lines.add(raw.substring(index, end));
-				index = end;
-			}
+	private void drawTextOverlays(List<TextOverlaySpec> textOverlays) {
+		if(textOverlays.isEmpty()) {
+			return;
 		}
-		return lines;
+
+		float overlayX = getPos().x;
+		float overlayY = getPos().y;
+		for(TextOverlaySpec spec : textOverlays) {
+			GUITextOverlay textOverlay = new GUITextOverlay(Math.max(12, spec.width), Math.max(10, spec.height), spec.fontSize, getState());
+			textOverlay.setTextSimple(spec.text);
+			textOverlay.onInit();
+			textOverlay.updateTextSize();
+			textOverlay.setColor(spec.r, spec.g, spec.b, spec.a);
+			textOverlay.setPos(overlayX + spec.x, overlayY + spec.y, 0.0F);
+			textOverlay.draw();
+			textOverlay.cleanUp();
+		}
 	}
 
 	private void applyLineWidth(float width) {
@@ -413,58 +413,32 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		GL11.glVertex3f(x1, y2, 0.0F);
 	}
 
-	private static Map<Character, String[]> buildTinyFont() {
-		Map<Character, String[]> font = new HashMap<>();
-		font.put(' ', glyph("00000", "00000", "00000", "00000", "00000", "00000", "00000"));
-		font.put('?', glyph("01110", "10001", "00010", "00100", "00100", "00000", "00100"));
-		font.put('.', glyph("00000", "00000", "00000", "00000", "00000", "00100", "00100"));
-		font.put('!', glyph("00100", "00100", "00100", "00100", "00100", "00000", "00100"));
-		font.put(':', glyph("00000", "00100", "00100", "00000", "00100", "00100", "00000"));
-		font.put('-', glyph("00000", "00000", "00000", "01110", "00000", "00000", "00000"));
-		font.put('+', glyph("00000", "00100", "00100", "11111", "00100", "00100", "00000"));
-		font.put('/', glyph("00001", "00010", "00100", "01000", "10000", "00000", "00000"));
-		font.put('0', glyph("01110", "10001", "10011", "10101", "11001", "10001", "01110"));
-		font.put('1', glyph("00100", "01100", "00100", "00100", "00100", "00100", "01110"));
-		font.put('2', glyph("01110", "10001", "00001", "00010", "00100", "01000", "11111"));
-		font.put('3', glyph("11110", "00001", "00001", "01110", "00001", "00001", "11110"));
-		font.put('4', glyph("00010", "00110", "01010", "10010", "11111", "00010", "00010"));
-		font.put('5', glyph("11111", "10000", "10000", "11110", "00001", "00001", "11110"));
-		font.put('6', glyph("00110", "01000", "10000", "11110", "10001", "10001", "01110"));
-		font.put('7', glyph("11111", "00001", "00010", "00100", "01000", "01000", "01000"));
-		font.put('8', glyph("01110", "10001", "10001", "01110", "10001", "10001", "01110"));
-		font.put('9', glyph("01110", "10001", "10001", "01111", "00001", "00010", "11100"));
-		font.put('A', glyph("01110", "10001", "10001", "11111", "10001", "10001", "10001"));
-		font.put('B', glyph("11110", "10001", "10001", "11110", "10001", "10001", "11110"));
-		font.put('C', glyph("01110", "10001", "10000", "10000", "10000", "10001", "01110"));
-		font.put('D', glyph("11110", "10001", "10001", "10001", "10001", "10001", "11110"));
-		font.put('E', glyph("11111", "10000", "10000", "11110", "10000", "10000", "11111"));
-		font.put('F', glyph("11111", "10000", "10000", "11110", "10000", "10000", "10000"));
-		font.put('G', glyph("01110", "10001", "10000", "10000", "10011", "10001", "01110"));
-		font.put('H', glyph("10001", "10001", "10001", "11111", "10001", "10001", "10001"));
-		font.put('I', glyph("01110", "00100", "00100", "00100", "00100", "00100", "01110"));
-		font.put('J', glyph("00001", "00001", "00001", "00001", "10001", "10001", "01110"));
-		font.put('K', glyph("10001", "10010", "10100", "11000", "10100", "10010", "10001"));
-		font.put('L', glyph("10000", "10000", "10000", "10000", "10000", "10000", "11111"));
-		font.put('M', glyph("10001", "11011", "10101", "10101", "10001", "10001", "10001"));
-		font.put('N', glyph("10001", "11001", "10101", "10011", "10001", "10001", "10001"));
-		font.put('O', glyph("01110", "10001", "10001", "10001", "10001", "10001", "01110"));
-		font.put('P', glyph("11110", "10001", "10001", "11110", "10000", "10000", "10000"));
-		font.put('Q', glyph("01110", "10001", "10001", "10001", "10101", "10010", "01101"));
-		font.put('R', glyph("11110", "10001", "10001", "11110", "10100", "10010", "10001"));
-		font.put('S', glyph("01111", "10000", "10000", "01110", "00001", "00001", "11110"));
-		font.put('T', glyph("11111", "00100", "00100", "00100", "00100", "00100", "00100"));
-		font.put('U', glyph("10001", "10001", "10001", "10001", "10001", "10001", "01110"));
-		font.put('V', glyph("10001", "10001", "10001", "10001", "10001", "01010", "00100"));
-		font.put('W', glyph("10001", "10001", "10001", "10101", "10101", "10101", "01010"));
-		font.put('X', glyph("10001", "10001", "01010", "00100", "01010", "10001", "10001"));
-		font.put('Y', glyph("10001", "10001", "01010", "00100", "00100", "00100", "00100"));
-		font.put('Z', glyph("11111", "00001", "00010", "00100", "01000", "10000", "11111"));
-		return font;
+	private static final class TextOverlaySpec {
+		private final String text;
+		private final float x;
+		private final float y;
+		private final float r;
+		private final float g;
+		private final float b;
+		private final float a;
+		private final int width;
+		private final int height;
+		private final FontLibrary.FontSize fontSize;
+
+		private TextOverlaySpec(String text, float x, float y, float r, float g, float b, float a, int width, int height, FontLibrary.FontSize fontSize) {
+			this.text = text;
+			this.x = x;
+			this.y = y;
+			this.r = r;
+			this.g = g;
+			this.b = b;
+			this.a = a;
+			this.width = width;
+			this.height = height;
+			this.fontSize = fontSize;
+		}
 	}
 
-	private static String[] glyph(String row1, String row2, String row3, String row4, String row5, String row6, String row7) {
-		return new String[]{row1, row2, row3, row4, row5, row6, row7};
-	}
 
 	private void updateVisibility() {
 		setInvisible(!isOverlayActive());
