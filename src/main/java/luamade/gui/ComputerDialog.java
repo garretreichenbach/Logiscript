@@ -397,9 +397,17 @@ public class ComputerDialog extends PlayerInput {
 					cacheField.setAccessible(true);
 					cacheField.set(consolePane.getTextArea(), "");
 
-					Field lineIndex = consolePane.getTextArea().getClass().getDeclaredField("lineIndex");
-					lineIndex.setAccessible(true);
-					lineIndex.set(consolePane.getTextArea(), 10000);
+					Field carrierField = consolePane.getTextArea().getClass().getDeclaredField("chatCarrier");
+					carrierField.setAccessible(true);
+					carrierField.setInt(consolePane.getTextArea(), 10000);
+
+					Field lineIndexField = consolePane.getTextArea().getClass().getDeclaredField("lineIndex");
+					lineIndexField.setAccessible(true);
+					lineIndexField.setInt(consolePane.getTextArea(), 10000);
+
+					Field carrierLineIndexField = consolePane.getTextArea().getClass().getDeclaredField("carrierLineIndex");
+					carrierLineIndexField.setAccessible(true);
+					carrierLineIndexField.setInt(consolePane.getTextArea(), 10000);
 				} catch(Exception exception) {
 					exception.printStackTrace();
 				}
