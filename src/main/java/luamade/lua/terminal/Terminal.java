@@ -771,13 +771,16 @@ public class Terminal extends LuaMadeUserdata {
 		
 		// Load only safe libraries
 		globals.load(new BaseLib());
-		globals.load(new CoroutineLib());
-		// String/Table libs register themselves via package.loaded in LuaJ.
+		// PackageLib must come before CoroutineLib: CoroutineLib registers itself into
+		// package.loaded on init, so loading it before PackageLib causes a nil-index crash
+		// that prevents the entire sandbox from being constructed.
 		globals.load(new PackageLib());
+		// String/Table libs register themselves via package.loaded in LuaJ.
 		globals.load(new StringLib());
 		globals.load(new TableLib());
 		globals.load(new JseMathLib());
 		globals.load(new Bit32Lib());
+		globals.load(new CoroutineLib());
 		LuaC.install(globals);
 
 		// Create our own sandboxed versions of these
