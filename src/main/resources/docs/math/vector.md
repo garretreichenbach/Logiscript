@@ -76,6 +76,12 @@ Returns the Euclidean length as a `Double`.
 - `toVec3i()`
 Creates a `LuaVec3i` copy of the vector by truncating each component toward zero.
 
+- `floorToVec3i()`
+Creates a `LuaVec3i` copy by flooring each component.
+
+- `roundToVec3i()`
+Creates a `LuaVec3i` copy by rounding each component to the nearest integer.
+
 ## Notes
 
 - All math operations mutate the vector in place and return `self` for chaining.
@@ -83,3 +89,5 @@ Creates a `LuaVec3i` copy of the vector by truncating each component toward zero
 - Use `vec3f(x, y, z)` for world-space vectors.
 - `LuaVec3i` can also be converted to `LuaVec3f` with `toVec3f()`.
 - `LuaVec3f` can also be converted to `LuaVec3i` with `toVec3i()`.
+- Use `floorToVec3i()` when world coordinates need stable block-grid conversion for negative values.
+- Use `roundToVec3i()` when nearest-block behavior is more appropriate.

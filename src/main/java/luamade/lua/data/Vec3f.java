@@ -128,6 +128,16 @@ public class Vec3f extends LuaMadeUserdata {
         return new Vec3i((int) x, (int) y, (int) z);
     }
 
+    @LuaMadeCallable
+    public Vec3i floorToVec3i() {
+        return new Vec3i((int) Math.floor(x), (int) Math.floor(y), (int) Math.floor(z));
+    }
+
+    @LuaMadeCallable
+    public Vec3i roundToVec3i() {
+        return new Vec3i(Math.round(x), Math.round(y), Math.round(z));
+    }
+
     @Override
     public String toString() {
         return String.format("Vec(%s, %s, %s)", x, y, z);
