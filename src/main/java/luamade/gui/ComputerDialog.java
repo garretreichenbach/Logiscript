@@ -26,6 +26,8 @@ public class ComputerDialog extends PlayerInput {
 
 	/** Tracks the currently open ComputerPanel so event listeners can access it. */
 	private static ComputerPanel activePanel;
+	/** Tracks the currently open dialog instance so listeners can force-close it. */
+	private static ComputerDialog activeDialog;
 	protected final ComputerModule computerModule;
 	private final ComputerPanel computerPanel;
 
@@ -39,9 +41,21 @@ public class ComputerDialog extends PlayerInput {
 		return activePanel;
 	}
 
+	public static ComputerDialog getActiveDialog() {
+		return activeDialog;
+	}
+
+	public static void deactivateActiveDialog() {
+		ComputerDialog dialog = activeDialog;
+		if(dialog != null) {
+			dialog.deactivate();
+		}
+	}
+
 	@Override
 	public void activate() {
 		super.activate();
+		activeDialog = this;
 		activePanel = computerPanel;
 		computerModule.resumeFromLastMode();
 		computerPanel.requestConsoleFocus();
@@ -103,6 +117,9 @@ public class ComputerDialog extends PlayerInput {
 
 	@Override
 	public void onDeactivate() {
+		if(activeDialog == this) {
+			activeDialog = null;
+		}
 		if(activePanel == computerPanel) {
 			activePanel = null;
 		}

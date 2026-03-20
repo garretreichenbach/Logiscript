@@ -61,6 +61,22 @@ public class EventManager {
 				ComputerDialog.ComputerPanel panel = ComputerDialog.getActivePanel();
 				if(panel == null) return;
 
+				if(event.isKeyDown() && key == GLFW.GLFW_KEY_ESCAPE) {
+					event.setCanceled(true);
+					ComputerDialog.deactivateActiveDialog();
+					return;
+				}
+
+				if(event.isKeyDown() && !panel.isFileEditMode() && ctrlDown && key == GLFW.GLFW_KEY_C) {
+					// Ctrl+C is a hard interrupt in terminal mode and must never be consumed by text selection.
+					event.setCanceled(true);
+					ComputerModule ctrlCModule = panel.getComputerModule();
+					if(ctrlCModule != null && ctrlCModule.getTerminal() != null) {
+						ctrlCModule.getTerminal().interruptForeground();
+					}
+					return;
+				}
+
 				ComputerModule module = panel.getComputerModule();
 				boolean keyboardConsumed = module != null && module.getInputApi().isKeyboardConsumed();
 
@@ -78,15 +94,6 @@ public class EventManager {
 					} else if(!panel.isFileEditMode() && key == GLFW.GLFW_KEY_TAB) {
 						event.setCanceled(true);
 						panel.handleTabAutocomplete();
-						// still forward to InputApi below
-					} else if(!panel.isFileEditMode() && ctrlDown && key == GLFW.GLFW_KEY_C && !panel.hasSelectedText()) {
-						// Ctrl+C with no selection: interrupt the running foreground script.
-						// When text IS selected we do NOT cancel so the text area handles copy normally.
-						event.setCanceled(true);
-						ComputerModule ctrlCModule = panel.getComputerModule();
-						if(ctrlCModule != null && ctrlCModule.getTerminal() != null) {
-							ctrlCModule.getTerminal().interruptForeground();
-						}
 						// still forward to InputApi below
 					} else if(!panel.isFileEditMode() && (key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_DOWN || key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT || key == GLFW.GLFW_KEY_HOME || key == GLFW.GLFW_KEY_END)) {
 						event.setCanceled(true);
