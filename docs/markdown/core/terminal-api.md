@@ -2,6 +2,8 @@
 
 `term` provides runtime/session helpers in addition to shell commands.
 
+The built-in `pkg` package manager is a shell command (invoked through `runCommand`), not a dedicated `term.*` API method.
+
 
 ## Reference
 
@@ -28,6 +30,12 @@ Wrapper signature: `callback(args, next)` where `next(nextArgs)` executes origin
 - `runCommand(commandLine)`
 - `isBusy()`
 Returns whether scripts are currently executing.
+
+Example:
+
+```lua
+term.runCommand("pkg search vector")
+```
 
 - `httpGet(url)`
 HTTP GET helper (subject to server config/trusted domains).

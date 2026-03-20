@@ -20,7 +20,7 @@ LuaMade provides a Unix-like computing environment with the following features:
 - Support for custom Lua commands
 - Direct Lua script execution from terminal
 - Built-in commands include: ls, cd, pwd, cat, mkdir, touch, rm, cp, mv, edit, find, grep, history, stat, tree,
-  which, head, tail, wc, protect, unprotect, fsauth, perms, run, runbg, jobs, kill, httpget, httpput, nano, name, echo,
+    which, head, tail, wc, protect, unprotect, fsauth, perms, run, runbg, jobs, kill, httpget, httpput, pkg, nano, name, echo,
   reboot, clear, help, exit
 
 ### Networking
@@ -143,6 +143,7 @@ Command chaining is supported in a single submission:
 - `httpget <url> [output-file]` - Fetch web content using HTTP GET
 - `httpput [--content-type <mime>] <url> <payload|@file> [output-file]` - Send web content using HTTP PUT (`@file` reads
   payload from VFS file)
+- `pkg <search|info|fetch|install|list|remove> ...` - Use trusted package manager endpoints configured by the server
 - `name [new-name|--reset]` - Show or change the displayed computer name in the prompt
 - `head [-n lines] <file>` - Show first lines of a file
 - `tail [-n lines] <file>` - Show last lines of a file
@@ -349,6 +350,27 @@ httpput --content-type application/json https://example.com/api/fleet '{"command
 httpput https://example.com/api/fleet @/home/payload.json /home/put-response.json
 ```
 
+Package manager commands:
+
+```text
+pkg search <query>
+pkg info <name> [version]
+pkg fetch <name> [version] [output-file]
+pkg install <name> [version]
+pkg list
+pkg remove <name>
+```
+
+Examples:
+
+```text
+pkg search vector
+pkg info vector
+pkg install vector
+pkg list
+pkg remove vector
+```
+
 Server config options:
 
 - `web_fetch_enabled` enables/disables all web fetching (default `false`).
@@ -360,6 +382,10 @@ Server config options:
 - `web_put_timeout_ms` sets PUT connect/read timeout.
 - `web_put_max_request_bytes` sets max UTF-8 request payload size.
 - `web_put_max_response_bytes` sets max response size for PUT responses.
+- `package_manager_enabled` enables/disables trusted package manager commands (default `false`).
+- `package_manager_trusted_domains_only` restricts package registry and artifact hosts to trusted domains (default `true`).
+- `package_manager_timeout_ms` sets package manager connect/read timeout.
+- `package_manager_max_bytes` sets max response payload size for package metadata and artifacts.
 
 Trusted domain list is configurable in:
 
@@ -371,8 +397,15 @@ Default entries:
 
 - `raw.githubusercontent.com`
 - `gist.githubusercontent.com`
+- `github.com`
 - `pastebin.com`
 - `hastebin.com`
+
+Package manager registry base URL is configurable in:
+
+```text
+config/luamade/package_manager_base_url.txt
+```
 
 Example script (/bin/example.lua):
 ```lua

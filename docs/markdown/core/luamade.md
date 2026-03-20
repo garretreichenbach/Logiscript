@@ -46,6 +46,9 @@ run /home/hello.lua
 Terminal web requests are available through `httpget` / `term.httpGet(url)` and `httpput` /
 `term.httpPut(url, body[, contentType])` when enabled in server config.
 
+Trusted package distribution is available through the `pkg` terminal command when `package_manager_enabled` is enabled.
+This is controlled separately from generic web fetch settings.
+
 When `web_fetch_trusted_domains_only` or `web_put_trusted_domains_only` is enabled, trusted domains are loaded from:
 
 ```text
@@ -53,6 +56,12 @@ config/luamade/trusted_domains.txt
 ```
 
 The file is created automatically with default entries on first startup.
+
+Package manager registry base URL is loaded from:
+
+```text
+config/luamade/package_manager_base_url.txt
+```
 
 Quick JSON example:
 

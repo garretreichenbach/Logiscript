@@ -34,6 +34,10 @@ public final class ConfigManager {
 	private static SimpleConfigInt webPutTimeoutMs;
 	private static SimpleConfigInt webPutMaxRequestBytes;
 	private static SimpleConfigInt webPutMaxResponseBytes;
+	private static SimpleConfigBool packageManagerEnabled;
+	private static SimpleConfigBool packageManagerTrustedDomainsOnly;
+	private static SimpleConfigInt packageManagerTimeoutMs;
+	private static SimpleConfigInt packageManagerMaxBytes;
 	private static SimpleConfigInt gfxMaxCommandsPerLayer;
 	private static SimpleConfigInt gfxMaxLayers;
 	private static SimpleConfigBool dockingRequirePermissions;
@@ -55,8 +59,11 @@ public final class ConfigManager {
 			"vector"
 	);
 	private static final Path ALLOWED_LUA_PACKAGES_PATH = Paths.get("config", "luamade", "allowed_lua_packages.txt");
+	private static final String DEFAULT_PACKAGE_MANAGER_BASE_URL = "https://packages.luamade.net";
+	private static final Path PACKAGE_MANAGER_BASE_URL_PATH = Paths.get("config", "luamade", "package_manager_base_url.txt");
 	private static final Pattern SAFE_LUA_MODULE_PATTERN = Pattern.compile("[a-z0-9_]+(?:\\.[a-z0-9_]+)*");
 	private static volatile Set<String> allowedLuaPackagesCache = new LinkedHashSet<>(DEFAULT_ALLOWED_LUA_PACKAGES);
+	private static volatile String packageManagerBaseUrlCache = DEFAULT_PACKAGE_MANAGER_BASE_URL;
 
 	private ConfigManager() {
 	}
@@ -79,6 +86,10 @@ public final class ConfigManager {
 		webPutTimeoutMs = new SimpleConfigInt(config, "web_put_timeout_ms", 4000, "HTTP PUT connect/read timeout in milliseconds.");
 		webPutMaxRequestBytes = new SimpleConfigInt(config, "web_put_max_request_bytes", 32768, "Maximum UTF-8 request payload size (bytes) for HTTP PUT.");
 		webPutMaxResponseBytes = new SimpleConfigInt(config, "web_put_max_response_bytes", 1048576, "Maximum response payload size (bytes) accepted by HTTP PUT.");
+		packageManagerEnabled = new SimpleConfigBool(config, "package_manager_enabled", false, "If true, enables trusted package manager commands.");
+		packageManagerTrustedDomainsOnly = new SimpleConfigBool(config, "package_manager_trusted_domains_only", true, "If true, package artifacts are restricted to trusted domains.");
+		packageManagerTimeoutMs = new SimpleConfigInt(config, "package_manager_timeout_ms", 5000, "Package manager connect/read timeout in milliseconds.");
+		packageManagerMaxBytes = new SimpleConfigInt(config, "package_manager_max_bytes", 2097152, "Maximum package response payload size in bytes.");
 		gfxMaxCommandsPerLayer = new SimpleConfigInt(config, "gfx_max_commands_per_layer", 4096, "Maximum number of queued draw commands in a single gfx layer.");
 		gfxMaxLayers = new SimpleConfigInt(config, "gfx_max_layers", 32, "Maximum number of gfx layers per computer.");
 		dockingRequirePermissions = new SimpleConfigBool(config, "docking_require_permissions", true, "If true, Lua docking helpers require same-faction or friend-faction permissions.");
@@ -88,8 +99,10 @@ public final class ConfigManager {
 		config.readWriteFields();
 		ensureTrustedDomainsFileExists(instance);
 		ensureAllowedLuaPackagesFileExists(instance);
+		ensurePackageManagerBaseUrlFileExists(instance);
 		reloadTrustedWebDomains(instance);
 		reloadAllowedLuaPackages(instance);
+		reloadPackageManagerBaseUrl(instance);
 		if(isDebugMode()) {
 			String mode = config.isServer() ? "server" : (config.local ? "client-local" : "client-synced");
 			instance.logInfo("Config initialized via SimpleConfigContainer (mode=" + mode + ")");
@@ -102,6 +115,7 @@ public final class ConfigManager {
 		}
 		reloadTrustedWebDomains(LuaMade.getInstance());
 		reloadAllowedLuaPackages(LuaMade.getInstance());
+		reloadPackageManagerBaseUrl(LuaMade.getInstance());
 	}
 
 	public static boolean isDebugMode() {
@@ -163,6 +177,26 @@ public final class ConfigManager {
 
 	public static int getWebPutMaxResponseBytes() {
 		return clampInt(intOrDefault(webPutMaxResponseBytes, 1048576), 4096, 1048576);
+	}
+
+	public static boolean isPackageManagerEnabled() {
+		return boolOrDefault(packageManagerEnabled, false);
+	}
+
+	public static boolean isPackageManagerTrustedDomainsOnly() {
+		return boolOrDefault(packageManagerTrustedDomainsOnly, true);
+	}
+
+	public static int getPackageManagerTimeoutMs() {
+		return clampInt(intOrDefault(packageManagerTimeoutMs, 5000), 250, 30000);
+	}
+
+	public static int getPackageManagerMaxBytes() {
+		return clampInt(intOrDefault(packageManagerMaxBytes, 2097152), 4096, 8 * 1024 * 1024);
+	}
+
+	public static String getPackageManagerBaseUrl() {
+		return packageManagerBaseUrlCache;
 	}
 
 	public static int getGfxMaxCommandsPerLayer() {
@@ -326,6 +360,58 @@ public final class ConfigManager {
 				instance.logException("Failed to create allowed Lua packages file: " + ALLOWED_LUA_PACKAGES_PATH, exception);
 			}
 		}
+	}
+
+	private static void ensurePackageManagerBaseUrlFileExists(LuaMade instance) {
+		if(Files.exists(PACKAGE_MANAGER_BASE_URL_PATH)) {
+			return;
+		}
+
+		try {
+			if(PACKAGE_MANAGER_BASE_URL_PATH.getParent() != null) {
+				Files.createDirectories(PACKAGE_MANAGER_BASE_URL_PATH.getParent());
+			}
+
+			StringBuilder builder = new StringBuilder();
+			builder.append("# LuaMade package registry base URL\n");
+			builder.append("# Example: https://packages.luamade.net\n");
+			builder.append("# This is used by the terminal pkg command.\n\n");
+			builder.append(DEFAULT_PACKAGE_MANAGER_BASE_URL).append('\n');
+
+			Files.write(
+				PACKAGE_MANAGER_BASE_URL_PATH,
+				builder.toString().getBytes(StandardCharsets.UTF_8),
+				StandardOpenOption.CREATE,
+				StandardOpenOption.TRUNCATE_EXISTING,
+				StandardOpenOption.WRITE
+			);
+		} catch(IOException exception) {
+			if(instance != null) {
+				instance.logException("Failed to create package manager base URL file: " + PACKAGE_MANAGER_BASE_URL_PATH, exception);
+			}
+		}
+	}
+
+	private static void reloadPackageManagerBaseUrl(LuaMade instance) {
+		String loadedUrl = DEFAULT_PACKAGE_MANAGER_BASE_URL;
+		try {
+			if(Files.exists(PACKAGE_MANAGER_BASE_URL_PATH)) {
+				for(String line : Files.readAllLines(PACKAGE_MANAGER_BASE_URL_PATH, StandardCharsets.UTF_8)) {
+					String value = line == null ? "" : line.trim();
+					if(value.isEmpty() || value.startsWith("#")) {
+						continue;
+					}
+					loadedUrl = value;
+					break;
+				}
+			}
+		} catch(IOException exception) {
+			if(instance != null) {
+				instance.logException("Failed to read package manager base URL file: " + PACKAGE_MANAGER_BASE_URL_PATH, exception);
+			}
+		}
+
+		packageManagerBaseUrlCache = loadedUrl;
 	}
 
 	private static void reloadAllowedLuaPackages(LuaMade instance) {

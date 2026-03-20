@@ -44,6 +44,7 @@ The terminal is the command shell and script runner for each computer.
 - `nano <file>` to open the file editor pane.
 - `httpget <url> [output-file]` to fetch web content (if enabled by server config).
 - `httpput [--content-type <mime>] <url> <payload|@file> [output-file]` to send web content via HTTP PUT.
+- `pkg <search|info|fetch|install|list|remove> ...` to use the trusted package manager.
 - `reboot` to re-run startup flow and reset prompt behavior.
 
 If trusted-only mode is enabled, allowed domains come from:
@@ -51,6 +52,14 @@ If trusted-only mode is enabled, allowed domains come from:
 ```text
 config/luamade/trusted_domains.txt
 ```
+
+Package manager endpoint base URL is configured in:
+
+```text
+config/luamade/package_manager_base_url.txt
+```
+
+Package manager uses its own server toggles (`package_manager_*`) and can be enabled even when generic web fetch is disabled.
 
 ## Terminal API (`term`)
 

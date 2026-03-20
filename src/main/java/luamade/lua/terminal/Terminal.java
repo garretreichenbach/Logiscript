@@ -39,6 +39,7 @@ public class Terminal extends LuaMadeUserdata {
 	private final ComputerModule module;
 	private final Console console;
 	private final FileSystem fileSystem;
+	private final PackageManagerService packageManagerService;
 	private final Map<String, Command> commands = new ConcurrentHashMap<>();
 	private final Map<Integer, BackgroundJob> backgroundJobs = new ConcurrentHashMap<>();
 	private final ExecutorService scriptExecutor;
@@ -61,6 +62,7 @@ public class Terminal extends LuaMadeUserdata {
 		this.module = module;
 		this.console = console;
 		this.fileSystem = fileSystem;
+		this.packageManagerService = new PackageManagerService(fileSystem, console);
 		maxParallelSlots = ConfigManager.getScriptMaxParallel();
 		scriptSlots = new Semaphore(maxParallelSlots, true);
 		scriptExecutor = Executors.newCachedThreadPool(new ScriptThreadFactory("luamade-script"));
@@ -2264,6 +2266,13 @@ public class Terminal extends LuaMadeUserdata {
 				} else {
 					console.print(valueOf(response));
 				}
+			}
+		});
+
+		commands.put("pkg", new Command("pkg", "Trusted package manager (search/info/fetch/install/list/remove)") {
+			@Override
+			public void execute(String args) {
+				packageManagerService.handleCommand(args);
 			}
 		});
 
