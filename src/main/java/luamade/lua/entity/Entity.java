@@ -15,9 +15,9 @@ import luamade.lua.element.system.shipyard.Shipyard;
 import luamade.lua.entity.ai.EntityAI;
 import luamade.lua.entity.ai.Fleet;
 import luamade.lua.faction.Faction;
-import luamade.manager.ConfigManager;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import luamade.manager.ConfigManager;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SegmentBufferInterface;
@@ -444,6 +444,18 @@ public class Entity extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public Double getSpeed() {
 		return (double) segmentController.getSpeedCurrent();
+	}
+
+	@LuaMadeCallable
+	public Vec3f getHeading() {
+		Vector3f forward = new Vector3f(
+				segmentController.getWorldTransform().basis.m02,
+				segmentController.getWorldTransform().basis.m12,
+				segmentController.getWorldTransform().basis.m22
+		);
+		if(forward.lengthSquared() == 0) return new Vec3f(0, 0, 0);
+		forward.normalize();
+		return new Vec3f(forward);
 	}
 
 	@LuaMadeCallable

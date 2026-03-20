@@ -9,7 +9,6 @@ import org.schema.game.common.data.element.ElementInformation;
 import org.schema.game.common.data.element.ElementKeyMap;
 
 import javax.vecmath.Vector3f;
-
 import java.util.ArrayList;
 import java.util.Locale;
 
@@ -79,17 +78,18 @@ public class SegmentPieceUtils {
 	}
 
 	private static Vector3i getOrientedLeft(SegmentPiece segmentPiece) {
-		Vector3f localRight = getBasisDirection(segmentPiece, new Vector3f(1f, 0f, 0f));
+		Vector3f localRight = getBasisDirection(segmentPiece, new Vector3f(1.0f, 0.0f, 0.0f));
 		return negate(snapToAxis(localRight));
 	}
 
 	private static Vector3i getOrientedUp(SegmentPiece segmentPiece) {
-		Vector3f localUp = getBasisDirection(segmentPiece, new Vector3f(0f, 1f, 0f));
+		Vector3f localUp = getBasisDirection(segmentPiece, new Vector3f(0.0f, 1.0f, 0.0f));
 		return snapToAxis(localUp);
 	}
 
 	private static Vector3i getOrientedFront(SegmentPiece segmentPiece) {
-		Vector3f localFront = getBasisDirection(segmentPiece, new Vector3f(0f, 0f, 1f));
+		// SegmentPiece local +Z points opposite the expected user-facing "front" side.
+		Vector3f localFront = getBasisDirection(segmentPiece, new Vector3f(0.0f, 0.0f, -1.0f));
 		return snapToAxis(localFront);
 	}
 

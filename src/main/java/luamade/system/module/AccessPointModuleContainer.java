@@ -5,6 +5,7 @@ import api.network.PacketWriteBuffer;
 import api.utils.game.module.util.SystemModule;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import luamade.element.ElementRegistry;
+import luamade.manager.RemoteSessionManager;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.elements.ManagerContainer;
 import org.schema.game.common.data.SegmentPiece;
@@ -91,11 +92,14 @@ public class AccessPointModuleContainer extends SystemModule {
 		if(accessPoint == null) {
 			return;
 		}
-		linkedComputerUuids.remove(accessPoint.getAbsoluteIndex());
+		long absIndex = accessPoint.getAbsoluteIndex();
+		linkedComputerUuids.remove(absIndex);
+		RemoteSessionManager.disconnectIfAccessPointIndex(absIndex);
 		flagUpdatedData();
 	}
 
 	public void removeAccessPoint(long absIndex) {
+		RemoteSessionManager.disconnectIfAccessPointIndex(absIndex);
 		if(linkedComputerUuids.remove(absIndex) != null) {
 			flagUpdatedData();
 		}
@@ -106,6 +110,10 @@ public class AccessPointModuleContainer extends SystemModule {
 			return null;
 		}
 		return linkedComputerUuids.get(accessPoint.getAbsoluteIndex());
+	}
+
+	public String getLinkedComputerUUID(long absIndex) {
+		return linkedComputerUuids.get(absIndex);
 	}
 
 	private static String safeString(String value) {

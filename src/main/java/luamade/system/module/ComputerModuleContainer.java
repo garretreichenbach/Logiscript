@@ -6,14 +6,15 @@ import api.utils.game.module.util.SystemModule;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import luamade.LuaMade;
 import luamade.element.ElementRegistry;
+import luamade.manager.RemoteSessionManager;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.elements.ManagerContainer;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.schine.graphicsengine.core.Timer;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -218,6 +219,7 @@ public class ComputerModuleContainer extends SystemModule {
 		if(computerModules.containsKey(segmentPiece.getAbsoluteIndex())) {
 			ComputerModule module = computerModules.get(segmentPiece.getAbsoluteIndex());
 			if(module != null) {
+				RemoteSessionManager.disconnectIfComputerUUID(module.getUUID());
 				module.saveAndCleanup();
 			}
 			computerModules.remove(segmentPiece.getAbsoluteIndex());

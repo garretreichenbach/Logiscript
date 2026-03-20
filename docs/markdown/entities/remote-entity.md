@@ -16,6 +16,9 @@ Returns the `Faction` this entity belongs to.
 - `getSpeed()`
 Returns current speed in blocks/s as a `Double`.
 
+- `getHeading()`
+  Returns normalized forward heading as `LuaVec3f`.
+
 - `getMass()`
 Returns total mass as a `Double`.
 

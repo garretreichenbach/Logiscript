@@ -91,7 +91,8 @@ public class Terminal extends LuaMadeUserdata {
 	 */
 	@LuaMadeCallable
 	public void stop() {
-		cancelAllBackgroundJobs(false);
+		cancelForegroundScript(false);
+		cancelAllBackgroundJobs(true);
 		running = false;
 	}
 
@@ -105,8 +106,26 @@ public class Terminal extends LuaMadeUserdata {
 		if(!running) {
 			running = true;
 		}
+		cancelForegroundScript(false);
 		cancelAllBackgroundJobs(true);
 		bootTerminal(true);
+	}
+
+	private boolean cancelForegroundScript(boolean printInterruptMarker) {
+		ScriptExecutionContext context = activeForegroundContext;
+		Future<Boolean> future = activeForegroundFuture;
+		if(context == null) {
+			return false;
+		}
+
+		context.requestCancel();
+		if(future != null) {
+			future.cancel(true);
+		}
+		if(printInterruptMarker) {
+			console.print(valueOf("^C"));
+		}
+		return true;
 	}
 
 	private int cancelAllBackgroundJobs(boolean clearRegistry) {
@@ -1328,17 +1347,7 @@ public class Terminal extends LuaMadeUserdata {
 	 */
 	@LuaMadeCallable
 	public boolean interruptForeground() {
-		ScriptExecutionContext ctx = activeForegroundContext;
-		Future<Boolean> future = activeForegroundFuture;
-		if(ctx == null) {
-			return false;
-		}
-		ctx.requestCancel();
-		if(future != null) {
-			future.cancel(true);
-		}
-		console.print(valueOf("^C"));
-		return true;
+		return cancelForegroundScript(true);
 	}
 
 	/**

@@ -1,11 +1,10 @@
 package luamade.lua.entity;
 
 import api.utils.game.SegmentControllerUtils;
-import com.bulletphysics.linearmath.Transform;
-import luamade.lua.faction.Faction;
 import luamade.lua.data.Vec3f;
 import luamade.lua.data.Vec3i;
 import luamade.lua.element.system.shield.ShieldSystem;
+import luamade.lua.faction.Faction;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
@@ -44,6 +43,18 @@ public class RemoteEntity extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public Float getSpeed() {
 		return segmentController.getSpeedCurrent();
+	}
+
+	@LuaMadeCallable
+	public Vec3f getHeading() {
+		Vector3f forward = new Vector3f(
+				segmentController.getWorldTransform().basis.m02,
+				segmentController.getWorldTransform().basis.m12,
+				segmentController.getWorldTransform().basis.m22
+		);
+		if(forward.lengthSquared() == 0) return new Vec3f(0, 0, 0);
+		forward.normalize();
+		return new Vec3f(forward);
 	}
 
 	@LuaMadeCallable

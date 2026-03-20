@@ -2,9 +2,11 @@ package luamade.manager;
 
 import api.common.GameClient;
 import luamade.element.ElementRegistry;
+import luamade.system.module.AccessPointModuleContainer;
 import luamade.system.module.ComputerModule;
 import org.json.JSONObject;
 import org.schema.game.client.controller.manager.ingame.PlayerInteractionControlManager;
+import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.inventory.InventorySlot;
 import org.schema.schine.graphicsengine.core.MouseEvent;
@@ -64,6 +66,22 @@ public final class RemoteSessionManager {
 
 	public static boolean isActiveFor(ComputerModule module) {
 		return module != null && module == activeModule;
+	}
+
+	public static void disconnectIfAccessPointIndex(long accessPointIndex) {
+		if(activeModule != null && activeAccessPointIndex == accessPointIndex) {
+			disconnect();
+		}
+	}
+
+	public static void disconnectIfComputerUUID(String computerUuid) {
+		ComputerModule module = activeModule;
+		if(module == null || computerUuid == null || computerUuid.trim().isEmpty()) {
+			return;
+		}
+		if(computerUuid.equals(module.getUUID())) {
+			disconnect();
+		}
 	}
 
 	public static long getActiveAccessPointIndex() {
@@ -157,7 +175,30 @@ public final class RemoteSessionManager {
 		if(linkedComputerUuid == null || !linkedComputerUuid.equals(module.getUUID())) {
 			return false;
 		}
-		return customData.optLong(REMOTE_ACCESS_POINT_INDEX_KEY, Long.MIN_VALUE) == activeAccessPointIndex;
+		long heldAccessPointIndex = customData.optLong(REMOTE_ACCESS_POINT_INDEX_KEY, Long.MIN_VALUE);
+		if(heldAccessPointIndex != activeAccessPointIndex) {
+			return false;
+		}
+		return isAccessPointLinkStillValid(module, heldAccessPointIndex, linkedComputerUuid);
+	}
+
+	private static boolean isAccessPointLinkStillValid(ComputerModule module, long accessPointIndex, String computerUuid) {
+		if(module == null || accessPointIndex == Long.MIN_VALUE || computerUuid == null) {
+			return false;
+		}
+
+		if(!(module.getSegmentPiece().getSegmentController() instanceof ManagedUsableSegmentController<?>)) {
+			return false;
+		}
+
+		ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) module.getSegmentPiece().getSegmentController();
+		AccessPointModuleContainer container = AccessPointModuleContainer.getContainer(controller.getManagerContainer());
+		if(container == null) {
+			return false;
+		}
+
+		String linkedUuid = container.getLinkedComputerUUID(accessPointIndex);
+		return computerUuid.equals(linkedUuid);
 	}
 
 	private static InventorySlot getHeldSlot(PlayerState playerState) {

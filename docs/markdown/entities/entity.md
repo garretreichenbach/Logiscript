@@ -138,6 +138,9 @@ Returns the `EntityAI` wrapper for this entity.
 - `getSpeed()`
 Returns current speed in blocks/s as a `Double`.
 
+- `getHeading()`
+  Returns normalized forward heading as `LuaVec3f`.
+
 - `getMass()`
 Returns total mass as a `Double`.
 
