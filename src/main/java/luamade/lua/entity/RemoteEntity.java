@@ -11,6 +11,8 @@ import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.Ship;
 
+import javax.vecmath.Vector3f;
+
 /**
  * Limited version of Entity class to prevent access to methods that could lead to abuse.
  * <p>Good for accessing some details of entities without being able to modify them, such as nearby entities.</p>
@@ -47,11 +49,7 @@ public class RemoteEntity extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public Vec3f getHeading() {
-		Vector3f forward = new Vector3f(
-				segmentController.getWorldTransform().basis.m02,
-				segmentController.getWorldTransform().basis.m12,
-				segmentController.getWorldTransform().basis.m22
-		);
+		Vector3f forward = new Vector3f(segmentController.getWorldTransform().basis.m02, segmentController.getWorldTransform().basis.m12, segmentController.getWorldTransform().basis.m22);
 		if(forward.lengthSquared() == 0) return new Vec3f(0, 0, 0);
 		forward.normalize();
 		return new Vec3f(forward);
@@ -91,7 +89,8 @@ public class RemoteEntity extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public String getPilot() {
-		if(segmentController instanceof Ship && segmentController.isConrolledByActivePlayer()) return SegmentControllerUtils.getAttachedPlayers(segmentController).get(0).getName();
+		if(segmentController instanceof Ship && segmentController.isConrolledByActivePlayer())
+			return SegmentControllerUtils.getAttachedPlayers(segmentController).get(0).getName();
 		return null;
 	}
 

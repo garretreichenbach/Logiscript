@@ -25,12 +25,71 @@ import org.schema.game.common.data.player.inventory.InventorySlot;
 import org.schema.game.common.data.world.Segment;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 public class SegmentPieceListener implements SegmentPiecePlayerInteractListener, SegmentPieceAddListener, SegmentPieceRemoveListener, SegmentPieceKilledListener {
 
 	private static final String REMOTE_COMPUTER_UUID_KEY = "luamadeRemoteComputerUuid";
 	private static final String REMOTE_ACCESS_POINT_INDEX_KEY = "luamadeRemoteAccessPointIndex";
 	private static final Field SELECTED_SLOT_FIELD = resolveSelectedSlotField();
+
+	private static void notifyPlayer(PlayerState playerState, String message) {
+		if(playerState == null || message == null || message.isEmpty()) {
+			return;
+		}
+		if(tryInvokeMessageMethod(playerState, "sendServerMessage", message)) {
+			return;
+		}
+		if(tryInvokeMessageMethod(playerState, "sendClientMessage", message)) {
+			return;
+		}
+		tryInvokeMessageMethod(playerState, "sendTextMessage", message);
+	}
+
+	private static boolean tryInvokeMessageMethod(PlayerState playerState, String methodName, String message) {
+		try {
+			Method method = playerState.getClass().getMethod(methodName, String.class);
+			method.invoke(playerState, message);
+			return true;
+		} catch(Exception ignored) {
+			return false;
+		}
+	}
+
+	private static InventorySlot getHeldSlot(PlayerState playerState, PlayerInteractionControlManager interactionManager) {
+		if(playerState == null || interactionManager == null || SELECTED_SLOT_FIELD == null) {
+			return null;
+		}
+		try {
+			int selectedSlot = SELECTED_SLOT_FIELD.getInt(interactionManager);
+			if(selectedSlot < 0) {
+				return null;
+			}
+			return playerState.getInventory().getSlot(selectedSlot);
+		} catch(IllegalAccessException exception) {
+			return null;
+		}
+	}
+
+	private static void storeRemoteLinkMetadata(InventorySlot slot, SegmentPiece accessPoint, ComputerModule module) {
+		if(slot == null || accessPoint == null || module == null) {
+			return;
+		}
+		JSONObject customData = slot.getOrCreateCustomData();
+		customData.put(REMOTE_COMPUTER_UUID_KEY, module.getUUID());
+		customData.put(REMOTE_ACCESS_POINT_INDEX_KEY, accessPoint.getAbsoluteIndex());
+		slot.setCustomData(customData);
+	}
+
+	private static Field resolveSelectedSlotField() {
+		try {
+			Field field = PlayerInteractionControlManager.class.getDeclaredField("selectedSlot");
+			field.setAccessible(true);
+			return field;
+		} catch(Exception exception) {
+			return null;
+		}
+	}
 
 	@Override
 	public void onInteract(SegmentPiece segmentPiece, PlayerState playerState, PlayerInteractionControlManager playerInteractionControlManager) {
@@ -120,61 +179,30 @@ public class SegmentPieceListener implements SegmentPiecePlayerInteractListener,
 	private void handleRemoteAccessPointInteract(SegmentPiece accessPoint, PlayerState playerState, PlayerInteractionControlManager interactionManager, ManagedUsableSegmentController<?> controller) {
 		InventorySlot heldSlot = getHeldSlot(playerState, interactionManager);
 		if(heldSlot == null || heldSlot.getType() != ElementRegistry.REMOTE_CONTROL.getId()) {
+			notifyPlayer(playerState, "Hold a Remote Controller to connect.");
 			return;
 		}
 
 		AccessPointModuleContainer accessPointContainer = AccessPointModuleContainer.getContainer(controller.getManagerContainer());
 		ComputerModuleContainer computerContainer = ComputerModuleContainer.getContainer(controller.getManagerContainer());
 		if(accessPointContainer == null || computerContainer == null) {
+			notifyPlayer(playerState, "Remote connection unavailable on this structure.");
 			return;
 		}
 
 		String computerUuid = accessPointContainer.getLinkedComputerUUID(accessPoint);
 		if(computerUuid == null || computerUuid.trim().isEmpty()) {
+			notifyPlayer(playerState, "Access point is not linked to a computer.");
 			return;
 		}
 
 		ComputerModule module = computerContainer.getModuleByUUID(computerUuid);
 		if(module == null) {
+			notifyPlayer(playerState, "Linked computer is offline or missing.");
 			return;
 		}
 
 		storeRemoteLinkMetadata(heldSlot, accessPoint, module);
 		RemoteSessionManager.connect(module, accessPoint.getAbsoluteIndex(), playerState);
-	}
-
-	private static InventorySlot getHeldSlot(PlayerState playerState, PlayerInteractionControlManager interactionManager) {
-		if(playerState == null || interactionManager == null || SELECTED_SLOT_FIELD == null) {
-			return null;
-		}
-		try {
-			int selectedSlot = SELECTED_SLOT_FIELD.getInt(interactionManager);
-			if(selectedSlot < 0) {
-				return null;
-			}
-			return playerState.getInventory().getSlot(selectedSlot);
-		} catch(IllegalAccessException exception) {
-			return null;
-		}
-	}
-
-	private static void storeRemoteLinkMetadata(InventorySlot slot, SegmentPiece accessPoint, ComputerModule module) {
-		if(slot == null || accessPoint == null || module == null) {
-			return;
-		}
-		JSONObject customData = slot.getOrCreateCustomData();
-		customData.put(REMOTE_COMPUTER_UUID_KEY, module.getUUID());
-		customData.put(REMOTE_ACCESS_POINT_INDEX_KEY, accessPoint.getAbsoluteIndex());
-		slot.setCustomData(customData);
-	}
-
-	private static Field resolveSelectedSlotField() {
-		try {
-			Field field = PlayerInteractionControlManager.class.getDeclaredField("selectedSlot");
-			field.setAccessible(true);
-			return field;
-		} catch(Exception exception) {
-			return null;
-		}
 	}
 }
