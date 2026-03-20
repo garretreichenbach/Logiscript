@@ -117,10 +117,73 @@ public class Shipyard extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public void sendCommand(String command, Object... args) {
-		if(isShipyard() && isFinished() && getManagedSegmentController().isOnServer()) {
-			ShipyardCollectionManager.ShipyardCommandType type = ShipyardCollectionManager.ShipyardCommandType.valueOf(command.toUpperCase(Locale.ENGLISH).replaceAll(" ", "_"));
-			if(type.args.length == args.length) getCollectionManager().handleShipyardCommandOnServer(getManagedSegmentController().getFactionId(), type, args);
+		if(!isShipyard()) {
+			throw new IllegalStateException("Shipyard system is not available on this entity");
 		}
+		if(!isFinished()) {
+			throw new IllegalStateException("Shipyard commands require the current build or refit to be finished");
+		}
+		if(!getManagedSegmentController().isOnServer()) {
+			throw new IllegalStateException("Shipyard commands can only be sent on the server");
+		}
+
+		ShipyardCollectionManager.ShipyardCommandType type = resolveCommandType(command);
+		Object[] providedArgs = args == null ? new Object[0] : args;
+		int expectedArgCount = type.args == null ? 0 : type.args.length;
+		if(expectedArgCount != providedArgs.length) {
+			throw new IllegalArgumentException("Shipyard command '" + type.name() + "' expects " + expectedArgCount + " args (" + getExpectedArgs(type) + ") but received " + providedArgs.length);
+		}
+
+		getCollectionManager().handleShipyardCommandOnServer(getManagedSegmentController().getFactionId(), type, providedArgs);
+	}
+
+	private static ShipyardCollectionManager.ShipyardCommandType resolveCommandType(String command) {
+		if(command == null || command.trim().isEmpty()) {
+			throw new IllegalArgumentException("Shipyard command name is required");
+		}
+
+		String normalized = command.trim().toUpperCase(Locale.ENGLISH).replaceAll("\\s+", "_");
+		try {
+			return ShipyardCollectionManager.ShipyardCommandType.valueOf(normalized);
+		} catch(IllegalArgumentException exception) {
+			throw new IllegalArgumentException("Unknown shipyard command '" + command + "'. Allowed commands: " + getAllowedCommandNames(), exception);
+		}
+	}
+
+	private static String getAllowedCommandNames() {
+		StringBuilder builder = new StringBuilder();
+		for(ShipyardCollectionManager.ShipyardCommandType type : ShipyardCollectionManager.ShipyardCommandType.values()) {
+			if(builder.length() > 0) {
+				builder.append(", ");
+			}
+			builder.append(type.name());
+		}
+		return builder.toString();
+	}
+
+	private static String getExpectedArgs(ShipyardCollectionManager.ShipyardCommandType type) {
+		if(type.args == null || type.args.length == 0) {
+			return "none";
+		}
+
+		StringBuilder builder = new StringBuilder();
+		for(Class<?> argType : type.args) {
+			if(builder.length() > 0) {
+				builder.append(", ");
+			}
+			builder.append(formatArgType(argType));
+		}
+		return builder.toString();
+	}
+
+	private static String formatArgType(Class<?> argType) {
+		if(argType == null) {
+			return "Object";
+		}
+		if(argType.isArray()) {
+			return formatArgType(argType.getComponentType()) + "[]";
+		}
+		return argType.getSimpleName();
 	}
 
 	private Boolean isShipyard() {

@@ -28,19 +28,23 @@ Returns the exact current AI target preference name as a string.
 - `setTargetType(type: String)`
 Changes the AI target preference to `type`.
 
+Common built-in values for `type` are `Any`, `Selected Target`, `Ships`, `Stations`, `Missiles`, `Astronauts`, and `Asteroids`.
+
+`setTargetType(type)` always expects a `String`. The running game may also provide additional custom target type names through `CustomAITargetUtil`.
+
 ## Target type names
 
 These built-in target type names are present in the current StarMade build used by Logiscript:
 
-| Target type | Notes |
-| --- | --- |
-| `Any` | Default catch-all target preference |
-| `Selected Target` | Use the currently selected target |
-| `Ships` | Prefer ship targets |
-| `Stations` | Prefer station targets |
-| `Missiles` | Prefer missile targets |
-| `Astronauts` | Prefer astronaut targets |
-| `Asteroids` | Prefer asteroid targets |
+| Target type | Expected arg type | Notes |
+| --- | --- | --- |
+| `Any` | `String` | Default catch-all target preference |
+| `Selected Target` | `String` | Use the currently selected target |
+| `Ships` | `String` | Prefer ship targets |
+| `Stations` | `String` | Prefer station targets |
+| `Missiles` | `String` | Prefer missile targets |
+| `Astronauts` | `String` | Prefer astronaut targets |
+| `Asteroids` | `String` | Prefer asteroid targets |
 
 StarMade also appends any custom AI target program names registered through `CustomAITargetUtil`, so `getTargetType()` may return additional names and `setTargetType(type)` can accept them when they are present in the running build.
 

@@ -34,6 +34,17 @@ Returns the active `FleetCommand` payload.
 - `setCurrentCommand(command: String, ...)`
 Sends a raw command by enum name with optional extra arguments. Only client-accessible StarMade fleet enums are accepted. Internal-only enums are rejected. Typed command methods below are preferred.
 
+Expected argument shapes for the most useful raw commands:
+
+- `MOVE_FLEET(command, sector)` expects `sector: LuaVec3i`.
+- `PATROL_FLEET(command, sectors)` expects `sectors: LuaVec3i[]`.
+- `FLEET_ATTACK(command, sector)` expects `sector: LuaVec3i`.
+- `FLEET_DEFEND(command, sector)` expects `sector: LuaVec3i`.
+- `ACTIVATE_REMOTE(command, remoteId, enabled)` expects `remoteId: String` and `enabled: Boolean`.
+- Most other client-accessible fleet commands take no extra arguments.
+
+See `FleetCommand` for the full upstream enum and argument signature table.
+
 ## Movement commands
 
 - `moveToSector(sector: LuaVec3i)`
