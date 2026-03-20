@@ -150,7 +150,9 @@ public class Inventory extends LuaMadeUserdata {
 			inventory.sendAll();
 			to.inventory.sendAll();
 			return true;
-		} else return false;
+		} else {
+			return false;
+		}
 	}
 
 	@LuaMadeCallable
