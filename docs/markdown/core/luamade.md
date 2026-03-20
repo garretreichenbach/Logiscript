@@ -70,6 +70,12 @@ Sandboxed loaders are available and constrained:
 - `load(source)` loads an in-memory Lua chunk.
 - `require("module.name")` loads modules using strict sandbox rules.
 
+Path policy:
+
+- `dofile` and `loadfile` can load any `.lua` file path inside the computer sandbox (for example `/home`, `/bin`,
+  `/etc`, `/lib`).
+- `require` is for reusable libraries and searches library roots only.
+
 `require` rules:
 
 - Module names must be lowercase dot notation with `[a-z0-9_]` segments (for example `myteam.math`).
@@ -77,6 +83,7 @@ Sandboxed loaders are available and constrained:
 - Filesystem search checks player library roots first: `/lib/<module>.lua`, `/etc/lib/<module>.lua`.
 - For allowlisted names, `require` can also load bundled libs from `/scripts/lib/<module>.lua`.
 - Loaded modules are cached in `package.loaded`; modules returning `nil` are cached as `true`.
+- Cyclic loads are blocked with a recursion guard (`require("a")` -> `require("a")`).
 
 Allowlisted module names are loaded from:
 

@@ -158,8 +158,17 @@ Scripts executed in the terminal have access to these global variables:
 - `net` - Network API
 - `util` - Built-in Lua utility library with native timing helpers
 - `json` - Built-in JSON encode/decode library
-- `vector` - Built-in Lua vector helper library
+- `package` - Sandboxed package table (`loaded`, `preload`, `path`, `cpath`)
 - `args` - Table of command-line arguments
+
+Module loading notes:
+
+- `dofile(path, ...)` and `loadfile(path)` support any `.lua` path inside the computer sandbox (for example `/home`,
+  `/bin`, `/etc`, `/lib`).
+- `load(source[, chunkname])` compiles in-memory source in the same sandbox (text chunks only).
+- `require("module.name")` is library-oriented and searches `/lib` and `/etc/lib` first.
+- For allowlisted module names, `require` may also load bundled libs from `/scripts/lib`.
+- `require` caches modules in `package.loaded` and blocks recursive self-load loops.
 
 Runtime behavior notes:
 
@@ -211,9 +220,10 @@ Wrapper usage:
 
 ### Vector Library
 
-Access vector helpers through the `vector` global variable:
+Load vector helpers through the module loader:
 
 ```lua
+vector = require("vector")
 v = vector.new(1, 2, 3)
 v:add({ x = 4, y = 5, z = 6 })
 length = v:length()

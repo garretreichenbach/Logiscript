@@ -33,6 +33,8 @@ public class Terminal extends LuaMadeUserdata {
 	private static final String DEFAULT_PROMPT_TEMPLATE = "{name}:{dir} $ ";
 	private static final Pattern SAFE_REQUIRE_MODULE_PATTERN = Pattern.compile("[a-z0-9_]+(?:\\.[a-z0-9_]+)*");
 	private static final List<String> REQUIRE_LIBRARY_ROOTS = Arrays.asList("/lib", "/etc/lib");
+	private static final int MAX_LOADER_SOURCE_CHARS = 262_144;
+	private static final LuaValue REQUIRE_LOADING_SENTINEL = valueOf("__luamade_require_loading__");
 
 	private final ComputerModule module;
 	private final Console console;
@@ -501,11 +503,11 @@ public class Terminal extends LuaMadeUserdata {
 
 		String trimmed = commandOrPath.trim();
 		String normalized = fileSystem.normalizePath(trimmed);
-		if(isLuaFile(normalized)) {
+		if(looksLikeLuaScript(trimmed) && isLuaFile(normalized)) {
 			return normalized;
 		}
 
-		if(!trimmed.endsWith(".lua")) {
+		if(!looksLikeLuaScript(trimmed)) {
 			String normalizedWithExt = fileSystem.normalizePath(trimmed + ".lua");
 			if(isLuaFile(normalizedWithExt)) {
 				return normalizedWithExt;
@@ -513,14 +515,15 @@ public class Terminal extends LuaMadeUserdata {
 		}
 
 		if(!trimmed.startsWith("/")) {
-			String binCandidate = fileSystem.normalizePath("/bin/" + trimmed);
-			if(isLuaFile(binCandidate)) {
-				return binCandidate;
-			}
-			if(!trimmed.endsWith(".lua")) {
+			if(!looksLikeLuaScript(trimmed)) {
 				String binCandidateWithExt = fileSystem.normalizePath("/bin/" + trimmed + ".lua");
 				if(isLuaFile(binCandidateWithExt)) {
 					return binCandidateWithExt;
+				}
+			} else {
+				String binCandidate = fileSystem.normalizePath("/bin/" + trimmed);
+				if(isLuaFile(binCandidate)) {
+					return binCandidate;
 				}
 			}
 		}
@@ -529,7 +532,11 @@ public class Terminal extends LuaMadeUserdata {
 	}
 
 	private boolean isLuaFile(String path) {
-		return path != null && fileSystem.exists(path) && !fileSystem.isDir(path);
+		return looksLikeLuaScript(path) && fileSystem.exists(path) && !fileSystem.isDir(path);
+	}
+
+	private boolean looksLikeLuaScript(String path) {
+		return path != null && path.toLowerCase(Locale.ROOT).endsWith(".lua");
 	}
 
 	private List<String> parseCommandTokens(String input) {
@@ -658,23 +665,19 @@ public class Terminal extends LuaMadeUserdata {
 				String path = vargs.arg1().tojstring();
 				String resolvedPath = resolveScriptPath(path);
 				if(resolvedPath == null) {
-					console.print(valueOf("Error: dofile could not resolve script: " + path));
-					return NIL;
+					throw new LuaError("dofile could not resolve script: " + path);
 				}
 
 				String script = fileSystem.read(resolvedPath);
 				if(script == null) {
-					console.print(valueOf("Error: Could not read script file: " + resolvedPath));
-					return NIL;
+					throw new LuaError("Could not read script file: " + resolvedPath);
 				}
 
-				List<String> args = new ArrayList<>();
-				for(int i = 2; i <= vargs.narg(); i++) {
-					args.add(vargs.arg(i).tojstring());
+				LuaValue chunk = compileLuaChunk(globals, script, resolvedPath, context);
+				if(context != null) {
+					context.throwIfCancellationRequested();
 				}
-
-				boolean success = executeScript(resolvedPath, script, args);
-				return success ? TRUE : FALSE;
+				return chunk.invoke(vargs.subargs(2));
 			}
 		});
 		globals.set("loadfile", new VarArgFunction() {
@@ -693,19 +696,10 @@ public class Terminal extends LuaMadeUserdata {
 
 				String script = fileSystem.read(resolvedPath);
 				if(script == null) {
-					console.print(valueOf("Error: Could not read script file: " + resolvedPath));
-					return NIL;
+					throw new LuaError("Could not read script file: " + resolvedPath);
 				}
 
-				try {
-					return globals.load(script, resolvedPath);
-				} catch(LuaError error) {
-					console.print(valueOf("Lua error loading script in loadfile: " + error.getMessage()));
-					return NIL;
-				} catch(Exception exception) {
-					console.print(valueOf("Error loading script in loadfile: " + exception.getMessage()));
-					return NIL;
-				}
+				return compileLuaChunk(globals, script, resolvedPath, context);
 			}
 		});
 		globals.set("load", new VarArgFunction() {
@@ -716,15 +710,8 @@ public class Terminal extends LuaMadeUserdata {
 				}
 
 				String script = vargs.arg1().tojstring();
-				try {
-					return globals.load(script, "chunk");
-				} catch(LuaError error) {
-					console.print(valueOf("Lua error loading script in load: " + error.getMessage()));
-					return NIL;
-				} catch(Exception exception) {
-					console.print(valueOf("Error loading script in load: " + exception.getMessage()));
-					return NIL;
-				}
+				String chunkName = vargs.narg() >= 2 && vargs.arg(2).isstring() ? vargs.arg(2).tojstring() : "chunk";
+				return compileLuaChunk(globals, script, chunkName, context);
 			}
 		});
 		LuaTable sandboxPackage = createSandboxedPackageTable();
@@ -791,15 +778,24 @@ public class Terminal extends LuaMadeUserdata {
 
 				LuaValue alreadyLoaded = loaded.get(moduleName);
 				if(!alreadyLoaded.isnil()) {
+					if(alreadyLoaded == REQUIRE_LOADING_SENTINEL) {
+						throw new LuaError("recursive require detected for module: " + moduleName);
+					}
 					return alreadyLoaded;
 				}
 
 				LuaValue preloaded = preload.get(moduleName);
 				if(preloaded.isfunction()) {
-					LuaValue result = preloaded.call(valueOf(moduleName));
-					LuaValue stored = result.isnil() ? TRUE : result;
-					loaded.set(moduleName, stored);
-					return stored;
+					loaded.set(moduleName, REQUIRE_LOADING_SENTINEL);
+					try {
+						LuaValue result = preloaded.call(valueOf(moduleName));
+						LuaValue stored = result.isnil() ? TRUE : result;
+						loaded.set(moduleName, stored);
+						return stored;
+					} catch(Exception exception) {
+						loaded.set(moduleName, NIL);
+						throw exception;
+					}
 				}
 
 				String modulePath = resolveRequireModulePath(moduleName);
@@ -816,12 +812,36 @@ public class Terminal extends LuaMadeUserdata {
 					throw new LuaError("module unreadable: " + moduleName);
 				}
 
-				LuaValue result = globals.load(source, modulePath).call();
-				LuaValue stored = result.isnil() ? TRUE : result;
-				loaded.set(moduleName, stored);
-				return stored;
+				loaded.set(moduleName, REQUIRE_LOADING_SENTINEL);
+				try {
+					LuaValue chunk = compileLuaChunk(globals, source, modulePath, context);
+					LuaValue result = chunk.call();
+					LuaValue stored = result.isnil() ? TRUE : result;
+					loaded.set(moduleName, stored);
+					return stored;
+				} catch(Exception exception) {
+					loaded.set(moduleName, NIL);
+					throw exception;
+				}
 			}
 		};
+	}
+
+	private LuaValue compileLuaChunk(Globals globals, String source, String chunkName, ScriptExecutionContext context) {
+		if(source == null) {
+			throw new LuaError("no source provided");
+		}
+		if(source.length() > MAX_LOADER_SOURCE_CHARS) {
+			throw new LuaError("chunk exceeds maximum size of " + MAX_LOADER_SOURCE_CHARS + " characters");
+		}
+		if(!source.isEmpty() && source.charAt(0) == '\u001b') {
+			throw new LuaError("binary chunks are not supported in sandbox");
+		}
+		if(context != null) {
+			context.throwIfCancellationRequested();
+		}
+
+		return globals.load(source, chunkName == null || chunkName.trim().isEmpty() ? "chunk" : chunkName);
 	}
 
 	private String normalizeRequireModuleName(LuaValue moduleNameValue) {
