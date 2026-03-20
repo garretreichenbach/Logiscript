@@ -38,6 +38,9 @@ Negates all components. Mutates and returns `self`.
 - `size()`
 Returns the Euclidean length as a `Double`.
 
+- `toVec3f()`
+Creates a `LuaVec3f` copy of the vector.
+
 ## LuaVec3f Reference
 
 - `getX()` / `getY()` / `getZ()`
@@ -70,8 +73,13 @@ Negates all components. Mutates and returns `self`.
 - `size()`
 Returns the Euclidean length as a `Double`.
 
+- `toVec3i()`
+Creates a `LuaVec3i` copy of the vector by truncating each component toward zero.
+
 ## Notes
 
 - All math operations mutate the vector in place and return `self` for chaining.
 - Use `vec3i(x, y, z)` to construct a new vector.
 - Use `vec3f(x, y, z)` for world-space vectors.
+- `LuaVec3i` can also be converted to `LuaVec3f` with `toVec3f()`.
+- `LuaVec3f` can also be converted to `LuaVec3i` with `toVec3i()`.

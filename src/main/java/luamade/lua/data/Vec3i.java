@@ -23,6 +23,10 @@ public class Vec3i extends LuaMadeUserdata {
         this(v.x, v.y, v.z);
     }
 
+    public Vec3i(Vec3f v) {
+        this((int) v.x, (int) v.y, (int) v.z);
+    }
+
     @LuaMadeCallable
     public Integer getX() {
         return x;
@@ -110,6 +114,11 @@ public class Vec3i extends LuaMadeUserdata {
     @LuaMadeCallable
     public Double size() {
         return Math.sqrt(x * x + y * y + z * z);
+    }
+
+    @LuaMadeCallable
+    public Vec3f toVec3f() {
+        return new Vec3f(x, y, z);
     }
 
     @Override

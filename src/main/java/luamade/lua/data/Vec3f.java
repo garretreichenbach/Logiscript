@@ -3,6 +3,7 @@ package luamade.lua.data;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import javax.vecmath.Vector3f;
+import org.schema.common.util.linAlg.Vector3i;
 
 public class Vec3f extends LuaMadeUserdata {
     public float x;
@@ -20,6 +21,14 @@ public class Vec3f extends LuaMadeUserdata {
     }
 
     public Vec3f(Vec3f v) {
+        this(v.x, v.y, v.z);
+    }
+
+    public Vec3f(Vec3i v) {
+        this(v.x, v.y, v.z);
+    }
+
+    public Vec3f(Vector3i v) {
         this(v.x, v.y, v.z);
     }
 
@@ -112,6 +121,11 @@ public class Vec3f extends LuaMadeUserdata {
     @LuaMadeCallable
     public Double size() {
         return Math.sqrt(x * x + y * y + z * z);
+    }
+
+    @LuaMadeCallable
+    public Vec3i toVec3i() {
+        return new Vec3i((int) x, (int) y, (int) z);
     }
 
     @Override
