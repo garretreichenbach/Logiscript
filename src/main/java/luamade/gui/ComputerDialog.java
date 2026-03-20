@@ -392,7 +392,17 @@ public class ComputerDialog extends PlayerInput {
 					userIsTyping = !currentInputLine.isEmpty();
 				}
 
-				consolePane.setTextWithoutCallback(lastModuleContent);
+				try {
+					Field cacheField = consolePane.getTextArea().getClass().getDeclaredField("cache");
+					cacheField.setAccessible(true);
+					cacheField.set(consolePane.getTextArea(), "");
+
+					Field lineIndex = consolePane.getTextArea().getClass().getDeclaredField("lineIndex");
+					lineIndex.setAccessible(true);
+					lineIndex.set(consolePane.getTextArea(), 10000);
+				} catch(Exception exception) {
+					exception.printStackTrace();
+				}
 				refreshPromptStartPositionFromCurrentText();
 				clampCaretToEditableRegion();
 				scrollPaneToCursor();
