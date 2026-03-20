@@ -34,6 +34,10 @@ public class Terminal extends LuaMadeUserdata {
 	private static final Pattern SAFE_REQUIRE_MODULE_PATTERN = Pattern.compile("[a-z0-9_]+(?:\\.[a-z0-9_]+)*");
 	private static final List<String> REQUIRE_LIBRARY_ROOTS = Arrays.asList("/lib", "/etc/lib");
 	private static final int MAX_LOADER_SOURCE_CHARS = 262_144;
+	private static final String CLIPBOARD_BUNDLE_HEADER = "LOGISCRIPT_CLIPBOARD_V1";
+	private static final int CLIPBOARD_IMPORT_MAX_FILES = 128;
+	private static final int CLIPBOARD_IMPORT_MAX_FILE_CHARS = 1_000_000;
+	private static final int CLIPBOARD_IMPORT_MAX_TOTAL_CHARS = 8_000_000;
 	private static final LuaValue REQUIRE_LOADING_SENTINEL = valueOf("__luamade_require_loading__");
 
 	private final ComputerModule module;
@@ -62,7 +66,7 @@ public class Terminal extends LuaMadeUserdata {
 		this.module = module;
 		this.console = console;
 		this.fileSystem = fileSystem;
-		this.packageManagerService = new PackageManagerService(fileSystem, console);
+		packageManagerService = new PackageManagerService(fileSystem, console);
 		maxParallelSlots = ConfigManager.getScriptMaxParallel();
 		scriptSlots = new Semaphore(maxParallelSlots, true);
 		scriptExecutor = Executors.newCachedThreadPool(new ScriptThreadFactory("luamade-script"));
@@ -1335,6 +1339,236 @@ public class Terminal extends LuaMadeUserdata {
 		}
 		console.print(valueOf("^C"));
 		return true;
+	}
+
+	/**
+	 * Attempts to parse and import a versioned clipboard text bundle.
+	 * Returns false when the clipboard text does not match the bundle header.
+	 */
+	public boolean importClipboardProtocol(String clipboardText, boolean overwriteExisting) {
+		LinkedHashMap<String, String> parsed = parseClipboardBundle(clipboardText);
+		if(parsed == null) {
+			return false;
+		}
+
+		if(parsed.isEmpty()) {
+			console.print(valueOf("Clipboard bundle contains no files"));
+			return true;
+		}
+
+		importClipboardEntries(parsed, overwriteExisting, "clipboard bundle");
+		return true;
+	}
+
+	/**
+	 * Imports host-provided file payloads into the terminal's current directory.
+	 */
+	public boolean importClipboardFiles(Map<String, String> files, boolean overwriteExisting, String sourceLabel) {
+		if(files == null || files.isEmpty()) {
+			return false;
+		}
+		importClipboardEntries(new LinkedHashMap<>(files), overwriteExisting, sourceLabel == null ? "clipboard" : sourceLabel);
+		return true;
+	}
+
+	private LinkedHashMap<String, String> parseClipboardBundle(String clipboardText) {
+		if(clipboardText == null) {
+			return null;
+		}
+
+		String normalized = clipboardText.replace("\r\n", "\n").replace('\r', '\n');
+		String[] lines = normalized.split("\n");
+		if(lines.length == 0 || !CLIPBOARD_BUNDLE_HEADER.equals(lines[0].trim())) {
+			return null;
+		}
+
+		LinkedHashMap<String, String> files = new LinkedHashMap<>();
+		for(int i = 1; i < lines.length; i++) {
+			String line = lines[i] == null ? "" : lines[i].trim();
+			if(line.isEmpty() || line.startsWith("#")) {
+				continue;
+			}
+
+			if(!line.startsWith("FILE ")) {
+				console.print(valueOf("Clipboard bundle parse error at line " + (i + 1) + ": expected FILE entry"));
+				return new LinkedHashMap<>();
+			}
+
+			String payload = line.substring(5).trim();
+			int splitIndex = payload.indexOf(' ');
+			if(splitIndex <= 0 || splitIndex >= payload.length() - 1) {
+				console.print(valueOf("Clipboard bundle parse error at line " + (i + 1) + ": malformed FILE entry"));
+				return new LinkedHashMap<>();
+			}
+
+			String encodedPath = payload.substring(0, splitIndex).trim();
+			String encodedContent = payload.substring(splitIndex + 1).trim();
+			try {
+				String path = new String(Base64.getDecoder().decode(encodedPath), StandardCharsets.UTF_8);
+				String content = new String(Base64.getDecoder().decode(encodedContent), StandardCharsets.UTF_8);
+				files.put(path, content);
+			} catch(IllegalArgumentException exception) {
+				console.print(valueOf("Clipboard bundle parse error at line " + (i + 1) + ": invalid base64"));
+				return new LinkedHashMap<>();
+			}
+		}
+
+		return files;
+	}
+
+	private void importClipboardEntries(LinkedHashMap<String, String> files, boolean overwriteExisting, String sourceLabel) {
+		if(files == null || files.isEmpty()) {
+			return;
+		}
+
+		String baseDir = fileSystem.getCurrentDir();
+		int imported = 0;
+		int skipped = 0;
+		int failed = 0;
+		int totalChars = 0;
+
+		if(files.size() > CLIPBOARD_IMPORT_MAX_FILES) {
+			console.print(valueOf("Error: Clipboard payload has too many files (max " + CLIPBOARD_IMPORT_MAX_FILES + ")"));
+			return;
+		}
+
+		for(Map.Entry<String, String> entry : files.entrySet()) {
+			String relativePath = sanitizeClipboardRelativePath(entry.getKey());
+			if(relativePath == null) {
+				failed++;
+				continue;
+			}
+
+			String content = entry.getValue();
+			if(content == null) {
+				content = "";
+			}
+
+			if(content.length() > CLIPBOARD_IMPORT_MAX_FILE_CHARS) {
+				console.print(valueOf("Skipped " + relativePath + " (file too large)"));
+				skipped++;
+				continue;
+			}
+
+			totalChars += content.length();
+			if(totalChars > CLIPBOARD_IMPORT_MAX_TOTAL_CHARS) {
+				console.print(valueOf("Stopped import: clipboard payload exceeds size limit"));
+				break;
+			}
+
+			String destination = fileSystem.normalizePath(baseDir + "/" + relativePath);
+			if(fileSystem.exists(destination) && fileSystem.isDir(destination)) {
+				console.print(valueOf("Skipped " + relativePath + " (destination is a directory)"));
+				skipped++;
+				continue;
+			}
+
+			if(fileSystem.exists(destination) && !overwriteExisting) {
+				skipped++;
+				continue;
+			}
+
+			if(!ensureParentDirectoryExists(destination)) {
+				console.print(valueOf(fsErrorOr("Error: Could not create parent directory for " + relativePath)));
+				failed++;
+				continue;
+			}
+
+			if(fileSystem.write(destination, content)) {
+				imported++;
+			} else {
+				console.print(valueOf(fsErrorOr("Error: Could not write " + relativePath)));
+				failed++;
+			}
+		}
+
+		StringBuilder summary = new StringBuilder();
+		summary.append("Imported ").append(imported).append(imported == 1 ? " file" : " files")
+				.append(" from ").append(sourceLabel == null ? "clipboard" : sourceLabel)
+				.append(" into ").append(baseDir);
+		if(skipped > 0) {
+			summary.append(" (skipped ").append(skipped).append(')');
+		}
+		if(failed > 0) {
+			summary.append(" (failed ").append(failed).append(')');
+		}
+		console.print(valueOf(summary.toString()));
+	}
+
+	private boolean ensureParentDirectoryExists(String normalizedFilePath) {
+		if(normalizedFilePath == null || normalizedFilePath.isEmpty() || "/".equals(normalizedFilePath)) {
+			return false;
+		}
+
+		int slashIndex = normalizedFilePath.lastIndexOf('/');
+		if(slashIndex <= 0) {
+			return true;
+		}
+
+		String parent = normalizedFilePath.substring(0, slashIndex);
+		if(parent.isEmpty() || "/".equals(parent)) {
+			return true;
+		}
+
+		if(fileSystem.exists(parent)) {
+			return fileSystem.isDir(parent);
+		}
+
+		String[] segments = parent.substring(1).split("/");
+		String current = "";
+		for(String segment : segments) {
+			if(segment == null || segment.isEmpty()) {
+				continue;
+			}
+			current += "/" + segment;
+			if(fileSystem.exists(current)) {
+				if(!fileSystem.isDir(current)) {
+					return false;
+				}
+				continue;
+			}
+			if(!fileSystem.makeDir(current)) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private String sanitizeClipboardRelativePath(String rawPath) {
+		if(rawPath == null) {
+			console.print(valueOf("Skipped clipboard entry with empty path"));
+			return null;
+		}
+
+		String normalized = rawPath.trim().replace('\\', '/');
+		while(normalized.startsWith("/")) {
+			normalized = normalized.substring(1);
+		}
+		if(normalized.isEmpty()) {
+			console.print(valueOf("Skipped clipboard entry with empty path"));
+			return null;
+		}
+
+		String[] segments = normalized.split("/");
+		List<String> safeSegments = new ArrayList<>();
+		for(String segment : segments) {
+			if(segment == null || segment.isEmpty() || ".".equals(segment)) {
+				continue;
+			}
+			if("..".equals(segment)) {
+				console.print(valueOf("Skipped " + normalized + " (path traversal is not allowed)"));
+				return null;
+			}
+			safeSegments.add(segment);
+		}
+
+		if(safeSegments.isEmpty()) {
+			console.print(valueOf("Skipped clipboard entry with empty path"));
+			return null;
+		}
+
+		return joinTokens(safeSegments, 0).replace(' ', '/');
 	}
 
 	private List<String> collectCommandSuggestionCandidates() {

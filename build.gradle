@@ -35,6 +35,10 @@ repositories {
 dependencies {
     implementation "org.commonmark:commonmark:0.21.0"
     implementation 'org.lz4:lz4-java:1.8.1'
+    // Bundle our own LuaJ so the jar is not dependent on whichever (older)
+    // version StarMade ships. duplicatesStrategy(EXCLUDE) in the jar task
+    // ensures our copy wins when the fat-jar is assembled.
+    implementation 'org.luaj:luaj-jse:3.0.1'
     compileOnly(files(starmadeJar))
     compileOnly(fileTree(dir: starmadeLibDir, include: "*.jar"))
 }
@@ -106,7 +110,7 @@ tasks.register("updateVersion") {
 jar {
     dependsOn("updateVersion")
     duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
-    //destinationDirectory.set(file(starmadeDirectory + "mods"))
+    destinationDirectory.set(file(starmadeDirectory + "mods"))
     archiveFileName = modName + 'v' + getVersion() + '.jar'
     manifest.attributes('Main-Class': mainClassName)
     from {

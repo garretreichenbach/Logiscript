@@ -5,15 +5,15 @@ function gfxlib.pack(r, g, b, a)
     local gg = math.max(0, math.min(255, math.floor((g or 0) + 0.5)))
     local bb = math.max(0, math.min(255, math.floor((b or 0) + 0.5)))
     local aa = math.max(0, math.min(255, math.floor((a or 255) + 0.5)))
-    return ((rr << 24) | (gg << 16) | (bb << 8) | aa)
+    return bit32.bor(bit32.lshift(rr, 24), bit32.lshift(gg, 16), bit32.lshift(bb, 8), aa)
 end
 
 function gfxlib.unpack(color)
     local value = color or 0
-    local r = (value >> 24) & 0xFF
-    local g = (value >> 16) & 0xFF
-    local b = (value >> 8) & 0xFF
-    local a = value & 0xFF
+    local r = bit32.band(bit32.rshift(value, 24), 0xFF)
+    local g = bit32.band(bit32.rshift(value, 16), 0xFF)
+    local b = bit32.band(bit32.rshift(value, 8), 0xFF)
+    local a = bit32.band(value, 0xFF)
     return r, g, b, a
 end
 
