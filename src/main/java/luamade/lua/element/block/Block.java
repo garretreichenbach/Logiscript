@@ -29,7 +29,7 @@ public class Block extends LuaMadeUserdata {
     }
 
     public Block(SegmentPiece piece, ComputerModule module) {
-        this.segmentPiece = piece;
+        segmentPiece = piece;
         this.module = module;
     }
 
@@ -114,7 +114,7 @@ public class Block extends LuaMadeUserdata {
     @LuaMadeCallable
     public Vec3f getWorldPos() {
         Transform transform = new Transform();
-        segmentPiece.getWorldTransform(transform);
+        segmentPiece.getTransform(transform);
         return new Vec3f(transform.origin);
     }
 

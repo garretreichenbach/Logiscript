@@ -18,8 +18,8 @@ import luamade.system.module.ComputerModuleContainer;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementCollection;
-import org.schema.schine.graphicsengine.core.MouseEvent;
 import org.schema.schine.graphicsengine.core.GLFW;
+import org.schema.schine.graphicsengine.core.MouseEvent;
 import org.schema.schine.input.Keyboard;
 
 import java.lang.reflect.Method;
@@ -52,7 +52,7 @@ public class EventManager {
 						event.setCanceled(true);
 						return;
 					}
-					if(RemoteSessionManager.forwardKeyEvent(event.getGlfwKey(), event.getCharacter(), event.isDown(), event.isShiftDown(), event.isCtrlDown(), event.isAltDown())) {
+					if(RemoteSessionManager.forwardKeyEvent(event.getKey(), event.getChar(), event.isKeyDown(), (Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RSHIFT)), (Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RCONTROL)), (Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LMETA) || Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RMETA)))) {
 						event.setCanceled(true);
 						return;
 					}
