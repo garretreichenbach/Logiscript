@@ -23,10 +23,26 @@ Sets the combat/aim target. The target must be in the same or an adjacent sector
 Returns the current target as `RemoteEntity`, or `nil` when no target is set.
 
 - `getTargetType()`
-Returns the current target preference as a string (e.g. `"ENEMY"`, `"FRIENDLY"`).
+Returns the exact current AI target preference name as a string.
 
 - `setTargetType(type: String)`
 Changes the AI target preference to `type`.
+
+## Target type names
+
+These built-in target type names are present in the current StarMade build used by Logiscript:
+
+| Target type | Notes |
+| --- | --- |
+| `Any` | Default catch-all target preference |
+| `Selected Target` | Use the currently selected target |
+| `Ships` | Prefer ship targets |
+| `Stations` | Prefer station targets |
+| `Missiles` | Prefer missile targets |
+| `Astronauts` | Prefer astronaut targets |
+| `Asteroids` | Prefer asteroid targets |
+
+StarMade also appends any custom AI target program names registered through `CustomAITargetUtil`, so `getTargetType()` may return additional names and `setTargetType(type)` can accept them when they are present in the running build.
 
 - `moveToPos(pos: LuaVec3i)`
 Commands the AI to move toward world block position `pos`.

@@ -35,4 +35,24 @@ Returns the resources currently loaded into the shipyard as `ItemStack[]`.
 Returns the difference between required and current resources as `ItemStack[]`.
 
 - `sendCommand(command: String, ...)`
-Sends a shipyard server command when the build is finished. Valid commands include `"BUILD"`, `"CANCEL"`, and others defined by the server.
+Sends a shipyard server command when the build is finished.
+
+## Command names
+
+These are the `ShipyardCommandType` enum names present in the current StarMade build used by Logiscript:
+
+| Command name | Notes |
+| --- | --- |
+| `CREATE_NEW_DESIGN` | Create a new shipyard design |
+| `UNLOAD_DESIGN` | Unload the current design |
+| `LOAD_DESIGN` | Load an existing design |
+| `DECONSTRUCT` | Deconstruct the docked ship |
+| `DECONSTRUCT_RECYCLE` | Deconstruct and recycle materials |
+| `SPAWN_DESIGN` | Spawn the active design |
+| `CATALOG_TO_DESIGN` | Load from catalog into design state |
+| `BLUEPRINT_TO_DESIGN` | Load from blueprint into design state |
+| `DESIGN_TO_BLUEPRINT` | Save the current design as a blueprint |
+| `TEST_DESIGN` | Spawn/test the current design |
+| `REPAIR_FROM_DESIGN` | Repair from the active design |
+
+`sendCommand(command, ...)` expects one of these exact enum names.
