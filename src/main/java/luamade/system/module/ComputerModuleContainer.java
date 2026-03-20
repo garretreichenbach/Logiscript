@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ComputerModuleContainer extends SystemModule {
 
-	private final byte VERSION = 7;
+	private final byte VERSION = 8;
 	private static final Set<ComputerModuleContainer> ACTIVE_CONTAINERS = ConcurrentHashMap.newKeySet();
 	private final Long2ObjectOpenHashMap<ComputerModule> computerModules = new Long2ObjectOpenHashMap<>();
 	private final Long2ObjectOpenHashMap<PendingModuleState> pendingModuleStates = new Long2ObjectOpenHashMap<>();
@@ -129,6 +129,7 @@ public class ComputerModuleContainer extends SystemModule {
 			buffer.writeString(safeString(state.displayName));
 			buffer.writeString(safeString(state.lastDocsTopicPath));
 			buffer.writeString(safeString(state.scrollMode));
+			buffer.writeByte(state.forwardEnterWhileMasked ? (byte) 1 : (byte) 0);
 
 			Set<String> collapsedSections = state.collapsedDocsSections == null ? new HashSet<String>() : state.collapsedDocsSections;
 			buffer.writeInt(collapsedSections.size());
@@ -180,6 +181,7 @@ public class ComputerModuleContainer extends SystemModule {
 				String displayName = version >= 2 ? buffer.readString() : "";
 				String lastDocsTopicPath = version >= 3 ? buffer.readString() : "";
 				String scrollMode = version >= 7 ? buffer.readString() : ComputerModule.ScrollMode.VERTICAL.name();
+				boolean forwardEnterWhileMasked = version < 8 || buffer.readByte() != 0;
 				Set<String> collapsedDocsSections = new HashSet<>();
 				if(version >= 4) {
 					int collapsedCount = buffer.readInt();
@@ -188,7 +190,7 @@ public class ComputerModuleContainer extends SystemModule {
 					}
 				}
 
-				pendingModuleStates.put(abs, new PendingModuleState(stableUUID, modeOrdinal, lastOpenFile, savedTerminalInput, hostname, displayName, lastDocsTopicPath, scrollMode, collapsedDocsSections));
+				pendingModuleStates.put(abs, new PendingModuleState(stableUUID, modeOrdinal, lastOpenFile, savedTerminalInput, hostname, displayName, lastDocsTopicPath, scrollMode, forwardEnterWhileMasked, collapsedDocsSections));
 			}
 			// Do NOT call restorePendingModules() here – the segment buffer may not be
 			// fully populated yet during deserialization.  handle(Timer) will pick it up.
@@ -325,7 +327,7 @@ public class ComputerModuleContainer extends SystemModule {
 			mode = modes[state.modeOrdinal];
 		}
 
-		module.restoreSerializedState(mode, state.lastOpenFile, state.savedTerminalInput, state.hostname, state.displayName, state.lastDocsTopicPath, state.collapsedDocsSections, state.scrollMode);
+		module.restoreSerializedState(mode, state.lastOpenFile, state.savedTerminalInput, state.hostname, state.displayName, state.lastDocsTopicPath, state.collapsedDocsSections, state.scrollMode, state.forwardEnterWhileMasked);
 	}
 
 	private String safeString(String value) {
@@ -341,9 +343,10 @@ public class ComputerModuleContainer extends SystemModule {
 		private final String displayName;
 		private final String lastDocsTopicPath;
 		private final String scrollMode;
+		private final boolean forwardEnterWhileMasked;
 		private final Set<String> collapsedDocsSections;
 
-		private PendingModuleState(String stableUUID, byte modeOrdinal, String lastOpenFile, String savedTerminalInput, String hostname, String displayName, String lastDocsTopicPath, String scrollMode, Set<String> collapsedDocsSections) {
+		private PendingModuleState(String stableUUID, byte modeOrdinal, String lastOpenFile, String savedTerminalInput, String hostname, String displayName, String lastDocsTopicPath, String scrollMode, boolean forwardEnterWhileMasked, Set<String> collapsedDocsSections) {
 			this.stableUUID = stableUUID == null ? "" : stableUUID;
 			this.modeOrdinal = modeOrdinal;
 			this.lastOpenFile = lastOpenFile;
@@ -352,12 +355,13 @@ public class ComputerModuleContainer extends SystemModule {
 			this.displayName = displayName;
 			this.lastDocsTopicPath = lastDocsTopicPath;
 			this.scrollMode = scrollMode == null || scrollMode.isEmpty() ? ComputerModule.ScrollMode.VERTICAL.name() : scrollMode;
+			this.forwardEnterWhileMasked = forwardEnterWhileMasked;
 			this.collapsedDocsSections = collapsedDocsSections == null ? new HashSet<>() : new HashSet<>(collapsedDocsSections);
 		}
 
 		private static PendingModuleState fromModule(ComputerModule module) {
 			if(module == null) {
-				return new PendingModuleState("", (byte) ComputerModule.ComputerMode.OFF.ordinal(), "", "", "", "", "", ComputerModule.ScrollMode.VERTICAL.name(), new HashSet<String>());
+				return new PendingModuleState("", (byte) ComputerModule.ComputerMode.OFF.ordinal(), "", "", "", "", "", ComputerModule.ScrollMode.VERTICAL.name(), true, new HashSet<String>());
 			}
 
 			return new PendingModuleState(
@@ -369,6 +373,7 @@ public class ComputerModuleContainer extends SystemModule {
 				module.getDisplayName(),
 				module.getLastDocsTopicPath(),
 					module.getScrollModeName(),
+					module.isMaskedEnterForwardingEnabled(),
 				module.getCollapsedDocsSections()
 			);
 		}

@@ -72,6 +72,10 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		updateVisibility();
 	}
 
+	public boolean isOverlayActive() {
+		return canvasEnabled && gfxApi != null && gfxApi.hasVisibleCommands();
+	}
+
 	@Override
 	public void onInit() {
 		releaseTrackedTexture();
@@ -463,8 +467,7 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 	}
 
 	private void updateVisibility() {
-		boolean hasVisibleCommands = gfxApi != null && gfxApi.hasVisibleCommands();
-		setInvisible(!canvasEnabled || !hasVisibleCommands);
+		setInvisible(!isOverlayActive());
 	}
 
 	private void trackTextureId() {

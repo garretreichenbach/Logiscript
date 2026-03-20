@@ -188,6 +188,8 @@ public class ComputerDialog extends PlayerInput {
 		private TerminalGfxOverlay terminalGfxOverlay;
 		private String lastEditorHintText = "";
 		private ComputerModule.ScrollMode appliedScrollMode;
+		private boolean terminalInputMaskedByGfx;
+		private String maskedTerminalInputSnapshot = "";
 		/** Reference to the content pane so we can adjust text-box height dynamically. */
 		private GUIContentPane mainContentPane;
 		/**
@@ -362,6 +364,59 @@ public class ComputerDialog extends PlayerInput {
 			}
 
 			appliedScrollMode = mode;
+		}
+
+		private void syncTerminalInputMaskingWithGfx() {
+			if(consolePane == null || computerModule == null) {
+				return;
+			}
+
+			if(isFileEditMode()) {
+				terminalInputMaskedByGfx = false;
+				maskedTerminalInputSnapshot = "";
+				return;
+			}
+
+			boolean overlayActive = terminalGfxOverlay != null && terminalGfxOverlay.isOverlayActive();
+			if(overlayActive) {
+				if(!terminalInputMaskedByGfx) {
+					maskedTerminalInputSnapshot = currentInputLine == null ? "" : currentInputLine;
+					terminalInputMaskedByGfx = true;
+				}
+
+				String moduleContent = computerModule.getLastTextContent();
+				lastModuleContent = moduleContent == null ? "" : moduleContent;
+
+				if(!Objects.equals(currentInputLine, maskedTerminalInputSnapshot)) {
+					currentInputLine = maskedTerminalInputSnapshot;
+					userIsTyping = !currentInputLine.isEmpty();
+				}
+
+				consolePane.setTextWithoutCallback(lastModuleContent);
+				refreshPromptStartPositionFromCurrentText();
+				clampCaretToEditableRegion();
+				scrollPaneToCursor();
+				return;
+			}
+
+			if(terminalInputMaskedByGfx) {
+				terminalInputMaskedByGfx = false;
+				currentInputLine = maskedTerminalInputSnapshot == null ? "" : maskedTerminalInputSnapshot;
+				userIsTyping = !currentInputLine.isEmpty();
+				consolePane.setTextWithoutCallback((lastModuleContent == null ? "" : lastModuleContent) + currentInputLine);
+				maskedTerminalInputSnapshot = "";
+				refreshPromptStartPositionFromCurrentText();
+				clampCaretToEditableRegion();
+				scrollPaneToCursor();
+			}
+		}
+
+		private boolean isTerminalInputMaskingActive() {
+			return !isFileEditMode() && terminalGfxOverlay != null && terminalGfxOverlay.isOverlayActive();
+		}
+
+		public boolean isTerminalInputMaskedByGfx() {
+			return isTerminalInputMaskingActive();
 		}
 
 		/** Returns the {@link ComputerModule} associated with this panel (may be null). */
@@ -1093,6 +1148,9 @@ public class ComputerDialog extends PlayerInput {
 			if(isFileEditMode()) {
 				return;
 			}
+			if(isTerminalInputMaskingActive()) {
+				return;
+			}
 			clearCommandSuggestions();
 
 			if(computerModule != null && computerModule.getTerminal() != null) {
@@ -1143,11 +1201,17 @@ public class ComputerDialog extends PlayerInput {
 
 				@Override
 				public void onTextEnter(String input, boolean b, boolean b1) {
+					if(isTerminalInputMaskingActive()) {
+						return;
+					}
 					executeCurrentInput();
 				}
 
 				@Override
 				public void newLine() {
+					if(isTerminalInputMaskingActive()) {
+						return;
+					}
 					executeCurrentInput();
 				}
 			}, input -> {
@@ -1155,6 +1219,12 @@ public class ComputerDialog extends PlayerInput {
 				if(isFileEditMode()) {
 					userIsTyping = true;
 					return input;
+				}
+
+				if(isTerminalInputMaskingActive()) {
+					String moduleContent = computerModule.getLastTextContent();
+					lastModuleContent = moduleContent == null ? "" : moduleContent;
+					return lastModuleContent;
 				}
 
 				if(input != null && lastModuleContent != null && !lastModuleContent.isEmpty()) {
@@ -1202,6 +1272,7 @@ public class ComputerDialog extends PlayerInput {
 					updateEditorHintOverlay();
 					updateActionButtonPositions();
 					applyConfiguredScrollMode();
+					syncTerminalInputMaskingWithGfx();
 					activateConsoleFocusIfPending();
 
 					ComputerModule.ComputerMode currentMode = computerModule.getLastMode();

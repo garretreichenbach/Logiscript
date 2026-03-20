@@ -36,6 +36,7 @@ public class ComputerModule {
 	private final Set<String> collapsedDocsSections = new LinkedHashSet<>();
 	private String displayName;
 	private ScrollMode scrollMode = ScrollMode.VERTICAL;
+	private boolean forwardEnterWhileInputMasked = true;
 
 	public ComputerModule(SegmentPiece segmentPiece, String uuid) {
 		this.uuid = uuid;
@@ -269,11 +270,20 @@ public class ComputerModule {
 		return true;
 	}
 
+	public boolean isMaskedEnterForwardingEnabled() {
+		return forwardEnterWhileInputMasked;
+	}
+
+	public void setMaskedEnterForwardingEnabled(boolean enabled) {
+		forwardEnterWhileInputMasked = enabled;
+		setTouched();
+	}
+
 	/**
 	 * Restores lightweight module state from container serialization.
 	 * File-system contents are loaded independently by FileSystem using computer UUID.
 	 */
-	public void restoreSerializedState(ComputerMode mode, String openFile, String savedInput, String hostname, String displayName, String lastDocsTopicPath, Collection<String> collapsedDocsSections, String scrollModeName) {
+	public void restoreSerializedState(ComputerMode mode, String openFile, String savedInput, String hostname, String displayName, String lastDocsTopicPath, Collection<String> collapsedDocsSections, String scrollModeName, boolean forwardEnterWhileMasked) {
 		if(mode != null) {
 			lastMode = mode;
 		}
@@ -293,6 +303,8 @@ public class ComputerModule {
 		if(scrollModeName != null && !scrollModeName.isEmpty()) {
 			setScrollMode(scrollModeName);
 		}
+
+		setMaskedEnterForwardingEnabled(forwardEnterWhileMasked);
 	}
 
 	/**

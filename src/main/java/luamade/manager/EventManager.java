@@ -104,6 +104,11 @@ public class EventManager {
 
 				// ---- forward every key event (press + release) to Lua InputApi ----
 				if(module != null) {
+					boolean maskedTerminalInput = panel.isTerminalInputMaskedByGfx();
+					boolean enterKey = key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER;
+					if(maskedTerminalInput && enterKey && !module.isMaskedEnterForwardingEnabled()) {
+						return;
+					}
 					module.getInputApi().pushKeyEvent(
 							key,
 							typedChar,

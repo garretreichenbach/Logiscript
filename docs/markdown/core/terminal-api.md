@@ -49,6 +49,8 @@ Placeholders: `{name}`, `{display}`, `{hostname}`, `{dir}`.
 - `isAutoPromptEnabled()`
 - `getScrollMode()`
 - `setScrollMode(mode)` where `mode` is one of `NONE`, `HORIZONTAL`, `VERTICAL`, `BOTH`
+- `isMaskedEnterForwardingEnabled()`
+- `setMaskedEnterForwardingEnabled(enabled)`
 
 
 ## Wiring Commands To Game Logic

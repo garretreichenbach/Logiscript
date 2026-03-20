@@ -49,11 +49,11 @@ public class Terminal extends LuaMadeUserdata {
 	private final ExecutorService scriptExecutor;
 	private final ThreadLocal<ScriptExecutionContext> scriptContextThreadLocal = new ThreadLocal<>();
 	private final AtomicBoolean promptDeferredByCommand = new AtomicBoolean(false);
-	private volatile Semaphore scriptSlots;
-	private volatile int maxParallelSlots;
 	private final List<String> history = new ArrayList<>();
 	private final AtomicInteger nextJobId = new AtomicInteger(1);
 	private final AtomicInteger activeScripts = new AtomicInteger(0);
+	private volatile Semaphore scriptSlots;
+	private volatile int maxParallelSlots;
 	private volatile ScriptExecutionContext activeForegroundContext;
 	private volatile Future<Boolean> activeForegroundFuture;
 	private int historyIndex;
@@ -318,34 +318,6 @@ public class Terminal extends LuaMadeUserdata {
 		return commandsOut;
 	}
 
-	private enum ChainCondition {
-		ALWAYS,
-		ON_SUCCESS,
-		ON_FAILURE
-	}
-
-	private static final class QueuedCommand {
-		private final String commandText;
-		private final ChainCondition condition;
-
-		private QueuedCommand(String commandText, ChainCondition condition) {
-			this.commandText = commandText;
-			this.condition = condition == null ? ChainCondition.ALWAYS : condition;
-		}
-
-		private boolean shouldRun(boolean previousSucceeded) {
-			switch(condition) {
-				case ON_SUCCESS:
-					return previousSucceeded;
-				case ON_FAILURE:
-					return !previousSucceeded;
-				case ALWAYS:
-				default:
-					return true;
-			}
-		}
-	}
-
 	/**
 	 * Executes a Lua script with arguments
 	 */
@@ -358,14 +330,14 @@ public class Terminal extends LuaMadeUserdata {
 		try {
 			// Create a sandboxed Lua environment
 			Globals globals = createSandboxedGlobals(context);
-			
+
 			// Set up arguments
 			LuaTable argsTable = new LuaTable();
 			for(int i = 0; i < args.size(); i++) {
 				argsTable.set(i + 1, valueOf(args.get(i)));
 			}
 			globals.set("args", argsTable);
-			
+
 			// Execute the script
 			LuaValue chunk = globals.load(script, scriptPath);
 			if(context != null) {
@@ -736,7 +708,7 @@ public class Terminal extends LuaMadeUserdata {
 	 */
 	private Globals createSandboxedGlobals(ScriptExecutionContext context) {
 		Globals globals = new Globals();
-		
+
 		// Load only safe libraries
 		globals.load(new BaseLib());
 		// PackageLib must come before CoroutineLib: CoroutineLib registers itself into
@@ -817,7 +789,7 @@ public class Terminal extends LuaMadeUserdata {
 
 		// Expose safe APIs
 		globals.set("console", console);
- 		globals.set("print", createConsolePrintBridge());
+		globals.set("print", createConsolePrintBridge());
 		globals.set("fs", fileSystem);
 		LuaTable terminalApi = createSafeTerminalApiProxy();
 		globals.set("term", terminalApi);
@@ -1493,9 +1465,7 @@ public class Terminal extends LuaMadeUserdata {
 		}
 
 		StringBuilder summary = new StringBuilder();
-		summary.append("Imported ").append(imported).append(imported == 1 ? " file" : " files")
-				.append(" from ").append(sourceLabel == null ? "clipboard" : sourceLabel)
-				.append(" into ").append(baseDir);
+		summary.append("Imported ").append(imported).append(imported == 1 ? " file" : " files").append(" from ").append(sourceLabel == null ? "clipboard" : sourceLabel).append(" into ").append(baseDir);
 		if(skipped > 0) {
 			summary.append(" (skipped ").append(skipped).append(')');
 		}
@@ -1642,6 +1612,11 @@ public class Terminal extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public String getPromptTemplate() {
+		return promptTemplate;
+	}
+
+	@LuaMadeCallable
 	public void setPromptTemplate(String template) {
 		if(template == null || template.trim().isEmpty()) {
 			promptTemplate = DEFAULT_PROMPT_TEMPLATE;
@@ -1654,11 +1629,6 @@ public class Terminal extends LuaMadeUserdata {
 		}
 
 		promptTemplate = template;
-	}
-
-	@LuaMadeCallable
-	public String getPromptTemplate() {
-		return promptTemplate;
 	}
 
 	@LuaMadeCallable
@@ -1686,6 +1656,18 @@ public class Terminal extends LuaMadeUserdata {
 		return module != null && module.setScrollMode(mode);
 	}
 
+	@LuaMadeCallable
+	public boolean isMaskedEnterForwardingEnabled() {
+		return module != null && module.isMaskedEnterForwardingEnabled();
+	}
+
+	@LuaMadeCallable
+	public void setMaskedEnterForwardingEnabled(boolean enabled) {
+		if(module != null) {
+			module.setMaskedEnterForwardingEnabled(enabled);
+		}
+	}
+
 	/**
 	 * Prints the command prompt
 	 */
@@ -1698,11 +1680,7 @@ public class Terminal extends LuaMadeUserdata {
 		String promptPath = getPromptPath();
 		String hostname = module.getNetworkInterface() != null ? module.getNetworkInterface().getHostname() : "unknown";
 
-		return template
-			.replace("{name}", module.getPromptComputerName())
-			.replace("{display}", module.getDisplayName())
-			.replace("{hostname}", hostname)
-			.replace("{dir}", promptPath);
+		return template.replace("{name}", module.getPromptComputerName()).replace("{display}", module.getDisplayName()).replace("{hostname}", hostname).replace("{dir}", promptPath);
 	}
 
 	private String getPromptPath() {
@@ -2366,6 +2344,32 @@ public class Terminal extends LuaMadeUserdata {
 			}
 		});
 
+		commands.put("maskenter", new Command("maskenter", "Control Enter key forwarding while gfx input masking is active") {
+			@Override
+			public void execute(String args) {
+				String trimmed = args == null ? "" : args.trim().toLowerCase(Locale.ROOT);
+				if(trimmed.isEmpty()) {
+					console.print(valueOf("Masked Enter forwarding: " + (module.isMaskedEnterForwardingEnabled() ? "ON" : "OFF")));
+					console.print(valueOf("Usage: maskenter <on|off>"));
+					return;
+				}
+
+				if("on".equals(trimmed) || "true".equals(trimmed) || "1".equals(trimmed)) {
+					module.setMaskedEnterForwardingEnabled(true);
+					console.print(valueOf("Masked Enter forwarding is ON"));
+					return;
+				}
+
+				if("off".equals(trimmed) || "false".equals(trimmed) || "0".equals(trimmed)) {
+					module.setMaskedEnterForwardingEnabled(false);
+					console.print(valueOf("Masked Enter forwarding is OFF"));
+					return;
+				}
+
+				console.print(valueOf("Error: Usage: maskenter <on|off>"));
+			}
+		});
+
 		// Copy command
 		commands.put("cp", new Command("cp", "Copies a file") {
 			@Override
@@ -2717,6 +2721,7 @@ public class Terminal extends LuaMadeUserdata {
 		setCommandHelp("exit", "exit", "Stop the terminal session.");
 		setCommandHelp("reboot", "reboot", "Hard reset terminal state and rerun startup flow.");
 		setCommandHelp("scrollmode", "scrollmode [NONE|HORIZONTAL|VERTICAL|BOTH]", "Without args shows current scrollbar mode; with arg updates it.");
+		setCommandHelp("maskenter", "maskenter [on|off]", "Enable or disable Enter key forwarding to scripts while gfx input masking is active.");
 		setCommandHelp("cp", "cp [-r] <source> <destination>", "Copy file or directory. Use -r when source is a directory.");
 		setCommandHelp("mv", "mv <source> <destination>", "Move or rename a file path.");
 		setCommandHelp("edit", "edit <file> <content>", "Write provided content to a file in one command.");
@@ -3798,82 +3803,6 @@ public class Terminal extends LuaMadeUserdata {
 		return line.contains(pattern);
 	}
 
-	private static final class HeadTailArgs {
-		private final String filePath;
-		private final int lineCount;
-
-		private HeadTailArgs(String filePath, int lineCount) {
-			this.filePath = filePath;
-			this.lineCount = lineCount;
-		}
-	}
-
-	private static final class LsArgs {
-		private boolean showAll;
-		private boolean longFormat;
-		private boolean recursive;
-		private String path;
-	}
-
-	private static final class RmArgs {
-		private final List<String> paths = new ArrayList<>();
-		private boolean recursive;
-		private boolean force;
-	}
-
-	private static final class CpArgs {
-		private boolean recursive;
-		private String source;
-		private String destination;
-	}
-
-	private static final class FindArgs {
-		private String path;
-		private String nameGlob;
-		private String typeFilter;
-		private int maxDepth = -1;
-	}
-
-	private static final class GrepArgs {
-		private boolean showLineNumbers;
-		private boolean ignoreCase;
-		private boolean recursive;
-		private String pattern;
-		private String path;
-	}
-
-	private static final class WhichArgs {
-		private boolean showAll;
-		private String target;
-	}
-
-	private static final class PwdArgs {
-		private boolean physical;
-	}
-
-	private static final class CatArgs {
-		private boolean showLineNumbers;
-		private final List<String> filePaths = new ArrayList<>();
-		private boolean showAllChars;
-	}
-
-	private static final class WcArgs {
-		private boolean showLines;
-		private boolean showWords;
-		private boolean showBytes;
-		private final List<String> filePaths = new ArrayList<>();
-	}
-
-	private static final class MkdirArgs {
-		private final List<String> paths = new ArrayList<>();
-		private boolean parents;
-	}
-
-	private static final class KillArgs {
-		private int jobId;
-		private String signalName;
-	}
-
 	private String fetchWebData(String rawUrl) {
 		if(!ConfigManager.isWebFetchEnabled()) {
 			console.print(valueOf("Error: Web fetch is disabled by server config"));
@@ -3886,24 +3815,6 @@ public class Terminal extends LuaMadeUserdata {
 		}
 
 		return executeWebRequest(url, "GET", null, null, ConfigManager.getWebFetchTimeoutMs(), ConfigManager.getWebFetchMaxBytes(), "web_fetch_max_bytes");
-	}
-
-	private static final class StatArgs {
-		private final List<String> paths = new ArrayList<>();
-	}
-
-	private static final class TreeArgs {
-		private boolean showAll;
-		private int maxDepth = -1;
-		private String path;
-	}
-
-	private static final class VirtualFileStats {
-		private final long size;
-
-		private VirtualFileStats(long size) {
-			this.size = Math.max(size, 0L);
-		}
 	}
 
 	private String putWebData(String rawUrl, String payload, String contentType) {
@@ -4029,6 +3940,153 @@ public class Terminal extends LuaMadeUserdata {
 		return output.toString(StandardCharsets.UTF_8.name());
 	}
 
+	private enum ChainCondition {
+		ALWAYS,
+		ON_SUCCESS,
+		ON_FAILURE
+	}
+
+	private enum ScriptOverloadMode {
+		HARD_STOP,
+		STALL,
+		HYBRID;
+
+		private static ScriptOverloadMode fromConfigValue(int value) {
+			switch(value) {
+				case 0:
+					return HARD_STOP;
+				case 1:
+					return STALL;
+				case 2:
+				default:
+					return HYBRID;
+			}
+		}
+	}
+
+	private enum JobStatus {
+		RUNNING,
+		COMPLETED,
+		FAILED,
+		CANCELED
+	}
+
+	private static final class QueuedCommand {
+		private final String commandText;
+		private final ChainCondition condition;
+
+		private QueuedCommand(String commandText, ChainCondition condition) {
+			this.commandText = commandText;
+			this.condition = condition == null ? ChainCondition.ALWAYS : condition;
+		}
+
+		private boolean shouldRun(boolean previousSucceeded) {
+			switch(condition) {
+				case ON_SUCCESS:
+					return previousSucceeded;
+				case ON_FAILURE:
+					return !previousSucceeded;
+				case ALWAYS:
+				default:
+					return true;
+			}
+		}
+	}
+
+	private static final class HeadTailArgs {
+		private final String filePath;
+		private final int lineCount;
+
+		private HeadTailArgs(String filePath, int lineCount) {
+			this.filePath = filePath;
+			this.lineCount = lineCount;
+		}
+	}
+
+	private static final class LsArgs {
+		private boolean showAll;
+		private boolean longFormat;
+		private boolean recursive;
+		private String path;
+	}
+
+	private static final class RmArgs {
+		private final List<String> paths = new ArrayList<>();
+		private boolean recursive;
+		private boolean force;
+	}
+
+	private static final class CpArgs {
+		private boolean recursive;
+		private String source;
+		private String destination;
+	}
+
+	private static final class FindArgs {
+		private String path;
+		private String nameGlob;
+		private String typeFilter;
+		private int maxDepth = -1;
+	}
+
+	private static final class GrepArgs {
+		private boolean showLineNumbers;
+		private boolean ignoreCase;
+		private boolean recursive;
+		private String pattern;
+		private String path;
+	}
+
+	private static final class WhichArgs {
+		private boolean showAll;
+		private String target;
+	}
+
+	private static final class PwdArgs {
+		private boolean physical;
+	}
+
+	private static final class CatArgs {
+		private final List<String> filePaths = new ArrayList<>();
+		private boolean showLineNumbers;
+		private boolean showAllChars;
+	}
+
+	private static final class WcArgs {
+		private final List<String> filePaths = new ArrayList<>();
+		private boolean showLines;
+		private boolean showWords;
+		private boolean showBytes;
+	}
+
+	private static final class MkdirArgs {
+		private final List<String> paths = new ArrayList<>();
+		private boolean parents;
+	}
+
+	private static final class KillArgs {
+		private int jobId;
+		private String signalName;
+	}
+
+	private static final class StatArgs {
+		private final List<String> paths = new ArrayList<>();
+	}
+
+	private static final class TreeArgs {
+		private boolean showAll;
+		private int maxDepth = -1;
+		private String path;
+	}
+
+	private static final class VirtualFileStats {
+		private final long size;
+
+		private VirtualFileStats(long size) {
+			this.size = Math.max(size, 0L);
+		}
+	}
+
 	private static final class HttpPutArgs {
 		private String url;
 		private String payloadArg;
@@ -4103,64 +4161,6 @@ public class Terminal extends LuaMadeUserdata {
 		}
 	}
 
-	private class LuaWrappedCommand extends Command {
-		private final Command original;
-		private final LuaValue wrapper;
-
-		private LuaWrappedCommand(String name, Command original, LuaValue wrapper) {
-			super(name, "Wrapped command", original.getUsage(), original.hasGuidance() ? original.getGuidance() : "Wrapped command; behavior may be extended by Lua callback.");
-			this.original = original;
-			this.wrapper = wrapper;
-		}
-
-		@Override
-		public void execute(String args) {
-			LuaValue next = new OneArgFunction() {
-				@Override
-				public LuaValue call(LuaValue nextArgs) {
-					String effectiveArgs = nextArgs.isnil() ? args : nextArgs.tojstring();
-					original.execute(effectiveArgs);
-					return TRUE;
-				}
-			};
-
-			try {
-				wrapper.call(valueOf(args), next);
-			} catch(LuaError error) {
-				String message = error.getMessage();
-				if(message == null || message.trim().isEmpty()) {
-					message = error.toString();
-				}
-				console.print(valueOf("Lua error in wrapped command '" + getName() + "': " + message));
-			}
-		}
-	}
-
-	private enum ScriptOverloadMode {
-		HARD_STOP,
-		STALL,
-		HYBRID;
-
-		private static ScriptOverloadMode fromConfigValue(int value) {
-			switch(value) {
-				case 0:
-					return HARD_STOP;
-				case 1:
-					return STALL;
-				case 2:
-				default:
-					return HYBRID;
-			}
-		}
-	}
-
-	private enum JobStatus {
-		RUNNING,
-		COMPLETED,
-		FAILED,
-		CANCELED
-	}
-
 	private static final class BackgroundJob {
 		private final int id;
 		private final String scriptPath;
@@ -4186,12 +4186,12 @@ public class Terminal extends LuaMadeUserdata {
 			return status;
 		}
 
-		private ScriptExecutionContext getContext() {
-			return context;
-		}
-
 		private void setStatus(JobStatus status) {
 			this.status = status;
+		}
+
+		private ScriptExecutionContext getContext() {
+			return context;
 		}
 
 		private Future<Boolean> getFuture() {
@@ -4243,6 +4243,39 @@ public class Terminal extends LuaMadeUserdata {
 			Thread thread = new Thread(runnable, namePrefix + "-" + sequence.getAndIncrement());
 			thread.setDaemon(true);
 			return thread;
+		}
+	}
+
+	private class LuaWrappedCommand extends Command {
+		private final Command original;
+		private final LuaValue wrapper;
+
+		private LuaWrappedCommand(String name, Command original, LuaValue wrapper) {
+			super(name, "Wrapped command", original.getUsage(), original.hasGuidance() ? original.getGuidance() : "Wrapped command; behavior may be extended by Lua callback.");
+			this.original = original;
+			this.wrapper = wrapper;
+		}
+
+		@Override
+		public void execute(String args) {
+			LuaValue next = new OneArgFunction() {
+				@Override
+				public LuaValue call(LuaValue nextArgs) {
+					String effectiveArgs = nextArgs.isnil() ? args : nextArgs.tojstring();
+					original.execute(effectiveArgs);
+					return TRUE;
+				}
+			};
+
+			try {
+				wrapper.call(valueOf(args), next);
+			} catch(LuaError error) {
+				String message = error.getMessage();
+				if(message == null || message.trim().isEmpty()) {
+					message = error.toString();
+				}
+				console.print(valueOf("Lua error in wrapped command '" + getName() + "': " + message));
+			}
 		}
 	}
 }
