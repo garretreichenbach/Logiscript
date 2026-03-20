@@ -32,7 +32,7 @@ Removes `entity` from this fleet.
 Returns the active `FleetCommand` payload.
 
 - `setCurrentCommand(command: String, ...)`
-Sends a raw command by enum name with optional extra arguments. Typed command methods below are preferred.
+Sends a raw command by enum name with optional extra arguments. Only client-accessible StarMade fleet enums are accepted. Internal-only enums are rejected. Typed command methods below are preferred.
 
 ## Movement commands
 
@@ -61,5 +61,6 @@ Stop all movement and combat actions.
 
 ## Notes
 
-- `setCurrentCommand` expects command names matching StarMade fleet command enums.
+- `setCurrentCommand` accepts these upstream enum names: `IDLE`, `MOVE_FLEET`, `PATROL_FLEET`, `TRADE_FLEET_WAITING`, `FLEET_ATTACK`, `FLEET_DEFEND`, `ESCORT`, `REPAIR`, `STANDOFF`, `SENTRY_FORMATION`, `SENTRY`, `FLEET_IDLE_FORMATION`, `CALL_TO_CARRIER`, `MINE_IN_SECTOR`, `CLOAK`, `UNCLOAK`, `JAM`, `UNJAM`, `ACTIVATE_REMOTE`, `INTERDICT`, `STOP_INTERDICT`.
+- Internal-only StarMade enums are rejected by `setCurrentCommand`: `TRADE_FLEET_NPC`, `TRADE_FLEET_ACTIVE`.
 - Typed movement methods (`moveToSector`, etc.) are preferred over `setCurrentCommand` for clarity and safety.

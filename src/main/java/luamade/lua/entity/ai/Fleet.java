@@ -83,7 +83,7 @@ public class Fleet extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public void setCurrentCommand(String command, Object... args) {
-		fleet.sendFleetCommand(FleetCommandTypes.valueOf(command.toUpperCase(Locale.ROOT)),  args);
+		fleet.sendFleetCommand(resolveCommandType(command), args);
 	}
 
 	@LuaMadeCallable
@@ -122,5 +122,38 @@ public class Fleet extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public void idle() {
 		fleet.sendFleetCommand(FleetCommandTypes.IDLE);
+	}
+
+	private static FleetCommandTypes resolveCommandType(String command) {
+		if(command == null || command.trim().isEmpty()) {
+			throw new IllegalArgumentException("Fleet command name is required");
+		}
+
+		FleetCommandTypes commandType;
+		try {
+			commandType = FleetCommandTypes.valueOf(command.trim().toUpperCase(Locale.ROOT));
+		} catch(IllegalArgumentException exception) {
+			throw new IllegalArgumentException("Unknown fleet command '" + command + "'. Allowed commands: " + getAllowedCommandNames(), exception);
+		}
+
+		if(!commandType.isAvailableOnClient()) {
+			throw new IllegalArgumentException("Fleet command '" + commandType.name() + "' is internal-only and cannot be sent from Lua. Allowed commands: " + getAllowedCommandNames());
+		}
+
+		return commandType;
+	}
+
+	private static String getAllowedCommandNames() {
+		StringBuilder builder = new StringBuilder();
+		for(FleetCommandTypes commandType : FleetCommandTypes.values()) {
+			if(!commandType.isAvailableOnClient()) {
+				continue;
+			}
+			if(builder.length() > 0) {
+				builder.append(", ");
+			}
+			builder.append(commandType.name());
+		}
+		return builder.toString();
 	}
 }
