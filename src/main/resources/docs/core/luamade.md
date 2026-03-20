@@ -37,9 +37,10 @@ run /home/hello.lua
 - `net`: direct, channel, local, and modem networking APIs.
 - `peripheral`: relative and absolute nearby block access helpers.
 - `args`: script argument array for `run` and direct script execution.
+- `shell`: compatibility shell helpers (`shell.run(pathOrCommand, ...)`).
 - `util`: utility helpers from bundled Lua library plus native `now`/`sleep`.
 - `json`: bundled JSON encode/decode helpers (`encode`, `decode`, `null`).
-- `vector`: bundled vector helper library.
+- `package`: sandboxed package table (`loaded`, `preload`, `path`, `cpath`).
 
 Terminal web requests are available through `httpget` / `term.httpGet(url)` and `httpput` /
 `term.httpPut(url, body[, contentType])` when enabled in server config.
@@ -58,6 +59,55 @@ Quick JSON example:
 raw = json.encode({ status = "ok", count = 3, enabled = true })
 obj = json.decode(raw)
 print(obj.status, obj.count)
+```
+
+## Sandbox module loading
+
+Sandboxed loaders are available and constrained:
+
+- `dofile(path, ...)` executes a resolved script path inside the sandbox.
+- `loadfile(path)` loads a resolved script file as a function.
+- `load(source)` loads an in-memory Lua chunk.
+- `require("module.name")` loads modules using strict sandbox rules.
+
+`require` rules:
+
+- Module names must be lowercase dot notation with `[a-z0-9_]` segments (for example `myteam.math`).
+- Resolution order is `package.loaded`, then `package.preload`, then filesystem search.
+- Filesystem search checks player library roots first: `/lib/<module>.lua`, `/etc/lib/<module>.lua`.
+- For allowlisted names, `require` can also load bundled libs from `/scripts/lib/<module>.lua`.
+- Loaded modules are cached in `package.loaded`; modules returning `nil` are cached as `true`.
+
+Allowlisted module names are loaded from:
+
+```text
+config/luamade/allowed_lua_packages.txt
+```
+
+The file is created automatically with safe defaults (`json`, `util`, `vector`).
+
+Bundled module compatibility:
+
+- `json` and `util` are exposed as globals and are also available through `require("json")` / `require("util")`.
+- `vector` is available through `require("vector")` when allowlisted.
+
+Shared library examples:
+
+```lua
+-- /lib/myteam/math.lua
+local M = {}
+
+function M.add(a, b)
+    return a + b
+end
+
+return M
+```
+
+```lua
+-- anywhere else
+local mathlib = require("myteam.math")
+print(mathlib.add(2, 3))
 ```
 
 ## Typical workflow

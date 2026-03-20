@@ -5,8 +5,6 @@ import org.lwjgl.opengl.GL11;
 import org.schema.schine.graphicsengine.core.Controller;
 import org.schema.schine.graphicsengine.core.GlUtil;
 import org.schema.schine.graphicsengine.forms.gui.GUIDrawToTextureOverlay;
-import org.schema.schine.graphicsengine.texture.Texture;
-import org.schema.schine.graphicsengine.texture.TextureLoader;
 import org.schema.schine.network.client.ClientState;
 import org.schema.schine.network.client.ClientStateInterface;
 
@@ -17,13 +15,14 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 
 	private final GfxApi gfxApi;
 	private int lastTextureId = -1;
-	private int requestedWidth;
-	private int requestedHeight;
+	private boolean canvasEnabled = true;
+	private int canvasWidth;
+	private int canvasHeight;
 
 	public TerminalGfxOverlay(int width, int height, ClientState state, GfxApi gfxApi) {
 		super(Math.max(1, width), Math.max(1, height), state);
-		requestedWidth = Math.max(1, width);
-		requestedHeight = Math.max(1, height);
+		canvasWidth = Math.max(1, width);
+		canvasHeight = Math.max(1, height);
 		this.gfxApi = gfxApi;
 	}
 
@@ -31,11 +30,32 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		int safeWidth = Math.max(1, width);
 		int safeHeight = Math.max(1, height);
 		setPos(x, y, 0.0F);
-		requestedWidth = safeWidth;
-		requestedHeight = safeHeight;
+		canvasWidth = safeWidth;
+		canvasHeight = safeHeight;
+		texWidth = safeWidth;
+		texHeight = safeHeight;
+		if(sprite != null) {
+			sprite.setWidth(safeWidth);
+			sprite.setHeight(safeHeight);
+		}
 		if(gfxApi != null) {
 			gfxApi.setCanvasSize(safeWidth, safeHeight);
 		}
+	}
+
+	@Override
+	public float getWidth() {
+		return canvasWidth;
+	}
+
+	@Override
+	public float getHeight() {
+		return canvasHeight;
+	}
+
+	public void setCanvasEnabled(boolean enabled) {
+		canvasEnabled = enabled;
+		updateVisibility();
 	}
 
 	@Override
@@ -46,14 +66,28 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 
 	@Override
 	public void draw() {
-		super.draw();
-		drawOverlayTexture((ClientStateInterface) getState());
+		updateVisibility();
+		if(isInvisible()) {
+			return;
+		}
+
+		GlUtil.glPushMatrix();
+		try {
+			transform();
+			drawOverlayTexture((ClientStateInterface) getState());
+		} finally {
+			GlUtil.glDisable(GL11.GL_BLEND);
+			GlUtil.glEnable(GL11.GL_TEXTURE_2D);
+			GlUtil.glEnable(GL11.GL_LIGHTING);
+			GlUtil.glEnable(GL11.GL_DEPTH_TEST);
+			GlUtil.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+			GlUtil.glPopMatrix();
+		}
 	}
 
 	@Override
 	public void updateGUI(ClientStateInterface state) {
-		ensureTextureSize();
-		super.updateGUI(state);
+		updateVisibility();
 	}
 
 	@Override
@@ -82,17 +116,19 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 			return;
 		}
 
-		// Clear the FBO to opaque black so the canvas fully covers the terminal text.
-		// Scripts can draw shapes with alpha < 1 on top for partial transparency effects,
-		// or call gfx.clear() / remove all layers to restore terminal visibility entirely.
-		GL11.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
-
 		GlUtil.glDisable(GL11.GL_TEXTURE_2D);
 		GlUtil.glDisable(GL11.GL_LIGHTING);
 		GlUtil.glDisable(GL11.GL_DEPTH_TEST);
 		GlUtil.glEnable(GL11.GL_BLEND);
 		GlUtil.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+		GlUtil.glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
+		GL11.glBegin(GL11.GL_QUADS);
+		GL11.glVertex3f(0.0f, 0.0f, 0.0F);
+		GL11.glVertex3f(frame.width, 0.0f, 0.0F);
+		GL11.glVertex3f(frame.width, frame.height, 0.0F);
+		GL11.glVertex3f(0.0f, frame.height, 0.0F);
+		GL11.glEnd();
 
 		for(GfxApi.LayerSnapshot layer : frame.layers) {
 			if(!layer.visible || layer.commands.isEmpty()) {
@@ -102,8 +138,10 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		}
 
 		GlUtil.glDisable(GL11.GL_BLEND);
+		GlUtil.glEnable(GL11.GL_TEXTURE_2D);
 		GlUtil.glEnable(GL11.GL_LIGHTING);
 		GlUtil.glEnable(GL11.GL_DEPTH_TEST);
+		GlUtil.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	}
 
 	private void drawLayer(GfxApi.LayerSnapshot layer) {
@@ -142,24 +180,9 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		}
 	}
 
-	private void ensureTextureSize() {
-		if(requestedWidth == texWidth && requestedHeight == texHeight) {
-			return;
-		}
-
-		int previousTextureId = extractTextureId();
-		texWidth = requestedWidth;
-		texHeight = requestedHeight;
-
-		Texture texture = TextureLoader.getEmptyTexture(texWidth, texHeight);
-		sprite.getMaterial().setTexture(texture);
-		sprite.setWidth(texWidth);
-		sprite.setHeight(texHeight);
-		trackTextureId();
-
-		if(previousTextureId > 0 && previousTextureId != lastTextureId) {
-			releaseTexture(previousTextureId);
-		}
+	private void updateVisibility() {
+		boolean hasVisibleCommands = gfxApi != null && gfxApi.hasVisibleCommands();
+		setInvisible(!canvasEnabled || !hasVisibleCommands);
 	}
 
 	private void trackTextureId() {

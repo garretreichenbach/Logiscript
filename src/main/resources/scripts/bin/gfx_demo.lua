@@ -9,6 +9,7 @@ end
 
 local frameDelayMs = 33
 local totalFrames = math.floor((seconds * 1000) / frameDelayMs)
+local step = 20
 
 local function clamp(v, minV, maxV)
     if v < minV then
@@ -29,25 +30,37 @@ gfx.createLayer("fx", 12)
 local w = gfx.getWidth()
 local h = gfx.getHeight()
 
+local function redrawStaticLayers(width, height)
+    gfx.clearLayer("bg")
+    gfx.clearLayer("grid")
+
+    gfx.setLayer("bg")
+    gfx.rect(0, 0, width, height, 0.03, 0.04, 0.07, 0.88, true)
+    gfx.rect(2, 2, width - 4, height - 4, 0.22, 0.4, 0.95, 0.85, false)
+
+    gfx.setLayer("grid")
+    for x = 0, width, step do
+        gfx.line(x, 0, x, height - 1, 0.1, 0.25, 0.45, 0.25)
+    end
+    for y = 0, height, step do
+        gfx.line(0, y, width - 1, y, 0.1, 0.25, 0.45, 0.25)
+    end
+end
+
 print("gfx demo started for " .. seconds .. "s")
 print("canvas: " .. w .. "x" .. h)
 
--- Static background panel.
-gfx.setLayer("bg")
-gfx.rect(0, 0, w, h, 0.03, 0.04, 0.07, 0.88, true)
-gfx.rect(2, 2, w - 4, h - 4, 0.22, 0.4, 0.95, 0.85, false)
-
--- Static grid layer.
-gfx.setLayer("grid")
-local step = 20
-for x = 0, w, step do
-    gfx.line(x, 0, x, h - 1, 0.1, 0.25, 0.45, 0.25)
-end
-for y = 0, h, step do
-    gfx.line(0, y, w - 1, y, 0.1, 0.25, 0.45, 0.25)
-end
+redrawStaticLayers(w, h)
 
 for i = 0, totalFrames do
+    local currentW = gfx.getWidth()
+    local currentH = gfx.getHeight()
+    if currentW ~= w or currentH ~= h then
+        w = currentW
+        h = currentH
+        redrawStaticLayers(w, h)
+    end
+
     local t = i / 30.0
 
     gfx.clearLayer("shapes")

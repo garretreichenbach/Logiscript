@@ -2,6 +2,12 @@
 
 The `json` global provides lightweight JSON encode/decode helpers for scripts.
 
+You can use it as a global (`json`) or load it explicitly:
+
+```lua
+local json = require("json")
+```
+
 ## Reference
 
 - `json.encode(value)`

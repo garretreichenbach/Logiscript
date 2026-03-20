@@ -31,6 +31,8 @@ import java.util.regex.Pattern;
 public class Terminal extends LuaMadeUserdata {
 	private static final String STARTUP_SCRIPT_PATH = "/etc/startup.lua";
 	private static final String DEFAULT_PROMPT_TEMPLATE = "{name}:{dir} $ ";
+	private static final Pattern SAFE_REQUIRE_MODULE_PATTERN = Pattern.compile("[a-z0-9_]+(?:\\.[a-z0-9_]+)*");
+	private static final List<String> REQUIRE_LIBRARY_ROOTS = Arrays.asList("/lib", "/etc/lib");
 
 	private final ComputerModule module;
 	private final Console console;
@@ -644,14 +646,91 @@ public class Terminal extends LuaMadeUserdata {
 		globals.load(new JseMathLib());
 		globals.load(new Bit32Lib());
 		LuaC.install(globals);
-		
-		// Remove unsafe functions
-		globals.set("dofile", NIL);
-		globals.set("loadfile", NIL);
-		globals.set("load", NIL);
-		globals.set("require", NIL);
-		globals.set("package", NIL);
-		
+
+		// Create our own sandboxed versions of these
+		globals.set("dofile", new VarArgFunction() {
+			@Override
+			public Varargs invoke(Varargs vargs) {
+				if(vargs.narg() < 1 || vargs.arg1().isnil()) {
+					return NIL;
+				}
+
+				String path = vargs.arg1().tojstring();
+				String resolvedPath = resolveScriptPath(path);
+				if(resolvedPath == null) {
+					console.print(valueOf("Error: dofile could not resolve script: " + path));
+					return NIL;
+				}
+
+				String script = fileSystem.read(resolvedPath);
+				if(script == null) {
+					console.print(valueOf("Error: Could not read script file: " + resolvedPath));
+					return NIL;
+				}
+
+				List<String> args = new ArrayList<>();
+				for(int i = 2; i <= vargs.narg(); i++) {
+					args.add(vargs.arg(i).tojstring());
+				}
+
+				boolean success = executeScript(resolvedPath, script, args);
+				return success ? TRUE : FALSE;
+			}
+		});
+		globals.set("loadfile", new VarArgFunction() {
+			@Override
+			public Varargs invoke(Varargs vargs) {
+				if(vargs.narg() < 1 || vargs.arg1().isnil()) {
+					return NIL;
+				}
+
+				String path = vargs.arg1().tojstring();
+				String resolvedPath = resolveScriptPath(path);
+				if(resolvedPath == null) {
+					console.print(valueOf("Error: loadfile could not resolve script: " + path));
+					return NIL;
+				}
+
+				String script = fileSystem.read(resolvedPath);
+				if(script == null) {
+					console.print(valueOf("Error: Could not read script file: " + resolvedPath));
+					return NIL;
+				}
+
+				try {
+					return globals.load(script, resolvedPath);
+				} catch(LuaError error) {
+					console.print(valueOf("Lua error loading script in loadfile: " + error.getMessage()));
+					return NIL;
+				} catch(Exception exception) {
+					console.print(valueOf("Error loading script in loadfile: " + exception.getMessage()));
+					return NIL;
+				}
+			}
+		});
+		globals.set("load", new VarArgFunction() {
+			@Override
+			public Varargs invoke(Varargs vargs) {
+				if(vargs.narg() < 1 || vargs.arg1().isnil()) {
+					return NIL;
+				}
+
+				String script = vargs.arg1().tojstring();
+				try {
+					return globals.load(script, "chunk");
+				} catch(LuaError error) {
+					console.print(valueOf("Lua error loading script in load: " + error.getMessage()));
+					return NIL;
+				} catch(Exception exception) {
+					console.print(valueOf("Error loading script in load: " + exception.getMessage()));
+					return NIL;
+				}
+			}
+		});
+		LuaTable sandboxPackage = createSandboxedPackageTable();
+		globals.set("package", sandboxPackage);
+		globals.set("require", createStrictRequire(globals, sandboxPackage, context));
+
 		// Expose safe APIs
 		globals.set("console", console);
  		globals.set("print", createConsolePrintBridge());
@@ -668,8 +747,16 @@ public class Terminal extends LuaMadeUserdata {
 		globals.set("gfx", module.getGfxApi());
 		globals.set("shell", createShellCompatibilityApi());
 
-		loadBuiltinLibrary(globals, "scripts/lib/json.lua", "json");
+
+		LuaTable jsonLibrary = loadBuiltinLibrary(globals, "scripts/lib/json.lua", "json");
 		LuaTable utilLibrary = loadBuiltinLibrary(globals, "scripts/lib/util.lua", "util");
+		LuaTable loadedModules = sandboxPackage.get("loaded").checktable();
+		if(jsonLibrary != null) {
+			loadedModules.set("json", jsonLibrary);
+		}
+		if(utilLibrary != null) {
+			loadedModules.set("util", utilLibrary);
+		}
 
 		UtilApi nativeUtil = new UtilApi(context == null ? null : context::throwIfCancellationRequested);
 		if(utilLibrary != null) {
@@ -679,6 +766,102 @@ public class Terminal extends LuaMadeUserdata {
 			globals.set("util", nativeUtil);
 		}
 		return globals;
+	}
+
+	private LuaTable createSandboxedPackageTable() {
+		LuaTable sandboxPackage = new LuaTable();
+		sandboxPackage.set("loaded", new LuaTable());
+		sandboxPackage.set("preload", new LuaTable());
+		sandboxPackage.set("path", valueOf(""));
+		sandboxPackage.set("cpath", valueOf(""));
+		return sandboxPackage;
+	}
+
+	private LuaFunction createStrictRequire(Globals globals, LuaTable sandboxPackage, ScriptExecutionContext context) {
+		return new OneArgFunction() {
+			@Override
+			public LuaValue call(LuaValue moduleNameValue) {
+				String moduleName = normalizeRequireModuleName(moduleNameValue);
+				if(moduleName == null) {
+					throw new LuaError("require expects a module name like 'mylib.math'");
+				}
+
+				LuaTable loaded = sandboxPackage.get("loaded").checktable();
+				LuaTable preload = sandboxPackage.get("preload").checktable();
+
+				LuaValue alreadyLoaded = loaded.get(moduleName);
+				if(!alreadyLoaded.isnil()) {
+					return alreadyLoaded;
+				}
+
+				LuaValue preloaded = preload.get(moduleName);
+				if(preloaded.isfunction()) {
+					LuaValue result = preloaded.call(valueOf(moduleName));
+					LuaValue stored = result.isnil() ? TRUE : result;
+					loaded.set(moduleName, stored);
+					return stored;
+				}
+
+				String modulePath = resolveRequireModulePath(moduleName);
+				if(modulePath == null) {
+					throw new LuaError("module not found: " + moduleName);
+				}
+
+				if(context != null) {
+					context.throwIfCancellationRequested();
+				}
+
+				String source = fileSystem.read(modulePath);
+				if(source == null) {
+					throw new LuaError("module unreadable: " + moduleName);
+				}
+
+				LuaValue result = globals.load(source, modulePath).call();
+				LuaValue stored = result.isnil() ? TRUE : result;
+				loaded.set(moduleName, stored);
+				return stored;
+			}
+		};
+	}
+
+	private String normalizeRequireModuleName(LuaValue moduleNameValue) {
+		if(moduleNameValue == null || moduleNameValue.isnil() || !moduleNameValue.isstring()) {
+			return null;
+		}
+
+		String moduleName = moduleNameValue.tojstring().trim().toLowerCase(Locale.ROOT);
+		if(moduleName.isEmpty()) {
+			return null;
+		}
+
+		if(!SAFE_REQUIRE_MODULE_PATTERN.matcher(moduleName).matches()) {
+			return null;
+		}
+
+		return moduleName;
+	}
+
+	private String resolveRequireModulePath(String moduleName) {
+		if(moduleName == null) {
+			return null;
+		}
+
+		String relativePath = moduleName.replace('.', '/');
+		for(String root : REQUIRE_LIBRARY_ROOTS) {
+			String candidate = fileSystem.normalizePath(root + "/" + relativePath + ".lua");
+			if(isLuaFile(candidate)) {
+				return candidate;
+			}
+		}
+
+		if(ConfigManager.isAllowedLuaPackage(moduleName)) {
+			String builtinCandidate = fileSystem.normalizePath("/scripts/lib/" + relativePath + ".lua");
+			if(isLuaFile(builtinCandidate)) {
+				return builtinCandidate;
+			}
+		}
+
+		return null;
 	}
 
 	private LuaFunction createConsolePrintBridge() {

@@ -4,11 +4,7 @@ import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.manager.ConfigManager;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Thread-safe graphics command buffer exposed to Lua scripts.
@@ -43,7 +39,8 @@ public class GfxApi extends LuaMadeUserdata {
 				if(layers.size() >= maxLayers()) {
 					return false;
 				}
-				layers.put(normalized, new LayerState(nextLayerOrder++));
+				layers.put(normalized, new LayerState(nextLayerOrder));
+				nextLayerOrder++;
 			}
 			activeLayer = normalized;
 		}
@@ -234,6 +231,17 @@ public class GfxApi extends LuaMadeUserdata {
 		}
 	}
 
+	public boolean hasVisibleCommands() {
+		synchronized(lock) {
+			for(LayerState layer : layers.values()) {
+				if(layer.visible && !layer.commands.isEmpty()) {
+					return true;
+				}
+			}
+			return false;
+		}
+	}
+
 	private Boolean appendCommand(DrawCommand command) {
 		synchronized(lock) {
 			LayerState layer = layers.get(activeLayer);
@@ -241,7 +249,8 @@ public class GfxApi extends LuaMadeUserdata {
 				if(layers.size() >= maxLayers()) {
 					return false;
 				}
-				layer = new LayerState(nextLayerOrder++);
+				layer = new LayerState(nextLayerOrder);
+				nextLayerOrder++;
 				layers.put(activeLayer, layer);
 			}
 			if(layer.commands.size() >= maxCommandsPerLayer()) {

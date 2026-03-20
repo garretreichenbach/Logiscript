@@ -506,10 +506,21 @@ public class ComputerDialog extends PlayerInput {
 				return;
 			}
 
+			float x = consolePane.getPos().x;
+			float y = consolePane.getPos().y;
 			int width = Math.max(1, Math.round(consolePane.getWidth()));
 			int height = Math.max(1, Math.round(consolePane.getHeight()));
-			terminalGfxOverlay.setCanvasBounds(consolePane.getPos().x, consolePane.getPos().y, width, height);
-			terminalGfxOverlay.setInvisible(isFileEditMode());
+
+			GUIScrollablePanel scrollPanel = resolveTextBarScrollPanel();
+			if(scrollPanel != null) {
+				x += scrollPanel.getPos().x;
+				y += scrollPanel.getPos().y;
+				width = Math.max(1, Math.round(scrollPanel.getWidth()));
+				height = Math.max(1, Math.round(scrollPanel.getHeight()));
+			}
+
+			terminalGfxOverlay.setCanvasBounds(x, y, width, height);
+			terminalGfxOverlay.setCanvasEnabled(!isFileEditMode());
 		}
 
 		private void refreshPromptStartPositionFromCurrentText() {

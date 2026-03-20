@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.regex.Pattern;
 
 public final class ConfigManager {
 
@@ -50,6 +51,14 @@ public final class ConfigManager {
 	);
 	private static final Path TRUSTED_WEB_DOMAINS_PATH = Paths.get("config", "luamade", "trusted_domains.txt");
 	private static volatile Set<String> trustedWebDomainsCache = new LinkedHashSet<>(DEFAULT_TRUSTED_WEB_DOMAINS);
+	private static final List<String> DEFAULT_ALLOWED_LUA_PACKAGES = Arrays.asList(
+			"json",
+			"util",
+			"vector"
+	);
+	private static final Path ALLOWED_LUA_PACKAGES_PATH = Paths.get("config", "luamade", "allowed_lua_packages.txt");
+	private static final Pattern SAFE_LUA_MODULE_PATTERN = Pattern.compile("[a-z0-9_]+(?:\\.[a-z0-9_]+)*");
+	private static volatile Set<String> allowedLuaPackagesCache = new LinkedHashSet<>(DEFAULT_ALLOWED_LUA_PACKAGES);
 
 	private ConfigManager() {
 	}
@@ -68,12 +77,12 @@ public final class ConfigManager {
 		webFetchEnabled = new SimpleConfigBool(config, "web_fetch_enabled", true, "If true, allows terminal/scripts to fetch HTTP(S) data from the web.");
 		webFetchTrustedDomainsOnly = new SimpleConfigBool(config, "web_fetch_trusted_domains_only", true, "If true, web fetch is limited to a built-in trusted domain allowlist.");
 		webFetchTimeoutMs = new SimpleConfigInt(config, "web_fetch_timeout_ms", 4000, "Web fetch connect/read timeout in milliseconds.");
-		webFetchMaxBytes = new SimpleConfigInt(config, "web_fetch_max_bytes", 131072, "Maximum response payload size (bytes) accepted by web fetch.");
+		webFetchMaxBytes = new SimpleConfigInt(config, "web_fetch_max_bytes", 1048576, "Maximum response payload size (bytes) accepted by web fetch.");
 		webPutEnabled = new SimpleConfigBool(config, "web_put_enabled", true, "If true, allows terminal/scripts to send HTTP(S) PUT requests.");
 		webPutTrustedDomainsOnly = new SimpleConfigBool(config, "web_put_trusted_domains_only", true, "If true, HTTP PUT is limited to domains in trusted_domains.txt.");
 		webPutTimeoutMs = new SimpleConfigInt(config, "web_put_timeout_ms", 4000, "HTTP PUT connect/read timeout in milliseconds.");
 		webPutMaxRequestBytes = new SimpleConfigInt(config, "web_put_max_request_bytes", 32768, "Maximum UTF-8 request payload size (bytes) for HTTP PUT.");
-		webPutMaxResponseBytes = new SimpleConfigInt(config, "web_put_max_response_bytes", 131072, "Maximum response payload size (bytes) accepted by HTTP PUT.");
+		webPutMaxResponseBytes = new SimpleConfigInt(config, "web_put_max_response_bytes", 1048576, "Maximum response payload size (bytes) accepted by HTTP PUT.");
 		gfxMaxCommandsPerLayer = new SimpleConfigInt(config, "gfx_max_commands_per_layer", 4096, "Maximum number of queued draw commands in a single gfx layer.");
 		gfxMaxLayers = new SimpleConfigInt(config, "gfx_max_layers", 32, "Maximum number of gfx layers per computer.");
 		dockingRequirePermissions = new SimpleConfigBool(config, "docking_require_permissions", true, "If true, Lua docking helpers require same-faction or friend-faction permissions.");
@@ -82,7 +91,9 @@ public final class ConfigManager {
 
 		config.readWriteFields();
 		ensureTrustedDomainsFileExists(instance);
+		ensureAllowedLuaPackagesFileExists(instance);
 		reloadTrustedWebDomains(instance);
+		reloadAllowedLuaPackages(instance);
 		if(isDebugMode()) {
 			String mode = config.isServer() ? "server" : (config.local ? "client-local" : "client-synced");
 			instance.logInfo("Config initialized via SimpleConfigContainer (mode=" + mode + ")");
@@ -94,6 +105,7 @@ public final class ConfigManager {
 			config.readFields();
 		}
 		reloadTrustedWebDomains(LuaMade.getInstance());
+		reloadAllowedLuaPackages(LuaMade.getInstance());
 	}
 
 	public static boolean isDebugMode() {
@@ -141,7 +153,7 @@ public final class ConfigManager {
 	}
 
 	public static int getWebFetchMaxBytes() {
-		return clampInt(intOrDefault(webFetchMaxBytes, 131072), 1024, 1048576);
+		return clampInt(intOrDefault(webFetchMaxBytes, 1048576), 4096, 1048576);
 	}
 
 	public static boolean isWebPutEnabled() {
@@ -161,7 +173,7 @@ public final class ConfigManager {
 	}
 
 	public static int getWebPutMaxResponseBytes() {
-		return clampInt(intOrDefault(webPutMaxResponseBytes, 131072), 1024, 1048576);
+		return clampInt(intOrDefault(webPutMaxResponseBytes, 1048576), 4096, 1048576);
 	}
 
 	public static int getGfxMaxCommandsPerLayer() {
@@ -201,6 +213,15 @@ public final class ConfigManager {
 			}
 		}
 		return false;
+	}
+
+	public static Set<String> getAllowedLuaPackages() {
+		return new LinkedHashSet<>(allowedLuaPackagesCache);
+	}
+
+	public static boolean isAllowedLuaPackage(String moduleName) {
+		String normalizedModuleName = normalizeLuaModuleName(moduleName);
+		return normalizedModuleName != null && allowedLuaPackagesCache.contains(normalizedModuleName);
 	}
 
 
@@ -284,5 +305,79 @@ public final class ConfigManager {
 		}
 
 		trustedWebDomainsCache = loaded;
+	}
+
+	private static void ensureAllowedLuaPackagesFileExists(LuaMade instance) {
+		if(Files.exists(ALLOWED_LUA_PACKAGES_PATH)) {
+			return;
+		}
+
+		try {
+			if(ALLOWED_LUA_PACKAGES_PATH.getParent() != null) {
+				Files.createDirectories(ALLOWED_LUA_PACKAGES_PATH.getParent());
+			}
+
+			StringBuilder builder = new StringBuilder();
+			builder.append("# LuaMade allowed Lua package names\n");
+			builder.append("# One module per line using dot notation (for example: util or mylib.math).\n");
+			builder.append("# Module names are lowercase and limited to [a-z0-9_] segments.\n\n");
+			for(String module : DEFAULT_ALLOWED_LUA_PACKAGES) {
+				builder.append(module).append('\n');
+			}
+
+			Files.write(
+					ALLOWED_LUA_PACKAGES_PATH,
+					builder.toString().getBytes(StandardCharsets.UTF_8),
+					StandardOpenOption.CREATE,
+					StandardOpenOption.TRUNCATE_EXISTING,
+					StandardOpenOption.WRITE
+			);
+		} catch(IOException exception) {
+			if(instance != null) {
+				instance.logException("Failed to create allowed Lua packages file: " + ALLOWED_LUA_PACKAGES_PATH, exception);
+			}
+		}
+	}
+
+	private static void reloadAllowedLuaPackages(LuaMade instance) {
+		Set<String> loaded = new LinkedHashSet<>();
+		try {
+			if(Files.exists(ALLOWED_LUA_PACKAGES_PATH)) {
+				for(String line : Files.readAllLines(ALLOWED_LUA_PACKAGES_PATH, StandardCharsets.UTF_8)) {
+					String moduleName = normalizeLuaModuleName(line);
+					if(moduleName == null) {
+						continue;
+					}
+					loaded.add(moduleName);
+				}
+			}
+		} catch(IOException exception) {
+			if(instance != null) {
+				instance.logException("Failed to read allowed Lua packages file: " + ALLOWED_LUA_PACKAGES_PATH, exception);
+			}
+		}
+
+		if(loaded.isEmpty()) {
+			loaded.addAll(DEFAULT_ALLOWED_LUA_PACKAGES);
+		}
+
+		allowedLuaPackagesCache = loaded;
+	}
+
+	private static String normalizeLuaModuleName(String rawModuleName) {
+		if(rawModuleName == null) {
+			return null;
+		}
+
+		String trimmed = rawModuleName.trim().toLowerCase(Locale.ROOT);
+		if(trimmed.isEmpty() || trimmed.startsWith("#")) {
+			return null;
+		}
+
+		if(!SAFE_LUA_MODULE_PATTERN.matcher(trimmed).matches()) {
+			return null;
+		}
+
+		return trimmed;
 	}
 }
