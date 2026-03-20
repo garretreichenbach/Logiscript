@@ -20,6 +20,34 @@ public class DisplayModule extends Block {
 	}
 
 	@LuaMadeCallable
+	public void clearText() {
+		setDisplayText("");
+	}
+
+	@LuaMadeCallable
+	public void appendText(String text) {
+		String currentText = getDisplayText();
+		setDisplayText((currentText == null ? "" : currentText) + (text == null ? "" : text));
+	}
+
+	@LuaMadeCallable
+	public void setLines(String[] lines) {
+		if(lines == null || lines.length == 0) {
+			setDisplayText("");
+			return;
+		}
+
+		StringBuilder builder = new StringBuilder();
+		for(String line : lines) {
+			if(builder.length() > 0) {
+				builder.append('\n');
+			}
+			builder.append(line == null ? "" : line);
+		}
+		setDisplayText(builder.toString());
+	}
+
+	@LuaMadeCallable
 	public Long getTextBlockIndex() {
 		return getSegmentPiece().getTextBlockIndex();
 	}

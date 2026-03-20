@@ -41,8 +41,22 @@ Returns the total number of items across all filled slots.
 - `getItemCount(itemId)`
 Returns the count of a specific item type by numeric ID.
 
+- `addItems(itemStacks)`
+Adds requested stacks into this inventory.
+
+- `removeItems(itemStacks)`
+Removes requested stacks from this inventory when enough items are present.
+
 - `transferTo(targetInventory, itemStacks)`
 Moves requested stacks when source has items and target has free slots.
+
+- `transferFrom(sourceInventory, itemStacks)`
+Pulls requested stacks from `sourceInventory` into this inventory.
+
+- `clearItems()`
+Removes all items from this inventory.
+
+Inventory write operations return `false` when the request cannot be completed.
 
 ## Cargo transfer detection
 

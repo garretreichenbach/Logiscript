@@ -34,4 +34,34 @@ public class InventoryBlock extends Block {
 		ItemStack[] items = getItems();
 		return items != null && items.length > 0;
 	}
+
+	@LuaMadeCallable
+	public Boolean addItems(ItemStack[] items) {
+		Inventory inventory = getInventory();
+		return inventory != null && inventory.addItems(items);
+	}
+
+	@LuaMadeCallable
+	public Boolean removeItems(ItemStack[] items) {
+		Inventory inventory = getInventory();
+		return inventory != null && inventory.removeItems(items);
+	}
+
+	@LuaMadeCallable
+	public Boolean transferItemsTo(Inventory targetInventory, ItemStack[] items) {
+		Inventory inventory = getInventory();
+		return inventory != null && inventory.transferTo(targetInventory, items);
+	}
+
+	@LuaMadeCallable
+	public Boolean transferItemsFrom(Inventory sourceInventory, ItemStack[] items) {
+		Inventory inventory = getInventory();
+		return inventory != null && inventory.transferFrom(sourceInventory, items);
+	}
+
+	@LuaMadeCallable
+	public Boolean clearItems() {
+		Inventory inventory = getInventory();
+		return inventory != null && inventory.clearItems();
+	}
 }

@@ -12,11 +12,15 @@ import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.Ship;
 import org.schema.game.common.controller.ai.AIGameConfiguration;
+import org.schema.game.common.controller.ai.AIConfiguationElements;
 import org.schema.game.common.controller.ai.Types;
 import org.schema.game.common.data.SimpleGameObject;
 import org.schema.game.server.ai.ShipAIEntity;
 import org.schema.game.server.ai.program.common.TargetProgram;
 import org.schema.schine.ai.stateMachines.AiInterface;
+import org.schema.schine.graphicsengine.core.settings.StateParameterNotFoundException;
+import org.schema.schine.graphicsengine.core.settings.states.StaticStates;
+import org.schema.schine.graphicsengine.core.settings.states.States;
 import org.schema.schine.graphicsengine.forms.BoundingBox;
 import org.schema.schine.network.objects.Sendable;
 
@@ -108,9 +112,9 @@ public class EntityAI extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public String getTargetType() {
-		if(segmentController instanceof Ship) {
+		AIGameConfiguration<?, ?> config = getAiConfiguration();
+		if(config != null) {
 			try {
-				AIGameConfiguration<?, ?> config = ((AIGameConfiguration<?, ?>) ((AiInterface) segmentController).getAiConfiguration());
 				return (String) config.get(Types.AIM_AT).getCurrentState();
 			} catch(Exception exception) {
 				exception.printStackTrace();
@@ -120,19 +124,94 @@ public class EntityAI extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public String[] getAvailableTargetTypes() {
+		AIGameConfiguration<?, ?> config = getAiConfiguration();
+		if(config == null) {
+			return new String[0];
+		}
+
+		try {
+			AIConfiguationElements<?> setting = config.get(Types.AIM_AT);
+			if(setting == null) {
+				return new String[0];
+			}
+
+			States<? extends Object> possibleStates = setting.getPossibleStates();
+			if(possibleStates instanceof StaticStates<?>) {
+				Object[] states = ((StaticStates<?>) possibleStates).states;
+				String[] values = new String[states.length];
+				for(int i = 0; i < states.length; i++) {
+					values[i] = String.valueOf(states[i]);
+				}
+				return values;
+			}
+		} catch(Exception exception) {
+			exception.printStackTrace();
+		}
+		return new String[0];
+	}
+
+	@LuaMadeCallable
 	public void setTargetType(String type) {
+		AIGameConfiguration<?, ?> config = getAiConfiguration();
+		if(config == null) {
+			throw new IllegalStateException("AI target preferences are only available on ships with AI configuration");
+		}
+		if(type == null || type.trim().isEmpty()) {
+			throw new IllegalArgumentException("AI target type is required");
+		}
+
+		String canonicalType = resolveTargetType(type);
+		try {
+			AIConfiguationElements<?> setting = config.get(Types.AIM_AT);
+			if("Any".equals(canonicalType)) {
+				setting.switchSetting("Any", true);
+			} else {
+				setting.switchSetting("Any", false);
+				setting.switchSetting(canonicalType, true);
+			}
+		} catch(StateParameterNotFoundException exception) {
+			throw new IllegalArgumentException("Unknown AI target type '" + type + "'. Allowed target types: " + getAllowedTargetTypes(), exception);
+		} catch(Exception exception) {
+			throw new IllegalStateException("Failed to set AI target type to '" + canonicalType + "'", exception);
+		}
+	}
+
+	private AIGameConfiguration<?, ?> getAiConfiguration() {
 		if(segmentController instanceof Ship) {
 			try {
-				AIGameConfiguration<?, ?> config = ((AIGameConfiguration<?, ?>) ((AiInterface) segmentController).getAiConfiguration());
-				if(type.equals("Any")) config.get(Types.AIM_AT).switchSetting("Any", true);
-				else {
-					config.get(Types.AIM_AT).switchSetting("Any", false);
-					config.get(Types.AIM_AT).switchSetting(type, true);
-				}
+				return (AIGameConfiguration<?, ?>) ((AiInterface) segmentController).getAiConfiguration();
 			} catch(Exception exception) {
 				exception.printStackTrace();
 			}
 		}
+		return null;
+	}
+
+	private String resolveTargetType(String requestedType) {
+		String trimmed = requestedType.trim();
+		for(String availableType : getAvailableTargetTypes()) {
+			if(availableType.equalsIgnoreCase(trimmed)) {
+				return availableType;
+			}
+		}
+		throw new IllegalArgumentException("Unknown AI target type '" + requestedType + "'. Allowed target types: " + getAllowedTargetTypes());
+	}
+
+	private String getAllowedTargetTypes() {
+		String[] availableTypes = getAvailableTargetTypes();
+		if(availableTypes.length == 0) {
+			return "none";
+		}
+
+		StringBuilder builder = new StringBuilder();
+		for(String availableType : availableTypes) {
+			if(builder.length() > 0) {
+				builder.append(", ");
+			}
+			builder.append(availableType);
+		}
+		return builder.toString();
 	}
 
 	@LuaMadeCallable

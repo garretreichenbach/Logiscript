@@ -25,12 +25,17 @@ Returns the current target as `RemoteEntity`, or `nil` when no target is set.
 - `getTargetType()`
 Returns the exact current AI target preference name as a string.
 
+- `getAvailableTargetTypes()`
+Returns the currently available target preference names as a `String[]`.
+
 - `setTargetType(type: String)`
 Changes the AI target preference to `type`.
 
 Common built-in values for `type` are `Any`, `Selected Target`, `Ships`, `Stations`, `Missiles`, `Astronauts`, and `Asteroids`.
 
 `setTargetType(type)` always expects a `String`. The running game may also provide additional custom target type names through `CustomAITargetUtil`.
+
+Invalid target type names now raise a clear error that includes the currently available values.
 
 ## Target type names
 
