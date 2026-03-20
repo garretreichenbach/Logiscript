@@ -1,5 +1,6 @@
 package luamade.lua.element.block;
 
+import com.bulletphysics.linearmath.Transform;
 import luamade.element.ElementRegistry;
 import luamade.lua.data.Vec3f;
 import luamade.lua.data.Vec3i;
@@ -112,7 +113,9 @@ public class Block extends LuaMadeUserdata {
 
     @LuaMadeCallable
     public Vec3f getWorldPos() {
-        return new Vec3f(segmentPiece.getWorldTransform().origin);
+        Transform transform = new Transform();
+        segmentPiece.getWorldTransform(transform);
+        return new Vec3f(transform.origin);
     }
 
     @LuaMadeCallable
