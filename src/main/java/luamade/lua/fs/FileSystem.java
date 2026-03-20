@@ -642,7 +642,6 @@ public class FileSystem extends LuaMadeUserdata {
 		installDefaultScriptFromResource("scripts/bin/channel_chat.lua", "/bin/channel_chat.lua");
 		installDefaultScriptFromResource("scripts/bin/modem.lua", "/bin/modem.lua");
 		installDefaultScriptFromResource("scripts/bin/gfx_demo.lua", "/bin/gfx_demo.lua");
-		installDefaultScriptFromResource("scripts/bin/gfx_interactive.lua", "/bin/gfx_interactive.lua");
 
 		// Create a README file
 		String readme = 
@@ -687,7 +686,6 @@ public class FileSystem extends LuaMadeUserdata {
 			"  - modem.lua: Long-range 1-to-1 modem helper\n" +
 			"  - listall.lua: Recursively list all files\n" +
 					"  - gfx_demo.lua: 2D text graphics API demo\n" +
-					"  - gfx_interactive.lua: Interactive gfx showcase\n" +
 			"\n" +
 			"Try: run /bin/hello.lua YourName\n";
 		
@@ -1042,6 +1040,13 @@ public class FileSystem extends LuaMadeUserdata {
 		}
 
 		return sanitizeDisplayPath(currentDirectory.getInternalFile());
+	}
+
+	public void resetWorkingDirectory() {
+		if(rootDirectory != null) {
+			currentDirectory = rootDirectory;
+			clearLastError();
+		}
 	}
 
 	/**

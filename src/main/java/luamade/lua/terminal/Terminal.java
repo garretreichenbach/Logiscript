@@ -567,6 +567,7 @@ public class Terminal extends LuaMadeUserdata {
 	private void resetRuntimeConfiguration() {
 		autoPromptEnabled = true;
 		promptTemplate = DEFAULT_PROMPT_TEMPLATE;
+		fileSystem.resetWorkingDirectory();
 	}
 
 	private boolean runStartupScriptAsync() {
