@@ -46,6 +46,7 @@ The terminal is the command shell and script runner for each computer.
 - `httpput [--content-type <mime>] <url> <payload|@file> [output-file]` to send web content via HTTP PUT.
 - `pkg <search|info|fetch|install|list|remove> ...` to use the trusted package manager.
 - `reboot` to re-run startup flow and reset prompt behavior.
+- `scrollmode [NONE|HORIZONTAL|VERTICAL|BOTH]` to inspect or set editor/terminal scrollbar mode.
 
 If trusted-only mode is enabled, allowed domains come from:
 
@@ -107,6 +108,9 @@ Enables or disables automatic prompt printing.
 
 - `isAutoPromptEnabled()`
 Returns current auto-prompt setting.
+
+- `getScrollMode()` / `setScrollMode(mode)`
+  Gets or updates scrollbar mode (`NONE`, `HORIZONTAL`, `VERTICAL`, `BOTH`).
 
 - `getPreviousCommand()`, `getNextCommand()`
 Expose command history navigation helpers.

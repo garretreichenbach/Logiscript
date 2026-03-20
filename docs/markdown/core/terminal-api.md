@@ -47,6 +47,8 @@ Placeholders: `{name}`, `{display}`, `{hostname}`, `{dir}`.
 - `resetPromptTemplate()`
 - `setAutoPrompt(enabled)`
 - `isAutoPromptEnabled()`
+- `getScrollMode()`
+- `setScrollMode(mode)` where `mode` is one of `NONE`, `HORIZONTAL`, `VERTICAL`, `BOTH`
 
 
 ## Wiring Commands To Game Logic

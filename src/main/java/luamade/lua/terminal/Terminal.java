@@ -1676,6 +1676,16 @@ public class Terminal extends LuaMadeUserdata {
 		return autoPromptEnabled;
 	}
 
+	@LuaMadeCallable
+	public String getScrollMode() {
+		return module == null ? "VERTICAL" : module.getScrollModeName();
+	}
+
+	@LuaMadeCallable
+	public boolean setScrollMode(String mode) {
+		return module != null && module.setScrollMode(mode);
+	}
+
 	/**
 	 * Prints the command prompt
 	 */
@@ -2338,6 +2348,24 @@ public class Terminal extends LuaMadeUserdata {
 			}
 		});
 
+		commands.put("scrollmode", new Command("scrollmode", "View or set scrollbar mode (NONE/HORIZONTAL/VERTICAL/BOTH)") {
+			@Override
+			public void execute(String args) {
+				String trimmed = args == null ? "" : args.trim();
+				if(trimmed.isEmpty()) {
+					console.print(valueOf("Scroll mode: " + module.getScrollModeName()));
+					console.print(valueOf("Usage: scrollmode <NONE|HORIZONTAL|VERTICAL|BOTH>"));
+					return;
+				}
+
+				if(module.setScrollMode(trimmed)) {
+					console.print(valueOf("Scroll mode set to " + module.getScrollModeName()));
+				} else {
+					console.print(valueOf("Error: Invalid scroll mode. Use NONE, HORIZONTAL, VERTICAL, or BOTH"));
+				}
+			}
+		});
+
 		// Copy command
 		commands.put("cp", new Command("cp", "Copies a file") {
 			@Override
@@ -2688,6 +2716,7 @@ public class Terminal extends LuaMadeUserdata {
 		setCommandHelp("clear", "clear", "Clear terminal transcript.");
 		setCommandHelp("exit", "exit", "Stop the terminal session.");
 		setCommandHelp("reboot", "reboot", "Hard reset terminal state and rerun startup flow.");
+		setCommandHelp("scrollmode", "scrollmode [NONE|HORIZONTAL|VERTICAL|BOTH]", "Without args shows current scrollbar mode; with arg updates it.");
 		setCommandHelp("cp", "cp [-r] <source> <destination>", "Copy file or directory. Use -r when source is a directory.");
 		setCommandHelp("mv", "mv <source> <destination>", "Move or rename a file path.");
 		setCommandHelp("edit", "edit <file> <content>", "Write provided content to a file in one command.");

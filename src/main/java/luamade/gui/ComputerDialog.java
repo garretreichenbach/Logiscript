@@ -164,6 +164,10 @@ public class ComputerDialog extends PlayerInput {
 		private static final int TEXT_BOX_HEIGHT = 500;
 		/** Pixels reserved at the bottom for the editor hint bar overlay. */
 		private static final int EDITOR_HINT_RESERVE_PX = 36;
+		private static final int SCROLLABLE_NONE = resolveScrollableModeConstant("SCROLLABLE_NONE", 0);
+		private static final int SCROLLABLE_HORIZONTAL = resolveScrollableModeConstant("SCROLLABLE_HORIZONTAL", 1);
+		private static final int SCROLLABLE_VERTICAL = resolveScrollableModeConstant("SCROLLABLE_VERTICAL", GUIScrollablePanel.SCROLLABLE_VERTICAL);
+		private static final int SCROLLABLE_BOTH = resolveScrollableModeConstant("SCROLLABLE_BOTH", SCROLLABLE_HORIZONTAL | SCROLLABLE_VERTICAL);
 
 		private final ComputerModule computerModule;
 		private GUIScrollablePanel consolePanel;
@@ -183,6 +187,7 @@ public class ComputerDialog extends PlayerInput {
 		private GUITextButton pasteFilesButton;
 		private TerminalGfxOverlay terminalGfxOverlay;
 		private String lastEditorHintText = "";
+		private ComputerModule.ScrollMode appliedScrollMode;
 		/** Reference to the content pane so we can adjust text-box height dynamically. */
 		private GUIContentPane mainContentPane;
 		/**
@@ -316,6 +321,47 @@ public class ComputerDialog extends PlayerInput {
 
 		public boolean isFileEditMode() {
 			return computerModule != null && computerModule.getLastMode() == ComputerModule.ComputerMode.FILE_EDIT;
+		}
+
+		private static int resolveScrollableModeConstant(String fieldName, int fallback) {
+			try {
+				Field field = GUIScrollablePanel.class.getField(fieldName);
+				return field.getInt(null);
+			} catch(Exception ignored) {
+				return fallback;
+			}
+		}
+
+		private void applyConfiguredScrollMode() {
+			if(consolePanel == null || computerModule == null) {
+				return;
+			}
+
+			ComputerModule.ScrollMode mode = computerModule.getScrollMode();
+			if(mode == null) {
+				mode = ComputerModule.ScrollMode.VERTICAL;
+			}
+			if(mode == appliedScrollMode) {
+				return;
+			}
+
+			switch(mode) {
+				case NONE:
+					consolePanel.setScrollable(SCROLLABLE_NONE);
+					break;
+				case HORIZONTAL:
+					consolePanel.setScrollable(SCROLLABLE_HORIZONTAL);
+					break;
+				case BOTH:
+					consolePanel.setScrollable(SCROLLABLE_BOTH);
+					break;
+				case VERTICAL:
+				default:
+					consolePanel.setScrollable(SCROLLABLE_VERTICAL);
+					break;
+			}
+
+			appliedScrollMode = mode;
 		}
 
 		/** Returns the {@link ComputerModule} associated with this panel (may be null). */
@@ -1155,6 +1201,7 @@ public class ComputerDialog extends PlayerInput {
 				public void draw() {
 					updateEditorHintOverlay();
 					updateActionButtonPositions();
+					applyConfiguredScrollMode();
 					activateConsoleFocusIfPending();
 
 					ComputerModule.ComputerMode currentMode = computerModule.getLastMode();
@@ -1271,7 +1318,7 @@ public class ComputerDialog extends PlayerInput {
 			((GUIDialogWindow) background).attachSuper(resetButton);
 			((GUIDialogWindow) background).attachSuper(pasteFilesButton);
 
-			consolePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);
+			applyConfiguredScrollMode();
 			consolePane.getTextArea().setLinewrap(LINE_WRAP);
 			String initialContent = computerModule.getLastTextContent();
 

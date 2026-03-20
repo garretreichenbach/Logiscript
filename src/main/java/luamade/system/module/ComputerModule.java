@@ -35,6 +35,7 @@ public class ComputerModule {
 	private String lastDocsTopicPath = "";
 	private final Set<String> collapsedDocsSections = new LinkedHashSet<>();
 	private String displayName;
+	private ScrollMode scrollMode = ScrollMode.VERTICAL;
 
 	public ComputerModule(SegmentPiece segmentPiece, String uuid) {
 		this.uuid = uuid;
@@ -250,11 +251,29 @@ public class ComputerModule {
 		return lastMode == ComputerMode.FILE_EDIT;
 	}
 
+	public String getScrollModeName() {
+		return scrollMode.name();
+	}
+
+	public ScrollMode getScrollMode() {
+		return scrollMode;
+	}
+
+	public boolean setScrollMode(String modeName) {
+		ScrollMode parsed = ScrollMode.fromName(modeName);
+		if(parsed == null) {
+			return false;
+		}
+		scrollMode = parsed;
+		setTouched();
+		return true;
+	}
+
 	/**
 	 * Restores lightweight module state from container serialization.
 	 * File-system contents are loaded independently by FileSystem using computer UUID.
 	 */
-	public void restoreSerializedState(ComputerMode mode, String openFile, String savedInput, String hostname, String displayName, String lastDocsTopicPath, Collection<String> collapsedDocsSections) {
+	public void restoreSerializedState(ComputerMode mode, String openFile, String savedInput, String hostname, String displayName, String lastDocsTopicPath, Collection<String> collapsedDocsSections, String scrollModeName) {
 		if(mode != null) {
 			lastMode = mode;
 		}
@@ -269,6 +288,10 @@ public class ComputerModule {
 
 		if(displayName != null && !displayName.isEmpty()) {
 			setDisplayName(displayName);
+		}
+
+		if(scrollModeName != null && !scrollModeName.isEmpty()) {
+			setScrollMode(scrollModeName);
 		}
 	}
 
@@ -296,5 +319,25 @@ public class ComputerModule {
 		OFF,
 		TERMINAL,
 		FILE_EDIT
+	}
+
+	public enum ScrollMode {
+		NONE,
+		HORIZONTAL,
+		VERTICAL,
+		BOTH;
+
+		public static ScrollMode fromName(String modeName) {
+			if(modeName == null) {
+				return null;
+			}
+			String normalized = modeName.trim();
+			for(ScrollMode mode : values()) {
+				if(mode.name().equalsIgnoreCase(normalized)) {
+					return mode;
+				}
+			}
+			return null;
+		}
 	}
 }
