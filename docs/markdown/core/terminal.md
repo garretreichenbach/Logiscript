@@ -9,6 +9,16 @@ The terminal is the command shell and script runner for each computer.
 - Foreground and background execution are subject to server time and parallel limits.
 - Startup script `/etc/startup.lua` is executed on boot when present.
 
+## Keyboard suggestions
+
+- If the first command token is non-empty and you pause typing for about 3 seconds, the terminal shows command
+  suggestions.
+- Suggestions include built-in shell commands and runnable scripts from `/bin`.
+- Press `Tab` once to autocomplete to the best match.
+- Press `Tab` again to cycle forward through suggestions (bash-style).
+- `Up` / `Down` always navigate command history regardless of suggestion state.
+- Typing any character dismisses the current suggestion list.
+
 ## Key commands
 
 - `help`: list built-in commands.

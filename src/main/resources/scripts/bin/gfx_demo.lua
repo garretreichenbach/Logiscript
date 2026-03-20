@@ -1,0 +1,97 @@
+-- /bin/gfx_demo.lua
+-- Layered graphics showcase for the newer gfx API.
+-- Usage: run /bin/gfx_demo.lua [seconds]
+
+local seconds = tonumber(args[1]) or 10
+if seconds < 1 then
+    seconds = 1
+end
+
+local frameDelayMs = 33
+local totalFrames = math.floor((seconds * 1000) / frameDelayMs)
+
+local function clamp(v, minV, maxV)
+    if v < minV then
+        return minV
+    end
+    if v > maxV then
+        return maxV
+    end
+    return v
+end
+
+gfx.clear()
+gfx.createLayer("bg", 0)
+gfx.createLayer("grid", 2)
+gfx.createLayer("shapes", 6)
+gfx.createLayer("fx", 12)
+
+local w = gfx.getWidth()
+local h = gfx.getHeight()
+
+print("gfx demo started for " .. seconds .. "s")
+print("canvas: " .. w .. "x" .. h)
+
+-- Static background panel.
+gfx.setLayer("bg")
+gfx.rect(0, 0, w, h, 0.03, 0.04, 0.07, 0.88, true)
+gfx.rect(2, 2, w - 4, h - 4, 0.22, 0.4, 0.95, 0.85, false)
+
+-- Static grid layer.
+gfx.setLayer("grid")
+local step = 20
+for x = 0, w, step do
+    gfx.line(x, 0, x, h - 1, 0.1, 0.25, 0.45, 0.25)
+end
+for y = 0, h, step do
+    gfx.line(0, y, w - 1, y, 0.1, 0.25, 0.45, 0.25)
+end
+
+for i = 0, totalFrames do
+    local t = i / 30.0
+
+    gfx.clearLayer("shapes")
+    gfx.clearLayer("fx")
+
+    local cx = math.floor(w * 0.5)
+    local cy = math.floor(h * 0.5)
+
+    local boxW = math.floor(30 + (math.sin(t * 1.7) + 1) * 18)
+    local boxH = math.floor(20 + (math.cos(t * 1.3) + 1) * 12)
+
+    local ox = math.floor(math.sin(t * 1.1) * (w * 0.25))
+    local oy = math.floor(math.cos(t * 0.9) * (h * 0.2))
+
+    local x = clamp(cx + ox - math.floor(boxW * 0.5), 0, math.max(0, w - boxW - 1))
+    local y = clamp(cy + oy - math.floor(boxH * 0.5), 0, math.max(0, h - boxH - 1))
+
+    -- Dynamic rectangles and crosshair.
+    gfx.setLayer("shapes")
+    gfx.rect(x, y, boxW, boxH, 0.1, 0.8, 0.95, 0.55, true)
+    gfx.rect(x, y, boxW, boxH, 0.9, 0.98, 1.0, 1.0, false)
+    gfx.line(0, cy, w - 1, cy, 0.9, 0.2, 0.35, 0.7)
+    gfx.line(cx, 0, cx, h - 1, 0.9, 0.2, 0.35, 0.7)
+
+    -- Accent points and a blinking layer visibility toggle.
+    gfx.setLayer("fx")
+    local p1x = clamp(cx + math.floor(math.cos(t * 2.0) * (w * 0.35)), 0, w - 1)
+    local p1y = clamp(cy + math.floor(math.sin(t * 2.4) * (h * 0.35)), 0, h - 1)
+    local p2x = clamp(cx + math.floor(math.sin(t * 2.8) * (w * 0.28)), 0, w - 1)
+    local p2y = clamp(cy + math.floor(math.cos(t * 1.9) * (h * 0.28)), 0, h - 1)
+    gfx.point(p1x, p1y, 1.0, 0.9, 0.2, 1.0)
+    gfx.point(p2x, p2y, 0.3, 1.0, 0.35, 1.0)
+
+    if (i % 24) < 12 then
+        gfx.setLayerVisible("fx", true)
+    else
+        gfx.setLayerVisible("fx", false)
+    end
+
+    util.sleep(frameDelayMs)
+end
+
+gfx.setLayerVisible("fx", true)
+gfx.removeLayer("fx")
+gfx.clearLayer("shapes")
+print("gfx demo complete")
+

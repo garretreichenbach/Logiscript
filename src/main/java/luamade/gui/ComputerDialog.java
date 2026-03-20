@@ -18,6 +18,8 @@ import org.schema.schine.graphicsengine.forms.gui.newgui.GUIDialogWindow;
 import org.schema.schine.input.InputState;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class ComputerDialog extends PlayerInput {
@@ -121,6 +123,8 @@ public class ComputerDialog extends PlayerInput {
 		private static final int DOCS_BUTTON_OFFSET_X = 12;
 		private static final int DOCS_BUTTON_OFFSET_Y = 30;
 		private static final int RESET_BUTTON_GAP_X = 8;
+		private static final long SUGGESTION_IDLE_DELAY_MS = 3000L;
+		private static final int SUGGESTION_PREVIEW_LIMIT = 4;
 		/** Pixel height of the console text-box in terminal mode. */
 		private static final int TEXT_BOX_HEIGHT = 500;
 		/** Pixels reserved at the bottom for the editor hint bar overlay. */
@@ -157,6 +161,12 @@ public class ComputerDialog extends PlayerInput {
 		private boolean leftMouseDown;
 		private boolean rightMouseDown;
 		private boolean middleMouseDown;
+		private final List<String> commandSuggestions = new ArrayList<>();
+		private int selectedSuggestionIndex = -1;
+		private String suggestionSeedInput = "";
+		private boolean pathCompletionMode;
+		private String pathCompletionPrefix = "";
+		private long lastInputEditAtMs = System.currentTimeMillis();
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
 			super(inputState, "COMPUTER_PANEL", "", "", 850, 650, guiCallback);
@@ -277,6 +287,18 @@ public class ComputerDialog extends PlayerInput {
 			return computerModule;
 		}
 
+		/**
+		 * Returns true if the console text area currently has a non-empty text selection.
+		 * Used to decide whether Ctrl+C should kill the foreground script or copy selected text.
+		 */
+		public boolean hasSelectedText() {
+			if(consolePane == null) return false;
+			TextAreaInput textArea = consolePane.getTextArea();
+			if(textArea == null) return false;
+			String selected = textArea.getCacheSelect();
+			return selected != null && !selected.isEmpty();
+		}
+
 		public void handleEditorShortcut(int glfwKey) {
 			if(!isFileEditMode()) {
 				return;
@@ -324,6 +346,7 @@ public class ComputerDialog extends PlayerInput {
 			}
 			currentInputLine = "";
 			userIsTyping = false;
+			clearCommandSuggestions();
 			lastAutoScrollCursorLine = -1;
 			lastAutoScrollTotalLines = -1;
 			if(mainContentPane != null) {
@@ -354,10 +377,12 @@ public class ComputerDialog extends PlayerInput {
 
 			boolean inEditor = isFileEditMode();
 			if(!inEditor) {
-				if(!lastEditorHintText.isEmpty()) {
-					editorHintsOverlay.setTextSimple("");
-					lastEditorHintText = "";
+				String hintText = buildTerminalSuggestionHint();
+				if(!hintText.equals(lastEditorHintText)) {
+					editorHintsOverlay.setTextSimple(hintText);
+					lastEditorHintText = hintText;
 				}
+				positionHintOverlay();
 				return;
 			}
 
@@ -370,6 +395,60 @@ public class ComputerDialog extends PlayerInput {
 			if(!hintText.equals(lastEditorHintText)) {
 				editorHintsOverlay.setTextSimple(hintText);
 				lastEditorHintText = hintText;
+			}
+
+			positionHintOverlay();
+		}
+
+		private String buildTerminalSuggestionHint() {
+			if(commandSuggestions.isEmpty() || selectedSuggestionIndex < 0 || selectedSuggestionIndex >= commandSuggestions.size()) {
+				return "";
+			}
+
+			String selectedSuggestion = commandSuggestions.get(selectedSuggestionIndex);
+			// In path completion mode show only the path token, not the full input line.
+			String displaySelected = pathCompletionMode && selectedSuggestion.length() >= pathCompletionPrefix.length()
+					? selectedSuggestion.substring(pathCompletionPrefix.length())
+					: selectedSuggestion;
+			StringBuilder builder = new StringBuilder();
+			builder.append("Suggest ")
+					.append(selectedSuggestionIndex + 1)
+					.append("/")
+					.append(commandSuggestions.size())
+					.append(": ")
+					.append(displaySelected)
+					.append("  (Tab accept, Up/Down cycle)");
+
+			int shown = 0;
+			for(String suggestion : commandSuggestions) {
+				if(suggestion == null || suggestion.isEmpty() || suggestion.equals(selectedSuggestion)) {
+					continue;
+				}
+				String displaySuggestion = pathCompletionMode && suggestion.length() >= pathCompletionPrefix.length()
+						? suggestion.substring(pathCompletionPrefix.length())
+						: suggestion;
+				if(shown == 0) {
+					builder.append("  [");
+				} else {
+					builder.append(", ");
+				}
+				builder.append(displaySuggestion);
+				shown++;
+				if(shown >= SUGGESTION_PREVIEW_LIMIT) {
+					break;
+				}
+			}
+
+			if(shown > 0) {
+				builder.append("]");
+			}
+
+			return builder.toString();
+		}
+
+		private void positionHintOverlay() {
+			if(editorHintsOverlay == null) {
+				return;
 			}
 
 			float x = 8.0F;
@@ -566,10 +645,21 @@ public class ComputerDialog extends PlayerInput {
 		}
 
 		private void setHistoryCommand(String command) {
-			if(command == null) command = "";
-			currentInputLine = command;
-			userIsTyping = !command.isEmpty();
-			consolePane.setTextWithoutCallback(lastModuleContent + command);
+			if(command == null) {
+				command = "";
+			}
+			setTerminalInputLine(command, false);
+		}
+
+		private void setTerminalInputLine(String command, boolean keepSuggestions) {
+			if(consolePane == null || isFileEditMode()) {
+				return;
+			}
+
+			String normalized = command == null ? "" : command;
+			currentInputLine = normalized;
+			userIsTyping = !normalized.isEmpty();
+			consolePane.setTextWithoutCallback(lastModuleContent + normalized);
 			refreshPromptStartPositionFromCurrentText();
 			TextAreaInput textArea = consolePane.getTextArea();
 			if(textArea != null) {
@@ -578,6 +668,134 @@ public class ComputerDialog extends PlayerInput {
 				textArea.update();
 			}
 			scrollPaneToCursor();
+
+			if(keepSuggestions) {
+				suggestionSeedInput = normalized;
+			} else {
+				clearCommandSuggestions();
+				lastInputEditAtMs = System.currentTimeMillis();
+			}
+		}
+
+		private void clearCommandSuggestions() {
+			commandSuggestions.clear();
+			selectedSuggestionIndex = -1;
+			suggestionSeedInput = "";
+			pathCompletionMode = false;
+			pathCompletionPrefix = "";
+		}
+
+		private boolean refreshCommandSuggestions(boolean force) {
+			if(isFileEditMode() || computerModule == null || computerModule.getTerminal() == null) {
+				clearCommandSuggestions();
+				return false;
+			}
+
+			String normalizedInput = currentInputLine == null ? "" : currentInputLine.trim();
+			if(normalizedInput.isEmpty()) {
+				clearCommandSuggestions();
+				return false;
+			}
+
+			if(!force && normalizedInput.equals(suggestionSeedInput) && !commandSuggestions.isEmpty()) {
+				return true;
+			}
+
+			List<String> suggestions = computerModule.getTerminal().getCommandSuggestions(normalizedInput);
+			if(suggestions == null || suggestions.isEmpty()) {
+				clearCommandSuggestions();
+				return false;
+			}
+
+			commandSuggestions.clear();
+			commandSuggestions.addAll(suggestions);
+			suggestionSeedInput = normalizedInput;
+
+			selectedSuggestionIndex = 0;
+			for(int i = 0; i < commandSuggestions.size(); i++) {
+				if(commandSuggestions.get(i).equalsIgnoreCase(normalizedInput)) {
+					selectedSuggestionIndex = i;
+					break;
+				}
+			}
+
+			return true;
+		}
+
+		private boolean cycleCommandSuggestion(int direction) {
+			if(commandSuggestions.isEmpty()) {
+				return false;
+			}
+
+			int count = commandSuggestions.size();
+			selectedSuggestionIndex = (selectedSuggestionIndex + direction) % count;
+			if(selectedSuggestionIndex < 0) {
+				selectedSuggestionIndex += count;
+			}
+
+			setTerminalInputLine(commandSuggestions.get(selectedSuggestionIndex), true);
+			return true;
+		}
+
+		public void handleTabAutocomplete() {
+			if(isFileEditMode()) {
+				return;
+			}
+
+			String input = currentInputLine == null ? "" : currentInputLine;
+			boolean hasArgs = input.contains(" ");
+
+			if(hasArgs) {
+				// Path/file completion mode: complete the last argument token.
+				if(!commandSuggestions.isEmpty() && pathCompletionMode) {
+					cycleCommandSuggestion(1);
+					return;
+				}
+
+				if(computerModule == null || computerModule.getTerminal() == null) {
+					return;
+				}
+
+				List<String> paths = computerModule.getTerminal().getPathSuggestions(input);
+				if(paths == null || paths.isEmpty()) {
+					return;
+				}
+
+				// Build full input-line replacements so cycling replaces only the last token.
+				pathCompletionPrefix = getInputPrefixBeforeLastToken(input);
+				pathCompletionMode = true;
+				commandSuggestions.clear();
+				for(String path : paths) {
+					commandSuggestions.add(pathCompletionPrefix + path);
+				}
+				suggestionSeedInput = input.trim();
+				selectedSuggestionIndex = 0;
+				setTerminalInputLine(commandSuggestions.get(0), true);
+				return;
+			}
+
+			// Command completion mode (first token only).
+			if(!commandSuggestions.isEmpty()) {
+				cycleCommandSuggestion(1);
+				return;
+			}
+
+			if(!refreshCommandSuggestions(true)) {
+				return;
+			}
+
+			if(selectedSuggestionIndex < 0 || selectedSuggestionIndex >= commandSuggestions.size()) {
+				selectedSuggestionIndex = 0;
+			}
+
+			setTerminalInputLine(commandSuggestions.get(selectedSuggestionIndex), true);
+		}
+
+		private String getInputPrefixBeforeLastToken(String input) {
+			if(input == null) return "";
+			int lastSpace = input.lastIndexOf(' ');
+			if(lastSpace < 0) return "";
+			return input.substring(0, lastSpace + 1);
 		}
 
 		private void handleCaretLeft() {
@@ -645,6 +863,7 @@ public class ComputerDialog extends PlayerInput {
 			if(isFileEditMode()) {
 				return;
 			}
+			clearCommandSuggestions();
 
 			if(computerModule != null && computerModule.getTerminal() != null) {
 				String inputToExecute = currentInputLine;
@@ -702,6 +921,7 @@ public class ComputerDialog extends PlayerInput {
 					executeCurrentInput();
 				}
 			}, input -> {
+				String previousInputLine = currentInputLine;
 				if(isFileEditMode()) {
 					userIsTyping = true;
 					return input;
@@ -740,6 +960,10 @@ public class ComputerDialog extends PlayerInput {
 				}
 
 				clampCaretToEditableRegion();
+				if(!Objects.equals(previousInputLine, currentInputLine)) {
+					lastInputEditAtMs = System.currentTimeMillis();
+					clearCommandSuggestions();
+				}
 
 				return input;
 			}) {
@@ -762,11 +986,13 @@ public class ComputerDialog extends PlayerInput {
 						if(isFileEditMode()) {
 							userIsTyping = true;
 							currentInputLine = "";
+							clearCommandSuggestions();
 							if(mainContentPane != null) {
 								mainContentPane.setTextBoxHeightLast(TEXT_BOX_HEIGHT - EDITOR_HINT_RESERVE_PX);
 							}
 						} else {
 							userIsTyping = false;
+							clearCommandSuggestions();
 							refreshPromptStartPositionFromCurrentText();
 							requestConsoleFocus();
 							if(mainContentPane != null) {
@@ -793,7 +1019,15 @@ public class ComputerDialog extends PlayerInput {
 							setTextWithoutCallback(moduleContent);
 							followOutputIfChanged(moduleContent);
 							currentInputLine = "";
+							clearCommandSuggestions();
 							refreshPromptStartPositionFromCurrentText();
+						}
+					}
+
+					if(currentInputLine != null && !currentInputLine.trim().isEmpty()) {
+						long nowMs = System.currentTimeMillis();
+						if(nowMs - lastInputEditAtMs >= SUGGESTION_IDLE_DELAY_MS) {
+							refreshCommandSuggestions(false);
 						}
 					}
 
@@ -808,6 +1042,7 @@ public class ComputerDialog extends PlayerInput {
 			consolePane.getTextArea().onTabCallback = new TabCallback() {
 				@Override
 				public boolean catchTab(TextAreaInput textAreaInput) {
+					handleTabAutocomplete();
 					return true;
 				}
 
@@ -837,7 +1072,7 @@ public class ComputerDialog extends PlayerInput {
 			docsButton.setMouseUpdateEnabled(true);
 			docsButton.onInit();
 
-			resetButton = new GUITextButton(getState(), 90, 20, GUITextButton.ColorPalette.NEUTRAL, "RESET", getCallback());
+			resetButton = new GUITextButton(getState(), 90, 20, GUITextButton.ColorPalette.CANCEL, "RESET", getCallback());
 			resetButton.setUserPointer("RESET");
 			resetButton.setMouseUpdateEnabled(true);
 			resetButton.onInit();
@@ -853,12 +1088,14 @@ public class ComputerDialog extends PlayerInput {
 			if(isFileEditMode()) {
 				currentInputLine = "";
 				userIsTyping = true;
+				clearCommandSuggestions();
 			} else {
 				String savedInput = computerModule.getSavedTerminalInput();
 				if(savedInput != null && !savedInput.isEmpty()) {
 					initialContent = initialContent + savedInput;
 					currentInputLine = savedInput;
 					userIsTyping = true;
+					lastInputEditAtMs = System.currentTimeMillis();
 				}
 			}
 

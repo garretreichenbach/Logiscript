@@ -35,7 +35,7 @@ public class Terminal extends LuaMadeUserdata {
 	private final ComputerModule module;
 	private final Console console;
 	private final FileSystem fileSystem;
-	private final Map<String, Command> commands = new HashMap<>();
+	private final Map<String, Command> commands = new ConcurrentHashMap<>();
 	private final Map<Integer, BackgroundJob> backgroundJobs = new ConcurrentHashMap<>();
 	private final ExecutorService scriptExecutor;
 	private final ScheduledExecutorService scriptScheduler;
@@ -46,6 +46,8 @@ public class Terminal extends LuaMadeUserdata {
 	private final List<String> history = new ArrayList<>();
 	private final AtomicInteger nextJobId = new AtomicInteger(1);
 	private final AtomicInteger activeScripts = new AtomicInteger(0);
+	private volatile ScriptExecutionContext activeForegroundContext;
+	private volatile Future<Boolean> activeForegroundFuture;
 	private int historyIndex;
 	private String currentInput = "";
 	private boolean running;
@@ -246,6 +248,7 @@ public class Terminal extends LuaMadeUserdata {
 				scriptContextThreadLocal.remove();
 				activeScripts.decrementAndGet();
 				scriptSlots.release();
+				module.getGfxApi().clear();
 			}
 		});
 	}
@@ -341,6 +344,8 @@ public class Terminal extends LuaMadeUserdata {
 
 		ScriptExecutionContext context = new ScriptExecutionContext();
 		Future<Boolean> future = submitScriptTask(scriptPath, script, args, context);
+		activeForegroundContext = context;
+		activeForegroundFuture = future;
 		AtomicBoolean promptPrinted = new AtomicBoolean(false);
 
 		scriptScheduler.schedule(() -> {
@@ -364,6 +369,10 @@ public class Terminal extends LuaMadeUserdata {
 			} catch(ExecutionException executionException) {
 				console.print(valueOf("Error executing script: " + executionException.getMessage()));
 			} finally {
+				if(activeForegroundFuture == future) {
+					activeForegroundContext = null;
+					activeForegroundFuture = null;
+				}
 				if(autoPromptEnabled && running && promptPrinted.compareAndSet(false, true)) {
 					printPrompt();
 				}
@@ -797,7 +806,9 @@ public class Terminal extends LuaMadeUserdata {
 			return;
 		}
 
-		commands.put(normalizedName, new LuaCommand(normalizedName, callback));
+		synchronized(commands) {
+			commands.put(normalizedName, new LuaCommand(normalizedName, callback));
+		}
 	}
 
 	@LuaMadeCallable
@@ -807,7 +818,9 @@ public class Terminal extends LuaMadeUserdata {
 			return false;
 		}
 
-		return commands.remove(normalizedName) != null;
+		synchronized(commands) {
+			return commands.remove(normalizedName) != null;
+		}
 	}
 
 	@LuaMadeCallable
@@ -817,7 +830,9 @@ public class Terminal extends LuaMadeUserdata {
 			return false;
 		}
 
-		return commands.containsKey(normalizedName);
+		synchronized(commands) {
+			return commands.containsKey(normalizedName);
+		}
 	}
 
 	/**
@@ -833,12 +848,14 @@ public class Terminal extends LuaMadeUserdata {
 			return false;
 		}
 
-		Command existing = commands.get(normalizedName);
-		if(existing == null) {
-			return false;
-		}
+		synchronized(commands) {
+			Command existing = commands.get(normalizedName);
+			if(existing == null) {
+				return false;
+			}
 
-		commands.put(normalizedName, new LuaWrappedCommand(normalizedName, existing, callback));
+			commands.put(normalizedName, new LuaWrappedCommand(normalizedName, existing, callback));
+		}
 		return true;
 	}
 
@@ -899,6 +916,171 @@ public class Terminal extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public void setCurrentInput(String input) {
 		currentInput = input;
+	}
+
+	/**
+	 * Returns command suggestions for the first token in the current input.
+	 * Suggestions include built-ins and runnable scripts from /bin.
+	 */
+	@LuaMadeCallable
+	public List<String> getCommandSuggestions(String partialInput) {
+		String normalizedInput = partialInput == null ? "" : partialInput.trim();
+		if(normalizedInput.contains(" ")) {
+			return Collections.emptyList();
+		}
+
+		String prefix = normalizedInput.toLowerCase(Locale.ROOT);
+		List<String> candidates = collectCommandSuggestionCandidates();
+		List<String> matches = new ArrayList<>();
+		for(String candidate : candidates) {
+			if(candidate == null || candidate.isEmpty()) {
+				continue;
+			}
+			if(prefix.isEmpty() || candidate.toLowerCase(Locale.ROOT).startsWith(prefix)) {
+				matches.add(candidate);
+			}
+		}
+
+		matches.sort(String.CASE_INSENSITIVE_ORDER);
+		return matches;
+	}
+
+	/**
+	 * Returns the best completion candidate for the first token in input,
+	 * or null if no completion is available.
+	 */
+	@LuaMadeCallable
+	public String getBestCommandCompletion(String partialInput) {
+		List<String> suggestions = getCommandSuggestions(partialInput);
+		if(suggestions.isEmpty()) {
+			return null;
+		}
+
+		String normalizedInput = partialInput == null ? "" : partialInput.trim();
+		if(normalizedInput.isEmpty()) {
+			return suggestions.get(0);
+		}
+
+		for(String suggestion : suggestions) {
+			if(suggestion.equalsIgnoreCase(normalizedInput)) {
+				return suggestion;
+			}
+		}
+
+		return suggestions.get(0);
+	}
+
+	/**
+	 * Returns path/filename completions for the last argument token in partialInput.
+	 * Returns an empty list when the input contains no space (command-only mode).
+	 * Directories are returned with a trailing '/'.
+	 */
+	@LuaMadeCallable
+	public List<String> getPathSuggestions(String partialInput) {
+		if(partialInput == null || !partialInput.contains(" ")) {
+			return Collections.emptyList();
+		}
+
+		// Determine the partial path token at the end of the input.
+		boolean endsWithSpace = partialInput.endsWith(" ");
+		String pathPrefix;
+		if(endsWithSpace) {
+			pathPrefix = "";
+		} else {
+			int lastSpace = partialInput.lastIndexOf(' ');
+			pathPrefix = partialInput.substring(lastSpace + 1);
+		}
+
+		return collectPathSuggestions(pathPrefix);
+	}
+
+	private List<String> collectPathSuggestions(String pathPrefix) {
+		String dirPath;
+		String namePrefix;
+		String displayDirPrefix;
+
+		int lastSlash = pathPrefix.lastIndexOf('/');
+		if(lastSlash >= 0) {
+			displayDirPrefix = pathPrefix.substring(0, lastSlash + 1);
+			namePrefix = pathPrefix.substring(lastSlash + 1);
+			String dirPart = pathPrefix.substring(0, lastSlash);
+			dirPath = fileSystem.normalizePath(dirPart.isEmpty() ? "/" : dirPart);
+		} else {
+			displayDirPrefix = "";
+			namePrefix = pathPrefix;
+			dirPath = fileSystem.getCurrentDir();
+		}
+
+		List<String> entries = fileSystem.list(dirPath);
+		if(entries == null || entries.isEmpty()) {
+			return Collections.emptyList();
+		}
+
+		String lowerPrefix = namePrefix.toLowerCase(Locale.ROOT);
+		List<String> matches = new ArrayList<>();
+		for(String entry : entries) {
+			if(entry == null || entry.isEmpty()) continue;
+			if(!namePrefix.isEmpty() && !entry.toLowerCase(Locale.ROOT).startsWith(lowerPrefix)) continue;
+
+			String entryPath = "/".equals(dirPath) ? "/" + entry : dirPath + "/" + entry;
+			String completion = displayDirPrefix + entry;
+			if(fileSystem.isDir(entryPath)) {
+				completion += "/";
+			}
+			matches.add(completion);
+		}
+
+		matches.sort(String.CASE_INSENSITIVE_ORDER);
+		return matches;
+	}
+
+	/**
+	 * Interrupts the currently running foreground script (Ctrl+C).
+	 * Returns true if a foreground script was active and has been signaled to stop.
+	 */
+	@LuaMadeCallable
+	public boolean interruptForeground() {
+		ScriptExecutionContext ctx = activeForegroundContext;
+		Future<Boolean> future = activeForegroundFuture;
+		if(ctx == null) {
+			return false;
+		}
+		ctx.requestCancel(false);
+		if(future != null) {
+			future.cancel(true);
+		}
+		console.print(valueOf("^C"));
+		return true;
+	}
+
+	private List<String> collectCommandSuggestionCandidates() {
+		LinkedHashSet<String> candidates = new LinkedHashSet<>();
+
+		synchronized(commands) {
+			candidates.addAll(commands.keySet());
+		}
+
+		List<String> binEntries = fileSystem.list("/bin");
+		if(binEntries != null) {
+			for(String entry : binEntries) {
+				if(entry == null || entry.isEmpty()) {
+					continue;
+				}
+
+				String scriptPath = fileSystem.normalizePath("/bin/" + entry);
+				if(!fileSystem.exists(scriptPath) || fileSystem.isDir(scriptPath)) {
+					continue;
+				}
+
+				if(entry.endsWith(".lua") && entry.length() > 4) {
+					candidates.add(entry.substring(0, entry.length() - 4));
+				} else {
+					candidates.add(entry);
+				}
+			}
+		}
+
+		return new ArrayList<>(candidates);
 	}
 
 	@LuaMadeCallable

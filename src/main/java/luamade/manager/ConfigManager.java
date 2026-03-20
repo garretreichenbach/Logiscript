@@ -44,6 +44,7 @@ public final class ConfigManager {
 	private static final List<String> DEFAULT_TRUSTED_WEB_DOMAINS = Arrays.asList(
 		"raw.githubusercontent.com",
 		"gist.githubusercontent.com",
+			"github.com",
 		"pastebin.com",
 		"hastebin.com"
 	);
@@ -64,11 +65,11 @@ public final class ConfigManager {
 		startupScriptTimeoutMs = new SimpleConfigInt(config, "startup_script_timeout_ms", 2000, "Startup script timeout in milliseconds.");
 		scriptQueueWaitMs = new SimpleConfigInt(config, "script_queue_wait_ms", 250, "Queue wait budget in milliseconds used by hybrid overload mode.");
 		scriptOverloadMode = new SimpleConfigInt(config, "script_overload_mode", 2, "Script overload policy: 0=hard-stop, 1=stall, 2=hybrid.");
-		webFetchEnabled = new SimpleConfigBool(config, "web_fetch_enabled", false, "If true, allows terminal/scripts to fetch HTTP(S) data from the web.");
+		webFetchEnabled = new SimpleConfigBool(config, "web_fetch_enabled", true, "If true, allows terminal/scripts to fetch HTTP(S) data from the web.");
 		webFetchTrustedDomainsOnly = new SimpleConfigBool(config, "web_fetch_trusted_domains_only", true, "If true, web fetch is limited to a built-in trusted domain allowlist.");
 		webFetchTimeoutMs = new SimpleConfigInt(config, "web_fetch_timeout_ms", 4000, "Web fetch connect/read timeout in milliseconds.");
 		webFetchMaxBytes = new SimpleConfigInt(config, "web_fetch_max_bytes", 131072, "Maximum response payload size (bytes) accepted by web fetch.");
-		webPutEnabled = new SimpleConfigBool(config, "web_put_enabled", false, "If true, allows terminal/scripts to send HTTP(S) PUT requests.");
+		webPutEnabled = new SimpleConfigBool(config, "web_put_enabled", true, "If true, allows terminal/scripts to send HTTP(S) PUT requests.");
 		webPutTrustedDomainsOnly = new SimpleConfigBool(config, "web_put_trusted_domains_only", true, "If true, HTTP PUT is limited to domains in trusted_domains.txt.");
 		webPutTimeoutMs = new SimpleConfigInt(config, "web_put_timeout_ms", 4000, "HTTP PUT connect/read timeout in milliseconds.");
 		webPutMaxRequestBytes = new SimpleConfigInt(config, "web_put_max_request_bytes", 32768, "Maximum UTF-8 request payload size (bytes) for HTTP PUT.");
@@ -128,7 +129,7 @@ public final class ConfigManager {
 	}
 
 	public static boolean isWebFetchEnabled() {
-		return boolOrDefault(webFetchEnabled, false);
+		return boolOrDefault(webFetchEnabled, true);
 	}
 
 	public static boolean isWebFetchTrustedDomainsOnly() {
@@ -144,7 +145,7 @@ public final class ConfigManager {
 	}
 
 	public static boolean isWebPutEnabled() {
-		return boolOrDefault(webPutEnabled, false);
+		return boolOrDefault(webPutEnabled, true);
 	}
 
 	public static boolean isWebPutTrustedDomainsOnly() {

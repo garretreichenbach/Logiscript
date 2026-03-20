@@ -22,8 +22,8 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 
 	public TerminalGfxOverlay(int width, int height, ClientState state, GfxApi gfxApi) {
 		super(Math.max(1, width), Math.max(1, height), state);
-		this.requestedWidth = Math.max(1, width);
-		this.requestedHeight = Math.max(1, height);
+		requestedWidth = Math.max(1, width);
+		requestedHeight = Math.max(1, height);
 		this.gfxApi = gfxApi;
 	}
 
@@ -45,6 +45,12 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 	}
 
 	@Override
+	public void draw() {
+		super.draw();
+		drawOverlayTexture((ClientStateInterface) getState());
+	}
+
+	@Override
 	public void updateGUI(ClientStateInterface state) {
 		ensureTextureSize();
 		super.updateGUI(state);
@@ -63,9 +69,24 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		}
 
 		GfxApi.FrameSnapshot frame = gfxApi.snapshot();
-		if(frame.layers.isEmpty()) {
+
+		// Only render (and cover the terminal) when at least one visible layer has commands.
+		boolean hasCommands = false;
+		for(GfxApi.LayerSnapshot layer : frame.layers) {
+			if(layer.visible && !layer.commands.isEmpty()) {
+				hasCommands = true;
+				break;
+			}
+		}
+		if(!hasCommands) {
 			return;
 		}
+
+		// Clear the FBO to opaque black so the canvas fully covers the terminal text.
+		// Scripts can draw shapes with alpha < 1 on top for partial transparency effects,
+		// or call gfx.clear() / remove all layers to restore terminal visibility entirely.
+		GL11.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
 
 		GlUtil.glDisable(GL11.GL_TEXTURE_2D);
 		GlUtil.glDisable(GL11.GL_LIGHTING);

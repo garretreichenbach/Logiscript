@@ -34,7 +34,7 @@ public class EventManager {
 		FastListenerCommon.segmentPieceRemoveListeners.add(segmentPieceListener);
 		FastListenerCommon.segmentPieceKilledListeners.add(segmentPieceListener);
 
-		// Intercept arrow/home/end keys so they don't reach TextAreaInput when the
+		// Intercept navigation and completion keys so they don't reach TextAreaInput when the
 		// ComputerDialog is open. This prevents the caret from moving into protected
 		// console output territory and enables proper terminal history navigation.
 		StarLoader.registerListener(KeyPressEvent.class, new Listener<KeyPressEvent>() {
@@ -75,6 +75,19 @@ public class EventManager {
 						event.setCanceled(true);
 						panel.handleEditorShortcut(key);
 						// still forward to InputApi so scripts can react
+					} else if(!panel.isFileEditMode() && key == GLFW.GLFW_KEY_TAB) {
+						event.setCanceled(true);
+						panel.handleTabAutocomplete();
+						// still forward to InputApi below
+					} else if(!panel.isFileEditMode() && ctrlDown && key == GLFW.GLFW_KEY_C && !panel.hasSelectedText()) {
+						// Ctrl+C with no selection: interrupt the running foreground script.
+						// When text IS selected we do NOT cancel so the text area handles copy normally.
+						event.setCanceled(true);
+						ComputerModule ctrlCModule = panel.getComputerModule();
+						if(ctrlCModule != null && ctrlCModule.getTerminal() != null) {
+							ctrlCModule.getTerminal().interruptForeground();
+						}
+						// still forward to InputApi below
 					} else if(!panel.isFileEditMode() && (key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_DOWN || key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT || key == GLFW.GLFW_KEY_HOME || key == GLFW.GLFW_KEY_END)) {
 						event.setCanceled(true);
 						panel.handleNavigationKey(key);
