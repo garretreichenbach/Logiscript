@@ -17,10 +17,22 @@ import org.schema.schine.graphicsengine.forms.gui.newgui.GUIContentPane;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIDialogWindow;
 import org.schema.schine.input.InputState;
 
+import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.List;
-import java.util.Objects;
+
+import static org.luaj.vm2.LuaValue.valueOf;
 
 public class ComputerDialog extends PlayerInput {
 
@@ -66,6 +78,11 @@ public class ComputerDialog extends PlayerInput {
 		if(!isOccluded() && mouseEvent.pressedLeftMouse()) {
 			if(callingElement.getUserPointer() != null) {
 				switch((String) callingElement.getUserPointer()) {
+					case "PASTE_FILES":
+						if(computerPanel != null) {
+							computerPanel.pasteFilesFromClipboard();
+						}
+						break;
 					case "DOCS":
 						openDocumentationPanel();
 						break;
@@ -140,6 +157,7 @@ public class ComputerDialog extends PlayerInput {
 		private static final int DOCS_BUTTON_OFFSET_X = 12;
 		private static final int DOCS_BUTTON_OFFSET_Y = 30;
 		private static final int RESET_BUTTON_GAP_X = 8;
+		private static final int PASTE_FILES_BUTTON_GAP_X = 8;
 		private static final long SUGGESTION_IDLE_DELAY_MS = 3000L;
 		private static final int SUGGESTION_PREVIEW_LIMIT = 4;
 		/** Pixel height of the console text-box in terminal mode. */
@@ -162,6 +180,7 @@ public class ComputerDialog extends PlayerInput {
 		private GUITextOverlay editorHintsOverlay;
 		private GUITextButton docsButton;
 		private GUITextButton resetButton;
+		private GUITextButton pasteFilesButton;
 		private TerminalGfxOverlay terminalGfxOverlay;
 		private String lastEditorHintText = "";
 		/** Reference to the content pane so we can adjust text-box height dynamically. */
@@ -481,7 +500,7 @@ public class ComputerDialog extends PlayerInput {
 		}
 
 		private void updateActionButtonPositions() {
-			if(docsButton == null || resetButton == null || getButtonOK() == null) {
+			if(docsButton == null || resetButton == null || pasteFilesButton == null || getButtonOK() == null) {
 				return;
 			}
 
@@ -492,6 +511,148 @@ public class ComputerDialog extends PlayerInput {
 			}
 			docsButton.setPos(x, y, 0);
 			resetButton.setPos(x + docsButton.getWidth() + RESET_BUTTON_GAP_X, y, 0);
+			pasteFilesButton.setPos(x + docsButton.getWidth() + RESET_BUTTON_GAP_X + resetButton.getWidth() + PASTE_FILES_BUTTON_GAP_X, y, 0);
+		}
+
+		public void pasteFilesFromClipboard() {
+			if(computerModule == null || computerModule.getTerminal() == null) {
+				return;
+			}
+
+			try {
+				Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+				Transferable transferable = clipboard == null ? null : clipboard.getContents(null);
+				if(transferable == null) {
+					printStatus("Clipboard is empty");
+					return;
+				}
+
+				LinkedHashMap<String, String> filesToImport = new LinkedHashMap<>();
+
+				if(transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+					Object data = transferable.getTransferData(DataFlavor.javaFileListFlavor);
+					if(data instanceof List<?>) {
+						for(Object entry : (List<?>) data) {
+							if(entry instanceof File) {
+								collectClipboardPathEntries(((File) entry).toPath(), "", filesToImport);
+							}
+						}
+					}
+				}
+
+				if(!filesToImport.isEmpty()) {
+					computerModule.getTerminal().importClipboardFiles(filesToImport, true, "clipboard files");
+					return;
+				}
+
+				if(transferable.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+					String clipboardText = String.valueOf(transferable.getTransferData(DataFlavor.stringFlavor));
+
+					// Keep support for our explicit clipboard bundle format.
+					if(computerModule.getTerminal().importClipboardProtocol(clipboardText, true)) {
+						return;
+					}
+
+					filesToImport.putAll(collectEntriesFromPathList(clipboardText));
+					if(!filesToImport.isEmpty()) {
+						computerModule.getTerminal().importClipboardFiles(filesToImport, true, "clipboard paths");
+						return;
+					}
+				}
+
+				printStatus("No files found in clipboard");
+			} catch(Exception exception) {
+				printStatus("Paste Files failed: " + exception.getMessage());
+			}
+		}
+
+		private void collectClipboardPathEntries(Path path, String prefix, Map<String, String> output) {
+			if(path == null || output == null) {
+				return;
+			}
+			if(!Files.exists(path)) {
+				return;
+			}
+
+			try {
+				if(Files.isDirectory(path)) {
+					File[] children = path.toFile().listFiles();
+					if(children == null) {
+						return;
+					}
+
+					String dirName = path.getFileName() == null ? "" : path.getFileName().toString();
+					String nextPrefix = prefix.isEmpty() ? dirName : prefix + "/" + dirName;
+					for(File child : children) {
+						collectClipboardPathEntries(child.toPath(), nextPrefix, output);
+					}
+					return;
+				}
+
+				if(!Files.isRegularFile(path)) {
+					return;
+				}
+
+				String name = path.getFileName() == null ? "clipboard-file" : path.getFileName().toString();
+				String relativePath = prefix.isEmpty() ? name : prefix + "/" + name;
+				String contents = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+				output.put(relativePath.replace('\\', '/'), contents);
+			} catch(IOException ignored) {
+			}
+		}
+
+		private Map<String, String> collectEntriesFromPathList(String clipboardText) {
+			LinkedHashMap<String, String> output = new LinkedHashMap<>();
+			if(clipboardText == null || clipboardText.trim().isEmpty()) {
+				return output;
+			}
+
+			String[] lines = clipboardText.replace("\r\n", "\n").replace('\r', '\n').split("\n");
+			for(String line : lines) {
+				String raw = unquote(line == null ? "" : line.trim());
+				if(raw.isEmpty()) {
+					continue;
+				}
+
+				Path path = tryParseClipboardPath(raw);
+				if(path == null) {
+					continue;
+				}
+				collectClipboardPathEntries(path, "", output);
+			}
+			return output;
+		}
+
+		private Path tryParseClipboardPath(String rawPath) {
+			if(rawPath == null || rawPath.isEmpty()) {
+				return null;
+			}
+
+			try {
+				if(rawPath.startsWith("file://")) {
+					return Paths.get(URI.create(rawPath));
+				}
+				return Paths.get(rawPath);
+			} catch(IllegalArgumentException ignored) {
+				return null;
+			}
+		}
+
+		private String unquote(String value) {
+			if(value == null || value.length() < 2) {
+				return value == null ? "" : value;
+			}
+			if((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
+				return value.substring(1, value.length() - 1).trim();
+			}
+			return value;
+		}
+
+		private void printStatus(String message) {
+			if(computerModule == null || computerModule.getConsole() == null || message == null || message.isEmpty()) {
+				return;
+			}
+			computerModule.getConsole().print(valueOf(message));
 		}
 
 		private void activateConsoleFocusIfPending() {
@@ -528,14 +689,9 @@ public class ComputerDialog extends PlayerInput {
 			int width = Math.max(1, Math.round(consolePane.getWidth()));
 			int height = Math.max(1, Math.round(consolePane.getHeight()));
 
-			GUIScrollablePanel scrollPanel = resolveTextBarScrollPanel();
-			if(scrollPanel != null) {
-				x += scrollPanel.getPos().x;
-				y += scrollPanel.getPos().y;
-				width = Math.max(1, Math.round(scrollPanel.getWidth()));
-				height = Math.max(1, Math.round(scrollPanel.getHeight()));
-			}
-
+			// Keep gfx canvas aligned with the visible terminal text bar.
+			// Using reflected scroll-panel dimensions can report larger virtual sizes
+			// than the rendered panel and push drawings out of view.
 			terminalGfxOverlay.setCanvasBounds(x, y, width, height);
 			terminalGfxOverlay.setCanvasEnabled(!isFileEditMode());
 		}
@@ -1105,9 +1261,15 @@ public class ComputerDialog extends PlayerInput {
 			resetButton.setMouseUpdateEnabled(true);
 			resetButton.onInit();
 
+			pasteFilesButton = new GUITextButton(getState(), 120, 20, GUITextButton.ColorPalette.OK, "PASTE FILES", getCallback());
+			pasteFilesButton.setUserPointer("PASTE_FILES");
+			pasteFilesButton.setMouseUpdateEnabled(true);
+			pasteFilesButton.onInit();
+
 			updateActionButtonPositions();
 			((GUIDialogWindow) background).attachSuper(docsButton);
 			((GUIDialogWindow) background).attachSuper(resetButton);
+			((GUIDialogWindow) background).attachSuper(pasteFilesButton);
 
 			consolePanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);
 			consolePane.getTextArea().setLinewrap(LINE_WRAP);

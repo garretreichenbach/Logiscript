@@ -8,8 +8,8 @@ import org.schema.schine.graphicsengine.forms.gui.GUIDrawToTextureOverlay;
 import org.schema.schine.network.client.ClientState;
 import org.schema.schine.network.client.ClientStateInterface;
 
-import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -87,6 +87,7 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 			return;
 		}
 		super.draw();
+		drawOverlayTexture((ClientStateInterface) getState());
 	}
 
 	@Override

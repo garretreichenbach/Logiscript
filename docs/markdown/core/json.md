@@ -1,4 +1,4 @@
-# JSON Library (`json`)
+# JSON Library
 
 The `json` global provides lightweight JSON encode/decode helpers for scripts.
 

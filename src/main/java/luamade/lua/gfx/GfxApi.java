@@ -16,8 +16,8 @@ public class GfxApi extends LuaMadeUserdata {
 	private final Map<String, LayerState> layers = new LinkedHashMap<>();
 	private String activeLayer = "default";
 	private int nextLayerOrder = 1;
-	private int canvasWidth = 1;
-	private int canvasHeight = 1;
+	private volatile int canvasWidth = 1;
+	private volatile int canvasHeight = 1;
 	private long revision;
 	private static final int MAX_TEXT_LENGTH = 512;
 	private static final int MAX_BITMAP_PIXELS = 65536;
@@ -318,7 +318,7 @@ public class GfxApi extends LuaMadeUserdata {
 
 		int normalizedWidth = Math.max(1, width);
 		int normalizedHeight = Math.max(1, height);
-		long expectedPixels = (long) normalizedWidth * (long) normalizedHeight;
+		long expectedPixels = (long) normalizedWidth * normalizedHeight;
 		if(expectedPixels > MAX_BITMAP_PIXELS || rgbaPixels.length < expectedPixels) {
 			return false;
 		}
