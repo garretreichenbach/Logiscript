@@ -1261,7 +1261,7 @@ public class ComputerDialog extends PlayerInput {
 			resetButton.setMouseUpdateEnabled(true);
 			resetButton.onInit();
 
-			pasteFilesButton = new GUITextButton(getState(), 120, 20, GUITextButton.ColorPalette.OK, "PASTE FILES", getCallback());
+			pasteFilesButton = new GUITextButton(getState(), 120, 20, GUITextButton.ColorPalette.FRIENDLY, "PASTE FILES", getCallback());
 			pasteFilesButton.setUserPointer("PASTE_FILES");
 			pasteFilesButton.setMouseUpdateEnabled(true);
 			pasteFilesButton.onInit();
