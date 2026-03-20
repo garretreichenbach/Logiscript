@@ -164,6 +164,7 @@ Scripts executed in the terminal have access to these global variables:
 - `net` - Network API
 - `util` - Built-in Lua utility library with native timing helpers
 - `json` - Built-in JSON encode/decode library
+- `coroutine` - Standard Lua coroutine API (`create`, `resume`, `yield`, `status`, `running`, `wrap`)
 - `package` - Sandboxed package table (`loaded`, `preload`, `path`, `cpath`)
 - `args` - Table of command-line arguments
 
@@ -180,6 +181,7 @@ Runtime behavior notes:
 
 - Foreground scripts (`run`) are time-budgeted to prevent runaway execution.
 - Background scripts (`runbg`) are limited to a small parallel pool and also time-budgeted.
+- Coroutines are enabled but cooperative: they run on the same script thread and share the same timeout/cancel budget.
 
 JSON example:
 

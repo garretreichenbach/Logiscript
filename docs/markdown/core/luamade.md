@@ -40,6 +40,7 @@ run /home/hello.lua
 - `shell`: compatibility shell helpers (`shell.run(pathOrCommand, ...)`).
 - `util`: utility helpers from bundled Lua library plus native `now`/`sleep`.
 - `json`: bundled JSON encode/decode helpers (`encode`, `decode`, `null`).
+- `coroutine`: standard Lua coroutine API (`create`, `resume`, `yield`, `status`, `running`, `wrap`).
 - `package`: sandboxed package table (`loaded`, `preload`, `path`, `cpath`).
 
 Terminal web requests are available through `httpget` / `term.httpGet(url)` and `httpput` /
@@ -151,5 +152,7 @@ Use startup for:
 - Scripts run in a sandboxed Lua environment.
 - Host filesystem and unsafe loaders are not exposed.
 - Execution is controlled by server-configured timeout and parallel limits.
+- Coroutines are cooperative (single script thread), not parallel workers, and still share the same timeout/cancel
+  budget.
 - Web fetch is server-gated and can be restricted to trusted domains only.
 - Protected filesystem paths require successful auth before gated operations are allowed.

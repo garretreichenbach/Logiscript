@@ -771,6 +771,7 @@ public class Terminal extends LuaMadeUserdata {
 		
 		// Load only safe libraries
 		globals.load(new BaseLib());
+		globals.load(new CoroutineLib());
 		// String/Table libs register themselves via package.loaded in LuaJ.
 		globals.load(new PackageLib());
 		globals.load(new StringLib());
