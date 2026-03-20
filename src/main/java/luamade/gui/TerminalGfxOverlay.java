@@ -27,6 +27,7 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 	private boolean canvasEnabled = true;
 	private int canvasWidth;
 	private int canvasHeight;
+	private boolean textureResizePending;
 
 	public TerminalGfxOverlay(int width, int height, ClientState state, GfxApi gfxApi) {
 		super(Math.max(1, width), Math.max(1, height), state);
@@ -38,11 +39,15 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 	public void setCanvasBounds(float x, float y, int width, int height) {
 		int safeWidth = Math.max(1, width);
 		int safeHeight = Math.max(1, height);
+		boolean sizeChanged = canvasWidth != safeWidth || canvasHeight != safeHeight;
 		setPos(x, y, 0.0F);
 		canvasWidth = safeWidth;
 		canvasHeight = safeHeight;
 		texWidth = safeWidth;
 		texHeight = safeHeight;
+		if(sizeChanged) {
+			textureResizePending = true;
+		}
 		if(sprite != null) {
 			sprite.setWidth(safeWidth);
 			sprite.setHeight(safeHeight);
@@ -69,8 +74,10 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 
 	@Override
 	public void onInit() {
+		releaseTrackedTexture();
 		super.onInit();
 		trackTextureId();
+		textureResizePending = false;
 	}
 
 	@Override
@@ -79,24 +86,19 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		if(isInvisible()) {
 			return;
 		}
-
-		GlUtil.glPushMatrix();
-		try {
-			transform();
-			drawOverlayTexture((ClientStateInterface) getState());
-		} finally {
-			GlUtil.glDisable(GL11.GL_BLEND);
-			GlUtil.glEnable(GL11.GL_TEXTURE_2D);
-			GlUtil.glEnable(GL11.GL_LIGHTING);
-			GlUtil.glEnable(GL11.GL_DEPTH_TEST);
-			GlUtil.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-			GlUtil.glPopMatrix();
-		}
+		super.draw();
 	}
 
 	@Override
 	public void updateGUI(ClientStateInterface state) {
 		updateVisibility();
+		if(isInvisible()) {
+			return;
+		}
+		if(textureResizePending) {
+			onInit();
+		}
+		super.updateGUI(state);
 	}
 
 	@Override
