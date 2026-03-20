@@ -149,52 +149,177 @@ public class Terminal extends LuaMadeUserdata {
 		// Move to a new line after the inline prompt when Enter is pressed.
 		console.print(valueOf(""));
 
-		String commandLine = submittedInput.trim();
-		if(!commandLine.isEmpty()) {
-			String expandedHistoryCommand = expandHistoryCommand(commandLine);
-			if(expandedHistoryCommand == null) {
-				if(autoPromptEnabled) {
-					printPrompt();
-				}
-				return;
+		List<QueuedCommand> queuedCommands = splitQueuedCommands(submittedInput);
+		boolean previousSucceeded = true;
+		for(QueuedCommand queuedCommand : queuedCommands) {
+			if(!queuedCommand.shouldRun(previousSucceeded)) {
+				continue;
 			}
-
-			if(!expandedHistoryCommand.equals(commandLine)) {
-				console.print(valueOf(expandedHistoryCommand));
-			}
-			commandLine = expandedHistoryCommand;
-
-			history.add(commandLine);
-			historyIndex = history.size();
+			previousSucceeded = executeQueuedCommand(queuedCommand.commandText);
 		}
 
-		// Process the command
+		if(autoPromptEnabled && running && !promptDeferredByCommand.get()) {
+			printPrompt();
+		}
+	}
+
+	private boolean executeQueuedCommand(String rawCommandLine) {
+		String commandLine = rawCommandLine == null ? "" : rawCommandLine.trim();
+		if(commandLine.isEmpty()) {
+			return true;
+		}
+
+		String expandedHistoryCommand = expandHistoryCommand(commandLine);
+		if(expandedHistoryCommand == null) {
+			return false;
+		}
+
+		if(!expandedHistoryCommand.equals(commandLine)) {
+			console.print(valueOf(expandedHistoryCommand));
+		}
+		commandLine = expandedHistoryCommand;
+
+		history.add(commandLine);
+		historyIndex = history.size();
+
 		List<String> tokens = parseCommandTokens(commandLine);
 		if(tokens.isEmpty()) {
-			if(autoPromptEnabled) {
-				printPrompt();
-			}
-			return;
+			return true;
 		}
 
 		String commandName = tokens.get(0);
 		String args = joinTokens(tokens, 1);
 
-		// Execute the command
 		Command command = commands.get(commandName);
 		if(command != null) {
-			command.execute(args);
-		} else {
-			String resolvedScriptPath = resolveScriptPath(commandName);
-			if(resolvedScriptPath != null) {
-				runScriptAtPath(resolvedScriptPath, tokens.subList(1, tokens.size()));
-			} else {
-				console.print(valueOf("Unknown command: " + commandName));
+			try {
+				command.execute(args);
+				return true;
+			} catch(LuaError error) {
+				String message = error.getMessage();
+				console.print(valueOf(message == null || message.trim().isEmpty() ? "Command failed" : message));
+				return false;
+			} catch(Exception exception) {
+				console.print(valueOf("Command failed: " + exception.getMessage()));
+				return false;
 			}
 		}
 
-		if(autoPromptEnabled && running && !promptDeferredByCommand.get()) {
-			printPrompt();
+		String resolvedScriptPath = resolveScriptPath(commandName);
+		if(resolvedScriptPath != null) {
+			return runScriptAtPath(resolvedScriptPath, tokens.subList(1, tokens.size()));
+		} else {
+			console.print(valueOf("Unknown command: " + commandName));
+			return false;
+		}
+	}
+
+	private List<QueuedCommand> splitQueuedCommands(String submittedInput) {
+		List<QueuedCommand> commandsOut = new ArrayList<>();
+		if(submittedInput == null || submittedInput.isEmpty()) {
+			return commandsOut;
+		}
+
+		StringBuilder current = new StringBuilder();
+		boolean inQuotes = false;
+		char quoteChar = 0;
+		ChainCondition nextCondition = ChainCondition.ALWAYS;
+
+		for(int i = 0; i < submittedInput.length(); i++) {
+			char c = submittedInput.charAt(i);
+
+			if(c == '\\' && i + 1 < submittedInput.length()) {
+				char next = submittedInput.charAt(i + 1);
+				if(next == '\\' || next == '"' || next == '\'') {
+					current.append('\\').append(next);
+					i++;
+					continue;
+				}
+			}
+
+			if((c == '"' || c == '\'') && (!inQuotes || c == quoteChar)) {
+				if(inQuotes) {
+					inQuotes = false;
+					quoteChar = 0;
+				} else {
+					inQuotes = true;
+					quoteChar = c;
+				}
+				current.append(c);
+				continue;
+			}
+
+			if(!inQuotes && (c == '\n' || c == '\r' || c == ';')) {
+				String command = current.toString().trim();
+				if(!command.isEmpty()) {
+					commandsOut.add(new QueuedCommand(command, nextCondition));
+				}
+				current.setLength(0);
+				nextCondition = ChainCondition.ALWAYS;
+				if(c == '\r' && i + 1 < submittedInput.length() && submittedInput.charAt(i + 1) == '\n') {
+					i++;
+				}
+				continue;
+			}
+
+			if(!inQuotes && c == '&' && i + 1 < submittedInput.length() && submittedInput.charAt(i + 1) == '&') {
+				String command = current.toString().trim();
+				if(!command.isEmpty()) {
+					commandsOut.add(new QueuedCommand(command, nextCondition));
+				}
+				current.setLength(0);
+				nextCondition = ChainCondition.ON_SUCCESS;
+				i++;
+				continue;
+			}
+
+			if(!inQuotes && c == '|' && i + 1 < submittedInput.length() && submittedInput.charAt(i + 1) == '|') {
+				String command = current.toString().trim();
+				if(!command.isEmpty()) {
+					commandsOut.add(new QueuedCommand(command, nextCondition));
+				}
+				current.setLength(0);
+				nextCondition = ChainCondition.ON_FAILURE;
+				i++;
+				continue;
+			}
+
+			current.append(c);
+		}
+
+		String trailing = current.toString().trim();
+		if(!trailing.isEmpty()) {
+			commandsOut.add(new QueuedCommand(trailing, nextCondition));
+		}
+
+		return commandsOut;
+	}
+
+	private enum ChainCondition {
+		ALWAYS,
+		ON_SUCCESS,
+		ON_FAILURE
+	}
+
+	private static final class QueuedCommand {
+		private final String commandText;
+		private final ChainCondition condition;
+
+		private QueuedCommand(String commandText, ChainCondition condition) {
+			this.commandText = commandText;
+			this.condition = condition == null ? ChainCondition.ALWAYS : condition;
+		}
+
+		private boolean shouldRun(boolean previousSucceeded) {
+			switch(condition) {
+				case ON_SUCCESS:
+					return previousSucceeded;
+				case ON_FAILURE:
+					return !previousSucceeded;
+				case ALWAYS:
+				default:
+					return true;
+			}
 		}
 	}
 

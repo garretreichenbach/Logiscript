@@ -108,6 +108,12 @@ term.reboot()
 ### Terminal Commands
 The terminal supports the following built-in commands:
 
+Command chaining is supported in a single submission:
+
+- Use newlines or `;` to always run the next command.
+- Use `&&` to run the next command only if the previous command succeeds.
+- Use `||` to run the next command only if the previous command fails.
+
 - `ls [-a] [-l] [-R] [directory]` - List files (`-a` hidden, `-l` long format, `-R` recursive)
 - `cd <directory>` - Change current directory
 - `pwd [-L|-P]` - Print working directory (logical/physical mode)

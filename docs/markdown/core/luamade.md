@@ -119,6 +119,15 @@ print(mathlib.add(2, 3))
 
 ## Typical workflow
 
+Command batching:
+
+- The terminal accepts multiple commands in one submission.
+- Separate commands with newlines, `;`, `&&`, or `||` (outside quotes).
+- `;` and newlines always continue to the next command.
+- `&&` only runs the next command if the previous command succeeded.
+- `||` only runs the next command if the previous command failed.
+- Empty/whitespace-only segments are ignored.
+
 1. Read current state from `console.getBlock()` and wrappers.
 2. Perform logic in Lua.
 3. Persist local state to files under `/home` or `/etc`.
