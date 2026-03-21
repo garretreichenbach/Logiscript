@@ -128,7 +128,7 @@ public class Terminal extends LuaMadeUserdata {
 
 		// Clear the graphics buffer so any GUI drawn by the script disappears,
 		// and reset the input API to release keyboard/mouse locks the script held.
-		module.getGfxApi().clear();
+		module.getGfxApi().forceClear();
 		module.getInputApi().reset();
 
 		return true;
@@ -157,7 +157,7 @@ public class Terminal extends LuaMadeUserdata {
 		}
 
 		// Ensure no graphics or input locks linger from killed background scripts.
-		module.getGfxApi().clear();
+		module.getGfxApi().forceClear();
 		module.getInputApi().reset();
 
 		return canceled;

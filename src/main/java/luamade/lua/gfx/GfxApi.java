@@ -20,8 +20,8 @@ public class GfxApi extends LuaMadeUserdata {
 	private volatile int canvasHeight = 1;
 	private long revision;
 	private final Map<String, List<DrawCommand>> pendingBatch = new LinkedHashMap<>();
-	private boolean batching = false;
-	private boolean batchClearAll = false;
+	private boolean batching;
+	private boolean batchClearAll;
 	private static final int MAX_TEXT_LENGTH = 512;
 	private static final int MAX_BITMAP_PIXELS = 65536;
 	private static final int MAX_STROKE_WIDTH = 16;
@@ -139,6 +139,22 @@ public class GfxApi extends LuaMadeUserdata {
 			for(LayerState layer : layers.values()) {
 				layer.commands.clear();
 			}
+			revision++;
+		}
+	}
+
+	/**
+	 * Hard reset used by terminal interrupts/reboots.
+	 * Clears every visible command immediately, even while a batch is open.
+	 */
+	public void forceClear() {
+		synchronized(lock) {
+			for(LayerState layer : layers.values()) {
+				layer.commands.clear();
+			}
+			pendingBatch.clear();
+			batchClearAll = false;
+			batching = false;
 			revision++;
 		}
 	}

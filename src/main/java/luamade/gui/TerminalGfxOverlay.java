@@ -22,6 +22,7 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 	private int canvasWidth;
 	private int canvasHeight;
 	private boolean textureResizePending;
+	private boolean previouslyOverlayActive;
 
 	public TerminalGfxOverlay(int width, int height, ClientState state, GfxApi gfxApi) {
 		super(Math.max(1, width), Math.max(1, height), state);
@@ -84,6 +85,7 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		if(isInvisible()) {
 			return;
 		}
+		ensureRenderResources();
 		super.draw();
 		drawOverlayTexture((ClientStateInterface) getState());
 	}
@@ -94,9 +96,7 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		if(isInvisible()) {
 			return;
 		}
-		if(textureResizePending) {
-			onInit();
-		}
+		ensureRenderResources();
 		super.updateGUI(state);
 	}
 
@@ -441,7 +441,18 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 
 
 	private void updateVisibility() {
-		setInvisible(!isOverlayActive());
+		boolean overlayActive = isOverlayActive();
+		if(!overlayActive && previouslyOverlayActive) {
+			cleanupSpriteResources();
+		}
+		setInvisible(!overlayActive);
+		previouslyOverlayActive = overlayActive;
+	}
+
+	private void ensureRenderResources() {
+		if(textureResizePending || sprite == null) {
+			onInit();
+		}
 	}
 
 	private void trackTextureId() {
@@ -460,6 +471,15 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 			releaseTexture(lastTextureId);
 			lastTextureId = -1;
 		}
+	}
+
+	private void cleanupSpriteResources() {
+		if(sprite != null) {
+			sprite.cleanUp();
+			sprite = null;
+		}
+		releaseTrackedTexture();
+		textureResizePending = false;
 	}
 
 	private void releaseTexture(int textureId) {
