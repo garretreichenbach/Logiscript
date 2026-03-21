@@ -121,6 +121,13 @@ public class EventManager {
 			public void onEvent(MousePressEvent event) {
 				if(RemoteSessionManager.isActive() && RemoteSessionManager.forwardMouseEvent(event.getRawEvent())) {
 					event.setCanceled(true);
+					return;
+				}
+
+				// Forward mouse events to ComputerDialog if it's active
+				ComputerDialog.ComputerPanel panel = ComputerDialog.getActivePanel();
+				if(panel != null) {
+					panel.pushMouseEvent(event.getRawEvent());
 				}
 			}
 		}, instance);
