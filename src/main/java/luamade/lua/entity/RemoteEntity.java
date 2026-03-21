@@ -1,6 +1,7 @@
 package luamade.lua.entity;
 
 import api.utils.game.SegmentControllerUtils;
+import luamade.lua.data.BoundingBox;
 import luamade.lua.data.Vec3f;
 import luamade.lua.data.Vec3i;
 import luamade.lua.element.system.shield.ShieldSystem;
@@ -63,6 +64,11 @@ public class RemoteEntity extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public Vec3f getPos() {
 		return new Vec3f(segmentController.getWorldTransform().origin);
+	}
+
+	@LuaMadeCallable
+	public BoundingBox getBoundingBox() {
+		return new BoundingBox(segmentController.getBoundingBox());
 	}
 
 	@LuaMadeCallable

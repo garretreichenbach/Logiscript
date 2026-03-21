@@ -28,6 +28,7 @@ markdown/io/virtualfile
 :maxdepth: 2
 :caption: Math
 
+markdown/math/bounding-box
 markdown/math/vector
 ```
 

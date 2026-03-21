@@ -23,6 +23,7 @@ io/input.md
 io/networking.md
 io/virtualfile.md
 math/INDEX.md
+math/bounding-box.md
 math/vector.md
 systems/INDEX.md
 systems/block-info.md

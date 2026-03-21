@@ -26,11 +26,29 @@ Sets the entity's display name.
 - `getPos()`
 Returns current world position as `LuaVec3f`.
 
+- `getBoundingBox()`
+  Returns the entity's local-space `BoundingBox` snapshot from the game's internal `SegmentController.getBoundingBox()`
+  method.
+
 - `getSector()`
 Returns current sector coordinates as `LuaVec3i`.
 
 - `getSystem()`
 Returns current solar system coordinates as `LuaVec3i`.
+
+`BoundingBox` exposes:
+
+- `getMin()`
+  Returns the local-space minimum corner as `LuaVec3f`.
+
+- `getMax()`
+  Returns the local-space maximum corner as `LuaVec3f`.
+
+- `getCenter()`
+  Returns the midpoint between `min` and `max` as `LuaVec3f`.
+
+- `getDimensions()`
+  Returns the local-space size `(max - min)` as `LuaVec3f`.
 
 - `getEntityType()`
 Returns the entity type string: `"SHIP"` or `"SPACE_STATION"`.
