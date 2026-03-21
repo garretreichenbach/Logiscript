@@ -177,7 +177,7 @@ public class ComputerDialog extends PlayerInput {
 		private static final int SCROLLABLE_HORIZONTAL = resolveScrollableModeConstant("SCROLLABLE_HORIZONTAL", 1);
 		private static final int SCROLLABLE_VERTICAL = resolveScrollableModeConstant("SCROLLABLE_VERTICAL", GUIScrollablePanel.SCROLLABLE_VERTICAL);
 		private static final int SCROLLABLE_BOTH = resolveScrollableModeConstant("SCROLLABLE_BOTH", SCROLLABLE_HORIZONTAL | SCROLLABLE_VERTICAL);
-		private static final int LUA_HITBOX_NUDGE_X = -4;
+		private static final int LUA_HITBOX_NUDGE_X = -5;
 		private static final int LUA_HITBOX_NUDGE_Y = -25;
 
 		private final ComputerModule computerModule;
