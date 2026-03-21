@@ -3,7 +3,7 @@
 -- Usage: run /bin/gfx_demo.lua [seconds]
 
 local seconds = tonumber(args[1]) or 10
-local gfxlib = require("gfxlib")
+local gfx_2d = require("gfx_2d")
 if seconds < 1 then
     seconds = 1
 end
@@ -103,16 +103,16 @@ for i = 0, totalFrames do
     gfx.point(p1x, p1y, 1.0, 0.9, 0.2, 1.0)
     gfx.point(p2x, p2y, 0.3, 1.0, 0.35, 1.0)
 
-    local checker = gfxlib.checkerBitmap(8, 8, 0xFF9933FF, 0x223344CC, 1)
-    gfxlib.draw(gfx, 10, 10, checker)
+    local checker = gfx_2d.checkerBitmap(8, 8, 0xFF9933FF, 0x223344CC, 1)
+    gfx_2d.draw(gfx, 10, 10, checker)
 
-    local mask = gfxlib.textMaskBitmap({
+    local mask = gfx_2d.textMaskBitmap({
         "##..##",
         ".####.",
         ".####.",
         "##..##",
     }, 0x66DDFFFF, 0x00000000, "#")
-    gfxlib.draw(gfx, w - 20, 10, mask)
+    gfx_2d.draw(gfx, w - 20, 10, mask)
 
     gfx.setLayer("text")
     gfx.text(24, 10, "GFX+", 0.95, 0.98, 1.0, 1.0, 2)

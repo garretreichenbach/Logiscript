@@ -1,8 +1,8 @@
 # Configuration file for the Sphinx documentation builder.
 
 project = "LuaMade"
-copyright = "2022, TheDerpGamer, LupoCani"
-author = "TheDerpGamer, LupoCani"
+copyright = "2026, VideoGoose, LupoCani"
+author = "VideoGoose, LupoCani"
 release = "1.0.0"
 
 extensions = [
