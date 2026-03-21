@@ -19,6 +19,9 @@ public class GfxApi extends LuaMadeUserdata {
 	private volatile int canvasWidth = 1;
 	private volatile int canvasHeight = 1;
 	private long revision;
+	private final Map<String, List<DrawCommand>> pendingBatch = new LinkedHashMap<>();
+	private boolean batching = false;
+	private boolean batchClearAll = false;
 	private static final int MAX_TEXT_LENGTH = 512;
 	private static final int MAX_BITMAP_PIXELS = 65536;
 	private static final int MAX_STROKE_WIDTH = 16;
@@ -128,9 +131,50 @@ public class GfxApi extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public void clear() {
 		synchronized(lock) {
+			if(batching) {
+				pendingBatch.clear();
+				batchClearAll = true;
+				return;
+			}
 			for(LayerState layer : layers.values()) {
 				layer.commands.clear();
 			}
+			revision++;
+		}
+	}
+
+	@LuaMadeCallable
+	public void beginBatch() {
+		synchronized(lock) {
+			pendingBatch.clear();
+			batchClearAll = false;
+			batching = true;
+		}
+	}
+
+	@LuaMadeCallable
+	public void commitBatch() {
+		synchronized(lock) {
+			if(!batching) {
+				return;
+			}
+			if(batchClearAll) {
+				for(LayerState layer : layers.values()) {
+					layer.commands.clear();
+				}
+			}
+			for(Map.Entry<String, List<DrawCommand>> entry : pendingBatch.entrySet()) {
+				LayerState layer = layers.get(entry.getKey());
+				if(layer != null) {
+					if(!batchClearAll) {
+						layer.commands.clear();
+					}
+					layer.commands.addAll(entry.getValue());
+				}
+			}
+			pendingBatch.clear();
+			batchClearAll = false;
+			batching = false;
 			revision++;
 		}
 	}
@@ -142,6 +186,15 @@ public class GfxApi extends LuaMadeUserdata {
 		}
 		String normalized = normalizeLayerName(name);
 		synchronized(lock) {
+			if(batching) {
+				if(!layers.containsKey(normalized)) {
+					return false;
+				}
+				if(!batchClearAll) {
+					pendingBatch.put(normalized, new ArrayList<>());
+				}
+				return true;
+			}
 			LayerState layer = layers.get(normalized);
 			if(layer == null) {
 				return false;
@@ -362,6 +415,21 @@ public class GfxApi extends LuaMadeUserdata {
 
 	private Boolean appendCommand(DrawCommand command) {
 		synchronized(lock) {
+			if(batching) {
+				if(!layers.containsKey(activeLayer)) {
+					if(layers.size() >= maxLayers()) {
+						return false;
+					}
+					layers.put(activeLayer, new LayerState(nextLayerOrder));
+					nextLayerOrder++;
+				}
+				List<DrawCommand> pending = pendingBatch.computeIfAbsent(activeLayer, k -> new ArrayList<>());
+				if(pending.size() >= maxCommandsPerLayer()) {
+					return false;
+				}
+				pending.add(command);
+				return true;
+			}
 			LayerState layer = layers.get(activeLayer);
 			if(layer == null) {
 				if(layers.size() >= maxLayers()) {
