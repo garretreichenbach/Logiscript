@@ -15,7 +15,7 @@ entities/fleet-command.md
 entities/fleet.md
 entities/remote-entity.md
 graphics/INDEX.md
-graphics/gfx.md
+graphics/gfx_2d.md
 graphics/gui_lib.md
 io/INDEX.md
 io/filesystem.md
