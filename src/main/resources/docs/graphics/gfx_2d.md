@@ -89,12 +89,10 @@ Lower `order` draws first (behind higher layers).
   Draws a line with configurable stroke thickness (`1..16`, default `1`).
 
 -
-
 `gfx_2d.rect(x: Number, y: Number, width: Number, height: Number, r: Number, g: Number, b: Number, a: Number, filled: Boolean)`
 Draws a rectangle. `filled = true` draws a solid filled rect; `false` draws only the outline.
 
 -
-
 `gfx_2d.circle(x: Number, y: Number, radius: Number, r: Number, g: Number, b: Number, a: Number, filled: Boolean, segments: Integer)`
 Draws a circle centered at `(x, y)`. `segments` controls smoothness (`8..128`, default `24`).
 
