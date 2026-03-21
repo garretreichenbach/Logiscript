@@ -90,11 +90,11 @@ Lower `order` draws first (behind higher layers).
 
 -
 `gfx_2d.rect(x: Number, y: Number, width: Number, height: Number, r: Number, g: Number, b: Number, a: Number, filled: Boolean)`
-Draws a rectangle. `filled = true` draws a solid filled rect; `false` draws only the outline.
+  Draws a rectangle. `filled = true` draws a solid filled rect; `false` draws only the outline.
 
 -
 `gfx_2d.circle(x: Number, y: Number, radius: Number, r: Number, g: Number, b: Number, a: Number, filled: Boolean, segments: Integer)`
-Draws a circle centered at `(x, y)`. `segments` controls smoothness (`8..128`, default `24`).
+  Draws a circle centered at `(x, y)`. `segments` controls smoothness (`8..128`, default `24`).
 
 - `gfx_2d.circle(x, y, radius, r, g, b, a, filled, segments, thickness: Number)`
   Draws a circle with configurable outline thickness when `filled = false`.
@@ -106,8 +106,7 @@ Draws a circle centered at `(x, y)`. `segments` controls smoothness (`8..128`, d
   Draws a polygon with configurable outline thickness when `filled = false`.
 
 - `gfx_2d.text(x: Number, y: Number, text: String, r: Number, g: Number, b: Number, a: Number, scale: Integer)`
-  Draws text using a built-in pixel font. `scale` multiplies glyph size (`1..16`, default `1`). Supports `\n` line
-  breaks.
+  Draws text using a built-in pixel font. `scale` multiplies glyph size (`1..16`, default `1`). Supports `\n` line breaks.
 
 - `gfx_2d.text(x, y, text, r, g, b, a, scale, maxWidth: Integer, maxHeight: Integer, align: String, wrap: Boolean)`
   Extended text rendering with optional clipping and layout:
