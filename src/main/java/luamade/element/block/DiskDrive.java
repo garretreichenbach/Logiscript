@@ -29,8 +29,9 @@ public class DiskDrive implements ElementInterface {
 	public void initData() {
 		blockInfo = BlockConfig.newElement(LuaMade.getInstance(), "Disk Drive", new short[6]);
 		blockInfo.setDescription("Single-slot drive that can read and write LuaMade disk items.");
-		blockInfo.setInRecipe(true);
-		blockInfo.setShoppable(true);
+		blockInfo.setInRecipe(false);
+		blockInfo.setShoppable(false);
+		blockInfo.setDeprecated(true);
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price);
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(true);

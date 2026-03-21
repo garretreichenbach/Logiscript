@@ -30,8 +30,9 @@ public class Disk implements ElementInterface {
 		itemInfo = BlockConfig.newElement(LuaMade.getInstance(), "Disk", new short[6]);
 		itemInfo.placable = false;
 		itemInfo.setDescription("Portable storage media for LuaMade disk drives.");
-		itemInfo.setInRecipe(true);
-		itemInfo.setShoppable(true);
+		itemInfo.setInRecipe(false);
+		itemInfo.setShoppable(false);
+		itemInfo.setDeprecated(true);
 		itemInfo.setPrice(Math.max(1, ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price / 2));
 		itemInfo.volume = 0.01f;
 	}
