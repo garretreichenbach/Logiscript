@@ -16,6 +16,7 @@ entities/fleet.md
 entities/remote-entity.md
 graphics/INDEX.md
 graphics/gfx.md
+graphics/gui_lib.md
 io/INDEX.md
 io/filesystem.md
 io/input.md
