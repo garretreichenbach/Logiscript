@@ -50,6 +50,14 @@ public class InputApi extends LuaMadeUserdata {
 	 * Does not change event routing on its own; query it with {@link #isMouseConsumed()}.
 	 */
 	private volatile boolean mouseConsumed;
+	private volatile int windowX = -1;
+	private volatile int windowY = -1;
+	private volatile int windowWidth = -1;
+	private volatile int windowHeight = -1;
+	private volatile int canvasX = -1;
+	private volatile int canvasY = -1;
+	private volatile int canvasWidth = -1;
+	private volatile int canvasHeight = -1;
 
 	// ------------------------------------------------------------------
 	// Package-private: called from EventManager / ComputerDialog on the
@@ -131,6 +139,31 @@ public class InputApi extends LuaMadeUserdata {
 		t.set("dragging", valueOf(dragging));
 		t.set("dragButton", valueOf(dragButton == null ? "none" : dragButton));
 		eventQueue.offer(t);
+	}
+
+	private static void setOptionalInt(LuaTable table, String key, int value) {
+		table.set(key, value >= 0 ? valueOf(value) : NIL);
+	}
+
+	/**
+	 * Updates dialog/canvas bounds used by Lua scripts for offset calculations.
+	 * Called from GUI code on the client thread.
+	 */
+	public void setUiLayout(int windowX, int windowY, int windowWidth, int windowHeight,
+	                        int canvasX, int canvasY, int canvasWidth, int canvasHeight) {
+		this.windowX = windowX;
+		this.windowY = windowY;
+		this.windowWidth = windowWidth;
+		this.windowHeight = windowHeight;
+		this.canvasX = canvasX;
+		this.canvasY = canvasY;
+		this.canvasWidth = canvasWidth;
+		this.canvasHeight = canvasHeight;
+	}
+
+	/** Clears cached UI layout when no local computer dialog is active. */
+	public void clearUiLayout() {
+		setUiLayout(-1, -1, -1, -1, -1, -1, -1, -1);
 	}
 
 	/**
@@ -252,6 +285,24 @@ public class InputApi extends LuaMadeUserdata {
 	}
 
 	/**
+	 * Returns a table describing the current computer dialog and canvas bounds.
+	 * Values are nil when no local dialog is active.
+	 */
+	@LuaMadeCallable
+	public LuaValue getUiLayout() {
+		LuaTable t = new LuaTable();
+		setOptionalInt(t, "windowX", windowX);
+		setOptionalInt(t, "windowY", windowY);
+		setOptionalInt(t, "windowWidth", windowWidth);
+		setOptionalInt(t, "windowHeight", windowHeight);
+		setOptionalInt(t, "canvasX", canvasX);
+		setOptionalInt(t, "canvasY", canvasY);
+		setOptionalInt(t, "canvasWidth", canvasWidth);
+		setOptionalInt(t, "canvasHeight", canvasHeight);
+		return t;
+	}
+
+	/**
 	 * Full teardown used when a script is forcibly killed (Ctrl+C / reset).
 	 * Clears the event queue and unconditionally releases any keyboard or
 	 * mouse locks the script may have held, so the terminal returns to normal
@@ -261,6 +312,7 @@ public class InputApi extends LuaMadeUserdata {
 		eventQueue.clear();
 		keyboardConsumed = false;
 		mouseConsumed = false;
+		clearUiLayout();
 	}
 }
 

@@ -64,6 +64,22 @@ Events are captured only while the computer's terminal dialog is open and are au
 - `input.pending()`
   Returns the number of events currently in the queue (max 256).
 
+- `input.getUiLayout()`
+  Returns a table with the current dialog/canvas bounds:
+
+  ```lua
+  {
+    windowX = 100, -- dialog top-left X in UI pixels, nil when unavailable
+    windowY = 80, -- dialog top-left Y in UI pixels, nil when unavailable
+    windowWidth = 850,
+    windowHeight = 650,
+    canvasX = 120, -- terminal gfx canvas top-left X in UI pixels, nil when unavailable
+    canvasY = 115, -- terminal gfx canvas top-left Y in UI pixels, nil when unavailable
+    canvasWidth = 820,
+    canvasHeight = 500
+  }
+  ```
+
 ### Keyboard capture
 
 - `input.consumeKeyboard()`
@@ -163,5 +179,6 @@ end
 - Key codes match LWJGL keyboard constants (same values as the GLFW wrapper in StarMade).
 - Mouse `x`/`y` are absolute dialog coordinates.
 - Mouse `uiX`/`uiY` are local coordinates within the terminal gfx canvas when inside bounds.
+- Use `input.getUiLayout()` when you need explicit window/canvas origins for custom offset math.
 - Mouse move events are queued (not only click/release), enabling drag interactions.
 

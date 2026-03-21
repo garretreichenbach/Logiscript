@@ -153,6 +153,7 @@ public class ComputerDialog extends PlayerInput {
 			computerPanel.resetMouseState();
 		}
 		if(computerModule != null) {
+			computerModule.getInputApi().clearUiLayout();
 			computerModule.getInputApi().clear();
 		}
 	}
@@ -812,19 +813,49 @@ public class ComputerDialog extends PlayerInput {
 		}
 
 		private void updateGfxOverlayBounds() {
+			int currentWindowX = -1;
+			int currentWindowY = -1;
+			int currentWindowWidth = -1;
+			int currentWindowHeight = -1;
+			if(background != null) {
+				currentWindowX = Math.round(background.getPos().x);
+				currentWindowY = Math.round(background.getPos().y);
+				currentWindowWidth = Math.max(1, Math.round(background.getWidth()));
+				currentWindowHeight = Math.max(1, Math.round(background.getHeight()));
+			}
+
+			int currentCanvasX = -1;
+			int currentCanvasY = -1;
+			int currentCanvasWidth = -1;
+			int currentCanvasHeight = -1;
+			if(consolePane != null) {
+				currentCanvasX = Math.round(consolePane.getPos().x);
+				currentCanvasY = Math.round(consolePane.getPos().y);
+				currentCanvasWidth = Math.max(1, Math.round(consolePane.getWidth()));
+				currentCanvasHeight = Math.max(1, Math.round(consolePane.getHeight()));
+			}
+
+			if(computerModule != null) {
+				computerModule.getInputApi().setUiLayout(
+						currentWindowX,
+						currentWindowY,
+						currentWindowWidth,
+						currentWindowHeight,
+						currentCanvasX,
+						currentCanvasY,
+						currentCanvasWidth,
+						currentCanvasHeight
+				);
+			}
+
 			if(consolePane == null || terminalGfxOverlay == null) {
 				return;
 			}
 
-			float x = consolePane.getPos().x;
-			float y = consolePane.getPos().y;
-			int width = Math.max(1, Math.round(consolePane.getWidth()));
-			int height = Math.max(1, Math.round(consolePane.getHeight()));
-
 			// Keep gfx canvas aligned with the visible terminal text bar.
 			// Using reflected scroll-panel dimensions can report larger virtual sizes
 			// than the rendered panel and push drawings out of view.
-			terminalGfxOverlay.setCanvasBounds(x, y, width, height);
+			terminalGfxOverlay.setCanvasBounds(currentCanvasX, currentCanvasY, currentCanvasWidth, currentCanvasHeight);
 			terminalGfxOverlay.setCanvasEnabled(!isFileEditMode());
 		}
 
