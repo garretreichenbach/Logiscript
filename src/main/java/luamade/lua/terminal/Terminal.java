@@ -47,6 +47,7 @@ public class Terminal extends LuaMadeUserdata {
 	private final PackageManagerService packageManagerService;
 	private final Map<String, Command> commands = new ConcurrentHashMap<>();
 	private final Map<Integer, BackgroundJob> backgroundJobs = new ConcurrentHashMap<>();
+	private final Set<ScriptExecutionContext> runningScriptContexts = ConcurrentHashMap.newKeySet();
 	private final ExecutorService scriptExecutor;
 	private final ThreadLocal<ScriptExecutionContext> scriptContextThreadLocal = new ThreadLocal<>();
 	private final AtomicBoolean promptDeferredByCommand = new AtomicBoolean(false);
@@ -68,6 +69,16 @@ public class Terminal extends LuaMadeUserdata {
 		this.console = console;
 		this.fileSystem = fileSystem;
 		packageManagerService = new PackageManagerService(fileSystem, console);
+		module.getGfxApi().setCancellationChecker(() -> {
+			ScriptExecutionContext context = scriptContextThreadLocal.get();
+			if(context != null) {
+				context.throwIfCancellationRequested();
+				return;
+			}
+			if(Thread.currentThread().isInterrupted()) {
+				throw new LuaError("Script canceled");
+			}
+		});
 		maxParallelSlots = ConfigManager.getScriptMaxParallel();
 		scriptSlots = new Semaphore(maxParallelSlots, true);
 		scriptExecutor = Executors.newCachedThreadPool(new ScriptThreadFactory("luamade-script"));
@@ -132,22 +143,25 @@ public class Terminal extends LuaMadeUserdata {
 		if(printInterruptMarker) {
 			console.print(valueOf("^C"));
 		}
+
+		int signaledRunningContexts = signalAllRunningScriptContexts();
+		logInterruptDebug("cancelForegroundScript signaledRunningContexts=" + signaledRunningContexts);
 		if(context == null) {
 			// Foreground may already be cleared by a race; stop background loops too
 			// so stale GUI redraws cannot continue after Ctrl+C.
 			int canceled = cancelAllBackgroundJobs(false);
-			logInterruptDebug("cancelForegroundScript no foreground context; canceledBackgroundJobs=" + canceled);
-			return canceled > 0;
+			logInterruptDebug("cancelForegroundScript no foreground context; canceledBackgroundJobs=" + canceled
+					+ ", signaledRunningContexts=" + signaledRunningContexts);
+			return canceled > 0 || signaledRunningContexts > 0;
 		}
 
-		activeForegroundContext = null;
-		activeForegroundFuture = null;
 		context.requestCancel();
 		if(future != null) {
 			future.cancel(true);
 		}
 		int canceledBackground = cancelAllBackgroundJobs(false);
-		logInterruptDebug("cancelForegroundScript foreground canceled; canceledBackgroundJobs=" + canceledBackground);
+		logInterruptDebug("cancelForegroundScript foreground canceled; canceledBackgroundJobs=" + canceledBackground
+				+ ", signaledRunningContexts=" + signaledRunningContexts);
 		return true;
 	}
 
@@ -188,6 +202,18 @@ public class Terminal extends LuaMadeUserdata {
 			}
 		}
 		return runningCount;
+	}
+
+	private int signalAllRunningScriptContexts() {
+		int signaled = 0;
+		for(ScriptExecutionContext runningContext : runningScriptContexts) {
+			if(runningContext == null) {
+				continue;
+			}
+			runningContext.requestCancel();
+			signaled++;
+		}
+		return signaled;
 	}
 
 	private void logInterruptDebug(String message) {
@@ -412,11 +438,13 @@ public class Terminal extends LuaMadeUserdata {
 		return scriptExecutor.submit(() -> {
 			scriptContextThreadLocal.set(context);
 			context.bindToCurrentThread();
+			runningScriptContexts.add(context);
 			activeScripts.incrementAndGet();
 			try {
 				return executeScript(scriptPath, script, args);
 			} finally {
 				scriptContextThreadLocal.remove();
+				runningScriptContexts.remove(context);
 				activeScripts.decrementAndGet();
 				scriptSlots.release();
 				module.getGfxApi().clear();
@@ -4326,3 +4354,4 @@ public class Terminal extends LuaMadeUserdata {
 		}
 	}
 }
+

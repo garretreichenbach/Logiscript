@@ -3,6 +3,7 @@ package luamade.lua.gfx;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.manager.ConfigManager;
+import org.luaj.vm2.LuaError;
 
 import java.util.*;
 
@@ -22,12 +23,17 @@ public class GfxApi extends LuaMadeUserdata {
 	private final Map<String, List<DrawCommand>> pendingBatch = new LinkedHashMap<>();
 	private boolean batching;
 	private boolean batchClearAll;
+	private volatile Runnable cancellationChecker;
 	private static final int MAX_TEXT_LENGTH = 512;
 	private static final int MAX_BITMAP_PIXELS = 65536;
 	private static final int MAX_STROKE_WIDTH = 16;
 
 	public GfxApi() {
 		layers.put(activeLayer, new LayerState(0));
+	}
+
+	public void setCancellationChecker(Runnable cancellationChecker) {
+		this.cancellationChecker = cancellationChecker;
 	}
 
 	@LuaMadeCallable
@@ -430,6 +436,7 @@ public class GfxApi extends LuaMadeUserdata {
 	}
 
 	private Boolean appendCommand(DrawCommand command) {
+		throwIfCanceled();
 		synchronized(lock) {
 			if(batching) {
 				if(!layers.containsKey(activeLayer)) {
@@ -462,6 +469,17 @@ public class GfxApi extends LuaMadeUserdata {
 			revision++;
 		}
 		return true;
+	}
+
+	private void throwIfCanceled() {
+		Runnable checker = cancellationChecker;
+		if(checker != null) {
+			checker.run();
+			return;
+		}
+		if(Thread.currentThread().isInterrupted()) {
+			throw new LuaError("Script canceled");
+		}
 	}
 
 	private static int maxCommandsPerLayer() {
