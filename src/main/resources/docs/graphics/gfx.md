@@ -9,6 +9,28 @@ It renders directly over the terminal text UI and is constrained to the terminal
 - Coordinates are pixel-based with origin at the terminal canvas top-left.
 - `x` increases to the right, `y` increases downward.
 - Any draw command outside bounds is clamped to current canvas size.
+- By default, commands are authored in a logical canvas and automatically scaled to the current terminal viewport.
+
+## Automatic UI scaling
+
+- Auto scaling is enabled by default.
+- On first render, the logical canvas is initialized from the current viewport size.
+- If the terminal viewport later changes (window resize/UI scale changes), existing draw coordinates are scaled
+  automatically.
+- Mouse `input` `uiX/uiY` values are mapped back into the logical canvas for consistent hit-testing.
+
+Use these methods to control behavior:
+
+- `gfx.setAutoScale(enabled: Boolean)`
+  Enables/disables automatic render scaling.
+- `gfx.isAutoScaleEnabled()`
+  Returns current auto-scaling state.
+- `gfx.resetCanvasSize()`
+  Clears a custom logical canvas size set by script.
+- `gfx.getViewportWidth()` / `gfx.getViewportHeight()`
+  Returns current physical viewport size in pixels.
+- `gfx.getScaleX()` / `gfx.getScaleY()`
+  Returns logical-to-viewport scaling factors.
 
 ## Layers
 

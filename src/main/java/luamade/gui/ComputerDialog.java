@@ -36,13 +36,13 @@ import static org.luaj.vm2.LuaValue.valueOf;
 
 public class ComputerDialog extends PlayerInput {
 
+	private static final long RESET_DEBOUNCE_MS = 250L;
 	/** Tracks the currently open ComputerPanel so event listeners can access it. */
 	private static ComputerPanel activePanel;
 	/** Tracks the currently open dialog instance so listeners can force-close it. */
 	private static ComputerDialog activeDialog;
 	protected final ComputerModule computerModule;
 	private final ComputerPanel computerPanel;
-	private static final long RESET_DEBOUNCE_MS = 250L;
 	private long lastResetAtMs;
 
 	public ComputerDialog(ComputerModule computerModule) {
@@ -181,6 +181,8 @@ public class ComputerDialog extends PlayerInput {
 		private static final int LUA_HITBOX_NUDGE_Y = -25;
 
 		private final ComputerModule computerModule;
+		private final List<String> commandSuggestions = new ArrayList<>();
+		public TerminalGfxOverlay terminalGfxOverlay;
 		private GUIScrollablePanel consolePanel;
 		private GUIActivatableTextBar consolePane;
 		private String currentInputLine = "";
@@ -196,7 +198,6 @@ public class ComputerDialog extends PlayerInput {
 		private GUITextButton docsButton;
 		private GUITextButton resetButton;
 		private GUITextButton pasteFilesButton;
-		public TerminalGfxOverlay terminalGfxOverlay;
 		private String lastEditorHintText = "";
 		private ComputerModule.ScrollMode appliedScrollMode;
 		private boolean terminalInputMaskedByGfx;
@@ -219,7 +220,6 @@ public class ComputerDialog extends PlayerInput {
 		private int lastKnownWindowY = -1;
 		private int lastKnownCanvasX = -1;
 		private int lastKnownCanvasY = -1;
-		private final List<String> commandSuggestions = new ArrayList<>();
 		private int selectedSuggestionIndex = -1;
 		private String suggestionSeedInput = "";
 		private boolean pathCompletionMode;
@@ -238,6 +238,15 @@ public class ComputerDialog extends PlayerInput {
 				return "";
 			}
 			return text.replaceAll("\\u001B\\[[0-9;]*m", "");
+		}
+
+		private static int resolveScrollableModeConstant(String fieldName, int fallback) {
+			try {
+				Field field = GUIScrollablePanel.class.getField(fieldName);
+				return field.getInt(null);
+			} catch(Exception ignored) {
+				return fallback;
+			}
 		}
 
 		/**
@@ -286,27 +295,19 @@ public class ComputerDialog extends PlayerInput {
 				int localY = mouseY - canvasOriginY;
 				insideCanvas = localX >= 0 && localY >= 0 && localX < width && localY < height;
 				if(insideCanvas) {
-					uiX = localX + LUA_HITBOX_NUDGE_X;
-					uiY = localY + LUA_HITBOX_NUDGE_Y;
+					int nudgedX = localX + LUA_HITBOX_NUDGE_X;
+					int nudgedY = localY + LUA_HITBOX_NUDGE_Y;
+					if(computerModule.getGfxApi() != null) {
+						uiX = computerModule.getGfxApi().viewportToCanvasX(nudgedX);
+						uiY = computerModule.getGfxApi().viewportToCanvasY(nudgedY);
+					} else {
+						uiX = nudgedX;
+						uiY = nudgedY;
+					}
 				}
 			}
 
-			computerModule.getInputApi().pushMouseEvent(
-				button,
-				pressed,
-					mouseX,
-					mouseY,
-				mouseEvent.dx,
-				mouseEvent.dy,
-				mouseEvent.dWheel,
-				-1,
-				-1,
-				uiX,
-				uiY,
-				insideCanvas,
-				dragging,
-				dragButton
-			);
+			computerModule.getInputApi().pushMouseEvent(button, pressed, mouseX, mouseY, mouseEvent.dx, mouseEvent.dy, mouseEvent.dWheel, -1, -1, uiX, uiY, insideCanvas, dragging, dragButton);
 		}
 
 		private int normalizeMouseY(int rawY) {
@@ -394,15 +395,6 @@ public class ComputerDialog extends PlayerInput {
 
 		public boolean isFileEditMode() {
 			return computerModule != null && computerModule.getLastMode() == ComputerModule.ComputerMode.FILE_EDIT;
-		}
-
-		private static int resolveScrollableModeConstant(String fieldName, int fallback) {
-			try {
-				Field field = GUIScrollablePanel.class.getField(fieldName);
-				return field.getInt(null);
-			} catch(Exception ignored) {
-				return fallback;
-			}
 		}
 
 		private void applyConfiguredScrollMode() {
@@ -633,26 +625,16 @@ public class ComputerDialog extends PlayerInput {
 
 			String selectedSuggestion = commandSuggestions.get(selectedSuggestionIndex);
 			// In path completion mode show only the path token, not the full input line.
-			String displaySelected = pathCompletionMode && selectedSuggestion.length() >= pathCompletionPrefix.length()
-					? selectedSuggestion.substring(pathCompletionPrefix.length())
-					: selectedSuggestion;
+			String displaySelected = pathCompletionMode && selectedSuggestion.length() >= pathCompletionPrefix.length() ? selectedSuggestion.substring(pathCompletionPrefix.length()) : selectedSuggestion;
 			StringBuilder builder = new StringBuilder();
-			builder.append("Suggest ")
-					.append(selectedSuggestionIndex + 1)
-					.append("/")
-					.append(commandSuggestions.size())
-					.append(": ")
-					.append(displaySelected)
-					.append("  (Tab accept, Up/Down cycle)");
+			builder.append("Suggest ").append(selectedSuggestionIndex + 1).append("/").append(commandSuggestions.size()).append(": ").append(displaySelected).append("  (Tab accept, Up/Down cycle)");
 
 			int shown = 0;
 			for(String suggestion : commandSuggestions) {
 				if(suggestion == null || suggestion.isEmpty() || suggestion.equals(selectedSuggestion)) {
 					continue;
 				}
-				String displaySuggestion = pathCompletionMode && suggestion.length() >= pathCompletionPrefix.length()
-						? suggestion.substring(pathCompletionPrefix.length())
-						: suggestion;
+				String displaySuggestion = pathCompletionMode && suggestion.length() >= pathCompletionPrefix.length() ? suggestion.substring(pathCompletionPrefix.length()) : suggestion;
 				if(shown == 0) {
 					builder.append("  [");
 				} else {
@@ -910,16 +892,7 @@ public class ComputerDialog extends PlayerInput {
 			}
 
 			if(computerModule != null) {
-				computerModule.getInputApi().setUiLayout(
-						currentWindowX,
-						currentWindowY,
-						currentWindowWidth,
-						currentWindowHeight,
-						currentCanvasX,
-						currentCanvasY,
-						currentCanvasWidth,
-						currentCanvasHeight
-				);
+				computerModule.getInputApi().setUiLayout(currentWindowX, currentWindowY, currentWindowWidth, currentWindowHeight, currentCanvasX, currentCanvasY, currentCanvasWidth, currentCanvasHeight);
 			}
 
 			if(consolePane == null || terminalGfxOverlay == null) {

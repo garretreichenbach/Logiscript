@@ -32,6 +32,60 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		this.gfxApi = gfxApi;
 	}
 
+	private static List<String> layoutTextLines(String text, int maxWidth, boolean wrap, UnicodeFont font) {
+		List<String> lines = new ArrayList<>();
+		String[] rawLines = text.split("\\n", -1);
+		for(String raw : rawLines) {
+			if(!wrap || maxWidth == Integer.MAX_VALUE || font.getWidth(raw) <= maxWidth) {
+				lines.add(raw);
+				continue;
+			}
+			lines.addAll(wrapLineByWidth(raw, maxWidth, font));
+		}
+		return lines;
+	}
+
+	private static List<String> wrapLineByWidth(String text, int maxWidth, UnicodeFont font) {
+		List<String> wrapped = new ArrayList<>();
+		if(text.isEmpty()) {
+			wrapped.add("");
+			return wrapped;
+		}
+
+		StringBuilder currentLine = new StringBuilder();
+		for(int i = 0; i < text.length(); i++) {
+			char character = text.charAt(i);
+			currentLine.append(character);
+			if(font.getWidth(currentLine.toString()) > maxWidth) {
+				if(currentLine.length() == 1) {
+					wrapped.add(currentLine.toString());
+					currentLine.setLength(0);
+				} else {
+					char overflow = currentLine.charAt(currentLine.length() - 1);
+					currentLine.setLength(currentLine.length() - 1);
+					wrapped.add(currentLine.toString());
+					currentLine.setLength(0);
+					currentLine.append(overflow);
+				}
+			}
+		}
+
+		if(currentLine.length() > 0) {
+			wrapped.add(currentLine.toString());
+		}
+		return wrapped;
+	}
+
+	private static FontLibrary.FontSize resolveFontSize(int textScale) {
+		if(textScale <= 1) {
+			return FontLibrary.FontSize.SMALL;
+		}
+		if(textScale <= 3) {
+			return FontLibrary.FontSize.MEDIUM;
+		}
+		return FontLibrary.FontSize.BIG;
+	}
+
 	public void setCanvasBounds(float x, float y, int width, int height) {
 		int safeWidth = Math.max(1, width);
 		int safeHeight = Math.max(1, height);
@@ -49,7 +103,7 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 			sprite.setHeight(safeHeight);
 		}
 		if(gfxApi != null) {
-			gfxApi.setCanvasSize(safeWidth, safeHeight);
+			gfxApi.setViewportSize(safeWidth, safeHeight);
 		}
 	}
 
@@ -110,56 +164,13 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		super.cleanUp();
 	}
 
-	private static List<String> layoutTextLines(String text, int maxWidth, boolean wrap, UnicodeFont font) {
-		List<String> lines = new ArrayList<>();
-		String[] rawLines = text.split("\\n", -1);
-		for(String raw : rawLines) {
-			if(!wrap || maxWidth == Integer.MAX_VALUE || font.getWidth(raw) <= maxWidth) {
-				lines.add(raw);
-				continue;
-			}
-			lines.addAll(wrapLineByWidth(raw, maxWidth, font));
-		}
-		return lines;
-	}
-
-	private static List<String> wrapLineByWidth(String text, int maxWidth, UnicodeFont font) {
-		List<String> wrapped = new ArrayList<>();
-		if(text.isEmpty()) {
-			wrapped.add("");
-			return wrapped;
-		}
-
-		StringBuilder currentLine = new StringBuilder();
-		for(int i = 0; i < text.length(); i++) {
-			char character = text.charAt(i);
-			currentLine.append(character);
-			if(font.getWidth(currentLine.toString()) > maxWidth) {
-				if(currentLine.length() == 1) {
-					wrapped.add(currentLine.toString());
-					currentLine.setLength(0);
-				} else {
-					char overflow = currentLine.charAt(currentLine.length() - 1);
-					currentLine.setLength(currentLine.length() - 1);
-					wrapped.add(currentLine.toString());
-					currentLine.setLength(0);
-					currentLine.append(overflow);
-				}
-			}
-		}
-
-		if(currentLine.length() > 0) {
-			wrapped.add(currentLine.toString());
-		}
-		return wrapped;
-	}
-
-	private void drawCircle(GfxApi.DrawCommand command) {
+	private void drawCircle(GfxApi.DrawCommand command, float scaleX, float scaleY) {
 		int segments = Math.max(8, command.segments);
-		float cx = command.x1;
-		float cy = command.y1;
-		float radius = command.x2;
-		if(radius <= 0.0f) {
+		float cx = command.x1 * scaleX;
+		float cy = command.y1 * scaleY;
+		float radiusX = command.x2 * scaleX;
+		float radiusY = command.x2 * scaleY;
+		if(radiusX <= 0.0f || radiusY <= 0.0f) {
 			return;
 		}
 
@@ -168,49 +179,39 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 			GL11.glVertex3f(cx, cy, 0.0F);
 			for(int i = 0; i <= segments; i++) {
 				double angle = (Math.PI * 2.0 * i) / segments;
-				GL11.glVertex3f(cx + (float) Math.cos(angle) * radius, cy + (float) Math.sin(angle) * radius, 0.0F);
+				GL11.glVertex3f(cx + (float) Math.cos(angle) * radiusX, cy + (float) Math.sin(angle) * radiusY, 0.0F);
 			}
 			GL11.glEnd();
 		} else {
-			applyLineWidth(command.lineWidth);
+			applyLineWidth(command.lineWidth * 0.5f * (scaleX + scaleY));
 			GL11.glBegin(GL11.GL_LINE_LOOP);
 			for(int i = 0; i < segments; i++) {
 				double angle = (Math.PI * 2.0 * i) / segments;
-				GL11.glVertex3f(cx + (float) Math.cos(angle) * radius, cy + (float) Math.sin(angle) * radius, 0.0F);
+				GL11.glVertex3f(cx + (float) Math.cos(angle) * radiusX, cy + (float) Math.sin(angle) * radiusY, 0.0F);
 			}
 			GL11.glEnd();
 			resetLineWidth();
 		}
 	}
 
-	private void drawPolygon(GfxApi.DrawCommand command) {
+	private void drawPolygon(GfxApi.DrawCommand command, float scaleX, float scaleY) {
 		if(command.points == null || command.points.length < 6 || (command.points.length % 2) != 0) {
 			return;
 		}
 
 		if(!command.filled) {
-			applyLineWidth(command.lineWidth);
+			applyLineWidth(command.lineWidth * 0.5f * (scaleX + scaleY));
 		}
 
 		GL11.glBegin(command.filled ? GL11.GL_POLYGON : GL11.GL_LINE_LOOP);
 		for(int i = 0; i < command.points.length; i += 2) {
-			GL11.glVertex3f(command.points[i], command.points[i + 1], 0.0F);
+			GL11.glVertex3f(command.points[i] * scaleX, command.points[i + 1] * scaleY, 0.0F);
 		}
 		GL11.glEnd();
 
 		if(!command.filled) {
 			resetLineWidth();
 		}
-	}
-
-	private static FontLibrary.FontSize resolveFontSize(int textScale) {
-		if(textScale <= 1) {
-			return FontLibrary.FontSize.SMALL;
-		}
-		if(textScale <= 3) {
-			return FontLibrary.FontSize.MEDIUM;
-		}
-		return FontLibrary.FontSize.BIG;
 	}
 
 	@Override
@@ -243,16 +244,16 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		GlUtil.glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
 		GL11.glBegin(GL11.GL_QUADS);
 		GL11.glVertex3f(0.0f, 0.0f, 0.0F);
-		GL11.glVertex3f(frame.width, 0.0f, 0.0F);
-		GL11.glVertex3f(frame.width, frame.height, 0.0F);
-		GL11.glVertex3f(0.0f, frame.height, 0.0F);
+		GL11.glVertex3f(frame.viewportWidth, 0.0f, 0.0F);
+		GL11.glVertex3f(frame.viewportWidth, frame.viewportHeight, 0.0F);
+		GL11.glVertex3f(0.0f, frame.viewportHeight, 0.0F);
 		GL11.glEnd();
 
 		for(GfxApi.LayerSnapshot layer : frame.layers) {
 			if(!layer.visible || layer.commands.isEmpty()) {
 				continue;
 			}
-			drawLayer(layer, textOverlays);
+			drawLayer(layer, textOverlays, frame.scaleX, frame.scaleY);
 		}
 
 		GlUtil.glDisable(GL11.GL_BLEND);
@@ -264,7 +265,7 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		drawTextOverlays(textOverlays);
 	}
 
-	private void drawBitmap(GfxApi.DrawCommand command) {
+	private void drawBitmap(GfxApi.DrawCommand command, float scaleX, float scaleY) {
 		if(command.bitmapPixels == null || command.bitmapWidth <= 0 || command.bitmapHeight <= 0) {
 			return;
 		}
@@ -289,97 +290,99 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 				GlUtil.glColor4f(red, green, blue, alpha);
 				float px = command.x1 + x;
 				float py = command.y1 + y;
-				addQuad(px, py, px + 1.0f, py + 1.0f);
+				addQuad(px * scaleX, py * scaleY, (px + 1.0f) * scaleX, (py + 1.0f) * scaleY);
 			}
 		}
 		GL11.glEnd();
 	}
 
-	private void drawLayer(GfxApi.LayerSnapshot layer, List<TextOverlaySpec> textOverlays) {
+	private void drawLayer(GfxApi.LayerSnapshot layer, List<TextOverlaySpec> textOverlays, float scaleX, float scaleY) {
 		for(GfxApi.DrawCommand command : layer.commands) {
 			GlUtil.glColor4f(command.r, command.g, command.b, command.a);
 			switch(command.kind) {
 				case POINT:
 					GL11.glBegin(GL11.GL_POINTS);
-					GL11.glVertex3f(command.x1, command.y1, 0.0F);
+					GL11.glVertex3f(command.x1 * scaleX, command.y1 * scaleY, 0.0F);
 					GL11.glEnd();
 					break;
 				case LINE:
-					applyLineWidth(command.lineWidth);
+					applyLineWidth(command.lineWidth * 0.5f * (scaleX + scaleY));
 					GL11.glBegin(GL11.GL_LINES);
-					GL11.glVertex3f(command.x1, command.y1, 0.0F);
-					GL11.glVertex3f(command.x2, command.y2, 0.0F);
+					GL11.glVertex3f(command.x1 * scaleX, command.y1 * scaleY, 0.0F);
+					GL11.glVertex3f(command.x2 * scaleX, command.y2 * scaleY, 0.0F);
 					GL11.glEnd();
 					resetLineWidth();
 					break;
 				case RECT:
 					if(command.filled) {
 						GL11.glBegin(GL11.GL_QUADS);
-						GL11.glVertex3f(command.x1, command.y1, 0.0F);
-						GL11.glVertex3f(command.x2, command.y1, 0.0F);
-						GL11.glVertex3f(command.x2, command.y2, 0.0F);
-						GL11.glVertex3f(command.x1, command.y2, 0.0F);
+						GL11.glVertex3f(command.x1 * scaleX, command.y1 * scaleY, 0.0F);
+						GL11.glVertex3f(command.x2 * scaleX, command.y1 * scaleY, 0.0F);
+						GL11.glVertex3f(command.x2 * scaleX, command.y2 * scaleY, 0.0F);
+						GL11.glVertex3f(command.x1 * scaleX, command.y2 * scaleY, 0.0F);
 						GL11.glEnd();
 					} else {
 						GL11.glBegin(GL11.GL_LINE_LOOP);
-						GL11.glVertex3f(command.x1, command.y1, 0.0F);
-						GL11.glVertex3f(command.x2, command.y1, 0.0F);
-						GL11.glVertex3f(command.x2, command.y2, 0.0F);
-						GL11.glVertex3f(command.x1, command.y2, 0.0F);
+						GL11.glVertex3f(command.x1 * scaleX, command.y1 * scaleY, 0.0F);
+						GL11.glVertex3f(command.x2 * scaleX, command.y1 * scaleY, 0.0F);
+						GL11.glVertex3f(command.x2 * scaleX, command.y2 * scaleY, 0.0F);
+						GL11.glVertex3f(command.x1 * scaleX, command.y2 * scaleY, 0.0F);
 						GL11.glEnd();
 					}
 					break;
 				case CIRCLE:
-					drawCircle(command);
+					drawCircle(command, scaleX, scaleY);
 					break;
 				case POLYGON:
-					drawPolygon(command);
+					drawPolygon(command, scaleX, scaleY);
 					break;
 				case TEXT:
-					collectTextOverlaySpecs(command, textOverlays);
+					collectTextOverlaySpecs(command, textOverlays, scaleX, scaleY);
 					break;
 				case BITMAP:
-					drawBitmap(command);
+					drawBitmap(command, scaleX, scaleY);
 					break;
 			}
 		}
 	}
 
-	private void collectTextOverlaySpecs(GfxApi.DrawCommand command, List<TextOverlaySpec> textOverlays) {
+	private void collectTextOverlaySpecs(GfxApi.DrawCommand command, List<TextOverlaySpec> textOverlays, float scaleX, float scaleY) {
 		if(command.text == null || command.text.isEmpty()) {
 			return;
 		}
 
-		FontLibrary.FontSize fontSize = resolveFontSize(command.textScale);
+		float fontScale = Math.max(0.5f, 0.5f * (scaleX + scaleY));
+		int normalizedTextScale = Math.max(1, Math.round(command.textScale * fontScale));
+		FontLibrary.FontSize fontSize = resolveFontSize(normalizedTextScale);
 		UnicodeFont font = fontSize.getFont();
 		int lineHeight = Math.max(1, font.getLineHeight());
-		int maxWidth = command.textMaxWidth > 0 ? command.textMaxWidth : Integer.MAX_VALUE;
+		int maxWidth = command.textMaxWidth > 0 ? Math.max(1, Math.round(command.textMaxWidth * scaleX)) : Integer.MAX_VALUE;
 		List<String> lines = layoutTextLines(command.text, maxWidth, command.textWrap, font);
 		if(lines.isEmpty()) {
 			return;
 		}
 
-		float clipY2 = command.textMaxHeight > 0 ? command.y1 + command.textMaxHeight : Float.POSITIVE_INFINITY;
+		float textX = command.x1 * scaleX;
+		float textY = command.y1 * scaleY;
+		float clipY2 = command.textMaxHeight > 0 ? textY + (command.textMaxHeight * scaleY) : Float.POSITIVE_INFINITY;
 		for(int lineIndex = 0; lineIndex < lines.size(); lineIndex++) {
-			float lineY = command.y1 + (lineIndex * lineHeight);
+			float lineY = textY + (lineIndex * lineHeight);
 			if(lineY >= clipY2) {
 				break;
 			}
 
 			String line = lines.get(lineIndex);
 			int textWidth = Math.max(1, font.getWidth(line));
-			float lineX = command.x1;
+			float lineX = textX;
 			if(command.textMaxWidth > 0) {
 				if("center".equals(command.textAlign)) {
-					lineX = command.x1 + ((command.textMaxWidth - textWidth) * 0.5f);
+					lineX = textX + ((maxWidth - textWidth) * 0.5f);
 				} else if("right".equals(command.textAlign)) {
-					lineX = command.x1 + (command.textMaxWidth - textWidth);
+					lineX = textX + (maxWidth - textWidth);
 				}
 			}
 
-			textOverlays.add(new TextOverlaySpec(line, lineX, lineY, command.r, command.g, command.b, command.a,
-					Math.max(textWidth + 8, command.textMaxWidth > 0 ? command.textMaxWidth : textWidth + 8),
-					lineHeight + 4, fontSize));
+			textOverlays.add(new TextOverlaySpec(line, lineX, lineY, command.r, command.g, command.b, command.a, Math.max(textWidth + 8, command.textMaxWidth > 0 ? maxWidth : textWidth + 8), lineHeight + 4, fontSize));
 		}
 	}
 
@@ -417,33 +420,6 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		GL11.glVertex3f(x1, y2, 0.0F);
 	}
 
-	private static final class TextOverlaySpec {
-		private final String text;
-		private final float x;
-		private final float y;
-		private final float r;
-		private final float g;
-		private final float b;
-		private final float a;
-		private final int width;
-		private final int height;
-		private final FontLibrary.FontSize fontSize;
-
-		private TextOverlaySpec(String text, float x, float y, float r, float g, float b, float a, int width, int height, FontLibrary.FontSize fontSize) {
-			this.text = text;
-			this.x = x;
-			this.y = y;
-			this.r = r;
-			this.g = g;
-			this.b = b;
-			this.a = a;
-			this.width = width;
-			this.height = height;
-			this.fontSize = fontSize;
-		}
-	}
-
-
 	private void updateVisibility() {
 		boolean overlayActive = isOverlayActive();
 		setInvisible(!overlayActive);
@@ -475,7 +451,6 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		}
 	}
 
-
 	private void releaseTexture(int textureId) {
 		GL11.glDeleteTextures(textureId);
 		Controller.loadedTextures.remove((Integer) textureId);
@@ -486,6 +461,32 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 			return Display.isCreated() && Display.isCurrent();
 		} catch(Throwable ignored) {
 			return false;
+		}
+	}
+
+	private static final class TextOverlaySpec {
+		private final String text;
+		private final float x;
+		private final float y;
+		private final float r;
+		private final float g;
+		private final float b;
+		private final float a;
+		private final int width;
+		private final int height;
+		private final FontLibrary.FontSize fontSize;
+
+		private TextOverlaySpec(String text, float x, float y, float r, float g, float b, float a, int width, int height, FontLibrary.FontSize fontSize) {
+			this.text = text;
+			this.x = x;
+			this.y = y;
+			this.r = r;
+			this.g = g;
+			this.b = b;
+			this.a = a;
+			this.width = width;
+			this.height = height;
+			this.fontSize = fontSize;
 		}
 	}
 }
