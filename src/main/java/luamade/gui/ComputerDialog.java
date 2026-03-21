@@ -213,6 +213,10 @@ public class ComputerDialog extends PlayerInput {
 		private boolean leftMouseDown;
 		private boolean rightMouseDown;
 		private boolean middleMouseDown;
+		private int lastKnownWindowX = -1;
+		private int lastKnownWindowY = -1;
+		private int lastKnownCanvasX = -1;
+		private int lastKnownCanvasY = -1;
 		private final List<String> commandSuggestions = new ArrayList<>();
 		private int selectedSuggestionIndex = -1;
 		private String suggestionSeedInput = "";
@@ -263,15 +267,21 @@ public class ComputerDialog extends PlayerInput {
 			updateMouseButtonState(button, pressed);
 			boolean dragging = leftMouseDown || rightMouseDown || middleMouseDown;
 			String dragButton = dragButtonName();
+			int mouseX = mouseEvent.x;
+			int mouseY = normalizeMouseY(mouseEvent.y);
 
 			int uiX = -1;
 			int uiY = -1;
 			boolean insideCanvas = false;
 			if(consolePane != null) {
+				refreshUiOriginsFromMouse(mouseX, mouseY);
+
 				int width = Math.max(1, Math.round(consolePane.getWidth()));
 				int height = Math.max(1, Math.round(consolePane.getHeight()));
-				int localX = Math.round(mouseEvent.x - consolePane.getPos().x);
-				int localY = Math.round(mouseEvent.y - consolePane.getPos().y);
+				int canvasOriginX = resolveCanvasOriginX();
+				int canvasOriginY = resolveCanvasOriginY();
+				int localX = mouseX - canvasOriginX;
+				int localY = mouseY - canvasOriginY;
 				insideCanvas = localX >= 0 && localY >= 0 && localX < width && localY < height;
 				if(insideCanvas) {
 					uiX = localX;
@@ -282,8 +292,8 @@ public class ComputerDialog extends PlayerInput {
 			computerModule.getInputApi().pushMouseEvent(
 				button,
 				pressed,
-				mouseEvent.x,
-				mouseEvent.y,
+					mouseX,
+					mouseY,
 				mouseEvent.dx,
 				mouseEvent.dy,
 				mouseEvent.dWheel,
@@ -295,6 +305,52 @@ public class ComputerDialog extends PlayerInput {
 				dragging,
 				dragButton
 			);
+		}
+
+		private int normalizeMouseY(int rawY) {
+			return org.schema.schine.graphicsengine.core.GLFrame.getHeight() - rawY - 1;
+		}
+
+		private void refreshUiOriginsFromMouse(int mouseX, int mouseY) {
+			if(mouseX < 0 || mouseY < 0) {
+				return;
+			}
+
+			if(background != null && background.isInside()) {
+				lastKnownWindowX = mouseX - Math.round(background.getRelMousePos().x);
+				lastKnownWindowY = mouseY - Math.round(background.getRelMousePos().y);
+			}
+
+			if(consolePane != null && consolePane.isInside()) {
+				lastKnownCanvasX = mouseX - Math.round(consolePane.getRelMousePos().x);
+				lastKnownCanvasY = mouseY - Math.round(consolePane.getRelMousePos().y);
+			}
+		}
+
+		private int resolveCanvasOriginX() {
+			if(lastKnownCanvasX >= 0) {
+				return lastKnownCanvasX;
+			}
+			if(consolePane == null) {
+				return -1;
+			}
+			if(background != null) {
+				return Math.round(background.getPos().x + consolePane.getPos().x);
+			}
+			return Math.round(consolePane.getPos().x);
+		}
+
+		private int resolveCanvasOriginY() {
+			if(lastKnownCanvasY >= 0) {
+				return lastKnownCanvasY;
+			}
+			if(consolePane == null) {
+				return -1;
+			}
+			if(background != null) {
+				return Math.round(background.getPos().y + consolePane.getPos().y);
+			}
+			return Math.round(consolePane.getPos().y);
 		}
 
 		private void updateMouseButtonState(int button, boolean pressed) {
@@ -328,6 +384,10 @@ public class ComputerDialog extends PlayerInput {
 			leftMouseDown = false;
 			rightMouseDown = false;
 			middleMouseDown = false;
+			lastKnownWindowX = -1;
+			lastKnownWindowY = -1;
+			lastKnownCanvasX = -1;
+			lastKnownCanvasY = -1;
 		}
 
 		public boolean isFileEditMode() {
@@ -813,24 +873,36 @@ public class ComputerDialog extends PlayerInput {
 		}
 
 		private void updateGfxOverlayBounds() {
-			int currentWindowX = -1;
-			int currentWindowY = -1;
+			int currentWindowX = lastKnownWindowX;
+			int currentWindowY = lastKnownWindowY;
 			int currentWindowWidth = -1;
 			int currentWindowHeight = -1;
 			if(background != null) {
-				currentWindowX = Math.round(background.getPos().x);
-				currentWindowY = Math.round(background.getPos().y);
+				if(currentWindowX < 0) {
+					currentWindowX = Math.round(background.getPos().x);
+				}
+				if(currentWindowY < 0) {
+					currentWindowY = Math.round(background.getPos().y);
+				}
 				currentWindowWidth = Math.max(1, Math.round(background.getWidth()));
 				currentWindowHeight = Math.max(1, Math.round(background.getHeight()));
 			}
 
-			int currentCanvasX = -1;
-			int currentCanvasY = -1;
+			int currentCanvasX = lastKnownCanvasX;
+			int currentCanvasY = lastKnownCanvasY;
 			int currentCanvasWidth = -1;
 			int currentCanvasHeight = -1;
+			int overlayCanvasX = -1;
+			int overlayCanvasY = -1;
 			if(consolePane != null) {
-				currentCanvasX = Math.round(consolePane.getPos().x);
-				currentCanvasY = Math.round(consolePane.getPos().y);
+				overlayCanvasX = Math.round(consolePane.getPos().x);
+				overlayCanvasY = Math.round(consolePane.getPos().y);
+				if(currentCanvasX < 0) {
+					currentCanvasX = background != null ? Math.round(background.getPos().x + consolePane.getPos().x) : overlayCanvasX;
+				}
+				if(currentCanvasY < 0) {
+					currentCanvasY = background != null ? Math.round(background.getPos().y + consolePane.getPos().y) : overlayCanvasY;
+				}
 				currentCanvasWidth = Math.max(1, Math.round(consolePane.getWidth()));
 				currentCanvasHeight = Math.max(1, Math.round(consolePane.getHeight()));
 			}
@@ -855,7 +927,7 @@ public class ComputerDialog extends PlayerInput {
 			// Keep gfx canvas aligned with the visible terminal text bar.
 			// Using reflected scroll-panel dimensions can report larger virtual sizes
 			// than the rendered panel and push drawings out of view.
-			terminalGfxOverlay.setCanvasBounds(currentCanvasX, currentCanvasY, currentCanvasWidth, currentCanvasHeight);
+			terminalGfxOverlay.setCanvasBounds(overlayCanvasX, overlayCanvasY, currentCanvasWidth, currentCanvasHeight);
 			terminalGfxOverlay.setCanvasEnabled(!isFileEditMode());
 		}
 
