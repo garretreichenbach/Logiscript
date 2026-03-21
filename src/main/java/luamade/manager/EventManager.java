@@ -42,9 +42,9 @@ public class EventManager {
 			public void onEvent(KeyPressEvent event) {
 				int key = event.getKey();
 				char typedChar = event.getChar();
-				boolean ctrlDown = Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_CONTROL) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_CONTROL);
-				boolean shiftDown = Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_SHIFT);
-				boolean altDown = Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_ALT) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_ALT);
+				boolean ctrlDown = isControlDown();
+				boolean shiftDown = isShiftDown();
+				boolean altDown = isAltDown();
 
 				if(RemoteSessionManager.isActive()) {
 					if(key == GLFW.GLFW_KEY_ESCAPE && event.isKeyDown()) {
@@ -67,7 +67,7 @@ public class EventManager {
 					return;
 				}
 
-				if(event.isKeyDown() && !panel.isFileEditMode() && ctrlDown && key == GLFW.GLFW_KEY_C) {
+				if(!panel.isFileEditMode() && isCtrlCPress(event, ctrlDown)) {
 					// Ctrl+C is a hard interrupt in terminal mode and must never be consumed by text selection.
 					event.setCanceled(true);
 					ComputerModule ctrlCModule = panel.getComputerModule();
@@ -192,5 +192,40 @@ public class EventManager {
 		} catch(Exception ignored) {
 		}
 		return null;
+	}
+
+	private static boolean isControlDown() {
+		return Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_CONTROL)
+				|| Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_CONTROL)
+				|| Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LCONTROL)
+				|| Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RCONTROL);
+	}
+
+	private static boolean isShiftDown() {
+		return Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT)
+				|| Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_SHIFT)
+				|| Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LSHIFT)
+				|| Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RSHIFT);
+	}
+
+	private static boolean isAltDown() {
+		return Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_ALT)
+				|| Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_ALT)
+				|| Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LMENU)
+				|| Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RMENU);
+	}
+
+	private static boolean isCtrlCPress(KeyPressEvent event, boolean ctrlDown) {
+		if(event == null || !event.isKeyDown() || !ctrlDown) {
+			return false;
+		}
+
+		int key = event.getKey();
+		char typed = event.getChar();
+		return key == GLFW.GLFW_KEY_C
+				|| key == org.lwjgl.input.Keyboard.KEY_C
+				|| typed == 3
+				|| typed == 'c'
+				|| typed == 'C';
 	}
 }

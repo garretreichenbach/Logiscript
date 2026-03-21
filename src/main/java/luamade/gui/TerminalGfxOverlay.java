@@ -1,6 +1,7 @@
 package luamade.gui;
 
 import luamade.lua.gfx.GfxApi;
+import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
 import org.newdawn.slick.UnicodeFont;
 import org.schema.schine.graphicsengine.core.Controller;
@@ -472,13 +473,16 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 
 	private void releaseTrackedTexture() {
 		if(lastTextureId > 0) {
-			releaseTexture(lastTextureId);
+			if(canDeleteTextureNow()) {
+				releaseTexture(lastTextureId);
+			}
 			lastTextureId = -1;
 		}
 	}
 
 	private void cleanupSpriteResources() {
 		if(sprite != null) {
+			sprite.getMaterial().getTexture().cleanUp();
 			sprite.cleanUp();
 			sprite = null;
 		}
@@ -489,5 +493,13 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 	private void releaseTexture(int textureId) {
 		GL11.glDeleteTextures(textureId);
 		Controller.loadedTextures.remove((Integer) textureId);
+	}
+
+	private boolean canDeleteTextureNow() {
+		try {
+			return Display.isCreated() && Display.isCurrent();
+		} catch(Throwable ignored) {
+			return false;
+		}
 	}
 }
