@@ -28,6 +28,21 @@ Layers let scripts separate background, content, and interaction visuals.
   Discards all draw commands in the named layer.
 - `gfx.clear()`
   Discards all draw commands in every layer.
+- `gfx.beginBatch()`
+  Begins a batch. All subsequent `clearLayer`, `clear`, and draw commands are staged in a private
+  pending buffer instead of being applied immediately.
+- `gfx.commitBatch()`
+  Atomically applies all staged commands to the live buffers in a single lock acquisition.
+  The render thread will either see the previous complete frame or the new complete frame —
+  never a partially-cleared or partially-filled intermediate state. Use this pair to eliminate
+  flicker when redrawing a dynamic UI:
+  ```lua
+  gfx.beginBatch()
+  gfx.clearLayer("widgets")
+  gfx.setLayer("widgets")
+  -- ... all draw calls ...
+  gfx.commitBatch()
+  ```
 
 Lower `order` draws first (behind higher layers).
 
