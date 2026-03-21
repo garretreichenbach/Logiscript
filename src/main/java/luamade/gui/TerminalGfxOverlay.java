@@ -5,6 +5,7 @@ import org.lwjgl.opengl.GL11;
 import org.newdawn.slick.UnicodeFont;
 import org.schema.schine.graphicsengine.core.Controller;
 import org.schema.schine.graphicsengine.core.GlUtil;
+import org.schema.schine.graphicsengine.forms.Sprite;
 import org.schema.schine.graphicsengine.forms.font.FontLibrary;
 import org.schema.schine.graphicsengine.forms.gui.GUIDrawToTextureOverlay;
 import org.schema.schine.graphicsengine.forms.gui.GUITextOverlay;
@@ -73,6 +74,9 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 
 	@Override
 	public void onInit() {
+		if(sprite == null) {
+			sprite = new Sprite(Math.max(1, canvasWidth), Math.max(1, canvasHeight));
+		}
 		releaseTrackedTexture();
 		super.onInit();
 		trackTextureId();

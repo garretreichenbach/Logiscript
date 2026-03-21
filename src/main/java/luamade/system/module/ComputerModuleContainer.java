@@ -26,10 +26,13 @@ public class ComputerModuleContainer extends SystemModule {
 
 	private final byte VERSION = 8;
 	private static final Set<ComputerModuleContainer> ACTIVE_CONTAINERS = ConcurrentHashMap.newKeySet();
+	private static final long IDLE_SAVE_THRESHOLD_MS = 60_000L;
+	private static final long IDLE_SAVE_SWEEP_INTERVAL_MS = 15_000L;
 	private final Long2ObjectOpenHashMap<ComputerModule> computerModules = new Long2ObjectOpenHashMap<>();
 	private final Long2ObjectOpenHashMap<PendingModuleState> pendingModuleStates = new Long2ObjectOpenHashMap<>();
 	/** Guards all reads and writes to {@code pendingModuleStates} across the game-loop and network threads. */
 	private final Object pendingLock = new Object();
+	private long lastIdleSaveSweepAtMs;
 
 	public ComputerModuleContainer(SegmentController ship, ManagerContainer<?> managerContainer) {
 		super(ship, managerContainer, LuaMade.getInstance(), ElementRegistry.COMPUTER.getId());
@@ -88,6 +91,25 @@ public class ComputerModuleContainer extends SystemModule {
 		synchronized(pendingLock) {
 			if(!pendingModuleStates.isEmpty()) {
 				restorePendingModules();
+			}
+		}
+
+		long now = System.currentTimeMillis();
+		if(now - lastIdleSaveSweepAtMs >= IDLE_SAVE_SWEEP_INTERVAL_MS) {
+			lastIdleSaveSweepAtMs = now;
+			saveIdleModules();
+		}
+	}
+
+	private void saveIdleModules() {
+		for(ComputerModule module : computerModules.values()) {
+			if(module == null || !module.shouldSave(IDLE_SAVE_THRESHOLD_MS)) {
+				continue;
+			}
+
+			if(module.getFileSystem() != null && module.getFileSystem().saveToDisk()) {
+				// Prevent re-saving every sweep when nothing else touched this module.
+				module.setTouched();
 			}
 		}
 	}

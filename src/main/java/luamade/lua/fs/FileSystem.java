@@ -31,6 +31,7 @@ public class FileSystem extends LuaMadeUserdata {
 
 	private static final File computerStorage = resolveComputerStorage();
 	private static volatile boolean storagePathLogged;
+	private static final long MIN_ARCHIVE_FILE_BYTES = 5L;
 	private static final String STARTUP_SCRIPT_PATH = "/etc/startup.lua";
 	private static final String STARTUP_BACKUP_PATH = "/etc/startup.lua.bak";
 	private static final String PERMISSIONS_FILE_PATH = "/etc/.fs_permissions";
@@ -575,8 +576,8 @@ public class FileSystem extends LuaMadeUserdata {
 		File backupCompressedFile = new File(computerStorage, "computer_" + module.getUUID() + "_fs.smdat.bak");
 		File tempCompressedFile = new File(computerStorage, "computer_" + module.getUUID() + "_fs.smdat.tmp");
 		File rootDirectory = new File(computerStorage, "computer_" + module.getUUID() + "_fs");
-		boolean hasCompressedArchive = compressedFile.exists() && compressedFile.length() > 0;
-		boolean hasBackupArchive = backupCompressedFile.exists() && backupCompressedFile.length() > 0;
+		boolean hasCompressedArchive = compressedFile.exists() && compressedFile.length() > MIN_ARCHIVE_FILE_BYTES;
+		boolean hasBackupArchive = backupCompressedFile.exists() && backupCompressedFile.length() > MIN_ARCHIVE_FILE_BYTES;
 
 		if(tempCompressedFile.exists()) {
 			if(tempCompressedFile.length() > 0) {
@@ -588,11 +589,18 @@ public class FileSystem extends LuaMadeUserdata {
 		}
 
 		List<File> archiveCandidates = new ArrayList<>();
-		if(hasCompressedArchive) {
-			archiveCandidates.add(compressedFile);
-		}
-		if(hasBackupArchive) {
+		if(hasCompressedArchive && hasBackupArchive && compressedFile.length() <= MIN_ARCHIVE_FILE_BYTES + 1 && backupCompressedFile.length() > compressedFile.length()) {
+			// If the primary archive is trivially small while backup has substantial data,
+			// try backup first to recover from interrupted save/cleanup races.
 			archiveCandidates.add(backupCompressedFile);
+			archiveCandidates.add(compressedFile);
+		} else {
+			if(hasCompressedArchive) {
+				archiveCandidates.add(compressedFile);
+			}
+			if(hasBackupArchive) {
+				archiveCandidates.add(backupCompressedFile);
+			}
 		}
 
 		if(rootDirectory.exists()) {
@@ -622,16 +630,31 @@ public class FileSystem extends LuaMadeUserdata {
 	}
 
 	private boolean restoreFromArchiveCandidates(String uuid, File rootDirectory, List<File> archiveCandidates) {
-		for(File archiveCandidate : archiveCandidates) {
+		for(int index = 0; index < archiveCandidates.size(); index++) {
+			File archiveCandidate = archiveCandidates.get(index);
 			if(archiveCandidate == null || !archiveCandidate.exists() || archiveCandidate.length() <= 0) {
 				continue;
 			}
 
 			if(restoreArchiveIntoRootDirectory(uuid, archiveCandidate, rootDirectory)) {
-				return true;
+				if(rootDirectoryHasEntries(rootDirectory) || index == archiveCandidates.size() - 1) {
+					return true;
+				}
+				LuaMade.getInstance().logWarning("Recovered file system from archive " + archiveCandidate.getName() + " for computer " + uuid + " but it was empty; trying next recovery candidate.");
+				if(rootDirectory.exists()) {
+					deleteRecursive(rootDirectory);
+				}
 			}
 		}
 		return false;
+	}
+
+	private boolean rootDirectoryHasEntries(File rootDirectory) {
+		if(rootDirectory == null || !rootDirectory.exists() || !rootDirectory.isDirectory()) {
+			return false;
+		}
+		File[] children = rootDirectory.listFiles();
+		return children != null && children.length > 0;
 	}
 
 	private boolean restoreArchiveIntoRootDirectory(String uuid, File archiveFile, File rootDirectory) {
@@ -1411,6 +1434,11 @@ public class FileSystem extends LuaMadeUserdata {
 		File backupCompressedFile = new File(computerStorage, "computer_" + computerUUID + "_fs.smdat.bak");
 		File tempCompressedFile = new File(computerStorage, "computer_" + computerUUID + "_fs.smdat.tmp");
 		File rootDir = rootDirectory.getInternalFile();
+
+		if(rootDir == null || !rootDir.exists() || !rootDir.isDirectory()) {
+			LuaMade.getInstance().logWarning("Skipping file system save for computer " + computerUUID + " because root directory is unavailable: " + (rootDir == null ? "null" : rootDir.getAbsolutePath()));
+			return false;
+		}
 
 		try {
 			if(tempCompressedFile.exists() && !tempCompressedFile.delete()) {
