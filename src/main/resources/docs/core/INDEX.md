@@ -11,5 +11,3 @@ Core APIs and fundamental runtime components for LuaMade.
 - **util.md** - Utility library for common operations (`util`)
 - **json.md** - JSON encode/decode library (`json`)
 - **package-manager.md** - Trusted package manager commands and registry model
-- **azure-package-registry-setup.md** - Azure service plan for the external package registry
-

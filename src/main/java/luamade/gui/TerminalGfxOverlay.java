@@ -24,7 +24,6 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 	private int canvasWidth;
 	private int canvasHeight;
 	private boolean textureResizePending;
-	private boolean previouslyOverlayActive;
 
 	public TerminalGfxOverlay(int width, int height, ClientState state, GfxApi gfxApi) {
 		super(Math.max(1, width), Math.max(1, height), state);
@@ -447,11 +446,7 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 
 	private void updateVisibility() {
 		boolean overlayActive = isOverlayActive();
-		if(!overlayActive && previouslyOverlayActive) {
-			cleanupSpriteResources();
-		}
 		setInvisible(!overlayActive);
-		previouslyOverlayActive = overlayActive;
 	}
 
 	private void ensureRenderResources() {
@@ -480,15 +475,6 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		}
 	}
 
-	private void cleanupSpriteResources() {
-		if(sprite != null) {
-			sprite.getMaterial().getTexture().cleanUp();
-			sprite.cleanUp();
-			sprite = null;
-		}
-		releaseTrackedTexture();
-		textureResizePending = false;
-	}
 
 	private void releaseTexture(int textureId) {
 		GL11.glDeleteTextures(textureId);

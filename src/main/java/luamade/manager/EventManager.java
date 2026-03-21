@@ -1,7 +1,6 @@
 package luamade.manager;
 
 import api.listener.Listener;
-import api.listener.events.Event;
 import api.listener.events.block.SegmentPieceAddByMetadataEvent;
 import api.listener.events.input.KeyPressEvent;
 import api.listener.events.input.MousePressEvent;
@@ -19,10 +18,7 @@ import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementCollection;
 import org.schema.schine.graphicsengine.core.GLFW;
-import org.schema.schine.graphicsengine.core.MouseEvent;
 import org.schema.schine.input.Keyboard;
-
-import java.lang.reflect.Method;
 
 public class EventManager {
 
@@ -70,9 +66,15 @@ public class EventManager {
 				if(!panel.isFileEditMode() && isCtrlCPress(event, ctrlDown)) {
 					// Ctrl+C is a hard interrupt in terminal mode and must never be consumed by text selection.
 					event.setCanceled(true);
+					if(ConfigManager.isDebugMode()) {
+						instance.logDebug("[INTERRUPT] Ctrl+C detected: key=" + key + ", char=" + (int) typedChar + ", ctrlDown=" + ctrlDown + ", panelMasked=" + panel.isTerminalInputMaskedByGfx());
+					}
 					ComputerModule ctrlCModule = panel.getComputerModule();
 					if(ctrlCModule != null && ctrlCModule.getTerminal() != null) {
-						ctrlCModule.getTerminal().interruptForeground();
+						boolean interrupted = ctrlCModule.getTerminal().interruptForeground();
+						if(ConfigManager.isDebugMode()) {
+							instance.logDebug("[INTERRUPT] interruptForeground result=" + interrupted);
+						}
 					}
 					return;
 				}
@@ -109,14 +111,7 @@ public class EventManager {
 					if(maskedTerminalInput && enterKey && !module.isMaskedEnterForwardingEnabled()) {
 						return;
 					}
-					module.getInputApi().pushKeyEvent(
-							key,
-							typedChar,
-							event.isKeyDown(),
-							shiftDown,
-							ctrlDown,
-							altDown
-					);
+					module.getInputApi().pushKeyEvent(key, typedChar, event.isKeyDown(), shiftDown, ctrlDown, altDown);
 				}
 			}
 		}, instance);
@@ -129,8 +124,6 @@ public class EventManager {
 				}
 			}
 		}, instance);
-
-		registerOptionalMouseMoveListener(instance);
 
 		StarLoader.registerListener(SegmentPieceAddByMetadataEvent.class, new Listener<SegmentPieceAddByMetadataEvent>() {
 			@Override
@@ -158,74 +151,19 @@ public class EventManager {
 		}, instance);
 	}
 
-	@SuppressWarnings({"rawtypes", "unchecked"})
-	private static void registerOptionalMouseMoveListener(LuaMade instance) {
-		try {
-			Class<?> mouseMoveEventClass = Class.forName("api.listener.events.input.MouseMoveEvent");
-			StarLoader.registerListener((Class) mouseMoveEventClass, new Listener() {
-				@Override
-				public void onEvent(Object event) {
-					if(!RemoteSessionManager.isActive()) {
-						return;
-					}
-					MouseEvent rawMouseEvent = extractRawMouseEvent(event);
-					if(rawMouseEvent != null && RemoteSessionManager.forwardMouseEvent(rawMouseEvent) && event instanceof Event) {
-						((Event) event).setCanceled(true);
-					}
-				}
-			}, instance);
-		} catch(ClassNotFoundException ignored) {
-			// Runtime API may not expose MouseMoveEvent; MousePressEvent forwarding remains active.
-		}
-	}
-
-	private static MouseEvent extractRawMouseEvent(Object event) {
-		if(event == null) {
-			return null;
-		}
-		try {
-			Method rawEventMethod = event.getClass().getMethod("getRawEvent");
-			Object raw = rawEventMethod.invoke(event);
-			if(raw instanceof MouseEvent) {
-				return (MouseEvent) raw;
-			}
-		} catch(Exception ignored) {
-		}
-		return null;
-	}
-
 	private static boolean isControlDown() {
-		return Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_CONTROL)
-				|| Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_CONTROL)
-				|| Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LCONTROL)
-				|| Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RCONTROL);
+		return Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_CONTROL) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_CONTROL) || Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RCONTROL);
 	}
 
 	private static boolean isShiftDown() {
-		return Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT)
-				|| Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_SHIFT)
-				|| Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LSHIFT)
-				|| Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RSHIFT);
+		return Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_SHIFT) || Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RSHIFT);
 	}
 
 	private static boolean isAltDown() {
-		return Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_ALT)
-				|| Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_ALT)
-				|| Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LMENU)
-				|| Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RMENU);
+		return Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_ALT) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_ALT) || Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LMENU) || Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RMENU);
 	}
 
 	private static boolean isCtrlCPress(KeyPressEvent event, boolean ctrlDown) {
-		if(event == null || !event.isKeyDown() || !ctrlDown) {
-			return false;
-		}
-
-		int key = event.getKey();
-		char typed = event.getChar();
-		return key == GLFW.GLFW_KEY_C
-				|| key == org.lwjgl.input.Keyboard.KEY_C
-				|| typed == 3
-				|| typed == 'c'
-				|| typed == 'C';
+		return ctrlDown && (event.getKey() == GLFW.GLFW_KEY_C || event.getKey() == org.lwjgl.input.Keyboard.KEY_C) && event.isKeyDown();
 	}
 }

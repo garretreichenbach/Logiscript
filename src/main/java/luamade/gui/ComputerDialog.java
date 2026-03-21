@@ -42,6 +42,8 @@ public class ComputerDialog extends PlayerInput {
 	private static ComputerDialog activeDialog;
 	protected final ComputerModule computerModule;
 	private final ComputerPanel computerPanel;
+	private static final long RESET_DEBOUNCE_MS = 250L;
+	private long lastResetAtMs;
 
 	public ComputerDialog(ComputerModule computerModule) {
 		super(GameClient.getClientState());
@@ -110,6 +112,12 @@ public class ComputerDialog extends PlayerInput {
 		if(computerModule == null || computerModule.getTerminal() == null) {
 			return;
 		}
+
+		long now = System.currentTimeMillis();
+		if(now - lastResetAtMs < RESET_DEBOUNCE_MS) {
+			return;
+		}
+		lastResetAtMs = now;
 
 		computerModule.setLastMode(ComputerModule.ComputerMode.TERMINAL);
 		computerModule.setSavedTerminalInput("");
@@ -185,7 +193,7 @@ public class ComputerDialog extends PlayerInput {
 		private GUITextButton docsButton;
 		private GUITextButton resetButton;
 		private GUITextButton pasteFilesButton;
-		private TerminalGfxOverlay terminalGfxOverlay;
+		public TerminalGfxOverlay terminalGfxOverlay;
 		private String lastEditorHintText = "";
 		private ComputerModule.ScrollMode appliedScrollMode;
 		private boolean terminalInputMaskedByGfx;
@@ -399,15 +407,15 @@ public class ComputerDialog extends PlayerInput {
 
 					Field carrierField = consolePane.getTextArea().getClass().getDeclaredField("chatCarrier");
 					carrierField.setAccessible(true);
-					carrierField.setInt(consolePane.getTextArea(), 10000);
+					carrierField.setInt(consolePane.getTextArea(), 0);
 
 					Field lineIndexField = consolePane.getTextArea().getClass().getDeclaredField("lineIndex");
 					lineIndexField.setAccessible(true);
-					lineIndexField.setInt(consolePane.getTextArea(), 10000);
+					lineIndexField.setInt(consolePane.getTextArea(), 0);
 
 					Field carrierLineIndexField = consolePane.getTextArea().getClass().getDeclaredField("carrierLineIndex");
 					carrierLineIndexField.setAccessible(true);
-					carrierLineIndexField.setInt(consolePane.getTextArea(), 10000);
+					carrierLineIndexField.setInt(consolePane.getTextArea(), 0);
 				} catch(Exception exception) {
 					exception.printStackTrace();
 				}

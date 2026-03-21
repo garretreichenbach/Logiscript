@@ -1,5 +1,6 @@
 package luamade.lua.terminal;
 
+import luamade.LuaMade;
 import luamade.lua.Console;
 import luamade.lua.fs.FileSystem;
 import luamade.lua.peripheral.PeripheralsApi;
@@ -112,25 +113,41 @@ public class Terminal extends LuaMadeUserdata {
 	}
 
 	private boolean cancelForegroundScript(boolean printInterruptMarker) {
+		boolean visibleBeforeClear = module.getGfxApi().hasVisibleCommands();
 		ScriptExecutionContext context = activeForegroundContext;
 		Future<Boolean> future = activeForegroundFuture;
-		if(context == null) {
-			return false;
-		}
-
-		context.requestCancel();
-		if(future != null) {
-			future.cancel(true);
-		}
-		if(printInterruptMarker) {
-			console.print(valueOf("^C"));
-		}
+		logInterruptDebug("cancelForegroundScript begin: printInterruptMarker=" + printInterruptMarker
+				+ ", contextPresent=" + (context != null)
+				+ ", futurePresent=" + (future != null)
+				+ ", futureDone=" + (future != null && future.isDone())
+				+ ", activeScripts=" + activeScripts.get()
+				+ ", runningBackgroundJobs=" + countRunningBackgroundJobs()
+				+ ", visibleBeforeClear=" + visibleBeforeClear);
 
 		// Clear the graphics buffer so any GUI drawn by the script disappears,
 		// and reset the input API to release keyboard/mouse locks the script held.
 		module.getGfxApi().forceClear();
 		module.getInputApi().reset();
+		logInterruptDebug("cancelForegroundScript after clear: visibleAfterClear=" + module.getGfxApi().hasVisibleCommands());
+		if(printInterruptMarker) {
+			console.print(valueOf("^C"));
+		}
+		if(context == null) {
+			// Foreground may already be cleared by a race; stop background loops too
+			// so stale GUI redraws cannot continue after Ctrl+C.
+			int canceled = cancelAllBackgroundJobs(false);
+			logInterruptDebug("cancelForegroundScript no foreground context; canceledBackgroundJobs=" + canceled);
+			return canceled > 0;
+		}
 
+		activeForegroundContext = null;
+		activeForegroundFuture = null;
+		context.requestCancel();
+		if(future != null) {
+			future.cancel(true);
+		}
+		int canceledBackground = cancelAllBackgroundJobs(false);
+		logInterruptDebug("cancelForegroundScript foreground canceled; canceledBackgroundJobs=" + canceledBackground);
 		return true;
 	}
 
@@ -161,6 +178,26 @@ public class Terminal extends LuaMadeUserdata {
 		module.getInputApi().reset();
 
 		return canceled;
+	}
+
+	private int countRunningBackgroundJobs() {
+		int runningCount = 0;
+		for(BackgroundJob job : backgroundJobs.values()) {
+			if(job != null && job.getStatus() == JobStatus.RUNNING) {
+				runningCount++;
+			}
+		}
+		return runningCount;
+	}
+
+	private void logInterruptDebug(String message) {
+		if(!ConfigManager.isDebugMode()) {
+			return;
+		}
+		LuaMade instance = LuaMade.getInstance();
+		if(instance != null) {
+			instance.logDebug("[INTERRUPT] " + message);
+		}
 	}
 
 	/**
