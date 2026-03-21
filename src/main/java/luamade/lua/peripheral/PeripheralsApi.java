@@ -6,6 +6,7 @@ import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.system.module.ComputerModule;
 import luamade.utils.SegmentPieceUtils;
+import org.luaj.vm2.LuaError;
 import org.schema.game.common.data.SegmentPiece;
 
 import java.util.Locale;
@@ -19,7 +20,7 @@ public class PeripheralsApi extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public Block getCurrentBlock() {
-		return Block.wrap(module.getSegmentPiece(), module);
+		return Block.wrap(requireLiveComputerPiece(), module);
 	}
 
 	@LuaMadeCallable
@@ -40,12 +41,12 @@ public class PeripheralsApi extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public Block wrapCurrent() {
-		return Block.wrap(module.getSegmentPiece(), module);
+		return Block.wrap(requireLiveComputerPiece(), module);
 	}
 
 	@LuaMadeCallable
 	public Block wrapCurrent(String asType) {
-		return Block.wrapAs(module.getSegmentPiece(), asType, module);
+		return Block.wrapAs(requireLiveComputerPiece(), asType, module);
 	}
 
 	@LuaMadeCallable
@@ -54,7 +55,8 @@ public class PeripheralsApi extends LuaMadeUserdata {
 			return null;
 		}
 
-		SegmentPiece piece = module.getSegmentPiece().getSegmentController().getSegmentBuffer().getPointUnsave(
+		SegmentPiece computerPiece = requireLiveComputerPiece();
+		SegmentPiece piece = computerPiece.getSegmentController().getSegmentBuffer().getPointUnsave(
 			position.getX(),
 			position.getY(),
 			position.getZ()
@@ -72,11 +74,29 @@ public class PeripheralsApi extends LuaMadeUserdata {
 			return null;
 		}
 
-		SegmentPiece adjacent = SegmentPieceUtils.getAdjacentDir(module.getSegmentPiece(), normalized);
+		SegmentPiece adjacent = SegmentPieceUtils.getAdjacentDir(requireLiveComputerPiece(), normalized);
 		if(adjacent == null) {
 			return null;
 		}
-		return Block.wrap(adjacent);
+		return Block.wrap(adjacent, module);
+	}
+
+	private SegmentPiece requireLiveComputerPiece() {
+		if(module == null || module.getSegmentPiece() == null) {
+			throw new LuaError("Computer block reference is not available");
+		}
+		SegmentPiece modulePiece = module.getSegmentPiece();
+		if(modulePiece.getSegmentController() == null || modulePiece.getSegmentController().getSegmentBuffer() == null) {
+			throw new LuaError("Computer block reference is no longer valid");
+		}
+		SegmentPiece livePiece = modulePiece.getSegmentController().getSegmentBuffer().getPointUnsave(modulePiece.getAbsoluteIndex());
+		if(livePiece == null) {
+			throw new LuaError("Computer block no longer exists");
+		}
+		if(livePiece.getType() != modulePiece.getType()) {
+			throw new LuaError("Computer block type changed since initialization");
+		}
+		return livePiece;
 	}
 
 	@LuaMadeCallable

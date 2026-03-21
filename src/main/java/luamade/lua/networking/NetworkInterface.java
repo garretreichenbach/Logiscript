@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * and explicit long-range 1-to-1 modem links.
  */
 public class NetworkInterface extends LuaMadeUserdata {
+
 	private static final String MAILBOX_DIRECT_PREFIX = "direct:";
 	private static final String MAILBOX_CHANNEL_PREFIX = "channel:";
 	private static final String MAILBOX_LOCAL_PREFIX = "local:";
@@ -64,7 +65,7 @@ public class NetworkInterface extends LuaMadeUserdata {
 		Map<String, MessageQueue> queues = messageQueues.remove(oldHostname);
 		this.hostname = hostname;
 		networkInterfaces.put(hostname, this);
-		messageQueues.put(hostname, queues == null ? new ConcurrentHashMap<String, MessageQueue>() : queues);
+		messageQueues.put(hostname, queues == null ? new ConcurrentHashMap<>() : queues);
 
 		return true;
 	}

@@ -17,27 +17,32 @@ public class RemoteAccessPointBlock extends Block {
 	@LuaMadeCallable
 	public Boolean connect() {
 		ComputerModule module = getModule();
-		if(module == null || !(getSegmentPiece().getSegmentController() instanceof ManagedUsableSegmentController<?>)) {
+		if(module == null) {
 			return false;
 		}
-		AccessPointModuleContainer container = AccessPointModuleContainer.getContainer(((ManagedUsableSegmentController<?>) getSegmentPiece().getSegmentController()).getManagerContainer());
+		SegmentPiece piece = getSegmentPiece();
+		if(!(piece.getSegmentController() instanceof ManagedUsableSegmentController<?>)) {
+			return false;
+		}
+		AccessPointModuleContainer container = AccessPointModuleContainer.getContainer(((ManagedUsableSegmentController<?>) piece.getSegmentController()).getManagerContainer());
 		if(container == null) {
 			return false;
 		}
-		container.linkToComputer(getSegmentPiece(), module.getUUID());
+		container.linkToComputer(piece, module.getUUID());
 		return true;
 	}
 
 	@LuaMadeCallable
 	public Boolean disconnect() {
-		if(!(getSegmentPiece().getSegmentController() instanceof ManagedUsableSegmentController<?>)) {
+		SegmentPiece piece = getSegmentPiece();
+		if(!(piece.getSegmentController() instanceof ManagedUsableSegmentController<?>)) {
 			return false;
 		}
-		AccessPointModuleContainer container = AccessPointModuleContainer.getContainer(((ManagedUsableSegmentController<?>) getSegmentPiece().getSegmentController()).getManagerContainer());
+		AccessPointModuleContainer container = AccessPointModuleContainer.getContainer(((ManagedUsableSegmentController<?>) piece.getSegmentController()).getManagerContainer());
 		if(container == null) {
 			return false;
 		}
-		container.unlink(getSegmentPiece());
+		container.unlink(piece);
 		return true;
 	}
 
@@ -48,35 +53,38 @@ public class RemoteAccessPointBlock extends Block {
 
 	@LuaMadeCallable
 	public String getLinkedComputerUUID() {
-		if(!(getSegmentPiece().getSegmentController() instanceof ManagedUsableSegmentController<?>)) {
+		SegmentPiece piece = getSegmentPiece();
+		if(!(piece.getSegmentController() instanceof ManagedUsableSegmentController<?>)) {
 			return null;
 		}
-		AccessPointModuleContainer container = AccessPointModuleContainer.getContainer(((ManagedUsableSegmentController<?>) getSegmentPiece().getSegmentController()).getManagerContainer());
+		AccessPointModuleContainer container = AccessPointModuleContainer.getContainer(((ManagedUsableSegmentController<?>) piece.getSegmentController()).getManagerContainer());
 		if(container == null) {
 			return null;
 		}
-		return container.getLinkedComputerUUID(getSegmentPiece());
+		return container.getLinkedComputerUUID(piece);
 	}
 
 	@LuaMadeCallable
 	public String getLinkedComputerName() {
-		if(!(getSegmentPiece().getSegmentController() instanceof ManagedUsableSegmentController<?>)) {
+		SegmentPiece piece = getSegmentPiece();
+		if(!(piece.getSegmentController() instanceof ManagedUsableSegmentController<?>)) {
 			return null;
 		}
-		ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) getSegmentPiece().getSegmentController();
+		ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) piece.getSegmentController();
 		AccessPointModuleContainer accessPointContainer = AccessPointModuleContainer.getContainer(controller.getManagerContainer());
 		ComputerModuleContainer computerContainer = ComputerModuleContainer.getContainer(controller.getManagerContainer());
 		if(accessPointContainer == null || computerContainer == null) {
 			return null;
 		}
-		String uuid = accessPointContainer.getLinkedComputerUUID(getSegmentPiece());
+		String uuid = accessPointContainer.getLinkedComputerUUID(piece);
 		ComputerModule linked = computerContainer.getModuleByUUID(uuid);
 		return linked == null ? null : linked.getDisplayName();
 	}
 
 	@LuaMadeCallable
 	public Boolean isSessionActive() {
+		SegmentPiece piece = getSegmentPiece();
 		return RemoteSessionManager.isActive()
-			&& RemoteSessionManager.getActiveAccessPointIndex() == getSegmentPiece().getAbsoluteIndex();
+				&& RemoteSessionManager.getActiveAccessPointIndex() == piece.getAbsoluteIndex();
 	}
 }

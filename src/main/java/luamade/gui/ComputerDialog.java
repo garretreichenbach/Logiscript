@@ -793,8 +793,12 @@ public class ComputerDialog extends PlayerInput {
 			}
 
 			consolePane.activateBar();
-			int caretPosition = textArea.getCache() == null ? 0 : textArea.getCache().length();
-			if(promptStartPosition >= 0) {
+			int cacheLength = textArea.getCache() == null ? 0 : textArea.getCache().length();
+			int caretPosition = cacheLength;
+			if(isFileEditMode()) {
+				// In file-edit mode keep the user's current caret location instead of forcing EOF.
+				caretPosition = Math.max(0, Math.min(cacheLength, textArea.getChatCarrier()));
+			} else if(promptStartPosition >= 0) {
 				caretPosition = Math.max(caretPosition, promptStartPosition);
 			}
 			textArea.setChatCarrier(caretPosition);
@@ -803,7 +807,8 @@ public class ComputerDialog extends PlayerInput {
 			clampCaretToEditableRegion();
 			scrollPaneToCursor();
 
-			focusConsoleOnOpen = getState().getController().getInputController().getCurrentActiveField() != textArea;
+			// This is an open-time focus assist, not a per-frame caret override.
+			focusConsoleOnOpen = false;
 		}
 
 		private void updateGfxOverlayBounds() {
@@ -1315,6 +1320,7 @@ public class ComputerDialog extends PlayerInput {
 							userIsTyping = true;
 							currentInputLine = "";
 							clearCommandSuggestions();
+							focusConsoleOnOpen = false;
 							if(mainContentPane != null) {
 								mainContentPane.setTextBoxHeightLast(TEXT_BOX_HEIGHT - EDITOR_HINT_RESERVE_PX);
 							}

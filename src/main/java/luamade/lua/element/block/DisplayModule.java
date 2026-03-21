@@ -10,13 +10,13 @@ public class DisplayModule extends Block {
 	}
 
 	@LuaMadeCallable
-	public void setText(String text) {
-		setDisplayText(text);
+	public String getText() {
+		return getDisplayText();
 	}
 
 	@LuaMadeCallable
-	public String getText() {
-		return getDisplayText();
+	public void setText(String text) {
+		setDisplayText(text);
 	}
 
 	@LuaMadeCallable
@@ -49,6 +49,6 @@ public class DisplayModule extends Block {
 
 	@LuaMadeCallable
 	public Long getTextBlockIndex() {
-		return getSegmentPiece().getTextBlockIndex();
+		return requireDisplayModuleSegmentPiece().getTextBlockIndex();
 	}
 }

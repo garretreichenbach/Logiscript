@@ -5,6 +5,7 @@ import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.manager.ConfigManager;
 import luamade.system.module.ComputerModule;
+import org.luaj.vm2.LuaError;
 import org.luaj.vm2.Varargs;
 import org.schema.game.common.data.SegmentPiece;
 
@@ -35,7 +36,7 @@ public class Console extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public Block getBlock() {
-		return Block.wrap(module.getSegmentPiece());
+		return Block.wrap(requireLiveComputerPiece());
 	}
 
 	public synchronized void appendInline(Varargs vargs) {
@@ -57,7 +58,25 @@ public class Console extends LuaMadeUserdata {
 	}
 
 	public SegmentPiece getSegmentPiece() {
-		return module.getSegmentPiece();
+		return requireLiveComputerPiece();
+	}
+
+	private SegmentPiece requireLiveComputerPiece() {
+		if(module == null || module.getSegmentPiece() == null) {
+			throw new LuaError("Computer block reference is not available");
+		}
+		SegmentPiece modulePiece = module.getSegmentPiece();
+		if(modulePiece.getSegmentController() == null || modulePiece.getSegmentController().getSegmentBuffer() == null) {
+			throw new LuaError("Computer block reference is no longer valid");
+		}
+		SegmentPiece livePiece = modulePiece.getSegmentController().getSegmentBuffer().getPointUnsave(modulePiece.getAbsoluteIndex());
+		if(livePiece == null) {
+			throw new LuaError("Computer block no longer exists");
+		}
+		if(livePiece.getType() != modulePiece.getType()) {
+			throw new LuaError("Computer block type changed since initialization");
+		}
+		return livePiece;
 	}
 
 	public synchronized String getTextContents() {

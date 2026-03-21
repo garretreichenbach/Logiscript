@@ -41,7 +41,8 @@ public class DiskDriveBlock extends InventoryBlock {
 		if(slot == null) {
 			return null;
 		}
-		return DiskDataStore.resolveDiskKey(slot, getSegmentPiece());
+		SegmentPiece piece = getSegmentPiece();
+		return DiskDataStore.resolveDiskKey(slot, piece);
 	}
 
 	@LuaMadeCallable
@@ -167,7 +168,8 @@ public class DiskDriveBlock extends InventoryBlock {
 		if(slot == null) {
 			return null;
 		}
-		return DiskDataStore.resolveDiskKey(slot, getSegmentPiece());
+		SegmentPiece piece = getSegmentPiece();
+		return DiskDataStore.resolveDiskKey(slot, piece);
 	}
 
 	private String deriveProgramName(String explicitProgramName, String sourcePath) {

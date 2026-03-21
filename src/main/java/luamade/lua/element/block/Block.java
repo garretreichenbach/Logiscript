@@ -9,6 +9,7 @@ import luamade.lua.entity.Entity;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.system.module.ComputerModule;
+import org.luaj.vm2.LuaError;
 import org.schema.game.client.controller.element.world.ClientSegmentProvider;
 import org.schema.game.common.controller.SendableSegmentProvider;
 import org.schema.game.common.data.ManagedSegmentController;
@@ -21,202 +22,234 @@ import org.schema.game.network.objects.remote.TextBlockPair;
 import java.util.Locale;
 
 public class Block extends LuaMadeUserdata {
-    private final SegmentPiece segmentPiece;
-    private final ComputerModule module;
+	private final SegmentPiece segmentPiece;
+	private final ComputerModule module;
 
-    public Block(SegmentPiece piece) {
-        this(piece, null);
-    }
+	public Block(SegmentPiece piece) {
+		this(piece, null);
+	}
 
-    public Block(SegmentPiece piece, ComputerModule module) {
-        segmentPiece = piece;
-        this.module = module;
-    }
+	public Block(SegmentPiece piece, ComputerModule module) {
+		segmentPiece = piece;
+		this.module = module;
+	}
 
-    public static Block wrap(SegmentPiece piece) {
-        return wrapAs(piece, "auto", null);
-    }
+	public static Block wrap(SegmentPiece piece) {
+		return wrapAs(piece, "auto", null);
+	}
 
-    public static Block wrap(SegmentPiece piece, ComputerModule module) {
-        return wrapAs(piece, "auto", module);
-    }
+	public static Block wrap(SegmentPiece piece, ComputerModule module) {
+		return wrapAs(piece, "auto", module);
+	}
 
-    public static Block wrapAs(SegmentPiece piece, String target) {
-        return wrapAs(piece, target, null);
-    }
+	public static Block wrapAs(SegmentPiece piece, String target) {
+		return wrapAs(piece, target, null);
+	}
 
-    public static Block wrapAs(SegmentPiece piece, String target, ComputerModule module) {
-        if(piece == null) {
-            return null;
-        }
+	public static Block wrapAs(SegmentPiece piece, String target, ComputerModule module) {
+		if(piece == null) {
+			return null;
+		}
 
-        String kind = target == null ? "auto" : target.trim().toLowerCase(Locale.ROOT);
+		String kind = target == null ? "auto" : target.trim().toLowerCase(Locale.ROOT);
 
-        if("block".equals(kind) || "base".equals(kind)) {
-            return new Block(piece, module);
-        }
+		if("block".equals(kind) || "base".equals(kind)) {
+			return new Block(piece, module);
+		}
 
-        if("display".equals(kind) || "displaymodule".equals(kind) || "display_module".equals(kind)) {
-            if(piece.getType() == ElementKeyMap.TEXT_BOX) {
-                return new DisplayModule(piece);
-            }
-            return null;
-        }
+		if("display".equals(kind) || "displaymodule".equals(kind) || "display_module".equals(kind)) {
+			if(piece.getType() == ElementKeyMap.TEXT_BOX) {
+				return new DisplayModule(piece);
+			}
+			return null;
+		}
 
-        if("inventory".equals(kind)) {
-            if(piece.getType() == ElementRegistry.DISK_DRIVE.getId()) {
-                return new DiskDriveBlock(piece, module);
-            }
-            if(hasInventoryAt(piece)) {
-                return new InventoryBlock(piece);
-            }
-            return null;
-        }
+		if("inventory".equals(kind)) {
+			if(piece.getType() == ElementRegistry.DISK_DRIVE.getId()) {
+				return new DiskDriveBlock(piece, module);
+			}
+			if(hasInventoryAt(piece)) {
+				return new InventoryBlock(piece);
+			}
+			return null;
+		}
 
-        if("diskdrive".equals(kind) || "disk_drive".equals(kind) || "disk-drive".equals(kind)) {
-            if(piece.getType() == ElementRegistry.DISK_DRIVE.getId()) {
-                return new DiskDriveBlock(piece, module);
-            }
-            return null;
-        }
+		if("diskdrive".equals(kind) || "disk_drive".equals(kind) || "disk-drive".equals(kind)) {
+			if(piece.getType() == ElementRegistry.DISK_DRIVE.getId()) {
+				return new DiskDriveBlock(piece, module);
+			}
+			return null;
+		}
 
-        if("accesspoint".equals(kind) || "remoteaccesspoint".equals(kind) || "remote_access_point".equals(kind) || "remote-access-point".equals(kind)) {
-            if(piece.getType() == ElementRegistry.REMOTE_ACCESS_POINT.getId()) {
-                return new RemoteAccessPointBlock(piece, module);
-            }
-            return null;
-        }
+		if("accesspoint".equals(kind) || "remoteaccesspoint".equals(kind) || "remote_access_point".equals(kind) || "remote-access-point".equals(kind)) {
+			if(piece.getType() == ElementRegistry.REMOTE_ACCESS_POINT.getId()) {
+				return new RemoteAccessPointBlock(piece, module);
+			}
+			return null;
+		}
 
-        if(piece.getType() == ElementKeyMap.TEXT_BOX) {
-            return new DisplayModule(piece);
-        }
+		if(piece.getType() == ElementKeyMap.TEXT_BOX) {
+			return new DisplayModule(piece);
+		}
 
-        if(piece.getType() == ElementRegistry.DISK_DRIVE.getId()) {
-            return new DiskDriveBlock(piece, module);
-        }
+		if(piece.getType() == ElementRegistry.DISK_DRIVE.getId()) {
+			return new DiskDriveBlock(piece, module);
+		}
 
-        if(piece.getType() == ElementRegistry.REMOTE_ACCESS_POINT.getId()) {
-            return new RemoteAccessPointBlock(piece, module);
-        }
+		if(piece.getType() == ElementRegistry.REMOTE_ACCESS_POINT.getId()) {
+			return new RemoteAccessPointBlock(piece, module);
+		}
 
-        if(hasInventoryAt(piece)) {
-            return new InventoryBlock(piece);
-        }
+		if(hasInventoryAt(piece)) {
+			return new InventoryBlock(piece);
+		}
 
-        return new Block(piece, module);
-    }
+		return new Block(piece, module);
+	}
 
-    @LuaMadeCallable
-    public Vec3i getPos() {
-        return new Vec3i(segmentPiece.getAbsolutePosX(), segmentPiece.getAbsolutePosY(), segmentPiece.getAbsolutePosZ());
-    }
+	private static Inventory getInventoryAt(SegmentPiece piece) {
+		long index = piece.getAbsoluteIndex();
+		if(piece.getSegmentController() instanceof ManagedSegmentController<?>) {
+			ManagedSegmentController<?> controller = (ManagedSegmentController<?>) piece.getSegmentController();
+			if(controller.getManagerContainer().getInventory(index) != null) {
+				return new Inventory(controller.getManagerContainer().getInventory(index), controller.getSegmentController().getSegmentBuffer().getPointUnsave(index));
+			}
+		}
+		return null;
+	}
 
-    @LuaMadeCallable
-    public Vec3f getWorldPos() {
-        Transform transform = new Transform();
-        segmentPiece.getTransform(transform);
-        return new Vec3f(transform.origin);
-    }
+	private static boolean hasInventoryAt(SegmentPiece piece) {
+		return getInventoryAt(piece) != null;
+	}
 
-    @LuaMadeCallable
-    public Short getId() {
-        return segmentPiece.getType();
-    }
+	@LuaMadeCallable
+	public Vec3i getPos() {
+		SegmentPiece livePiece = requireLiveSegmentPiece();
+		return new Vec3i(livePiece.getAbsolutePosX(), livePiece.getAbsolutePosY(), livePiece.getAbsolutePosZ());
+	}
 
-    @LuaMadeCallable
-    public BlockInfo getInfo() {
-        return new BlockInfo(segmentPiece.getInfo());
-    }
+	@LuaMadeCallable
+	public Vec3f getWorldPos() {
+		SegmentPiece livePiece = requireLiveSegmentPiece();
+		Transform transform = new Transform();
+		livePiece.getTransform(transform);
+		return new Vec3f(transform.origin);
+	}
 
-    @LuaMadeCallable
-    public Boolean isActive() {
-        return segmentPiece.isActive();
-    }
+	@LuaMadeCallable
+	public Short getId() {
+		return requireLiveSegmentPiece().getType();
+	}
 
-    @LuaMadeCallable
-    public Entity getEntity() {
-        return Entity.wrap(segmentPiece.getSegmentController());
-    }
+	@LuaMadeCallable
+	public BlockInfo getInfo() {
+		return new BlockInfo(requireLiveSegmentPiece().getInfo());
+	}
 
-    @LuaMadeCallable
-    public Entity getEntityInfo() {
-        return getEntity();
-    }
+	@LuaMadeCallable
+	public Boolean isActive() {
+		return requireLiveSegmentPiece().isActive();
+	}
 
-    @LuaMadeCallable
-    public Boolean hasInventory() {
-        return hasInventoryAt(segmentPiece);
-    }
+	@LuaMadeCallable
+	public Entity getEntity() {
+		return Entity.wrap(requireLiveSegmentPiece().getSegmentController());
+	}
 
-    @LuaMadeCallable
-    public Inventory getInventory() {
-        return getInventoryAt(segmentPiece);
-    }
+	@LuaMadeCallable
+	public Entity getEntityInfo() {
+		return getEntity();
+	}
 
-    @LuaMadeCallable
-    public Boolean isDisplayModule() {
-        return segmentPiece.getType() == ElementKeyMap.TEXT_BOX;
-    }
+	@LuaMadeCallable
+	public Boolean hasInventory() {
+		return hasInventoryAt(requireLiveSegmentPiece());
+	}
 
-    @LuaMadeCallable
-    public void setActive(boolean active) {
-        segmentPiece.setActive(active);
-        segmentPiece.applyToSegment(segmentPiece.getSegmentController().isOnServer());
-        if(segmentPiece.getSegmentController().isOnServer()) {
-            segmentPiece.getSegmentController().sendBlockActivation(ElementCollection.getEncodeActivation(segmentPiece, true, active, false));
-        }
-    }
+	@LuaMadeCallable
+	public Inventory getInventory() {
+		return getInventoryAt(requireLiveSegmentPiece());
+	}
 
-    @LuaMadeCallable
-    public void setDisplayText(String text) {
-        if(segmentPiece.getType() != ElementKeyMap.TEXT_BOX) {
-            return;
-        }
+	@LuaMadeCallable
+	public Boolean isDisplayModule() {
+		return requireLiveSegmentPiece().getType() == ElementKeyMap.TEXT_BOX;
+	}
 
-        segmentPiece.getSegmentController().getTextMap().remove(segmentPiece.getTextBlockIndex());
-        segmentPiece.getSegmentController().getTextMap().put(segmentPiece.getTextBlockIndex(), text);
-        segmentPiece.applyToSegment(segmentPiece.getSegmentController().isOnServer());
+	@LuaMadeCallable
+	public void setActive(boolean active) {
+		SegmentPiece livePiece = requireLiveSegmentPiece();
+		livePiece.setActive(active);
+		livePiece.applyToSegment(livePiece.getSegmentController().isOnServer());
+		if(livePiece.getSegmentController().isOnServer()) {
+			livePiece.getSegmentController().sendBlockActivation(ElementCollection.getEncodeActivation(livePiece, true, active, false));
+		}
+	}
 
-        if(segmentPiece.getSegmentController().isOnServer()) {
-            TextBlockPair textBlockPair = new TextBlockPair();
-            textBlockPair.block = segmentPiece.getTextBlockIndex();
-            textBlockPair.text = text;
-            segmentPiece.getSegmentController().getNetworkObject().textBlockChangeBuffer.add(new RemoteTextBlockPair(textBlockPair, true));
-        } else {
-            SendableSegmentProvider provider = ((ClientSegmentProvider) segmentPiece.getSegment().getSegmentController().getSegmentProvider()).getSendableSegmentProvider();
-            TextBlockPair pair = new TextBlockPair();
-            pair.block = segmentPiece.getTextBlockIndex();
-            pair.text = text;
-            provider.getNetworkObject().textBlockResponsesAndChangeRequests.add(new RemoteTextBlockPair(pair, false));
-        }
-    }
+	@LuaMadeCallable
+	public String getDisplayText() {
+		SegmentPiece livePiece = requireDisplayModuleSegmentPiece();
+		return livePiece.getSegmentController().getTextMap().get(livePiece.getTextBlockIndex());
+	}
 
-    @LuaMadeCallable
-    public String getDisplayText() {
-        if(isDisplayModule()) return segmentPiece.getSegmentController().getTextMap().get(segmentPiece.getTextBlockIndex());
-        return null;
-    }
+	@LuaMadeCallable
+	public void setDisplayText(String text) {
+		SegmentPiece livePiece = requireDisplayModuleSegmentPiece();
+		String safeText = text == null ? "" : text;
 
-    public SegmentPiece getSegmentPiece() {
-        return segmentPiece;
-    }
+		livePiece.getSegmentController().getTextMap().remove(livePiece.getTextBlockIndex());
+		livePiece.getSegmentController().getTextMap().put(livePiece.getTextBlockIndex(), safeText);
+		livePiece.applyToSegment(livePiece.getSegmentController().isOnServer());
 
-    protected ComputerModule getModule() {
-        return module;
-    }
+		if(livePiece.getSegmentController().isOnServer()) {
+			TextBlockPair textBlockPair = new TextBlockPair();
+			textBlockPair.block = livePiece.getTextBlockIndex();
+			textBlockPair.text = safeText;
+			livePiece.getSegmentController().getNetworkObject().textBlockChangeBuffer.add(new RemoteTextBlockPair(textBlockPair, true));
+		} else {
+			SendableSegmentProvider provider = ((ClientSegmentProvider) livePiece.getSegment().getSegmentController().getSegmentProvider()).getSendableSegmentProvider();
+			TextBlockPair pair = new TextBlockPair();
+			pair.block = livePiece.getTextBlockIndex();
+			pair.text = safeText;
+			provider.getNetworkObject().textBlockResponsesAndChangeRequests.add(new RemoteTextBlockPair(pair, false));
+		}
+	}
 
-    private static Inventory getInventoryAt(SegmentPiece piece) {
-        long index = piece.getAbsoluteIndex();
-        if(piece.getSegmentController() instanceof ManagedSegmentController<?>) {
-            ManagedSegmentController<?> controller = (ManagedSegmentController<?>) piece.getSegmentController();
-            if(controller.getManagerContainer().getInventory(index) != null) {
-                return new Inventory(controller.getManagerContainer().getInventory(index), controller.getSegmentController().getSegmentBuffer().getPointUnsave(index));
-            }
-        }
-        return null;
-    }
+	public SegmentPiece getSegmentPiece() {
+		return requireLiveSegmentPiece();
+	}
 
-    private static boolean hasInventoryAt(SegmentPiece piece) {
-        return getInventoryAt(piece) != null;
-    }
+	protected SegmentPiece requireLiveSegmentPiece() {
+		if(segmentPiece == null || segmentPiece.getSegmentController() == null) {
+			throw new LuaError("Block reference is no longer valid");
+		}
+
+		SegmentPiece livePiece = resolveLiveSegmentPiece();
+		if(livePiece == null) {
+			throw new LuaError("Block no longer exists");
+		}
+		if(livePiece.getType() != segmentPiece.getType()) {
+			throw new LuaError("Block type changed since it was referenced");
+		}
+		return livePiece;
+	}
+
+	protected SegmentPiece requireDisplayModuleSegmentPiece() {
+		SegmentPiece livePiece = requireLiveSegmentPiece();
+		if(livePiece.getType() != ElementKeyMap.TEXT_BOX) {
+			throw new LuaError("Block is not a display module");
+		}
+		return livePiece;
+	}
+
+	private SegmentPiece resolveLiveSegmentPiece() {
+		if(segmentPiece == null || segmentPiece.getSegmentController() == null) {
+			return null;
+		}
+		return segmentPiece.getSegmentController().getSegmentBuffer().getPointUnsave(segmentPiece.getAbsoluteIndex());
+	}
+
+	protected ComputerModule getModule() {
+		return module;
+	}
 }

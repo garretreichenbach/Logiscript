@@ -18,6 +18,7 @@ import luamade.lua.faction.Faction;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.manager.ConfigManager;
+import org.luaj.vm2.LuaError;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SegmentBufferInterface;
@@ -268,12 +269,14 @@ public class Entity extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public void dockTo(RemoteEntity entity, Block railDocker) {
 		if(!canDockWith(entity)) return;
+		if(railDocker == null) {
+			throw new LuaError("railDocker is required");
+		}
 		int searchRadius = ConfigManager.getDockingSnapRadius();
 		if(hasDockingPermission(entity)) {
 			HashMap<Block, Double> distances = new HashMap<>();
-			SegmentBufferInterface thisBuffer = segmentController.getSegmentBuffer();
 			SegmentBufferInterface remoteBuffer = entity.getSegmentController().getSegmentBuffer();
-			SegmentPiece dockerPiece = thisBuffer.getPointUnsave(railDocker.getPos().getX(), railDocker.getPos().getY(), railDocker.getPos().getZ());
+			SegmentPiece dockerPiece = railDocker.getSegmentPiece();
 			if(dockerPiece != null) {
 				Transform transform = new Transform();
 				dockerPiece.getTransform(transform);
@@ -323,11 +326,16 @@ public class Entity extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public void dockTo(RemoteEntity entity, Block railDocker, Vec3i dockPos) {
 		if(!canDockWith(entity)) return;
+		if(railDocker == null) {
+			throw new LuaError("railDocker is required");
+		}
+		if(dockPos == null) {
+			throw new LuaError("dockPos is required");
+		}
 		int searchRadius = ConfigManager.getDockingSnapRadius();
 		if(hasDockingPermission(entity)) {
-			SegmentBufferInterface thisBuffer = segmentController.getSegmentBuffer();
 			SegmentBufferInterface remoteBuffer = entity.getSegmentController().getSegmentBuffer();
-			SegmentPiece dockerPiece = thisBuffer.getPointUnsave(railDocker.getPos().getX(), railDocker.getPos().getY(), railDocker.getPos().getZ());
+			SegmentPiece dockerPiece = railDocker.getSegmentPiece();
 			SegmentPiece dockPiece = remoteBuffer.getPointUnsave(dockPos.getX(), dockPos.getY(), dockPos.getZ());
 			if(dockerPiece != null && dockPiece != null) {
 				Transform transform = new Transform();
@@ -380,10 +388,12 @@ public class Entity extends LuaMadeUserdata {
 	private void dockToRailType(RemoteEntity station, Block railDocker, short railType) {
 		if(!canDockWith(station)) return;
 		if(!hasDockingPermission(station)) return;
+		if(railDocker == null) {
+			throw new LuaError("railDocker is required");
+		}
 		int searchRadius = ConfigManager.getDockingSnapRadius();
-		SegmentBufferInterface thisBuffer = segmentController.getSegmentBuffer();
 		SegmentBufferInterface remoteBuffer = station.getSegmentController().getSegmentBuffer();
-		SegmentPiece dockerPiece = thisBuffer.getPointUnsave(railDocker.getPos().getX(), railDocker.getPos().getY(), railDocker.getPos().getZ());
+		SegmentPiece dockerPiece = railDocker.getSegmentPiece();
 		if(dockerPiece == null) return;
 		Transform transform = new Transform();
 		dockerPiece.getTransform(transform);
