@@ -27,7 +27,8 @@ import java.util.concurrent.TimeUnit;
  *   { type="key",   key=65,  char="a", down=true,  shift=false, ctrl=false, alt=false }
  *   { type="mouse", button="left"|"right"|"middle",
  *     pressed=true, released=false,
- *     x=120, y=45, dx=0, dy=0, wheel=0 }
+ *     x=120, y=45, dx=0, dy=0, wheel=0,
+ *     windowX=100, windowY=80, canvasX=120, canvasY=115 }
  * </pre>
  */
 public class InputApi extends LuaMadeUserdata {
@@ -116,6 +117,9 @@ public class InputApi extends LuaMadeUserdata {
 	 * @param insideCanvas true when the pointer is inside the terminal gfx canvas bounds
 	 * @param dragging true while any mouse button is currently held down
 	 * @param dragButton active drag button name: left/right/middle/none
+	 *
+	 * Mouse event tables also include optional UI origin coordinates:
+	 * windowX/windowY and canvasX/canvasY (nil when unavailable).
 	 */
 	public void pushMouseEvent(int button, boolean pressed,
 	                           int x, int y, int dx, int dy, int wheel, int cellX, int cellY,
@@ -138,6 +142,10 @@ public class InputApi extends LuaMadeUserdata {
 		t.set("insideCanvas", valueOf(insideCanvas));
 		t.set("dragging", valueOf(dragging));
 		t.set("dragButton", valueOf(dragButton == null ? "none" : dragButton));
+		setOptionalInt(t, "windowX", windowX);
+		setOptionalInt(t, "windowY", windowY);
+		setOptionalInt(t, "canvasX", canvasX);
+		setOptionalInt(t, "canvasY", canvasY);
 		eventQueue.offer(t);
 	}
 

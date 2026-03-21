@@ -30,6 +30,10 @@ Events are captured only while the computer's terminal dialog is open and are au
     released = false, -- true on button-up
     x = 120, -- absolute x position in dialog pixels
     y = 45, -- absolute y position in dialog pixels
+  windowX = 100, -- dialog top-left X in UI pixels, nil when unavailable
+  windowY = 80, -- dialog top-left Y in UI pixels, nil when unavailable
+  canvasX = 120, -- terminal gfx canvas top-left X in UI pixels, nil when unavailable
+  canvasY = 115, -- terminal gfx canvas top-left Y in UI pixels, nil when unavailable
   uiX = 28, -- optional x inside gfx canvas (0-based), nil when outside
   uiY = 12, -- optional y inside gfx canvas (0-based), nil when outside
   insideCanvas = true, -- true when pointer is currently inside terminal gfx bounds
