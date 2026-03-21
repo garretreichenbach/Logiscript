@@ -36,7 +36,7 @@ markdown/math/vector
 :maxdepth: 2
 :caption: Graphics
 
-markdown/graphics/gfx
+markdown/graphics/gfx_2d
 markdown/graphics/gui_lib
 ```
 
