@@ -43,13 +43,13 @@ public class InputApi extends LuaMadeUserdata {
 	 * text bar never receives keystrokes. Events are still pushed to the Lua
 	 * queue so the consuming script can handle them.
 	 */
-	private volatile boolean keyboardConsumed = false;
+	private volatile boolean keyboardConsumed;
 
 	/**
 	 * Convenience flag scripts can use to signal exclusive mouse ownership.
 	 * Does not change event routing on its own; query it with {@link #isMouseConsumed()}.
 	 */
-	private volatile boolean mouseConsumed = false;
+	private volatile boolean mouseConsumed;
 
 	// ------------------------------------------------------------------
 	// Package-private: called from EventManager / ComputerDialog on the
@@ -249,6 +249,18 @@ public class InputApi extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public int pending() {
 		return eventQueue.size();
+	}
+
+	/**
+	 * Full teardown used when a script is forcibly killed (Ctrl+C / reset).
+	 * Clears the event queue and unconditionally releases any keyboard or
+	 * mouse locks the script may have held, so the terminal returns to normal
+	 * input behaviour immediately.
+	 */
+	public void reset() {
+		eventQueue.clear();
+		keyboardConsumed = false;
+		mouseConsumed = false;
 	}
 }
 

@@ -125,6 +125,12 @@ public class Terminal extends LuaMadeUserdata {
 		if(printInterruptMarker) {
 			console.print(valueOf("^C"));
 		}
+
+		// Clear the graphics buffer so any GUI drawn by the script disappears,
+		// and reset the input API to release keyboard/mouse locks the script held.
+		module.getGfxApi().clear();
+		module.getInputApi().reset();
+
 		return true;
 	}
 
@@ -149,6 +155,10 @@ public class Terminal extends LuaMadeUserdata {
 		if(clearRegistry) {
 			backgroundJobs.clear();
 		}
+
+		// Ensure no graphics or input locks linger from killed background scripts.
+		module.getGfxApi().clear();
+		module.getInputApi().reset();
 
 		return canceled;
 	}
