@@ -78,12 +78,19 @@ public class InputApi extends LuaMadeUserdata {
 		}
 	}
 
+	private static void setOptionalInt(LuaTable table, String key, int value) {
+		table.set(key, value >= 0 ? valueOf(value) : NIL);
+	}
+
+	// ------------------------------------------------------------------
+	// Lua-callable API
+	// ------------------------------------------------------------------
+
 	/**
 	 * Enqueues a keyboard event. Silently drops the event when the queue is
 	 * full or input capture is disabled.
 	 */
-	public void pushKeyEvent(int glfwKey, char character, boolean down,
-	                         boolean shift, boolean ctrl, boolean alt) {
+	public void pushKeyEvent(int glfwKey, char character, boolean down, boolean shift, boolean ctrl, boolean alt) {
 		if(!enabled) return;
 		LuaTable t = new LuaTable();
 		t.set("type", valueOf("key"));
@@ -95,10 +102,6 @@ public class InputApi extends LuaMadeUserdata {
 		t.set("alt", valueOf(alt));
 		eventQueue.offer(t); // non-blocking; drops if full
 	}
-
-	// ------------------------------------------------------------------
-	// Lua-callable API
-	// ------------------------------------------------------------------
 
 	/**
 	 * Enqueues a mouse event. Silently drops when queue is full or disabled.
@@ -121,9 +124,7 @@ public class InputApi extends LuaMadeUserdata {
 	 * Mouse event tables also include optional UI origin coordinates:
 	 * windowX/windowY and canvasX/canvasY (nil when unavailable).
 	 */
-	public void pushMouseEvent(int button, boolean pressed,
-	                           int x, int y, int dx, int dy, int wheel, int cellX, int cellY,
-	                           int uiX, int uiY, boolean insideCanvas, boolean dragging, String dragButton) {
+	public void pushMouseEvent(int button, boolean pressed, int x, int y, int dx, int dy, int wheel, int cellX, int cellY, int uiX, int uiY, boolean insideCanvas, boolean dragging, String dragButton) {
 		if(!enabled) return;
 		LuaTable t = new LuaTable();
 		t.set("type", valueOf("mouse"));
@@ -149,16 +150,11 @@ public class InputApi extends LuaMadeUserdata {
 		eventQueue.offer(t);
 	}
 
-	private static void setOptionalInt(LuaTable table, String key, int value) {
-		table.set(key, value >= 0 ? valueOf(value) : NIL);
-	}
-
 	/**
 	 * Updates dialog/canvas bounds used by Lua scripts for offset calculations.
 	 * Called from GUI code on the client thread.
 	 */
-	public void setUiLayout(int windowX, int windowY, int windowWidth, int windowHeight,
-	                        int canvasX, int canvasY, int canvasWidth, int canvasHeight) {
+	public void setUiLayout(int windowX, int windowY, int windowWidth, int windowHeight, int canvasX, int canvasY, int canvasWidth, int canvasHeight) {
 		this.windowX = windowX;
 		this.windowY = windowY;
 		this.windowWidth = windowWidth;
