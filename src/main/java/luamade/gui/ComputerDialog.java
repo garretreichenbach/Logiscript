@@ -151,6 +151,7 @@ public class ComputerDialog extends PlayerInput {
 		if(computerPanel != null) {
 			computerPanel.saveCurrentInput();
 			computerPanel.resetMouseState();
+			computerPanel.cleanupResources();
 		}
 		if(computerModule != null) {
 			computerModule.getInputApi().clearUiLayout();
@@ -391,6 +392,113 @@ public class ComputerDialog extends PlayerInput {
 			lastKnownWindowY = -1;
 			lastKnownCanvasX = -1;
 			lastKnownCanvasY = -1;
+		}
+
+		public void cleanupResources() {
+			try {
+				// Detach and clean up the graphics overlay
+				if(terminalGfxOverlay != null) {
+					try {
+						terminalGfxOverlay.cleanUp();
+					} catch(Exception e) {
+						// OpenGL context may be lost, cleanup can fail safely
+					}
+					if(mainContentPane != null && mainContentPane.getContent(0) != null) {
+						try {
+							mainContentPane.getContent(0).detach(terminalGfxOverlay);
+						} catch(Exception ignored) {
+						}
+					}
+					terminalGfxOverlay = null;
+				}
+
+				// Clean up editor hints overlay
+				if(editorHintsOverlay != null) {
+					try {
+						editorHintsOverlay.cleanUp();
+					} catch(Exception ignored) {
+					}
+					if(background != null) {
+						try {
+							background.detach(editorHintsOverlay);
+						} catch(Exception ignored) {
+						}
+					}
+					editorHintsOverlay = null;
+				}
+
+				// Clean up console pane
+				if(consolePane != null) {
+					try {
+						consolePane.cleanUp();
+					} catch(Exception ignored) {
+					}
+					if(consolePanel != null) {
+						consolePanel.setContent(null);
+					}
+					consolePane = null;
+				}
+
+				// Clean up console panel
+				if(consolePanel != null) {
+					try {
+						consolePanel.cleanUp();
+					} catch(Exception ignored) {
+					}
+					if(mainContentPane != null && mainContentPane.getContent(0) != null) {
+						try {
+							mainContentPane.getContent(0).detach(consolePanel);
+						} catch(Exception ignored) {
+						}
+					}
+					consolePanel = null;
+				}
+
+				// Clean up buttons
+				if(docsButton != null) {
+					try {
+						docsButton.cleanUp();
+					} catch(Exception ignored) {
+					}
+					if(background != null) {
+						try {
+							background.detach(docsButton);
+						} catch(Exception ignored) {
+						}
+					}
+					docsButton = null;
+				}
+
+				if(resetButton != null) {
+					try {
+						resetButton.cleanUp();
+					} catch(Exception ignored) {
+					}
+					if(background != null) {
+						try {
+							background.detach(resetButton);
+						} catch(Exception ignored) {
+						}
+					}
+					resetButton = null;
+				}
+
+				if(pasteFilesButton != null) {
+					try {
+						pasteFilesButton.cleanUp();
+					} catch(Exception ignored) {
+					}
+					if(background != null) {
+						try {
+							background.detach(pasteFilesButton);
+						} catch(Exception ignored) {
+						}
+					}
+					pasteFilesButton = null;
+				}
+			} catch(Exception e) {
+				// Catch all exceptions to prevent crashing during cleanup
+			}
 		}
 
 		public boolean isFileEditMode() {

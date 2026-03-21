@@ -143,9 +143,21 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		if(isInvisible()) {
 			return;
 		}
-		ensureRenderResources();
-		super.draw();
-		drawOverlayTexture((ClientStateInterface) getState());
+		// Protect against OpenGL context loss (alt-tab, window focus loss, etc.)
+		try {
+			if(!canDeleteTextureNow()) {
+				return;
+			}
+			ensureRenderResources();
+			super.draw();
+			drawOverlayTexture((ClientStateInterface) getState());
+		} catch(Exception e) {
+			// Log exception but don't crash - OpenGL context may be recovering
+			try {
+				releaseTrackedTexture();
+			} catch(Exception ignored) {
+			}
+		}
 	}
 
 	@Override
@@ -154,8 +166,20 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		if(isInvisible()) {
 			return;
 		}
-		ensureRenderResources();
-		super.updateGUI(state);
+		// Protect against OpenGL context loss (alt-tab, window focus loss, etc.)
+		try {
+			if(!canDeleteTextureNow()) {
+				return;
+			}
+			ensureRenderResources();
+			super.updateGUI(state);
+		} catch(Exception e) {
+			// Log exception but don't crash - OpenGL context may be recovering
+			try {
+				releaseTrackedTexture();
+			} catch(Exception ignored) {
+			}
+		}
 	}
 
 	@Override
@@ -220,49 +244,58 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 			return;
 		}
 
-		GfxApi.FrameSnapshot frame = gfxApi.snapshot();
-		List<TextOverlaySpec> textOverlays = new ArrayList<>();
+		try {
+			GfxApi.FrameSnapshot frame = gfxApi.snapshot();
+			List<TextOverlaySpec> textOverlays = new ArrayList<>();
 
-		// Only render (and cover the terminal) when at least one visible layer has commands.
-		boolean hasCommands = false;
-		for(GfxApi.LayerSnapshot layer : frame.layers) {
-			if(layer.visible && !layer.commands.isEmpty()) {
-				hasCommands = true;
-				break;
+			// Only render (and cover the terminal) when at least one visible layer has commands.
+			boolean hasCommands = false;
+			for(GfxApi.LayerSnapshot layer : frame.layers) {
+				if(layer.visible && !layer.commands.isEmpty()) {
+					hasCommands = true;
+					break;
+				}
+			}
+			if(!hasCommands) {
+				return;
+			}
+
+			GlUtil.glDisable(GL11.GL_TEXTURE_2D);
+			GlUtil.glDisable(GL11.GL_LIGHTING);
+			GlUtil.glDisable(GL11.GL_DEPTH_TEST);
+			GlUtil.glEnable(GL11.GL_BLEND);
+			GlUtil.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+			GlUtil.glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
+			GL11.glBegin(GL11.GL_QUADS);
+			GL11.glVertex3f(0.0f, 0.0f, 0.0F);
+			GL11.glVertex3f(frame.viewportWidth, 0.0f, 0.0F);
+			GL11.glVertex3f(frame.viewportWidth, frame.viewportHeight, 0.0F);
+			GL11.glVertex3f(0.0f, frame.viewportHeight, 0.0F);
+			GL11.glEnd();
+
+			for(GfxApi.LayerSnapshot layer : frame.layers) {
+				if(!layer.visible || layer.commands.isEmpty()) {
+					continue;
+				}
+				drawLayer(layer, textOverlays, frame.scaleX, frame.scaleY);
+			}
+
+			GlUtil.glDisable(GL11.GL_BLEND);
+			GlUtil.glEnable(GL11.GL_TEXTURE_2D);
+			GlUtil.glEnable(GL11.GL_LIGHTING);
+			GlUtil.glEnable(GL11.GL_DEPTH_TEST);
+			GlUtil.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+
+			drawTextOverlays(textOverlays);
+		} catch(Exception e) {
+			// OpenGL context may be lost during alt-tab or window focus loss
+			// Gracefully handle by releasing resources and returning
+			try {
+				releaseTrackedTexture();
+			} catch(Exception ignored) {
 			}
 		}
-		if(!hasCommands) {
-			return;
-		}
-
-		GlUtil.glDisable(GL11.GL_TEXTURE_2D);
-		GlUtil.glDisable(GL11.GL_LIGHTING);
-		GlUtil.glDisable(GL11.GL_DEPTH_TEST);
-		GlUtil.glEnable(GL11.GL_BLEND);
-		GlUtil.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-
-		GlUtil.glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
-		GL11.glBegin(GL11.GL_QUADS);
-		GL11.glVertex3f(0.0f, 0.0f, 0.0F);
-		GL11.glVertex3f(frame.viewportWidth, 0.0f, 0.0F);
-		GL11.glVertex3f(frame.viewportWidth, frame.viewportHeight, 0.0F);
-		GL11.glVertex3f(0.0f, frame.viewportHeight, 0.0F);
-		GL11.glEnd();
-
-		for(GfxApi.LayerSnapshot layer : frame.layers) {
-			if(!layer.visible || layer.commands.isEmpty()) {
-				continue;
-			}
-			drawLayer(layer, textOverlays, frame.scaleX, frame.scaleY);
-		}
-
-		GlUtil.glDisable(GL11.GL_BLEND);
-		GlUtil.glEnable(GL11.GL_TEXTURE_2D);
-		GlUtil.glEnable(GL11.GL_LIGHTING);
-		GlUtil.glEnable(GL11.GL_DEPTH_TEST);
-		GlUtil.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-
-		drawTextOverlays(textOverlays);
 	}
 
 	private void drawBitmap(GfxApi.DrawCommand command, float scaleX, float scaleY) {
@@ -297,52 +330,56 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 	}
 
 	private void drawLayer(GfxApi.LayerSnapshot layer, List<TextOverlaySpec> textOverlays, float scaleX, float scaleY) {
-		for(GfxApi.DrawCommand command : layer.commands) {
-			GlUtil.glColor4f(command.r, command.g, command.b, command.a);
-			switch(command.kind) {
-				case POINT:
-					GL11.glBegin(GL11.GL_POINTS);
-					GL11.glVertex3f(command.x1 * scaleX, command.y1 * scaleY, 0.0F);
-					GL11.glEnd();
-					break;
-				case LINE:
-					applyLineWidth(command.lineWidth * 0.5f * (scaleX + scaleY));
-					GL11.glBegin(GL11.GL_LINES);
-					GL11.glVertex3f(command.x1 * scaleX, command.y1 * scaleY, 0.0F);
-					GL11.glVertex3f(command.x2 * scaleX, command.y2 * scaleY, 0.0F);
-					GL11.glEnd();
-					resetLineWidth();
-					break;
-				case RECT:
-					if(command.filled) {
-						GL11.glBegin(GL11.GL_QUADS);
+		try {
+			for(GfxApi.DrawCommand command : layer.commands) {
+				GlUtil.glColor4f(command.r, command.g, command.b, command.a);
+				switch(command.kind) {
+					case POINT:
+						GL11.glBegin(GL11.GL_POINTS);
 						GL11.glVertex3f(command.x1 * scaleX, command.y1 * scaleY, 0.0F);
-						GL11.glVertex3f(command.x2 * scaleX, command.y1 * scaleY, 0.0F);
-						GL11.glVertex3f(command.x2 * scaleX, command.y2 * scaleY, 0.0F);
-						GL11.glVertex3f(command.x1 * scaleX, command.y2 * scaleY, 0.0F);
 						GL11.glEnd();
-					} else {
-						GL11.glBegin(GL11.GL_LINE_LOOP);
+						break;
+					case LINE:
+						applyLineWidth(command.lineWidth * 0.5f * (scaleX + scaleY));
+						GL11.glBegin(GL11.GL_LINES);
 						GL11.glVertex3f(command.x1 * scaleX, command.y1 * scaleY, 0.0F);
-						GL11.glVertex3f(command.x2 * scaleX, command.y1 * scaleY, 0.0F);
 						GL11.glVertex3f(command.x2 * scaleX, command.y2 * scaleY, 0.0F);
-						GL11.glVertex3f(command.x1 * scaleX, command.y2 * scaleY, 0.0F);
 						GL11.glEnd();
-					}
-					break;
-				case CIRCLE:
-					drawCircle(command, scaleX, scaleY);
-					break;
-				case POLYGON:
-					drawPolygon(command, scaleX, scaleY);
-					break;
-				case TEXT:
-					collectTextOverlaySpecs(command, textOverlays, scaleX, scaleY);
-					break;
-				case BITMAP:
-					drawBitmap(command, scaleX, scaleY);
-					break;
+						resetLineWidth();
+						break;
+					case RECT:
+						if(command.filled) {
+							GL11.glBegin(GL11.GL_QUADS);
+							GL11.glVertex3f(command.x1 * scaleX, command.y1 * scaleY, 0.0F);
+							GL11.glVertex3f(command.x2 * scaleX, command.y1 * scaleY, 0.0F);
+							GL11.glVertex3f(command.x2 * scaleX, command.y2 * scaleY, 0.0F);
+							GL11.glVertex3f(command.x1 * scaleX, command.y2 * scaleY, 0.0F);
+							GL11.glEnd();
+						} else {
+							GL11.glBegin(GL11.GL_LINE_LOOP);
+							GL11.glVertex3f(command.x1 * scaleX, command.y1 * scaleY, 0.0F);
+							GL11.glVertex3f(command.x2 * scaleX, command.y1 * scaleY, 0.0F);
+							GL11.glVertex3f(command.x2 * scaleX, command.y2 * scaleY, 0.0F);
+							GL11.glVertex3f(command.x1 * scaleX, command.y2 * scaleY, 0.0F);
+							GL11.glEnd();
+						}
+						break;
+					case CIRCLE:
+						drawCircle(command, scaleX, scaleY);
+						break;
+					case POLYGON:
+						drawPolygon(command, scaleX, scaleY);
+						break;
+					case TEXT:
+						collectTextOverlaySpecs(command, textOverlays, scaleX, scaleY);
+						break;
+					case BITMAP:
+						drawBitmap(command, scaleX, scaleY);
+						break;
+				}
 			}
+		} catch(Exception e) {
+			// OpenGL context may be lost during alt-tab, catch and continue
 		}
 	}
 
@@ -444,16 +481,26 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 
 	private void releaseTrackedTexture() {
 		if(lastTextureId > 0) {
-			if(canDeleteTextureNow()) {
-				releaseTexture(lastTextureId);
+			try {
+				if(canDeleteTextureNow()) {
+					releaseTexture(lastTextureId);
+				}
+			} catch(Exception ignored) {
+				// OpenGL context may be lost, texture release can fail safely
 			}
 			lastTextureId = -1;
 		}
 	}
 
 	private void releaseTexture(int textureId) {
-		GL11.glDeleteTextures(textureId);
-		Controller.loadedTextures.remove((Integer) textureId);
+		try {
+			GL11.glDeleteTextures(textureId);
+			if(Controller.loadedTextures != null) {
+				Controller.loadedTextures.remove((Integer) textureId);
+			}
+		} catch(Exception ignored) {
+			// OpenGL context may be lost, texture release can fail safely
+		}
 	}
 
 	private boolean canDeleteTextureNow() {
