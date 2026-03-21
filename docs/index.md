@@ -36,6 +36,7 @@ markdown/math/vector
 :caption: Graphics
 
 markdown/graphics/gfx
+markdown/graphics/gui_lib
 ```
 
 ```{toctree}
