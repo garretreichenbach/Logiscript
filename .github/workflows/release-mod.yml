@@ -79,6 +79,8 @@ jobs:
 
       - name: Collect artifacts
         id: collect
+        env:
+          STARMADE_ROOT: ${{ steps.starmade.outputs.starmade_root }}
         run: |
           mkdir -p dist
           mod_name="$(grep -E '^mod_name=' gradle.properties | head -n 1 | cut -d '=' -f 2- | tr -d '\r')"
@@ -89,9 +91,25 @@ jobs:
             exit 1
           fi
 
-          jar_path="build/libs/${mod_name}v${mod_version}.jar"
-          if [[ ! -f "$jar_path" ]]; then
-            echo "Expected mod jar not found: $jar_path" >&2
+          jar_file="${mod_name}v${mod_version}.jar"
+          candidates=(
+            "${STARMADE_ROOT%/}/mods/${jar_file}"
+            "build/libs/${jar_file}"
+          )
+
+          jar_path=""
+          for candidate in "${candidates[@]}"; do
+            if [[ -f "$candidate" ]]; then
+              jar_path="$candidate"
+              break
+            fi
+          done
+
+          if [[ -z "$jar_path" ]]; then
+            echo "Expected mod jar not found. Checked:" >&2
+            printf ' - %s\n' "${candidates[@]}" >&2
+            echo "Available jars under StarMade mods:" >&2
+            ls -la "${STARMADE_ROOT%/}/mods" || true
             echo "Available jars under build/libs:" >&2
             ls -la build/libs || true
             exit 1
