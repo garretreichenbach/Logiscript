@@ -18,7 +18,9 @@ import java.util.regex.Pattern;
 public final class ComputerDataCleanupManager {
 
 	private static final Pattern FS_DIRECTORY_PATTERN = Pattern.compile("^computer_([0-9a-fA-F\\-]{36})_fs$");
+	private static final Pattern FS_RESTORE_DIRECTORY_PATTERN = Pattern.compile("^computer_([0-9a-fA-F\\-]{36})_fs\\.restore$");
 	private static final Pattern FS_ARCHIVE_PATTERN = Pattern.compile("^computer_([0-9a-fA-F\\-]{36})_fs\\.smdat$");
+	private static final Pattern FS_TEMP_ARCHIVE_PATTERN = Pattern.compile("^computer_([0-9a-fA-F\\-]{36})_fs\\.smdat\\.tmp$");
 
 	private ComputerDataCleanupManager() {
 	}
@@ -59,6 +61,20 @@ public final class ComputerDataCleanupManager {
 				continue;
 			}
 
+			Matcher restoreDirMatcher = FS_RESTORE_DIRECTORY_PATTERN.matcher(entry.getName());
+			if(entry.isDirectory() && restoreDirMatcher.matches()) {
+				String uuid = restoreDirMatcher.group(1);
+				if(protectedSet.contains(uuid)) {
+					continue;
+				}
+				if(deleteRecursive(entry)) {
+					LuaMade.getInstance().logInfo("Cleaned orphaned computer restore directory: " + entry.getName());
+				} else {
+					LuaMade.getInstance().logWarning("Failed to clean orphaned computer restore directory: " + entry.getName());
+				}
+				continue;
+			}
+
 			Matcher archiveMatcher = FS_ARCHIVE_PATTERN.matcher(entry.getName());
 			if(entry.isFile() && archiveMatcher.matches()) {
 				String uuid = archiveMatcher.group(1);
@@ -71,6 +87,20 @@ public final class ComputerDataCleanupManager {
 					} else {
 						LuaMade.getInstance().logWarning("Failed to remove orphaned zero-byte computer archive: " + entry.getName());
 					}
+				}
+				continue;
+			}
+
+			Matcher tempArchiveMatcher = FS_TEMP_ARCHIVE_PATTERN.matcher(entry.getName());
+			if(entry.isFile() && tempArchiveMatcher.matches()) {
+				String uuid = tempArchiveMatcher.group(1);
+				if(protectedSet.contains(uuid)) {
+					continue;
+				}
+				if(entry.delete()) {
+					LuaMade.getInstance().logInfo("Removed orphaned temporary computer archive: " + entry.getName());
+				} else {
+					LuaMade.getInstance().logWarning("Failed to remove orphaned temporary computer archive: " + entry.getName());
 				}
 			}
 		}

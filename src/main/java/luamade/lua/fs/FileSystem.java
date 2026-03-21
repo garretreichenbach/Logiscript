@@ -9,6 +9,9 @@ import luamade.utils.DataUtils;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -569,41 +572,106 @@ public class FileSystem extends LuaMadeUserdata {
 	private boolean readFilesFromDisk(ComputerModule module) {
 		// Each computer file system is stored in a compressed file
 		File compressedFile = new File(computerStorage, "computer_" + module.getUUID() + "_fs.smdat");
+		File backupCompressedFile = new File(computerStorage, "computer_" + module.getUUID() + "_fs.smdat.bak");
+		File tempCompressedFile = new File(computerStorage, "computer_" + module.getUUID() + "_fs.smdat.tmp");
 		File rootDirectory = new File(computerStorage, "computer_" + module.getUUID() + "_fs");
 		boolean hasCompressedArchive = compressedFile.exists() && compressedFile.length() > 0;
+		boolean hasBackupArchive = backupCompressedFile.exists() && backupCompressedFile.length() > 0;
+
+		if(tempCompressedFile.exists()) {
+			if(tempCompressedFile.length() > 0) {
+				LuaMade.getInstance().logWarning("Discarding incomplete temporary file system archive for computer " + module.getUUID() + ": " + tempCompressedFile.getName());
+			}
+			if(!tempCompressedFile.delete()) {
+				LuaMade.getInstance().logWarning("Failed to delete temporary file system archive: " + tempCompressedFile.getAbsolutePath());
+			}
+		}
+
+		List<File> archiveCandidates = new ArrayList<>();
+		if(hasCompressedArchive) {
+			archiveCandidates.add(compressedFile);
+		}
+		if(hasBackupArchive) {
+			archiveCandidates.add(backupCompressedFile);
+		}
 
 		if(rootDirectory.exists()) {
-			// If an unpacked filesystem already exists, reuse it. This is normal before
-			// the first archive save; only warn when an archive is also present.
+			// If an unpacked filesystem already exists, prefer the last successfully saved
+			// archive whenever one is available. A leftover directory is usually a crash/
+			// shutdown artifact and should only be used as a recovery fallback.
 			File[] children = rootDirectory.listFiles();
 			if(children != null && children.length > 0) {
-				if(hasCompressedArchive) {
+				if(!archiveCandidates.isEmpty()) {
 					LuaMade.getInstance().logWarning("File system for computer " + module.getUUID() + " was not cleaned up properly on server shutdown!");
+					if(restoreFromArchiveCandidates(module.getUUID(), rootDirectory, archiveCandidates)) {
+						return true;
+					}
+					LuaMade.getInstance().logWarning("Falling back to leftover unpacked file system for computer " + module.getUUID() + " after archive restore failed.");
 				}
-				this.rootDirectory = new VirtualFile(this, rootDirectory);
-				currentDirectory = this.rootDirectory;
-				return true;
+				return useExistingRootDirectory(rootDirectory);
 			}
 			// Stale empty dir: remove it and continue normal load/bootstrap path.
 			deleteRecursive(rootDirectory);
 		}
 
-		if(!hasCompressedArchive) {
+		if(archiveCandidates.isEmpty()) {
 			return false;
+		}
+
+		return restoreFromArchiveCandidates(module.getUUID(), rootDirectory, archiveCandidates);
+	}
+
+	private boolean restoreFromArchiveCandidates(String uuid, File rootDirectory, List<File> archiveCandidates) {
+		for(File archiveCandidate : archiveCandidates) {
+			if(archiveCandidate == null || !archiveCandidate.exists() || archiveCandidate.length() <= 0) {
+				continue;
+			}
+
+			if(restoreArchiveIntoRootDirectory(uuid, archiveCandidate, rootDirectory)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private boolean restoreArchiveIntoRootDirectory(String uuid, File archiveFile, File rootDirectory) {
+		File stagingDirectory = new File(computerStorage, "computer_" + uuid + "_fs.restore");
+
+		if(stagingDirectory.exists()) {
+			deleteRecursive(stagingDirectory);
 		}
 
 		try {
-			rootDirectory.mkdirs();
-			CompressionUtils.decompressFS(compressedFile, rootDirectory);
+			stagingDirectory.mkdirs();
+			CompressionUtils.decompressFS(archiveFile, stagingDirectory);
+
+			if(rootDirectory.exists()) {
+				deleteRecursive(rootDirectory);
+			}
+
+			moveFile(stagingDirectory, rootDirectory);
+			return useExistingRootDirectory(rootDirectory);
 		} catch(Exception exception) {
-			LuaMade.getInstance().logException("Failed to decompress file system for computer " + module.getUUID(), exception);
-			deleteRecursive(rootDirectory);
+			LuaMade.getInstance().logException("Failed to decompress file system archive " + archiveFile.getName() + " for computer " + uuid, exception);
+			if(stagingDirectory.exists()) {
+				deleteRecursive(stagingDirectory);
+			}
 			return false;
 		}
+	}
 
+	private boolean useExistingRootDirectory(File rootDirectory) {
 		this.rootDirectory = new VirtualFile(this, rootDirectory);
 		currentDirectory = this.rootDirectory;
 		return true;
+	}
+
+	private void moveFile(File source, File destination) throws IOException {
+		try {
+			Files.move(source.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+		} catch(AtomicMoveNotSupportedException ignored) {
+			Files.move(source.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
+		}
 	}
 
 	/**
@@ -1340,13 +1408,28 @@ public class FileSystem extends LuaMadeUserdata {
 	 */
 	public boolean saveToDisk() {
 		File compressedFile = new File(computerStorage, "computer_" + computerUUID + "_fs.smdat");
+		File backupCompressedFile = new File(computerStorage, "computer_" + computerUUID + "_fs.smdat.bak");
+		File tempCompressedFile = new File(computerStorage, "computer_" + computerUUID + "_fs.smdat.tmp");
 		File rootDir = rootDirectory.getInternalFile();
 
 		try {
-			CompressionUtils.compressFS(rootDir, compressedFile);
+			if(tempCompressedFile.exists() && !tempCompressedFile.delete()) {
+				LuaMade.getInstance().logWarning("Failed to delete stale temporary file system archive: " + tempCompressedFile.getAbsolutePath());
+			}
+
+			CompressionUtils.compressFS(rootDir, tempCompressedFile);
+
+			if(compressedFile.exists()) {
+				moveFile(compressedFile, backupCompressedFile);
+			}
+
+			moveFile(tempCompressedFile, compressedFile);
 			LuaMade.getInstance().logInfo("Saved file system for computer " + computerUUID);
 			return true;
 		} catch(Exception exception) {
+			if(tempCompressedFile.exists() && !tempCompressedFile.delete()) {
+				LuaMade.getInstance().logWarning("Failed to delete failed temporary file system archive: " + tempCompressedFile.getAbsolutePath());
+			}
 			LuaMade.getInstance().logException("Error saving file system for computer " + computerUUID, exception);
 			return false;
 		}
