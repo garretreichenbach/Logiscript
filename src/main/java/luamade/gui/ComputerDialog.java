@@ -276,6 +276,17 @@ public class ComputerDialog extends PlayerInput {
 				return;
 			}
 
+		// In FILE_EDIT mode, skip mouse clicks to prevent the underlying text component
+		// from processing them and causing a freeze. Allow mouse movement for text selection.
+		if(isFileEditMode() && button >= 0) {
+			// Still queue to input API for Lua, but don't process further
+			boolean dragging = leftMouseDown || rightMouseDown || middleMouseDown;
+			String dragButton = dragButtonName();
+			updateMouseButtonState(button, pressed);
+			computerModule.getInputApi().pushMouseEvent(button, pressed, mouseEvent.x, normalizeMouseY(mouseEvent.y), mouseEvent.dx, mouseEvent.dy, mouseEvent.dWheel, -1, -1, -1, -1, false, dragging, dragButton);
+			return;
+		}
+
 			updateMouseButtonState(button, pressed);
 			boolean dragging = leftMouseDown || rightMouseDown || middleMouseDown;
 			String dragButton = dragButtonName();
