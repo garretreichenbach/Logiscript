@@ -882,7 +882,8 @@ public class Terminal extends LuaMadeUserdata {
 		LuaTable jsonLibrary = loadBuiltinLibrary(globals, "scripts/lib/json.lua", "json");
 		LuaTable utilLibrary = loadBuiltinLibrary(globals, "scripts/lib/util.lua", "util");
 		LuaTable vectorLibrary = loadBuiltinLibrary(globals, "scripts/lib/vector.lua", "vector");
-		LuaTable gfx_2drary = loadBuiltinLibrary(globals, "scripts/lib/gfx_2d.lua", "gfx_2d");
+		LuaTable gfx_2dLibrary = loadBuiltinLibrary(globals, "scripts/lib/gfx_2d.lua", "gfx_2d");
+		LuaTable guiLibrary = loadBuiltinLibrary(globals, "scripts/lib/gui.lua", "gui");
 		LuaTable loadedModules = sandboxPackage.get("loaded").checktable();
 		if(jsonLibrary != null) {
 			loadedModules.set("json", jsonLibrary);
@@ -893,8 +894,11 @@ public class Terminal extends LuaMadeUserdata {
 		if(vectorLibrary != null) {
 			loadedModules.set("vector", vectorLibrary);
 		}
-		if(gfx_2drary != null) {
-			loadedModules.set("gfx_2d", gfx_2drary);
+		if(gfx_2dLibrary != null) {
+			loadedModules.set("gfx_2d", gfx_2dLibrary);
+		}
+		if(guiLibrary != null) {
+			loadedModules.set("gui", guiLibrary);
 		}
 
 		UtilApi nativeUtil = new UtilApi(context == null ? null : context::throwIfCancellationRequested);
