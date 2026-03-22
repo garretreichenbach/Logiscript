@@ -882,7 +882,6 @@ public class Terminal extends LuaMadeUserdata {
 		LuaTable jsonLibrary = loadBuiltinLibrary(globals, "scripts/lib/json.lua", "json");
 		LuaTable utilLibrary = loadBuiltinLibrary(globals, "scripts/lib/util.lua", "util");
 		LuaTable vectorLibrary = loadBuiltinLibrary(globals, "scripts/lib/vector.lua", "vector");
-		LuaTable gfx2dLibrary = loadBuiltinLibrary(globals, "scripts/lib/gfx2d.lua", "gfx2d");
 		LuaTable guiLibrary = loadBuiltinLibrary(globals, "scripts/lib/gui.lua", "gui");
 		LuaTable loadedModules = sandboxPackage.get("loaded").checktable();
 		if(jsonLibrary != null) {
@@ -893,9 +892,6 @@ public class Terminal extends LuaMadeUserdata {
 		}
 		if(vectorLibrary != null) {
 			loadedModules.set("vector", vectorLibrary);
-		}
-		if(gfx2dLibrary != null) {
-			loadedModules.set("gfx2d", gfx2dLibrary);
 		}
 		if(guiLibrary != null) {
 			loadedModules.set("gui", guiLibrary);

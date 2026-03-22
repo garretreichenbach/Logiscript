@@ -727,6 +727,22 @@ public class GfxApi extends LuaMadeUserdata {
 		}
 	}
 
+	public static final class BitmapData {
+		public Integer width;
+		public Integer height;
+		public Integer[] pixels;
+
+		public BitmapData(int width, int height, Integer fillColor) {
+			this.width = width;
+			this.height = height;
+			this.pixels = new Integer[width * height];
+			int fill = fillColor != null ? fillColor : 0x00000000;
+			for(int i = 0; i < pixels.length; i++) {
+				this.pixels[i] = fill;
+			}
+		}
+	}
+
 	public static final class DrawCommand {
 		public final Kind kind;
 		public final float x1;
@@ -813,5 +829,139 @@ public class GfxApi extends LuaMadeUserdata {
 			TEXT,
 			BITMAP
 		}
+	}
+
+	// Bitmap utility methods (formerly in gfx2d.lua)
+
+	@LuaMadeCallable
+	public Integer packColor(Double r, Double g, Double b, Double a) {
+		int rr = clampInt((int) Math.floor((r != null ? r : 0) + 0.5), 0, 255);
+		int gg = clampInt((int) Math.floor((g != null ? g : 0) + 0.5), 0, 255);
+		int bb = clampInt((int) Math.floor((b != null ? b : 0) + 0.5), 0, 255);
+		int aa = clampInt((int) Math.floor((a != null ? a : 255) + 0.5), 0, 255);
+		return (rr << 24) | (gg << 16) | (bb << 8) | aa;
+	}
+
+	@LuaMadeCallable
+	public Integer[] unpackColor(Integer color) {
+		int value = color != null ? color : 0;
+		int r = (value >> 24) & 0xFF;
+		int g = (value >> 16) & 0xFF;
+		int b = (value >> 8) & 0xFF;
+		int a = value & 0xFF;
+		return new Integer[]{r, g, b, a};
+	}
+
+	@LuaMadeCallable
+	public BitmapData newBitmap(Integer width, Integer height, Integer fillColor) {
+		int w = Math.max(1, width != null ? width : 1);
+		int h = Math.max(1, height != null ? height : 1);
+		return new BitmapData(w, h, fillColor);
+	}
+
+	@LuaMadeCallable
+	public Boolean setPixel(BitmapData bitmap, Double x, Double y, Integer color) {
+		if(bitmap == null || bitmap.pixels == null || bitmap.width == null || bitmap.height == null) {
+			return false;
+		}
+		int xi = (int) Math.floor(x != null ? x : -1);
+		int yi = (int) Math.floor(y != null ? y : -1);
+		if(xi < 0 || yi < 0 || xi >= bitmap.width || yi >= bitmap.height) {
+			return false;
+		}
+		bitmap.pixels[yi * bitmap.width + xi] = color != null ? color : 0xFFFFFFFF;
+		return true;
+	}
+
+	@LuaMadeCallable
+	public Integer getPixel(BitmapData bitmap, Double x, Double y) {
+		if(bitmap == null || bitmap.pixels == null || bitmap.width == null || bitmap.height == null) {
+			return null;
+		}
+		int xi = (int) Math.floor(x != null ? x : -1);
+		int yi = (int) Math.floor(y != null ? y : -1);
+		if(xi < 0 || yi < 0 || xi >= bitmap.width || yi >= bitmap.height) {
+			return null;
+		}
+		return bitmap.pixels[yi * bitmap.width + xi];
+	}
+
+	@LuaMadeCallable
+	public BitmapData checkerBitmap(Integer width, Integer height, Integer colorA, Integer colorB, Integer cellSize) {
+		BitmapData bitmap = newBitmap(width, height, colorA);
+		int c0 = colorA != null ? colorA : 0xFFFFFFFF;
+		int c1 = colorB != null ? colorB : 0x222222FF;
+		int cell = Math.max(1, cellSize != null ? cellSize : 1);
+
+		for(int y = 0; y < bitmap.height; y++) {
+			for(int x = 0; x < bitmap.width; x++) {
+				int a = x / cell;
+				int b = y / cell;
+				setPixel(bitmap, (double) x, (double) y, ((a + b) % 2 == 0) ? c0 : c1);
+			}
+		}
+		return bitmap;
+	}
+
+	@LuaMadeCallable
+	public BitmapData grayscaleBitmap(Integer width, Integer height, Double[] values, Integer alpha) {
+		BitmapData bitmap = newBitmap(width, height, 0x00000000);
+		int a = clampInt(alpha != null ? alpha : 255, 0, 255);
+		for(int y = 0; y < bitmap.height; y++) {
+			for(int x = 0; x < bitmap.width; x++) {
+				int index = y * bitmap.width + x;
+				double v = (values != null && index < values.length && values[index] != null) ? values[index] : 0;
+				int g = clampInt((int) Math.floor(v + 0.5), 0, 255);
+				int packed = (g << 24) | (g << 16) | (g << 8) | a;
+				setPixel(bitmap, (double) x, (double) y, packed);
+			}
+		}
+		return bitmap;
+	}
+
+	@LuaMadeCallable
+	public BitmapData textMaskBitmap(String[] rows, Integer onColor, Integer offColor, String onChars) {
+		if(rows == null || rows.length == 0) {
+			return newBitmap(1, 1, offColor != null ? offColor : 0x00000000);
+		}
+
+		int width = 0;
+		for(String row : rows) {
+			if(row != null) {
+				width = Math.max(width, row.length());
+			}
+		}
+		if(width == 0) {
+			width = 1;
+		}
+
+		BitmapData bitmap = newBitmap(width, rows.length, offColor);
+		int on = onColor != null ? onColor : 0xFFFFFFFF;
+		String allowed = onChars != null && !onChars.isEmpty() ? onChars : "#@X1";
+
+		Set<Character> lookup = new HashSet<>();
+		for(int i = 0; i < allowed.length(); i++) {
+			lookup.add(allowed.charAt(i));
+		}
+
+		for(int y = 0; y < rows.length; y++) {
+			String row = rows[y] != null ? rows[y] : "";
+			for(int x = 0; x < row.length(); x++) {
+				char ch = row.charAt(x);
+				if(lookup.contains(ch)) {
+					setPixel(bitmap, (double) x, (double) y, on);
+				}
+			}
+		}
+
+		return bitmap;
+	}
+
+	@LuaMadeCallable
+	public Boolean drawBitmap(Double x, Double y, BitmapData bitmap) {
+		if(bitmap == null || bitmap.pixels == null || bitmap.width == null || bitmap.height == null) {
+			return false;
+		}
+		return this.bitmap(x != null ? x : 0, y != null ? y : 0, bitmap.width, bitmap.height, bitmap.pixels);
 	}
 }

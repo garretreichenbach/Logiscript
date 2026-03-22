@@ -113,9 +113,9 @@ Draws a circle centered at `(x, y)`. `segments` controls smoothness (`8..128`, d
 
 - `gfx2d.text(x, y, text, r, g, b, a, scale, maxWidth: Integer, maxHeight: Integer, align: String, wrap: Boolean)`
   Extended text rendering with optional clipping and layout:
-    - `maxWidth` / `maxHeight`: clip bounds in pixels (`nil` disables bound)
-    - `align`: `"left"` (default), `"center"`, or `"right"`
-    - `wrap`: when `true`, wraps text to fit `maxWidth`
+  - `maxWidth` / `maxHeight`: clip bounds in pixels (`nil` disables bound)
+  - `align`: `"left"` (default), `"center"`, or `"right"`
+  - `wrap`: when `true`, wraps text to fit `maxWidth`
 
 - `gfx2d.bitmap(x: Number, y: Number, width: Integer, height: Integer, rgbaPixels: Integer[])`
   Draws packed bitmap data. `rgbaPixels` is row-major and uses `0xRRGGBBAA` per pixel.

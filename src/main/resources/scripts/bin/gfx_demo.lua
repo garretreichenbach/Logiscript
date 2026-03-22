@@ -1,9 +1,8 @@
 -- /bin/gfx_demo.lua
--- Layered graphics showcase for the newer gfx2d API.
+-- Layered graphics showcase for the graphics API.
 -- Usage: run /bin/gfx_demo.lua [seconds]
 
 local seconds = tonumber(args[1]) or 10
-local gfx2d = require("gfx2d")
 if seconds < 1 then
     seconds = 1
 end
@@ -104,7 +103,7 @@ for i = 0, totalFrames do
     gfx2d.point(p2x, p2y, 0.3, 1.0, 0.35, 1.0)
 
     local checker = gfx2d.checkerBitmap(8, 8, 0xFF9933FF, 0x223344CC, 1)
-    gfx2d.draw(gfx2d, 10, 10, checker)
+    gfx2d.drawBitmap(10, 10, checker)
 
     local mask = gfx2d.textMaskBitmap({
         "##..##",
@@ -112,7 +111,7 @@ for i = 0, totalFrames do
         ".####.",
         "##..##",
     }, 0x66DDFFFF, 0x00000000, "#")
-    gfx2d.draw(gfx2d, w - 20, 10, mask)
+    gfx2d.drawBitmap(w - 20, 10, mask)
 
     gfx2d.setLayer("text")
     gfx2d.text(24, 10, "GFX+", 0.95, 0.98, 1.0, 1.0, 2)
