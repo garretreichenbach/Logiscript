@@ -681,6 +681,10 @@ public class ComputerDialog extends PlayerInput {
 			refreshPromptStartPositionFromCurrentText();
 			scrollPaneToCursor();
 			requestConsoleFocus();
+						// Re-enable mouse handling when exiting editor
+						if(consolePane != null) {
+							consolePane.setMouseUpdateEnabled(true);
+						}
 		}
 
 		private void runEditorFile() {
@@ -962,6 +966,10 @@ public class ComputerDialog extends PlayerInput {
 
 			// This is an open-time focus assist, not a per-frame caret override.
 			focusConsoleOnOpen = false;
+						// Disable mouse handling to prevent freeze when clicking in editor
+						if(consolePane != null) {
+							consolePane.setMouseUpdateEnabled(false);
+						}
 		}
 
 		private void updateGfxOverlayBounds() {
@@ -1507,6 +1515,10 @@ public class ComputerDialog extends PlayerInput {
 							currentInputLine = "";
 							clearCommandSuggestions();
 							focusConsoleOnOpen = false;
+						// Disable mouse handling to prevent freeze when clicking in editor
+						if(consolePane != null) {
+							consolePane.setMouseUpdateEnabled(false);
+						}
 							if(mainContentPane != null) {
 								mainContentPane.setTextBoxHeightLast(TEXT_BOX_HEIGHT - EDITOR_HINT_RESERVE_PX);
 							}
@@ -1515,6 +1527,10 @@ public class ComputerDialog extends PlayerInput {
 							clearCommandSuggestions();
 							refreshPromptStartPositionFromCurrentText();
 							requestConsoleFocus();
+						// Re-enable mouse handling when exiting editor
+						if(consolePane != null) {
+							consolePane.setMouseUpdateEnabled(true);
+						}
 							if(mainContentPane != null) {
 								mainContentPane.setTextBoxHeightLast(TEXT_BOX_HEIGHT);
 							}
@@ -1634,6 +1650,10 @@ public class ComputerDialog extends PlayerInput {
 			scrollPaneToCursor();
 			updateEditorHintOverlay();
 			requestConsoleFocus();
+						// Re-enable mouse handling when exiting editor
+						if(consolePane != null) {
+							consolePane.setMouseUpdateEnabled(true);
+						}
 		}
 
 		@Override
