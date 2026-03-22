@@ -1,6 +1,6 @@
-local gfx_2d = {}
+local gfx2d = {}
 
-function gfx_2d.pack(r, g, b, a)
+function gfx2d.pack(r, g, b, a)
     local rr = math.max(0, math.min(255, math.floor((r or 0) + 0.5)))
     local gg = math.max(0, math.min(255, math.floor((g or 0) + 0.5)))
     local bb = math.max(0, math.min(255, math.floor((b or 0) + 0.5)))
@@ -8,7 +8,7 @@ function gfx_2d.pack(r, g, b, a)
     return bit32.bor(bit32.lshift(rr, 24), bit32.lshift(gg, 16), bit32.lshift(bb, 8), aa)
 end
 
-function gfx_2d.unpack(color)
+function gfx2d.unpack(color)
     local value = color or 0
     local r = bit32.band(bit32.rshift(value, 24), 0xFF)
     local g = bit32.band(bit32.rshift(value, 16), 0xFF)
@@ -17,7 +17,7 @@ function gfx_2d.unpack(color)
     return r, g, b, a
 end
 
-function gfx_2d.newBitmap(width, height, fillColor)
+function gfx2d.newBitmap(width, height, fillColor)
     local w = math.max(1, math.floor(width or 1))
     local h = math.max(1, math.floor(height or 1))
     local fill = fillColor or 0x00000000
@@ -32,7 +32,7 @@ function gfx_2d.newBitmap(width, height, fillColor)
     }
 end
 
-function gfx_2d.setPixel(bitmap, x, y, color)
+function gfx2d.setPixel(bitmap, x, y, color)
     if not bitmap or not bitmap.pixels or not bitmap.width or not bitmap.height then
         return false
     end
@@ -45,7 +45,7 @@ function gfx_2d.setPixel(bitmap, x, y, color)
     return true
 end
 
-function gfx_2d.getPixel(bitmap, x, y)
+function gfx2d.getPixel(bitmap, x, y)
     if not bitmap or not bitmap.pixels or not bitmap.width or not bitmap.height then
         return nil
     end
@@ -57,8 +57,8 @@ function gfx_2d.getPixel(bitmap, x, y)
     return bitmap.pixels[(yi * bitmap.width) + xi + 1]
 end
 
-function gfx_2d.checkerBitmap(width, height, colorA, colorB, cellSize)
-    local bitmap = gfx_2d.newBitmap(width, height, colorA or 0x00000000)
+function gfx2d.checkerBitmap(width, height, colorA, colorB, cellSize)
+    local bitmap = gfx2d.newBitmap(width, height, colorA or 0x00000000)
     local c0 = colorA or 0xFFFFFFFF
     local c1 = colorB or 0x222222FF
     local cell = math.max(1, math.floor(cellSize or 1))
@@ -67,36 +67,36 @@ function gfx_2d.checkerBitmap(width, height, colorA, colorB, cellSize)
         for x = 0, bitmap.width - 1 do
             local a = math.floor(x / cell)
             local b = math.floor(y / cell)
-            gfx_2d.setPixel(bitmap, x, y, ((a + b) % 2 == 0) and c0 or c1)
+            gfx2d.setPixel(bitmap, x, y, ((a + b) % 2 == 0) and c0 or c1)
         end
     end
     return bitmap
 end
 
-function gfx_2d.grayscaleBitmap(width, height, values, alpha)
-    local bitmap = gfx_2d.newBitmap(width, height, 0x00000000)
+function gfx2d.grayscaleBitmap(width, height, values, alpha)
+    local bitmap = gfx2d.newBitmap(width, height, 0x00000000)
     local a = math.max(0, math.min(255, math.floor((alpha or 255) + 0.5)))
     for y = 0, bitmap.height - 1 do
         for x = 0, bitmap.width - 1 do
             local index = (y * bitmap.width) + x + 1
             local v = values and values[index] or 0
             local g = math.max(0, math.min(255, math.floor((v or 0) + 0.5)))
-            bitmap.pixels[index] = gfx_2d.pack(g, g, g, a)
+            bitmap.pixels[index] = gfx2d.pack(g, g, g, a)
         end
     end
     return bitmap
 end
 
-function gfx_2d.textMaskBitmap(rows, onColor, offColor, onChars)
+function gfx2d.textMaskBitmap(rows, onColor, offColor, onChars)
     if type(rows) ~= "table" or #rows == 0 then
-        return gfx_2d.newBitmap(1, 1, offColor or 0x00000000)
+        return gfx2d.newBitmap(1, 1, offColor or 0x00000000)
     end
 
     local width = 0
     for i = 1, #rows do
         width = math.max(width, #(rows[i] or ""))
     end
-    local bitmap = gfx_2d.newBitmap(width, #rows, offColor or 0x00000000)
+    local bitmap = gfx2d.newBitmap(width, #rows, offColor or 0x00000000)
     local on = onColor or 0xFFFFFFFF
     local allowed = onChars or "#@X1"
 
@@ -118,11 +118,11 @@ function gfx_2d.textMaskBitmap(rows, onColor, offColor, onChars)
     return bitmap
 end
 
-function gfx_2d.draw(gfxApi, x, y, bitmap)
+function gfx2d.draw(gfxApi, x, y, bitmap)
     if not gfxApi or not bitmap or not bitmap.pixels then
         return false
     end
     return gfxApi.bitmap(x or 0, y or 0, bitmap.width or 1, bitmap.height or 1, bitmap.pixels)
 end
 
-return gfx_2d
+return gfx2d

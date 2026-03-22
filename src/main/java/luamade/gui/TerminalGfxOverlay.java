@@ -16,7 +16,7 @@ import org.schema.schine.network.client.ClientStateInterface;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Draws Lua gfx_2d geometry onto a texture-backed overlay and text via GUITextOverlay instances. */
+/** Draws Lua gfx2d geometry onto a texture-backed overlay and text via GUITextOverlay instances. */
 public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 	private final GfxApi gfxApi;
 	private int lastTextureId = -1;

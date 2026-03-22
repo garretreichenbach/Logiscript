@@ -875,14 +875,14 @@ public class Terminal extends LuaMadeUserdata {
 		globals.set("net", module.getNetworkInterface());
 		globals.set("peripheral", new PeripheralsApi(module));
 		globals.set("input", module.getInputApi());
-		globals.set("gfx_2d", module.getGfxApi());
+		globals.set("gfx2d", module.getGfxApi());
 		globals.set("shell", createShellCompatibilityApi());
 
 
 		LuaTable jsonLibrary = loadBuiltinLibrary(globals, "scripts/lib/json.lua", "json");
 		LuaTable utilLibrary = loadBuiltinLibrary(globals, "scripts/lib/util.lua", "util");
 		LuaTable vectorLibrary = loadBuiltinLibrary(globals, "scripts/lib/vector.lua", "vector");
-		LuaTable gfx_2dLibrary = loadBuiltinLibrary(globals, "scripts/lib/gfx_2d.lua", "gfx_2d");
+		LuaTable gfx2dLibrary = loadBuiltinLibrary(globals, "scripts/lib/gfx2d.lua", "gfx2d");
 		LuaTable guiLibrary = loadBuiltinLibrary(globals, "scripts/lib/gui.lua", "gui");
 		LuaTable loadedModules = sandboxPackage.get("loaded").checktable();
 		if(jsonLibrary != null) {
@@ -894,8 +894,8 @@ public class Terminal extends LuaMadeUserdata {
 		if(vectorLibrary != null) {
 			loadedModules.set("vector", vectorLibrary);
 		}
-		if(gfx_2dLibrary != null) {
-			loadedModules.set("gfx_2d", gfx_2dLibrary);
+		if(gfx2dLibrary != null) {
+			loadedModules.set("gfx2d", gfx2dLibrary);
 		}
 		if(guiLibrary != null) {
 			loadedModules.set("gui", guiLibrary);
@@ -2423,7 +2423,7 @@ public class Terminal extends LuaMadeUserdata {
 			}
 		});
 
-		commands.put("maskenter", new Command("maskenter", "Control Enter key forwarding while gfx_2d input masking is active") {
+		commands.put("maskenter", new Command("maskenter", "Control Enter key forwarding while gfx2d input masking is active") {
 			@Override
 			public void execute(String args) {
 				String trimmed = args == null ? "" : args.trim().toLowerCase(Locale.ROOT);
@@ -2800,7 +2800,7 @@ public class Terminal extends LuaMadeUserdata {
 		setCommandHelp("exit", "exit", "Stop the terminal session.");
 		setCommandHelp("reboot", "reboot", "Hard reset terminal state and rerun startup flow.");
 		setCommandHelp("scrollmode", "scrollmode [NONE|HORIZONTAL|VERTICAL|BOTH]", "Without args shows current scrollbar mode; with arg updates it.");
-		setCommandHelp("maskenter", "maskenter [on|off]", "Enable or disable Enter key forwarding to scripts while gfx_2d input masking is active.");
+		setCommandHelp("maskenter", "maskenter [on|off]", "Enable or disable Enter key forwarding to scripts while gfx2d input masking is active.");
 		setCommandHelp("cp", "cp [-r] <source> <destination>", "Copy file or directory. Use -r when source is a directory.");
 		setCommandHelp("mv", "mv <source> <destination>", "Move or rename a file path.");
 		setCommandHelp("edit", "edit <file> <content>", "Write provided content to a file in one command.");

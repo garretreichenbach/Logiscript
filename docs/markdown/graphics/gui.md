@@ -1,6 +1,6 @@
 # GUI Library (`gui`)
 
-`gui` is a component-based 2D GUI framework built on top of `gfx_2d`.
+`gui` is a component-based 2D GUI framework built on top of `gfx2d`.
 It handles layout, mouse hit-testing, resize adaptation, and event-driven rendering so scripts can build interactive
 terminal UIs without managing low-level drawing or event loops.
 
@@ -86,7 +86,7 @@ local mgr = GUI.GUIManager.new()
 
 ### Built-in layers
 
-`GUIManager` creates these `gfx_2d` layers automatically (lower order renders first):
+`GUIManager` creates these `gfx2d` layers automatically (lower order renders first):
 
 | Layer name     | Order |
 |----------------|-------|
@@ -119,7 +119,7 @@ local comp = GUI.Component.new(x, y, width, height)
 | `comp:getSize()`                       | Returns `width, height`.                                                                                                    |
 | `comp:setVisible(bool)`                | Show or hide without removing.                                                                                              |
 | `comp:isVisible()`                     | Returns current visibility.                                                                                                 |
-| `comp:setLayer(name)`                  | Which `gfx_2d` layer this component draws on (default `"components"`).                                                      |
+| `comp:setLayer(name)`                  | Which `gfx2d` layer this component draws on (default `"components"`).                                                       |
 | `comp:setRelativeRect(rx, ry, rw, rh)` | Responsive layout in [0, 1] fractions of canvas size. Applied every frame before drawing. Overrides absolute position/size. |
 | `comp:setLayoutCallback(fn)`           | Per-component callback `fn(self, canvasW, canvasH)` called each frame for custom responsive logic.                          |
 | `comp:pointInBounds(px, py)`           | Returns `true` if `(px, py)` falls inside the component's bounding rect.                                                    |

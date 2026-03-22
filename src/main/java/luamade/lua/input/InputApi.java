@@ -115,9 +115,9 @@ public class InputApi extends LuaMadeUserdata {
 	 * @param wheel    scroll wheel delta
 	 * @param cellX    mapped canvas cell X (1-based), or -1 when unavailable
 	 * @param cellY    mapped canvas cell Y (1-based), or -1 when unavailable
-	 * @param uiX      x position relative to terminal gfx_2d canvas, or -1 when unavailable
-	 * @param uiY      y position relative to terminal gfx_2d canvas, or -1 when unavailable
-	 * @param insideCanvas true when the pointer is inside the terminal gfx_2d canvas bounds
+	 * @param uiX      x position relative to terminal gfx2d canvas, or -1 when unavailable
+	 * @param uiY      y position relative to terminal gfx2d canvas, or -1 when unavailable
+	 * @param insideCanvas true when the pointer is inside the terminal gfx2d canvas bounds
 	 * @param dragging true while any mouse button is currently held down
 	 * @param dragButton active drag button name: left/right/middle/none
 	 *

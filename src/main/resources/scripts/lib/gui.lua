@@ -1,5 +1,5 @@
 -- /lib/gui.lua
--- Reusable, resize-aware GUI components for LuaMade gfx_2d.
+-- Reusable, resize-aware GUI components for LuaMade gfx2d.
 
 local GUI = {}
 
@@ -35,8 +35,8 @@ function GUIManager.new()
 		overlay = 8,
 		effects = 10,
 	}
-	self.width = gfx_2d.getWidth()
-	self.height = gfx_2d.getHeight()
+	self.width = gfx2d.getWidth()
+	self.height = gfx2d.getHeight()
 	self.frameCount = 0
 	self.running = false
 	self.frameDelayMs = 33   -- ~30 FPS (kept for compatibility; run() is event-driven)
@@ -65,29 +65,29 @@ end
 
 function GUIManager:_initializeLayers()
 	for name, order in pairs(self.layers) do
-		gfx_2d.createLayer(name, order)
+		gfx2d.createLayer(name, order)
 	end
 end
 
 function GUIManager:_rebuildLayers()
-	gfx_2d.clear()
+	gfx2d.clear()
 	for name, order in pairs(self.layers) do
-		gfx_2d.createLayer(name, order)
+		gfx2d.createLayer(name, order)
 	end
 end
 
 function GUIManager:_clearDynamicLayers()
-	-- Clear per-frame layers to avoid command accumulation hitting gfx_2d limits.
-	gfx_2d.clearLayer("grid")
-	gfx_2d.clearLayer("panels")
-	gfx_2d.clearLayer("components")
-	gfx_2d.clearLayer("overlay")
-	gfx_2d.clearLayer("effects")
+	-- Clear per-frame layers to avoid command accumulation hitting gfx2d limits.
+	gfx2d.clearLayer("grid")
+	gfx2d.clearLayer("panels")
+	gfx2d.clearLayer("components")
+	gfx2d.clearLayer("overlay")
+	gfx2d.clearLayer("effects")
 end
 
 function GUIManager:_checkWindowResize()
-	local newWidth = gfx_2d.getWidth()
-	local newHeight = gfx_2d.getHeight()
+	local newWidth = gfx2d.getWidth()
+	local newHeight = gfx2d.getHeight()
 	if newWidth ~= self.width or newHeight ~= self.height then
 		self.width = newWidth
 		self.height = newHeight
@@ -98,10 +98,10 @@ function GUIManager:_checkWindowResize()
 end
 
 function GUIManager:_drawBackground()
-	gfx_2d.setLayer("background")
-	gfx_2d.clearLayer("background")
+	gfx2d.setLayer("background")
+	gfx2d.clearLayer("background")
 
-	gfx_2d.rect(
+	gfx2d.rect(
 		0,
 		0,
 		self.width,
@@ -113,7 +113,7 @@ function GUIManager:_drawBackground()
 		true
 	)
 
-	gfx_2d.rect(
+	gfx2d.rect(
 		2,
 		2,
 		math.max(0, self.width - 4),
@@ -170,7 +170,7 @@ function GUIManager:draw()
 
 	-- Stage every clear + redraw atomically so the render thread never snapshots
 	-- a partially-filled buffer (fixes flicker caused by per-operation locking).
-	if gfx_2d.beginBatch then gfx_2d.beginBatch() end
+	if gfx2d.beginBatch then gfx2d.beginBatch() end
 
 	self:_drawBackground()
 	self:_clearDynamicLayers()
@@ -181,7 +181,7 @@ function GUIManager:draw()
 		end
 	end
 
-	if gfx_2d.commitBatch then gfx_2d.commitBatch() end
+	if gfx2d.commitBatch then gfx2d.commitBatch() end
 
 	self.frameCount = self.frameCount + 1
 end
@@ -643,8 +643,8 @@ function Panel:draw()
 		return
 	end
 
-	gfx_2d.setLayer(self.layer)
-	gfx_2d.rect(
+	gfx2d.setLayer(self.layer)
+	gfx2d.rect(
 		self.x,
 		self.y,
 		self.width,
@@ -656,7 +656,7 @@ function Panel:draw()
 		true
 	)
 
-	gfx_2d.rect(
+	gfx2d.rect(
 		self.x,
 		self.y,
 		self.width,
@@ -669,7 +669,7 @@ function Panel:draw()
 	)
 
 	if self.title ~= "" then
-		gfx_2d.text(
+		gfx2d.text(
 			self.x + 3,
 			self.y + 2,
 			self.title,
@@ -779,7 +779,7 @@ local function _drawButtonScanlineFill(x, y, width, height, color)
 	local x2 = x + w - 1
 	for row = 0, h - 1 do
 		local yRow = y + row
-		gfx_2d.line(x1, yRow, x2, yRow, color.r, color.g, color.b, color.a, 1.0)
+		gfx2d.line(x1, yRow, x2, yRow, color.r, color.g, color.b, color.a, 1.0)
 	end
 end
 
@@ -857,7 +857,7 @@ function Button:draw()
 		return
 	end
 
-	gfx_2d.setLayer(self.layer)
+	gfx2d.setLayer(self.layer)
 
 	local color = self.backgroundColor
 	local ms = self.manager.mouseState
@@ -888,7 +888,7 @@ function Button:draw()
 	-- Some engine builds still fail to rasterize filled rects reliably.
 	-- Use scanline fill so button bodies are always visibly filled.
 	_drawButtonScanlineFill(self.x, self.y, self.width, self.height, color)
-	gfx_2d.rect(
+	gfx2d.rect(
 		self.x,
 		self.y,
 		self.width,
@@ -917,7 +917,7 @@ function Button:draw()
 
 	local textX = self.x + hPad
 	local textY = self.y + math.max(0, math.floor((self.height - charPixH) * 0.5))
-	gfx_2d.text(
+	gfx2d.text(
 		textX,
 		textY,
 		label,
@@ -988,7 +988,7 @@ function Text:draw()
 		return
 	end
 
-	gfx_2d.setLayer(self.layer)
+	gfx2d.setLayer(self.layer)
 
 	local x = type(self.x) == "number" and self.x or 0
 	local y = type(self.y) == "number" and self.y or 0
@@ -1004,7 +1004,7 @@ function Text:draw()
 	local maxHeight = type(self.maxHeight) == "number" and self.maxHeight or nil
 
 	if maxWidth and maxHeight then
-		gfx_2d.text(
+		gfx2d.text(
 			x,
 			y,
 			self.content,
@@ -1019,7 +1019,7 @@ function Text:draw()
 			self.wrap
 		)
 	else
-		gfx_2d.text(
+		gfx2d.text(
 			x,
 			y,
 			self.content,

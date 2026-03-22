@@ -32,11 +32,11 @@ Events are captured only while the computer's terminal dialog is open and are au
     y = 45, -- absolute y position in dialog pixels
   windowX = 100, -- dialog top-left X in UI pixels, nil when unavailable
   windowY = 80, -- dialog top-left Y in UI pixels, nil when unavailable
-  canvasX = 120, -- terminal gfx_2d canvas top-left X in UI pixels, nil when unavailable
-  canvasY = 115, -- terminal gfx_2d canvas top-left Y in UI pixels, nil when unavailable
-  uiX = 28, -- optional x inside gfx_2d canvas (0-based), nil when outside
-  uiY = 12, -- optional y inside gfx_2d canvas (0-based), nil when outside
-  insideCanvas = true, -- true when pointer is currently inside terminal gfx_2d bounds
+  canvasX = 120, -- terminal gfx2d canvas top-left X in UI pixels, nil when unavailable
+  canvasY = 115, -- terminal gfx2d canvas top-left Y in UI pixels, nil when unavailable
+  uiX = 28, -- optional x inside gfx2d canvas (0-based), nil when outside
+  uiY = 12, -- optional y inside gfx2d canvas (0-based), nil when outside
+  insideCanvas = true, -- true when pointer is currently inside terminal gfx2d bounds
   dragging = false, -- true while any mouse button is held
   dragButton = "none", -- active drag button: left|right|middle|none
   cellX = nil, -- reserved for future text-cell mapping
@@ -77,8 +77,8 @@ Events are captured only while the computer's terminal dialog is open and are au
     windowY = 80, -- dialog top-left Y in UI pixels, nil when unavailable
     windowWidth = 850,
     windowHeight = 650,
-    canvasX = 120, -- terminal gfx_2d canvas top-left X in UI pixels, nil when unavailable
-    canvasY = 115, -- terminal gfx_2d canvas top-left Y in UI pixels, nil when unavailable
+    canvasX = 120, -- terminal gfx2d canvas top-left X in UI pixels, nil when unavailable
+    canvasY = 115, -- terminal gfx2d canvas top-left Y in UI pixels, nil when unavailable
     canvasWidth = 820,
     canvasHeight = 500
   }
@@ -139,8 +139,8 @@ Players receive immediate status feedback when a remote session links or disconn
 input.clear()
 input.consumeMouse()
 
-gfx_2d.createLayer("widgets", 10)
-gfx_2d.setLayer("widgets")
+gfx2d.createLayer("widgets", 10)
+gfx2d.setLayer("widgets")
 
 local panel = { x = 30, y = 24, w = 150, h = 80 }
 local drag = nil
@@ -150,10 +150,10 @@ local function hit(rect, x, y)
 end
 
 local function render()
-  gfx_2d.clearLayer("widgets")
-  gfx_2d.setLayer("widgets")
-  gfx_2d.rect(panel.x, panel.y, panel.w, panel.h, 0.1, 0.6, 1.0, 0.9, true)
-  gfx_2d.rect(panel.x, panel.y, panel.w, 16, 0.05, 0.3, 0.8, 1.0, true)
+  gfx2d.clearLayer("widgets")
+  gfx2d.setLayer("widgets")
+  gfx2d.rect(panel.x, panel.y, panel.w, panel.h, 0.1, 0.6, 1.0, 0.9, true)
+  gfx2d.rect(panel.x, panel.y, panel.w, 16, 0.05, 0.3, 0.8, 1.0, true)
 end
 
 render()
@@ -182,7 +182,7 @@ end
 - The queue holds up to **256 events**. Older events are silently dropped if the script doesn't read fast enough.
 - Key codes match LWJGL keyboard constants (same values as the GLFW wrapper in StarMade).
 - Mouse `x`/`y` are absolute dialog coordinates.
-- Mouse `uiX`/`uiY` are local coordinates within the terminal gfx_2d canvas when inside bounds.
+- Mouse `uiX`/`uiY` are local coordinates within the terminal gfx2d canvas when inside bounds.
 - Use `input.getUiLayout()` when you need explicit window/canvas origins for custom offset math.
 - Mouse move events are queued (not only click/release), enabling drag interactions.
 
