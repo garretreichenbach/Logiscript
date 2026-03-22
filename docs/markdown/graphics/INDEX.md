@@ -5,7 +5,7 @@ Graphics APIs for rendering 2D overlays inside the computer terminal UI.
 ## Contents
 
 - **gfx_2d.md** - Layered terminal graphics API (`gfx_2d`) for primitives, text, polygons, circles, and bitmaps
-- **gui_lib.md** - Component-based GUI framework (`gui_lib`) built on `gfx`: panels, buttons, text labels, layouts, and
+- **gui.md** - Component-based GUI framework (`gui`) built on `gfx`: panels, buttons, text labels, layouts, and
   modal dialogs
 
 ## Notes

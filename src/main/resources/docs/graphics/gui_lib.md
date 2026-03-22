@@ -1,11 +1,11 @@
-# GUI Library (`gui_lib`)
+# GUI Library (`gui`)
 
-`gui_lib` is a component-based 2D GUI framework built on top of `gfx`.
+`gui` is a component-based 2D GUI framework built on top of `gfx`.
 It handles layout, mouse hit-testing, resize adaptation, and event-driven rendering so scripts can build interactive
 terminal UIs without managing low-level drawing or event loops.
 
 ```lua
-local GUI = require("gui_lib")
+local GUI = require("gui")
 ```
 
 ---
@@ -13,7 +13,7 @@ local GUI = require("gui_lib")
 ## Quick Start
 
 ```lua
-local GUI = require("gui_lib")
+local GUI = require("gui")
 
 local mgr = GUI.GUIManager.new()
 
@@ -404,7 +404,7 @@ Both are applied every frame before drawing, so resizing the terminal window aut
 ## Full example
 
 ```lua
-local GUI = require("gui_lib")
+local GUI = require("gui")
 
 local mgr = GUI.GUIManager.new()
 

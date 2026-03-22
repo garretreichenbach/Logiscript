@@ -1,4 +1,4 @@
--- /lib/gui_lib.lua
+-- /lib/gui.lua
 -- Reusable, resize-aware GUI components for LuaMade gfx.
 
 local GUI = {}
