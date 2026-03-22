@@ -276,6 +276,12 @@ public class ComputerDialog extends PlayerInput {
 				return;
 			}
 
+			// In FILE_EDIT mode, prevent the text component from handling mouse clicks
+			// Only queue the event for Lua via the input API
+			if(isFileEditMode() && button >= 0) {
+				mouseEvent.cancel();
+			}
+
 			updateMouseButtonState(button, pressed);
 			boolean dragging = leftMouseDown || rightMouseDown || middleMouseDown;
 			String dragButton = dragButtonName();
