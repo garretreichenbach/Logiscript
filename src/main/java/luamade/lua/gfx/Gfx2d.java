@@ -8,10 +8,10 @@ import org.luaj.vm2.LuaError;
 import java.util.*;
 
 /**
- * Thread-safe graphics command buffer exposed to Lua scripts.
+ * Thread-safe 2D graphics API exposed to Lua scripts.
  * Commands are captured off-thread and consumed on the render thread.
  */
-public class GfxApi extends LuaMadeUserdata {
+public class Gfx2d extends LuaMadeUserdata {
 
 	private static final int MAX_TEXT_LENGTH = 512;
 	private static final int MAX_BITMAP_PIXELS = 65536;
@@ -33,7 +33,7 @@ public class GfxApi extends LuaMadeUserdata {
 	private boolean batchClearAll;
 	private volatile Runnable cancellationChecker;
 
-	public GfxApi() {
+	public Gfx2d() {
 		layers.put(activeLayer, new LayerState(0));
 	}
 
@@ -735,10 +735,10 @@ public class GfxApi extends LuaMadeUserdata {
 		public BitmapData(int width, int height, Integer fillColor) {
 			this.width = width;
 			this.height = height;
-			this.pixels = new Integer[width * height];
+			pixels = new Integer[width * height];
 			int fill = fillColor != null ? fillColor : 0x00000000;
 			for(int i = 0; i < pixels.length; i++) {
-				this.pixels[i] = fill;
+				pixels[i] = fill;
 			}
 		}
 	}
@@ -962,6 +962,6 @@ public class GfxApi extends LuaMadeUserdata {
 		if(bitmap == null || bitmap.pixels == null || bitmap.width == null || bitmap.height == null) {
 			return false;
 		}
-		return this.bitmap(x != null ? x : 0, y != null ? y : 0, bitmap.width, bitmap.height, bitmap.pixels);
+		return bitmap(x != null ? x : 0, y != null ? y : 0, bitmap.width, bitmap.height, bitmap.pixels);
 	}
 }

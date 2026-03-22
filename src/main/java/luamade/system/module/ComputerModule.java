@@ -2,7 +2,7 @@ package luamade.system.module;
 
 import luamade.lua.Console;
 import luamade.lua.fs.FileSystem;
-import luamade.lua.gfx.GfxApi;
+import luamade.lua.gfx.Gfx2d;
 import luamade.lua.input.InputApi;
 import luamade.lua.networking.NetworkInterface;
 import luamade.lua.terminal.Terminal;
@@ -25,7 +25,7 @@ public class ComputerModule {
 	private final Console console;
 	private final FileSystem fileSystem;
 	private final NetworkInterface networkInterface;
-	private final GfxApi gfxApi;
+	private final Gfx2d gfxApi;
 	private final Terminal terminal;
 	private final InputApi inputApi;
 	private ComputerMode lastMode = ComputerMode.OFF;
@@ -46,7 +46,7 @@ public class ComputerModule {
 		console = new Console(this);
 		fileSystem = FileSystem.initNewFileSystem(this);
 		networkInterface = new NetworkInterface(this);
-		gfxApi = new GfxApi();
+		gfxApi = new Gfx2d();
 		terminal = new Terminal(this, console, fileSystem);
 		inputApi = new InputApi();
 	}
@@ -194,7 +194,7 @@ public class ComputerModule {
 		return networkInterface;
 	}
 
-	public GfxApi getGfxApi() {
+	public Gfx2d getGfxApi() {
 		return gfxApi;
 	}
 

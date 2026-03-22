@@ -1,6 +1,6 @@
 package luamade.gui;
 
-import luamade.lua.gfx.GfxApi;
+import luamade.lua.gfx.Gfx2d;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
 import org.newdawn.slick.UnicodeFont;
@@ -18,14 +18,14 @@ import java.util.List;
 
 /** Draws Lua gfx2d geometry onto a texture-backed overlay and text via GUITextOverlay instances. */
 public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
-	private final GfxApi gfxApi;
+	private final Gfx2d gfxApi;
 	private int lastTextureId = -1;
 	private boolean canvasEnabled = true;
 	private int canvasWidth;
 	private int canvasHeight;
 	private boolean textureResizePending;
 
-	public TerminalGfxOverlay(int width, int height, ClientState state, GfxApi gfxApi) {
+	public TerminalGfxOverlay(int width, int height, ClientState state, Gfx2d gfxApi) {
 		super(Math.max(1, width), Math.max(1, height), state);
 		canvasWidth = Math.max(1, width);
 		canvasHeight = Math.max(1, height);
@@ -188,7 +188,7 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		super.cleanUp();
 	}
 
-	private void drawCircle(GfxApi.DrawCommand command, float scaleX, float scaleY) {
+	private void drawCircle(Gfx2d.DrawCommand command, float scaleX, float scaleY) {
 		int segments = Math.max(8, command.segments);
 		float cx = command.x1 * scaleX;
 		float cy = command.y1 * scaleY;
@@ -218,7 +218,7 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		}
 	}
 
-	private void drawPolygon(GfxApi.DrawCommand command, float scaleX, float scaleY) {
+	private void drawPolygon(Gfx2d.DrawCommand command, float scaleX, float scaleY) {
 		if(command.points == null || command.points.length < 6 || (command.points.length % 2) != 0) {
 			return;
 		}
@@ -245,12 +245,12 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		}
 
 		try {
-			GfxApi.FrameSnapshot frame = gfxApi.snapshot();
+			Gfx2d.FrameSnapshot frame = gfxApi.snapshot();
 			List<TextOverlaySpec> textOverlays = new ArrayList<>();
 
 			// Only render (and cover the terminal) when at least one visible layer has commands.
 			boolean hasCommands = false;
-			for(GfxApi.LayerSnapshot layer : frame.layers) {
+			for(Gfx2d.LayerSnapshot layer : frame.layers) {
 				if(layer.visible && !layer.commands.isEmpty()) {
 					hasCommands = true;
 					break;
@@ -274,7 +274,7 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 			GL11.glVertex3f(0.0f, frame.viewportHeight, 0.0F);
 			GL11.glEnd();
 
-			for(GfxApi.LayerSnapshot layer : frame.layers) {
+			for(Gfx2d.LayerSnapshot layer : frame.layers) {
 				if(!layer.visible || layer.commands.isEmpty()) {
 					continue;
 				}
@@ -298,7 +298,7 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		}
 	}
 
-	private void drawBitmap(GfxApi.DrawCommand command, float scaleX, float scaleY) {
+	private void drawBitmap(Gfx2d.DrawCommand command, float scaleX, float scaleY) {
 		if(command.bitmapPixels == null || command.bitmapWidth <= 0 || command.bitmapHeight <= 0) {
 			return;
 		}
@@ -329,9 +329,9 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		GL11.glEnd();
 	}
 
-	private void drawLayer(GfxApi.LayerSnapshot layer, List<TextOverlaySpec> textOverlays, float scaleX, float scaleY) {
+	private void drawLayer(Gfx2d.LayerSnapshot layer, List<TextOverlaySpec> textOverlays, float scaleX, float scaleY) {
 		try {
-			for(GfxApi.DrawCommand command : layer.commands) {
+			for(Gfx2d.DrawCommand command : layer.commands) {
 				GlUtil.glColor4f(command.r, command.g, command.b, command.a);
 				switch(command.kind) {
 					case POINT:
@@ -383,7 +383,7 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		}
 	}
 
-	private void collectTextOverlaySpecs(GfxApi.DrawCommand command, List<TextOverlaySpec> textOverlays, float scaleX, float scaleY) {
+	private void collectTextOverlaySpecs(Gfx2d.DrawCommand command, List<TextOverlaySpec> textOverlays, float scaleX, float scaleY) {
 		if(command.text == null || command.text.isEmpty()) {
 			return;
 		}
