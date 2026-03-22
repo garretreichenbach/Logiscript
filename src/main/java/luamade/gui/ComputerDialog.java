@@ -1507,10 +1507,6 @@ public class ComputerDialog extends PlayerInput {
 							currentInputLine = "";
 							clearCommandSuggestions();
 							focusConsoleOnOpen = false;
-							// Disable mouse handling to prevent freeze when clicking in editor
-							if(consolePane != null) {
-								consolePane.setMouseUpdateEnabled(false);
-							}
 							if(mainContentPane != null) {
 								mainContentPane.setTextBoxHeightLast(TEXT_BOX_HEIGHT - EDITOR_HINT_RESERVE_PX);
 							}
@@ -1519,10 +1515,6 @@ public class ComputerDialog extends PlayerInput {
 							clearCommandSuggestions();
 							refreshPromptStartPositionFromCurrentText();
 							requestConsoleFocus();
-							// Re-enable mouse handling when exiting editor
-							if(consolePane != null) {
-								consolePane.setMouseUpdateEnabled(true);
-							}
 							if(mainContentPane != null) {
 								mainContentPane.setTextBoxHeightLast(TEXT_BOX_HEIGHT);
 							}
