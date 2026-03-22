@@ -1,6 +1,6 @@
 package luamade.gui;
 
-import luamade.lua.gfx_2d.GfxApi;
+import luamade.lua.gfx.GfxApi;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
 import org.newdawn.slick.UnicodeFont;

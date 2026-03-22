@@ -2,7 +2,7 @@ package luamade.system.module;
 
 import luamade.lua.Console;
 import luamade.lua.fs.FileSystem;
-import luamade.lua.gfx_2d.GfxApi;
+import luamade.lua.gfx.GfxApi;
 import luamade.lua.input.InputApi;
 import luamade.lua.networking.NetworkInterface;
 import luamade.lua.terminal.Terminal;

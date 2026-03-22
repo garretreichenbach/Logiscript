@@ -1,4 +1,4 @@
-package luamade.lua.gfx_2d;
+package luamade.lua.gfx;
 
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
