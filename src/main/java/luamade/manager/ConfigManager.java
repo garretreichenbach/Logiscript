@@ -90,8 +90,8 @@ public final class ConfigManager {
 		packageManagerTrustedDomainsOnly = new SimpleConfigBool(config, "package_manager_trusted_domains_only", true, "If true, package artifacts are restricted to trusted domains.");
 		packageManagerTimeoutMs = new SimpleConfigInt(config, "package_manager_timeout_ms", 5000, "Package manager connect/read timeout in milliseconds.");
 		packageManagerMaxBytes = new SimpleConfigInt(config, "package_manager_max_bytes", 2097152, "Maximum package response payload size in bytes.");
-		gfxMaxCommandsPerLayer = new SimpleConfigInt(config, "gfx_max_commands_per_layer", 4096, "Maximum number of queued draw commands in a single gfx layer.");
-		gfxMaxLayers = new SimpleConfigInt(config, "gfx_max_layers", 32, "Maximum number of gfx layers per computer.");
+		gfxMaxCommandsPerLayer = new SimpleConfigInt(config, "gfx_max_commands_per_layer", 4096, "Maximum number of queued draw commands in a single gfx_2d layer.");
+		gfxMaxLayers = new SimpleConfigInt(config, "gfx_max_layers", 32, "Maximum number of gfx_2d layers per computer.");
 		dockingRequirePermissions = new SimpleConfigBool(config, "docking_require_permissions", true, "If true, Lua docking helpers require same-faction or friend-faction permissions.");
 		dockingAllowFriendFactions = new SimpleConfigBool(config, "docking_allow_friend_factions", true, "If true, docking permission checks allow faction friends in addition to same faction.");
 		dockingSnapRadius = new SimpleConfigInt(config, "docking_snap_radius", 5, "Maximum block distance used by Lua docking helpers when snapping to rail targets.");
@@ -372,15 +372,14 @@ public final class ConfigManager {
 				Files.createDirectories(PACKAGE_MANAGER_BASE_URL_PATH.getParent());
 			}
 
-			StringBuilder builder = new StringBuilder();
-			builder.append("# LuaMade package registry base URL\n");
-			builder.append("# Example: https://packages.luamade.net\n");
-			builder.append("# This is used by the terminal pkg command.\n\n");
-			builder.append(DEFAULT_PACKAGE_MANAGER_BASE_URL).append('\n');
+			String builder = "# LuaMade package registry base URL\n" +
+					"# Example: https://packages.luamade.net\n" +
+					"# This is used by the terminal pkg command.\n\n" +
+					DEFAULT_PACKAGE_MANAGER_BASE_URL + '\n';
 
 			Files.write(
 				PACKAGE_MANAGER_BASE_URL_PATH,
-				builder.toString().getBytes(StandardCharsets.UTF_8),
+					builder.getBytes(StandardCharsets.UTF_8),
 				StandardOpenOption.CREATE,
 				StandardOpenOption.TRUNCATE_EXISTING,
 				StandardOpenOption.WRITE

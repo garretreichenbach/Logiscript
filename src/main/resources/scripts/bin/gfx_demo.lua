@@ -1,5 +1,5 @@
 -- /bin/gfx_demo.lua
--- Layered graphics showcase for the newer gfx API.
+-- Layered graphics showcase for the newer gfx_2d API.
 -- Usage: run /bin/gfx_demo.lua [seconds]
 
 local seconds = tonumber(args[1]) or 10
@@ -22,41 +22,41 @@ local function clamp(v, minV, maxV)
     return v
 end
 
-gfx.clear()
-gfx.createLayer("bg", 0)
-gfx.createLayer("grid", 2)
-gfx.createLayer("shapes", 6)
-gfx.createLayer("fx", 12)
-gfx.createLayer("text", 16)
+gfx_2d.clear()
+gfx_2d.createLayer("bg", 0)
+gfx_2d.createLayer("grid", 2)
+gfx_2d.createLayer("shapes", 6)
+gfx_2d.createLayer("fx", 12)
+gfx_2d.createLayer("text", 16)
 
-local w = gfx.getWidth()
-local h = gfx.getHeight()
+local w = gfx_2d.getWidth()
+local h = gfx_2d.getHeight()
 
 local function redrawStaticLayers(width, height)
-    gfx.clearLayer("bg")
-    gfx.clearLayer("grid")
+    gfx_2d.clearLayer("bg")
+    gfx_2d.clearLayer("grid")
 
-    gfx.setLayer("bg")
-    gfx.rect(0, 0, width, height, 0.03, 0.04, 0.07, 0.88, true)
-    gfx.rect(2, 2, width - 4, height - 4, 0.22, 0.4, 0.95, 0.85, false)
+    gfx_2d.setLayer("bg")
+    gfx_2d.rect(0, 0, width, height, 0.03, 0.04, 0.07, 0.88, true)
+    gfx_2d.rect(2, 2, width - 4, height - 4, 0.22, 0.4, 0.95, 0.85, false)
 
-    gfx.setLayer("grid")
+    gfx_2d.setLayer("grid")
     for x = 0, width, step do
-        gfx.line(x, 0, x, height - 1, 0.1, 0.25, 0.45, 0.25)
+        gfx_2d.line(x, 0, x, height - 1, 0.1, 0.25, 0.45, 0.25)
     end
     for y = 0, height, step do
-        gfx.line(0, y, width - 1, y, 0.1, 0.25, 0.45, 0.25)
+        gfx_2d.line(0, y, width - 1, y, 0.1, 0.25, 0.45, 0.25)
     end
 end
 
-print("gfx demo started for " .. seconds .. "s")
+print("gfx_2d demo started for " .. seconds .. "s")
 print("canvas: " .. w .. "x" .. h)
 
 redrawStaticLayers(w, h)
 
 for i = 0, totalFrames do
-    local currentW = gfx.getWidth()
-    local currentH = gfx.getHeight()
+    local currentW = gfx_2d.getWidth()
+    local currentH = gfx_2d.getHeight()
     if currentW ~= w or currentH ~= h then
         w = currentW
         h = currentH
@@ -65,9 +65,9 @@ for i = 0, totalFrames do
 
     local t = i / 30.0
 
-    gfx.clearLayer("shapes")
-    gfx.clearLayer("fx")
-    gfx.clearLayer("text")
+    gfx_2d.clearLayer("shapes")
+    gfx_2d.clearLayer("fx")
+    gfx_2d.clearLayer("text")
 
     local cx = math.floor(w * 0.5)
     local cy = math.floor(h * 0.5)
@@ -82,29 +82,29 @@ for i = 0, totalFrames do
     local y = clamp(cy + oy - math.floor(boxH * 0.5), 0, math.max(0, h - boxH - 1))
 
     -- Dynamic rectangles and crosshair.
-    gfx.setLayer("shapes")
-    gfx.rect(x, y, boxW, boxH, 0.1, 0.8, 0.95, 0.55, true)
-    gfx.rect(x, y, boxW, boxH, 0.9, 0.98, 1.0, 1.0, false)
-    gfx.circle(cx, cy, 22 + math.floor((math.sin(t * 2.2) + 1) * 6), 1.0, 0.45, 0.2, 0.8, false, 36, 3)
-    gfx.polygon({
+    gfx_2d.setLayer("shapes")
+    gfx_2d.rect(x, y, boxW, boxH, 0.1, 0.8, 0.95, 0.55, true)
+    gfx_2d.rect(x, y, boxW, boxH, 0.9, 0.98, 1.0, 1.0, false)
+    gfx_2d.circle(cx, cy, 22 + math.floor((math.sin(t * 2.2) + 1) * 6), 1.0, 0.45, 0.2, 0.8, false, 36, 3)
+    gfx_2d.polygon({
         cx, clamp(cy - 26, 0, h - 1),
         clamp(cx + 22, 0, w - 1), clamp(cy + 20, 0, h - 1),
         clamp(cx - 22, 0, w - 1), clamp(cy + 20, 0, h - 1)
     }, 0.95, 0.8, 0.25, 0.85, true)
-    gfx.line(0, cy, w - 1, cy, 0.9, 0.2, 0.35, 0.7, 2)
-    gfx.line(cx, 0, cx, h - 1, 0.9, 0.2, 0.35, 0.7, 2)
+    gfx_2d.line(0, cy, w - 1, cy, 0.9, 0.2, 0.35, 0.7, 2)
+    gfx_2d.line(cx, 0, cx, h - 1, 0.9, 0.2, 0.35, 0.7, 2)
 
     -- Accent points and a blinking layer visibility toggle.
-    gfx.setLayer("fx")
+    gfx_2d.setLayer("fx")
     local p1x = clamp(cx + math.floor(math.cos(t * 2.0) * (w * 0.35)), 0, w - 1)
     local p1y = clamp(cy + math.floor(math.sin(t * 2.4) * (h * 0.35)), 0, h - 1)
     local p2x = clamp(cx + math.floor(math.sin(t * 2.8) * (w * 0.28)), 0, w - 1)
     local p2y = clamp(cy + math.floor(math.cos(t * 1.9) * (h * 0.28)), 0, h - 1)
-    gfx.point(p1x, p1y, 1.0, 0.9, 0.2, 1.0)
-    gfx.point(p2x, p2y, 0.3, 1.0, 0.35, 1.0)
+    gfx_2d.point(p1x, p1y, 1.0, 0.9, 0.2, 1.0)
+    gfx_2d.point(p2x, p2y, 0.3, 1.0, 0.35, 1.0)
 
     local checker = gfx_2d.checkerBitmap(8, 8, 0xFF9933FF, 0x223344CC, 1)
-    gfx_2d.draw(gfx, 10, 10, checker)
+    gfx_2d.draw(gfx_2d, 10, 10, checker)
 
     local mask = gfx_2d.textMaskBitmap({
         "##..##",
@@ -112,24 +112,24 @@ for i = 0, totalFrames do
         ".####.",
         "##..##",
     }, 0x66DDFFFF, 0x00000000, "#")
-    gfx_2d.draw(gfx, w - 20, 10, mask)
+    gfx_2d.draw(gfx_2d, w - 20, 10, mask)
 
-    gfx.setLayer("text")
-    gfx.text(24, 10, "GFX+", 0.95, 0.98, 1.0, 1.0, 2)
-    gfx.text(24, 26, "circle polygon bitmap", 0.5, 0.9, 1.0, 0.95, 1)
-    gfx.text(24, h - 28, "thick lines + wrapped center text layout", 0.92, 0.96, 1.0, 1.0, 1, w - 48, 20, "center", true)
+    gfx_2d.setLayer("text")
+    gfx_2d.text(24, 10, "GFX+", 0.95, 0.98, 1.0, 1.0, 2)
+    gfx_2d.text(24, 26, "circle polygon bitmap", 0.5, 0.9, 1.0, 0.95, 1)
+    gfx_2d.text(24, h - 28, "thick lines + wrapped center text layout", 0.92, 0.96, 1.0, 1.0, 1, w - 48, 20, "center", true)
 
     if (i % 24) < 12 then
-        gfx.setLayerVisible("fx", true)
+        gfx_2d.setLayerVisible("fx", true)
     else
-        gfx.setLayerVisible("fx", false)
+        gfx_2d.setLayerVisible("fx", false)
     end
 
     util.sleep(frameDelayMs)
 end
 
-gfx.setLayerVisible("fx", true)
-gfx.removeLayer("fx")
-gfx.clearLayer("shapes")
-print("gfx demo complete")
+gfx_2d.setLayerVisible("fx", true)
+gfx_2d.removeLayer("fx")
+gfx_2d.clearLayer("shapes")
+print("gfx_2d demo complete")
 

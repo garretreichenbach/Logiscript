@@ -875,7 +875,7 @@ public class Terminal extends LuaMadeUserdata {
 		globals.set("net", module.getNetworkInterface());
 		globals.set("peripheral", new PeripheralsApi(module));
 		globals.set("input", module.getInputApi());
-		globals.set("gfx", module.getGfxApi());
+		globals.set("gfx_2d", module.getGfxApi());
 		globals.set("shell", createShellCompatibilityApi());
 
 
@@ -2419,7 +2419,7 @@ public class Terminal extends LuaMadeUserdata {
 			}
 		});
 
-		commands.put("maskenter", new Command("maskenter", "Control Enter key forwarding while gfx input masking is active") {
+		commands.put("maskenter", new Command("maskenter", "Control Enter key forwarding while gfx_2d input masking is active") {
 			@Override
 			public void execute(String args) {
 				String trimmed = args == null ? "" : args.trim().toLowerCase(Locale.ROOT);
@@ -2796,7 +2796,7 @@ public class Terminal extends LuaMadeUserdata {
 		setCommandHelp("exit", "exit", "Stop the terminal session.");
 		setCommandHelp("reboot", "reboot", "Hard reset terminal state and rerun startup flow.");
 		setCommandHelp("scrollmode", "scrollmode [NONE|HORIZONTAL|VERTICAL|BOTH]", "Without args shows current scrollbar mode; with arg updates it.");
-		setCommandHelp("maskenter", "maskenter [on|off]", "Enable or disable Enter key forwarding to scripts while gfx input masking is active.");
+		setCommandHelp("maskenter", "maskenter [on|off]", "Enable or disable Enter key forwarding to scripts while gfx_2d input masking is active.");
 		setCommandHelp("cp", "cp [-r] <source> <destination>", "Copy file or directory. Use -r when source is a directory.");
 		setCommandHelp("mv", "mv <source> <destination>", "Move or rename a file path.");
 		setCommandHelp("edit", "edit <file> <content>", "Write provided content to a file in one command.");

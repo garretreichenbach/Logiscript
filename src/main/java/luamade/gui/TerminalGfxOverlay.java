@@ -1,6 +1,6 @@
 package luamade.gui;
 
-import luamade.lua.gfx.GfxApi;
+import luamade.lua.gfx_2d.GfxApi;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
 import org.newdawn.slick.UnicodeFont;
@@ -16,7 +16,7 @@ import org.schema.schine.network.client.ClientStateInterface;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Draws Lua gfx geometry onto a texture-backed overlay and text via GUITextOverlay instances. */
+/** Draws Lua gfx_2d geometry onto a texture-backed overlay and text via GUITextOverlay instances. */
 public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 	private final GfxApi gfxApi;
 	private int lastTextureId = -1;

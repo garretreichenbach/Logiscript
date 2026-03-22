@@ -47,7 +47,7 @@ The terminal is the command shell and script runner for each computer.
 - `pkg <search|info|fetch|install|list|remove> ...` to use the trusted package manager.
 - `reboot` to re-run startup flow and reset prompt behavior.
 - `scrollmode [NONE|HORIZONTAL|VERTICAL|BOTH]` to inspect or set editor/terminal scrollbar mode.
-- `maskenter [on|off]` to control whether Enter is forwarded to scripts while gfx masks terminal input.
+- `maskenter [on|off]` to control whether Enter is forwarded to scripts while gfx_2d masks terminal input.
 
 If trusted-only mode is enabled, allowed domains come from:
 
@@ -114,7 +114,7 @@ Returns current auto-prompt setting.
   Gets or updates scrollbar mode (`NONE`, `HORIZONTAL`, `VERTICAL`, `BOTH`).
 
 - `isMaskedEnterForwardingEnabled()` / `setMaskedEnterForwardingEnabled(enabled)`
-  Gets or updates whether Enter key events are forwarded to script input while gfx input masking is active.
+  Gets or updates whether Enter key events are forwarded to script input while gfx_2d input masking is active.
 
 - `getPreviousCommand()`, `getNextCommand()`
 Expose command history navigation helpers.

@@ -1007,7 +1007,7 @@ public class ComputerDialog extends PlayerInput {
 				return;
 			}
 
-			// Keep gfx canvas aligned with the visible terminal text bar.
+			// Keep gfx_2d canvas aligned with the visible terminal text bar.
 			// Using reflected scroll-panel dimensions can report larger virtual sizes
 			// than the rendered panel and push drawings out of view.
 			terminalGfxOverlay.setCanvasBounds(overlayCanvasX, overlayCanvasY, currentCanvasWidth, currentCanvasHeight);
