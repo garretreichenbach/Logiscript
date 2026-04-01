@@ -1,5 +1,4 @@
 core/INDEX.md
-core/azure-package-registry-setup.md
 core/console.md
 core/json.md
 core/luamade.md
@@ -32,6 +31,7 @@ systems/chamber.md
 systems/channels.md
 systems/disk-drive-block.md
 systems/display-module-block.md
+systems/factory-block.md
 systems/inventory-block.md
 systems/inventory.md
 systems/item-stack.md

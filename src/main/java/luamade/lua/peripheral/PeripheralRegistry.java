@@ -126,6 +126,28 @@ public class PeripheralRegistry {
 		register(new PeripheralProvider() {
 			@Override
 			public String[] getTypeNames() {
+				return new String[]{"factory", "basicfactory", "basic_factory", "standardfactory", "standard_factory", "advancedfactory", "advanced_factory", "microassembler", "micro_assembler", "capsuleassembler", "capsule_assembler"};
+			}
+
+			@Override
+			public boolean canWrap(SegmentPiece piece) {
+				short type = piece.getType();
+				return type == ElementKeyMap.FACTORY_BASIC_ID
+					|| type == ElementKeyMap.FACTORY_STANDARD_ID
+					|| type == ElementKeyMap.FACTORY_ADVANCED_ID
+					|| type == ElementKeyMap.FACTORY_CAPSULE_ASSEMBLER_ID
+					|| type == ElementKeyMap.FACTORY_MICRO_ASSEMBLER_ID;
+			}
+
+			@Override
+			public Block wrap(SegmentPiece piece, ComputerModule module) {
+				return new FactoryBlock(piece, module);
+			}
+		});
+
+		register(new PeripheralProvider() {
+			@Override
+			public String[] getTypeNames() {
 				return new String[]{"inventory"};
 			}
 
