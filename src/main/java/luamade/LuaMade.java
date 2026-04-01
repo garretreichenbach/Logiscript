@@ -3,6 +3,7 @@ package luamade;
 import api.config.BlockConfig;
 import api.mod.StarMod;
 import luamade.element.ElementRegistry;
+import luamade.lua.peripheral.PeripheralRegistry;
 import luamade.manager.ComputerDataCleanupManager;
 import luamade.manager.ConfigManager;
 import luamade.manager.EventManager;
@@ -31,6 +32,7 @@ public class LuaMade extends StarMod {
 	@Override
 	public void onEnable() {
 		instance = this;
+		PeripheralRegistry.registerDefaults();
 		ConfigManager.initialize(this);
 		EventManager.registerEvents(this);
 	}

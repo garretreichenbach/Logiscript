@@ -5,11 +5,6 @@ import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.data.player.faction.FactionManager;
 
-/**
- * [Description]
- *
- * @author TheDerpGamer (TheDerpGamer#0027)
- */
 public class Faction extends LuaMadeUserdata {
 
 	private final int factionId;

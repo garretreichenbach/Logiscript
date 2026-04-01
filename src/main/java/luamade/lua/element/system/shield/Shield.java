@@ -4,11 +4,6 @@ import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.controller.elements.ShieldLocal;
 
-/**
- * [Description]
- *
- * @author TheDerpGamer (TheDerpGamer#0027)
- */
 public class Shield extends LuaMadeUserdata {
 
 	private final ShieldLocal shieldLocal;

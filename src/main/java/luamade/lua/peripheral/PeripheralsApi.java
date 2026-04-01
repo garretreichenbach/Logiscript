@@ -61,6 +61,7 @@ public class PeripheralsApi extends LuaMadeUserdata {
 			position.getY(),
 			position.getZ()
 		);
+
 		if(piece == null) {
 			return null;
 		}

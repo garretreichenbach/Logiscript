@@ -12,11 +12,6 @@ import org.schema.game.common.data.fleet.FleetCommandTypes;
 import java.lang.reflect.Field;
 import java.util.Locale;
 
-/**
- * [Description]
- *
- * @author TheDerpGamer (TheDerpGamer#0027)
- */
 public class Fleet extends LuaMadeUserdata {
 
 	private final org.schema.game.common.data.fleet.Fleet fleet;

@@ -10,11 +10,6 @@ import org.schema.game.server.ai.ShipAIEntity;
 
 import javax.vecmath.Vector3f;
 
-/**
- * [Description]
- *
- * @author TheDerpGamer (TheDerpGamer#0027)
- */
 public class Thrust extends Module {
 
 	public Thrust(SegmentController segmentController) {
@@ -43,6 +38,7 @@ public class Thrust extends Module {
 	}
 
 	@LuaMadeCallable
+	@Override
 	public Integer getSize() {
 		ShipManagerContainer managerContainer = getContainer();
 		if(managerContainer != null) return managerContainer.getThrust().getElementManager().totalSize;

@@ -6,11 +6,6 @@ import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.player.inventory.InventorySlot;
 
-/**
- * [Description]
- *
- * @author TheDerpGamer (TheDerpGamer#0027)
- */
 public class Inventory extends LuaMadeUserdata {
 
 	private final org.schema.game.common.data.player.inventory.Inventory inventory;

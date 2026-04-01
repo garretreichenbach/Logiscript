@@ -12,11 +12,6 @@ import org.schema.game.common.data.element.ElementKeyMap;
 import java.util.ArrayList;
 import java.util.Map;
 
-/**
- * Lua wrapper class for ReactorElement.java
- *
- * @author TheDerpGamer (TheDerpGamer#0027)
- */
 public class Chamber extends LuaMadeUserdata {
 
 	private final ReactorElement reactorElement;
@@ -56,7 +51,7 @@ public class Chamber extends LuaMadeUserdata {
 		ElementInformation thisInfo = ElementKeyMap.getInfo(reactorElement.type);
 		for(short id : reactorElement.getPossibleSpecifications()) {
 			ElementInformation info = ElementKeyMap.getInfo(id);
-			if(info.getName().toLowerCase().equals(name) && id != thisInfo.getId() && info.isChamberPermitted(controller.getType()) && (getReactor().getChamberCapacity() + info.chamberCapacity <= 1.0f)) {
+			if(info.getName().toLowerCase().equals(name) && id != thisInfo.getId() && info.isChamberPermitted(controller.getType()) && (reactor.getChamberCapacity() + info.chamberCapacity <= 1.0f)) {
 				reactorElement.convertToClientRequest(id);
 				controller.getManagerContainer().getPowerInterface().requestRecalibrate();
 				return;
@@ -69,25 +64,25 @@ public class Chamber extends LuaMadeUserdata {
 		ArrayList<String> validSpecifications = new ArrayList<>();
 		for(short id : reactorElement.getPossibleSpecifications()) {
 			ElementInformation info = ElementKeyMap.getInfo(id);
-			if(info.isChamberPermitted(controller.getType()) && (getReactor().getChamberCapacity() + info.chamberCapacity <= 1.0f)) validSpecifications.add(info.getName());
+			if(info.isChamberPermitted(controller.getType()) && (reactor.getChamberCapacity() + info.chamberCapacity <= 1.0f)) validSpecifications.add(info.getName());
 		}
 		return validSpecifications.toArray(new String[0]);
 	}
 
 	@LuaMadeCallable
 	public Boolean isUsable() {
-		for(PlayerUsableInterface usableInterface : getController().getManagerContainer().getPlayerUsable()) {
+		for(PlayerUsableInterface usableInterface : controller.getManagerContainer().getPlayerUsable()) {
 			for(Map.Entry<Long, Short> entry : PlayerUsableInterface.ICONS.entrySet()) {
-				if(entry.getValue() == getReactorElement().type && usableInterface.isPlayerUsable() && (entry.getKey() == usableInterface.getUsableId())) return true;
+				if(entry.getValue() == reactorElement.type && usableInterface.isPlayerUsable() && (entry.getKey() == usableInterface.getUsableId())) return true;
 			}
-			if(usableInterface.isPlayerUsable() && usableInterface.getUsableId() == getReactorElement().type) return true;
+			if(usableInterface.isPlayerUsable() && usableInterface.getUsableId() == reactorElement.type) return true;
 		}
 		return false;
 	}
 
 	@LuaMadeCallable
 	public UsableChamber getUsable() {
-		if(isUsable()) return new UsableChamber(getReactorElement(), getController(), getReactor());
+		if(isUsable()) return new UsableChamber(reactorElement, controller, reactor);
 		else return null;
 	}
 

@@ -5,6 +5,7 @@ import luamade.lua.disk.DiskDataStore;
 import luamade.lua.element.inventory.Inventory;
 import luamade.lua.element.inventory.ItemStack;
 import luamade.luawrap.LuaMadeCallable;
+import luamade.luawrap.LuaMadeClass;
 import luamade.system.module.ComputerModule;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.player.inventory.InventorySlot;
@@ -12,6 +13,7 @@ import org.schema.game.common.data.player.inventory.InventorySlot;
 import java.util.Collections;
 import java.util.List;
 
+@LuaMadeClass("DiskDrive")
 public class DiskDriveBlock extends InventoryBlock {
 
 	private final ComputerModule module;

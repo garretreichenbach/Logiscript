@@ -5,11 +5,6 @@ import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.data.element.ElementKeyMap;
 
-/**
- * [Description]
- *
- * @author TheDerpGamer (TheDerpGamer#0027)
- */
 public class ItemStack extends LuaMadeUserdata {
 
 	private short id;

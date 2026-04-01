@@ -10,11 +10,6 @@ import org.schema.game.common.data.element.ElementKeyMap;
 
 import java.util.Map;
 
-/**
- * [Description]
- *
- * @author TheDerpGamer (TheDerpGamer#0027)
- */
 public class UsableChamber extends Chamber {
 
 	public UsableChamber(ReactorElement reactorElement, ManagedUsableSegmentController<?> segmentController, Reactor reactor) {

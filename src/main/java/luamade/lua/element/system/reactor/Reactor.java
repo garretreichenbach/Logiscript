@@ -9,11 +9,6 @@ import org.schema.game.common.controller.elements.power.reactor.tree.ReactorElem
 
 import java.util.ArrayList;
 
-/**
- * [Description]
- *
- * @author TheDerpGamer (TheDerpGamer#0027)
- */
 public class Reactor extends LuaMadeUserdata {
 
 	private final SegmentController segmentController;

@@ -6,11 +6,6 @@ import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.data.fleet.FleetCommandTypes;
 
-/**
- * [Description]
- *
- * @author TheDerpGamer (TheDerpGamer#0027)
- */
 public class FleetCommand extends LuaMadeUserdata {
 
 	private final org.schema.game.network.objects.remote.FleetCommand fleetCommand;

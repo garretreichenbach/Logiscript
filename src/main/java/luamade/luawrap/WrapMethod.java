@@ -25,8 +25,11 @@ public class WrapMethod extends VarArgFunction {
 
 		for(Method m : clazz.getMethods())
 			if(m.getName().equals(name) && m.isAnnotationPresent(LuaMadeCallable.class)) {
-				if(!ms.containsKey(m.getParameters().length)) ms.put(m.getParameters().length, m);
-				else throw new LuaError(String.format("Ambiguous @LuaMadeCallable '%s:%s'.", clazz, name));
+				if(!ms.containsKey(m.getParameters().length)) {
+					ms.put(m.getParameters().length, m);
+				} else {
+					throw new LuaError(String.format("Ambiguous @LuaMadeCallable '%s:%s'.", clazz, name));
+				}
 			}
 
 		for(int argc : ms.keySet()) {

@@ -68,7 +68,7 @@ public final class DiskDataStore {
 			}
 		}
 
-		if(metadata != null && !metadata.isEmpty()) {
+		if(metadata != null) {
 			return sanitizeDiskKey(metadata);
 		}
 

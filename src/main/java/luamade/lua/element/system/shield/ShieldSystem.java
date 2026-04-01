@@ -9,11 +9,6 @@ import org.schema.game.common.controller.elements.ShieldLocal;
 
 import java.util.Collection;
 
-/**
- * [Description]
- *
- * @author TheDerpGamer (TheDerpGamer#0027)
- */
 public class ShieldSystem extends LuaMadeUserdata {
 
 	private final SegmentController segmentController;

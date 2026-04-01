@@ -1,11 +1,12 @@
 package luamade.lua.element.block;
 
+import api.utils.element.Blocks;
 import com.bulletphysics.linearmath.Transform;
-import luamade.element.ElementRegistry;
 import luamade.lua.data.Vec3f;
 import luamade.lua.data.Vec3i;
 import luamade.lua.element.inventory.Inventory;
 import luamade.lua.entity.Entity;
+import luamade.lua.peripheral.PeripheralRegistry;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.system.module.ComputerModule;
@@ -18,8 +19,6 @@ import org.schema.game.common.data.element.ElementCollection;
 import org.schema.game.common.data.element.ElementKeyMap;
 import org.schema.game.network.objects.remote.RemoteTextBlockPair;
 import org.schema.game.network.objects.remote.TextBlockPair;
-
-import java.util.Locale;
 
 public class Block extends LuaMadeUserdata {
 	private final SegmentPiece segmentPiece;
@@ -47,64 +46,7 @@ public class Block extends LuaMadeUserdata {
 	}
 
 	public static Block wrapAs(SegmentPiece piece, String target, ComputerModule module) {
-		if(piece == null) {
-			return null;
-		}
-
-		String kind = target == null ? "auto" : target.trim().toLowerCase(Locale.ROOT);
-
-		if("block".equals(kind) || "base".equals(kind)) {
-			return new Block(piece, module);
-		}
-
-		if("display".equals(kind) || "displaymodule".equals(kind) || "display_module".equals(kind)) {
-			if(piece.getType() == ElementKeyMap.TEXT_BOX) {
-				return new DisplayModule(piece);
-			}
-			return null;
-		}
-
-		if("inventory".equals(kind)) {
-			if(piece.getType() == ElementRegistry.DISK_DRIVE.getId()) {
-				return new DiskDriveBlock(piece, module);
-			}
-			if(hasInventoryAt(piece)) {
-				return new InventoryBlock(piece);
-			}
-			return null;
-		}
-
-		if("diskdrive".equals(kind) || "disk_drive".equals(kind) || "disk-drive".equals(kind)) {
-			if(piece.getType() == ElementRegistry.DISK_DRIVE.getId()) {
-				return new DiskDriveBlock(piece, module);
-			}
-			return null;
-		}
-
-		if("accesspoint".equals(kind) || "remoteaccesspoint".equals(kind) || "remote_access_point".equals(kind) || "remote-access-point".equals(kind)) {
-			if(piece.getType() == ElementRegistry.REMOTE_ACCESS_POINT.getId()) {
-				return new RemoteAccessPointBlock(piece, module);
-			}
-			return null;
-		}
-
-		if(piece.getType() == ElementKeyMap.TEXT_BOX) {
-			return new DisplayModule(piece);
-		}
-
-		if(piece.getType() == ElementRegistry.DISK_DRIVE.getId()) {
-			return new DiskDriveBlock(piece, module);
-		}
-
-		if(piece.getType() == ElementRegistry.REMOTE_ACCESS_POINT.getId()) {
-			return new RemoteAccessPointBlock(piece, module);
-		}
-
-		if(hasInventoryAt(piece)) {
-			return new InventoryBlock(piece);
-		}
-
-		return new Block(piece, module);
+		return PeripheralRegistry.wrapAs(piece, target, module);
 	}
 
 	private static Inventory getInventoryAt(SegmentPiece piece) {
@@ -118,7 +60,7 @@ public class Block extends LuaMadeUserdata {
 		return null;
 	}
 
-	private static boolean hasInventoryAt(SegmentPiece piece) {
+	public static boolean hasInventoryAt(SegmentPiece piece) {
 		return getInventoryAt(piece) != null;
 	}
 
@@ -236,7 +178,7 @@ public class Block extends LuaMadeUserdata {
 
 	protected SegmentPiece requireDisplayModuleSegmentPiece() {
 		SegmentPiece livePiece = requireLiveSegmentPiece();
-		if(livePiece.getType() != ElementKeyMap.TEXT_BOX) {
+		if(livePiece.getType() != Blocks.DISPLAY_MODULE.getId()) {
 			throw new LuaError("Block is not a display module");
 		}
 		return livePiece;

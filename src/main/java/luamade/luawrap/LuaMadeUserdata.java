@@ -9,7 +9,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-/** by lupoCani from 2022-12-07
+/**
+ * by lupoCani from 2022-12-07
  * Provides the core of the LuaMade Java-Lua interface.
  * The class is a valid LuaValue, and any subclass which with methods
  * marked @LuaMadeCallable will, when passed as a LuaValue to Lua, automatically
@@ -36,22 +37,30 @@ public abstract class LuaMadeUserdata extends LuaUserdata {
 	private static final LuaFunction f = new TwoArgFunction() {
 		@Override
 		public LuaValue call(LuaValue udi, LuaValue key) {
-			if(!(udi instanceof LuaMadeUserdata) || !key.isstring())
+			if(!(udi instanceof LuaMadeUserdata) || !key.isstring()) {
 				throw new LuaError("LuaMade userdata must be indexed by string.");
+			}
 			LuaMadeUserdata ud = (LuaMadeUserdata) udi;
 			String methodName = key.tojstring();
 			LuaFunction apiMethod = getAPIMethod(ud.getClass(), methodName);
 
-			if(!methodWraps.containsKey(ud.getClass()))
-				methodWraps.put(ud.getClass(), new HashMap<String, WrapMethod>());
-			if(!methods.containsKey(ud.getClass())) methods.put(ud.getClass(), WrapUtils.listMethods(ud.getClass()));
+			if(!methodWraps.containsKey(ud.getClass())) {
+				methodWraps.put(ud.getClass(), new HashMap<>());
+			}
+			if(!methods.containsKey(ud.getClass())) {
+				methods.put(ud.getClass(), WrapUtils.listMethods(ud.getClass()));
+			}
 
-			if(apiMethod != null) return bindSelf(ud, apiMethod);
-			else if(!methods.get(ud.getClass()).contains(methodName))
-				throw new LuaError(String.format("LuaMadeUserdata '%s' has no such method '%s'.", udi.getClass(), methodName));
+			if(apiMethod != null) {
+				return bindSelf(ud, apiMethod);
+			} else if(!methods.get(ud.getClass()).contains(methodName)) {
+				throw new LuaError(String.format("LuaMadeUserdata '%s' has no such method '%s'.", getLuaClassName(ud.getClass()), methodName));
+			}
 
 			Map<String, WrapMethod> methods = methodWraps.get(ud.getClass());
-			if(!methods.containsKey(methodName)) methods.put(methodName, new WrapMethod(methodName, ud.getClass()));
+			if(!methods.containsKey(methodName)) {
+				methods.put(methodName, new WrapMethod(methodName, ud.getClass()));
+			}
 
 			return bindSelf(ud, methods.get(key.tojstring()));
 		}
@@ -59,10 +68,6 @@ public abstract class LuaMadeUserdata extends LuaUserdata {
 
 	protected LuaMadeUserdata() {
 		super(new Object(), getMeta());
-	}
-
-	public Console getConsole() {
-		return (Console) checkuserdata(Console.class);
 	}
 
 	private static LuaTable getMeta() {
@@ -88,25 +93,40 @@ public abstract class LuaMadeUserdata extends LuaUserdata {
 
 	/**
 	 * Returns a grafted Lua method for the given class.
+	 *
 	 * @param clazz The given class.
-	 * @param name The name of the method.
+	 * @param name  The name of the method.
 	 * @return The grafted Lua method, or null if none is find.
 	 */
 	private static LuaFunction getAPIMethod(Class<? extends LuaMadeUserdata> clazz, String name) {
 		for(Class<?> c = clazz; LuaMadeUserdata.class.isAssignableFrom(c); c = c.getSuperclass())
 			if(apiMethods.containsKey(c)) {
-				if(apiMethods.get(c).containsKey(name)) return apiMethods.get(c).get(name);
+				if(apiMethods.get(c).containsKey(name)) {
+					return apiMethods.get(c).get(name);
+				}
 			}
 		return null;
 	}
 
 	/**
 	 * Grafts a method onto an existing class.
-	 * @param clazz The class to register the method for.
+	 *
+	 * @param clazz    The class to register the method for.
 	 * @param function The method to register.
 	 */
 	public static void graftMethod(Class<? extends LuaMadeUserdata> clazz, String name, LuaFunction function) {
-		if(!apiMethods.containsKey(clazz)) apiMethods.put(clazz, new HashMap<String, LuaFunction>());
+		if(!apiMethods.containsKey(clazz)) {
+			apiMethods.put(clazz, new HashMap<>());
+		}
 		apiMethods.get(clazz).put(name, function);
+	}
+
+	public static String getLuaClassName(Class<? extends LuaMadeUserdata> clazz) {
+		LuaMadeClass annotation = clazz.getAnnotation(LuaMadeClass.class);
+		return annotation != null ? annotation.value() : clazz.getSimpleName();
+	}
+
+	public Console getConsole() {
+		return (Console) checkuserdata(Console.class);
 	}
 }

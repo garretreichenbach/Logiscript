@@ -7,16 +7,14 @@ import org.schema.game.common.controller.SegmentController;
 /**
  * Base class for all segment controller module wrappers (thrust, etc.).
  */
-public class Module extends LuaMadeUserdata {
+public abstract class Module extends LuaMadeUserdata {
 
 	protected final SegmentController segmentController;
 
-	public Module(SegmentController segmentController) {
+	protected Module(SegmentController segmentController) {
 		this.segmentController = segmentController;
 	}
 
 	@LuaMadeCallable
-	public Integer getSize() {
-		return 0;
-	}
+	public abstract Integer getSize();
 }

@@ -26,11 +26,6 @@ import org.schema.schine.network.objects.Sendable;
 
 import javax.vecmath.Vector3f;
 
-/**
- * [Description]
- *
- * @author TheDerpGamer (TheDerpGamer#0027)
- */
 public class EntityAI extends LuaMadeUserdata {
 
 	private final SegmentController segmentController;
