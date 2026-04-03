@@ -4,6 +4,7 @@ import api.config.BlockConfig;
 import api.mod.StarMod;
 import luamade.element.ElementRegistry;
 import luamade.lua.peripheral.PeripheralRegistry;
+import luamade.lua.datastore.SharedDataStore;
 import luamade.manager.ComputerDataCleanupManager;
 import luamade.manager.ConfigManager;
 import luamade.manager.EventManager;
@@ -45,6 +46,11 @@ public class LuaMade extends StarMod {
 			ComputerDataCleanupManager.cleanupOrphanedComputerData(protectedComputerUUIDs);
 		} catch(Exception exception) {
 			logException("Failed to save computer data on disable", exception);
+		}
+		try {
+			SharedDataStore.saveAll();
+		} catch(Exception exception) {
+			logException("Failed to save data store state on disable", exception);
 		}
 		super.onDisable();
 	}

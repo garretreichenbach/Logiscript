@@ -148,6 +148,40 @@ public class PeripheralRegistry {
 		register(new PeripheralProvider() {
 			@Override
 			public String[] getTypeNames() {
+				return new String[]{"passwordmodule", "password_module", "passwordpermission", "password_permission_module"};
+			}
+
+			@Override
+			public boolean canWrap(SegmentPiece piece) {
+				return piece.getType() == ElementRegistry.PASSWORD_PERMISSION_MODULE.getId();
+			}
+
+			@Override
+			public Block wrap(SegmentPiece piece, ComputerModule module) {
+				return new PasswordPermissionModuleBlock(piece, module);
+			}
+		});
+
+		register(new PeripheralProvider() {
+			@Override
+			public String[] getTypeNames() {
+				return new String[]{"datastore", "data_store", "data-store"};
+			}
+
+			@Override
+			public boolean canWrap(SegmentPiece piece) {
+				return piece.getType() == ElementRegistry.DATA_STORE.getId();
+			}
+
+			@Override
+			public Block wrap(SegmentPiece piece, ComputerModule module) {
+				return new DataStoreBlock(piece, module);
+			}
+		});
+
+		register(new PeripheralProvider() {
+			@Override
+			public String[] getTypeNames() {
 				return new String[]{"inventory"};
 			}
 

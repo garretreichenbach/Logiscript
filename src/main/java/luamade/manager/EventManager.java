@@ -7,9 +7,12 @@ import api.listener.events.register.ManagerContainerRegisterEvent;
 import api.mod.StarLoader;
 import luamade.LuaMade;
 import luamade.gui.ComputerDialog;
+import luamade.listener.BlockPublicPermissionListener;
 import luamade.system.module.AccessPointModuleContainer;
 import luamade.system.module.ComputerModule;
 import luamade.system.module.ComputerModuleContainer;
+import luamade.system.module.DataStoreModuleContainer;
+import luamade.system.module.PasswordPermissionModuleContainer;
 import org.schema.schine.graphicsengine.core.GLFW;
 import org.schema.schine.input.Keyboard;
 
@@ -118,11 +121,15 @@ public class EventManager {
 			}
 		}, instance);
 
+		BlockPublicPermissionListener.register(instance);
+
 		StarLoader.registerListener(ManagerContainerRegisterEvent.class, new Listener<ManagerContainerRegisterEvent>() {
 			@Override
 			public void onEvent(ManagerContainerRegisterEvent event) {
 				event.addModMCModule(new ComputerModuleContainer(event.getSegmentController(), event.getContainer()));
 				event.addModMCModule(new AccessPointModuleContainer(event.getSegmentController(), event.getContainer()));
+				event.addModMCModule(new DataStoreModuleContainer(event.getSegmentController(), event.getContainer()));
+				event.addModMCModule(new PasswordPermissionModuleContainer(event.getSegmentController(), event.getContainer()));
 			}
 		}, instance);
 	}

@@ -18,6 +18,7 @@ graphics/gfx2d.md
 graphics/gui.md
 io/INDEX.md
 io/filesystem.md
+io/ftp.md
 io/input.md
 io/networking.md
 io/virtualfile.md
@@ -29,12 +30,14 @@ systems/block-info.md
 systems/block.md
 systems/chamber.md
 systems/channels.md
+systems/datastore-block.md
 systems/disk-drive-block.md
 systems/display-module-block.md
 systems/factory-block.md
 systems/inventory-block.md
 systems/inventory.md
 systems/item-stack.md
+systems/password-permission-module.md
 systems/peripheral.md
 systems/reactor.md
 systems/shield-system.md

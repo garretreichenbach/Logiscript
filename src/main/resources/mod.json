@@ -1,17 +1,20 @@
 {
-  "name": "LuaMade",
-  "author": "TheDerpGamer, LupoCani",
-  "description": "Adds Lua scriptable computers to StarMade.",
-  "version": "2.0.17",
-  "starmade_version": "0.205.3",
-  "client_mod": false,
-  "server_mod": false,
-  "main_class": "luamade.LuaMade",
-  "smd_resource_id": 8501,
-  "dependencies": [
-	-1
-  ],
-  "core_mod": false,
-  "requires_class_resize": false,
-  "hard_load_all_classes": false
+	"name": "LuaMade",
+	"author": "TheDerpGamer, LupoCani",
+	"description": "Adds Lua scriptable computers to StarMade.",
+	"version": "2.0.17",
+	"starmade_version": "0.205.3",
+	"client_mod": false,
+	"server_mod": false,
+	"main_class": "luamade.LuaMade",
+	"smd_resource_id": 8501,
+	"dependencies": [
+		-1
+	],
+	"core_mod": false,
+	"requires_class_resize": false,
+	"hard_load_all_classes": false,
+	"mixin_configs": [
+		"mixins.luamade.json"
+	]
 }
