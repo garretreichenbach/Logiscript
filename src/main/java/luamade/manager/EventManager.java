@@ -1,35 +1,21 @@
 package luamade.manager;
 
 import api.listener.Listener;
-import api.listener.events.block.SegmentPieceAddByMetadataEvent;
 import api.listener.events.input.KeyPressEvent;
 import api.listener.events.input.MousePressEvent;
 import api.listener.events.register.ManagerContainerRegisterEvent;
-import api.listener.fastevents.FastListenerCommon;
 import api.mod.StarLoader;
 import luamade.LuaMade;
-import luamade.element.ElementRegistry;
 import luamade.gui.ComputerDialog;
-import luamade.listener.SegmentPieceListener;
 import luamade.system.module.AccessPointModuleContainer;
 import luamade.system.module.ComputerModule;
 import luamade.system.module.ComputerModuleContainer;
-import org.schema.game.common.controller.ManagedUsableSegmentController;
-import org.schema.game.common.data.SegmentPiece;
-import org.schema.game.common.data.element.ElementCollection;
 import org.schema.schine.graphicsengine.core.GLFW;
 import org.schema.schine.input.Keyboard;
 
 public class EventManager {
 
-	private static final SegmentPieceListener segmentPieceListener = new SegmentPieceListener();
-
 	public static void registerEvents(LuaMade instance) {
-		FastListenerCommon.segmentPiecePlayerInteractListeners.add(segmentPieceListener);
-		FastListenerCommon.segmentPieceAddListeners.add(segmentPieceListener);
-		FastListenerCommon.segmentPieceRemoveListeners.add(segmentPieceListener);
-		FastListenerCommon.segmentPieceKilledListeners.add(segmentPieceListener);
-
 		// Intercept navigation and completion keys so they don't reach TextAreaInput when the
 		// ComputerDialog is open. This prevents the caret from moving into protected
 		// console output territory and enables proper terminal history navigation.
@@ -128,23 +114,6 @@ public class EventManager {
 				ComputerDialog.ComputerPanel panel = ComputerDialog.getActivePanel();
 				if(panel != null) {
 					panel.pushMouseEvent(event.getRawEvent());
-				}
-			}
-		}, instance);
-
-		StarLoader.registerListener(SegmentPieceAddByMetadataEvent.class, new Listener<SegmentPieceAddByMetadataEvent>() {
-			@Override
-			public void onEvent(SegmentPieceAddByMetadataEvent event) {
-				SegmentPiece segmentPiece = event.getSegment().getSegmentController().getSegmentBuffer().getPointUnsave(ElementCollection.getIndex(event.getX(), event.getY(), event.getZ()));
-				if(segmentPiece != null) {
-					if(event.getSegment().getSegmentController() instanceof ManagedUsableSegmentController<?>) {
-						if(segmentPiece.getType() == ElementRegistry.COMPUTER.getId()) {
-							ComputerModuleContainer container = ComputerModuleContainer.getContainer(((ManagedUsableSegmentController<?>) event.getSegment().getSegmentController()).getManagerContainer());
-							if(container != null) {
-								container.addModule(segmentPiece);
-							}
-						}
-					}
 				}
 			}
 		}, instance);

@@ -1,6 +1,8 @@
 package luamade.element;
 
 import api.config.BlockConfig;
+import api.listener.fastevents.FastListenerCommon;
+import api.listener.fastevents.segmentpiece.*;
 import luamade.LuaMade;
 import luamade.element.block.Computer;
 import luamade.element.block.DiskDrive;
@@ -47,6 +49,31 @@ public enum ElementRegistry {
 			BlockConfig.add(registry.getInfo());
 		}
 		LuaMade.getInstance().logDebug("Initialized element resources for " + values().length + " elements");
+
+		for(ElementRegistry registry : values()) {
+			if(registry.elementInterface instanceof SegmentPieceAddListener) {
+				FastListenerCommon.segmentPieceAddListeners.add((SegmentPieceAddListener) registry.elementInterface);
+			}
+			if(registry.elementInterface instanceof SegmentPieceAddByMetadataListener) {
+				FastListenerCommon.segmentPieceAddByMetadataListeners.add((SegmentPieceAddByMetadataListener) registry.elementInterface);
+			}
+			if(registry.elementInterface instanceof SegmentPieceRemoveListener) {
+				FastListenerCommon.segmentPieceRemoveListeners.add((SegmentPieceRemoveListener) registry.elementInterface);
+			}
+			if(registry.elementInterface instanceof SegmentPieceKilledListener) {
+				FastListenerCommon.segmentPieceKilledListeners.add((SegmentPieceKilledListener) registry.elementInterface);
+			}
+			if(registry.elementInterface instanceof SegmentPiecePlayerInteractListener) {
+				FastListenerCommon.segmentPiecePlayerInteractListeners.add((SegmentPiecePlayerInteractListener) registry.elementInterface);
+			}
+			if(registry.elementInterface instanceof SegmentPieceConsoleInteractListener) {
+				FastListenerCommon.consoleInteractListeners.add((SegmentPieceConsoleInteractListener) registry.elementInterface);
+			}
+			if(registry.elementInterface instanceof SegmentPieceActivateListener) {
+				FastListenerCommon.segmentPieceActivateListeners.add((SegmentPieceActivateListener) registry.elementInterface);
+			}
+		}
+		LuaMade.getInstance().logDebug("Registered event listeners for " + values().length + " elements");
 	}
 
 	private static ElementInformation getInfoByName(String name) {

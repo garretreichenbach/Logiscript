@@ -10,6 +10,7 @@ import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SegmentController;
+import org.schema.common.util.linAlg.Quat4fTools;
 import org.schema.game.common.controller.Ship;
 import org.schema.game.common.controller.ai.AIGameConfiguration;
 import org.schema.game.common.controller.ai.AIConfiguationElements;
@@ -17,6 +18,9 @@ import org.schema.game.common.controller.ai.Types;
 import org.schema.game.common.data.SimpleGameObject;
 import org.schema.game.server.ai.ShipAIEntity;
 import org.schema.game.server.ai.program.common.TargetProgram;
+
+import javax.vecmath.Matrix3f;
+import javax.vecmath.Quat4f;
 import org.schema.schine.ai.stateMachines.AiInterface;
 import org.schema.schine.graphicsengine.core.settings.StateParameterNotFoundException;
 import org.schema.schine.graphicsengine.core.settings.states.StaticStates;
@@ -363,6 +367,123 @@ public class EntityAI extends LuaMadeUserdata {
 		toTarget.normalize();
 		Vec3f dir = new Vec3f(toTarget);
 		faceDirection(dir);
+	}
+
+	@LuaMadeCallable
+	public Vec3f getUp() {
+		Vector3f up = new Vector3f(
+			segmentController.getWorldTransform().basis.m01,
+			segmentController.getWorldTransform().basis.m11,
+			segmentController.getWorldTransform().basis.m21
+		);
+		if(up.lengthSquared() == 0) return new Vec3f(0, 1, 0);
+		up.normalize();
+		return new Vec3f(up);
+	}
+
+	@LuaMadeCallable
+	public Float getRoll() {
+		Matrix3f basis = segmentController.getWorldTransform().basis;
+		Vector3f forward = new Vector3f(basis.m02, basis.m12, basis.m22);
+		Vector3f shipUp = new Vector3f(basis.m01, basis.m11, basis.m21);
+		if(forward.lengthSquared() == 0 || shipUp.lengthSquared() == 0) return 0f;
+		forward.normalize();
+		shipUp.normalize();
+		// Project galactic up (0,1,0) onto the plane perpendicular to the ship's forward
+		float proj = forward.y;
+		Vector3f refUp = new Vector3f(-proj * forward.x, 1f - proj * forward.y, -proj * forward.z);
+		float refLen = refUp.length();
+		if(refLen < 0.001f) return 0f; // ship pointing straight up/down: roll undefined
+		refUp.scale(1f / refLen);
+		// Signed angle from the galactic-up reference to the ship's up, around the forward axis
+		Vector3f cross = new Vector3f();
+		cross.cross(refUp, shipUp);
+		return (float) Math.atan2(cross.dot(forward), refUp.dot(shipUp));
+	}
+
+	@LuaMadeCallable
+	public Boolean isRollAligned(Float threshold) {
+		Matrix3f basis = segmentController.getWorldTransform().basis;
+		Vector3f shipUp = new Vector3f(basis.m01, basis.m11, basis.m21);
+		if(shipUp.lengthSquared() == 0) return false;
+		shipUp.normalize();
+		// Galactic up is (0,1,0); dot product with it equals the Y component
+		return shipUp.y >= threshold;
+	}
+
+	/**
+	 * Commands the ship to face the given direction while holding the given up vector, giving
+	 * full roll control.  The ship will also thrust in the forward direction.
+	 */
+	@LuaMadeCallable
+	public void faceWithRoll(Vec3f forwardDir, Vec3f upDir) {
+		if(!(segmentController instanceof Ship) || !segmentController.isOnServer()) return;
+		try {
+			Vector3f forward = new Vector3f(forwardDir.getX(), forwardDir.getY(), forwardDir.getZ());
+			Vector3f desiredUp = new Vector3f(upDir.getX(), upDir.getY(), upDir.getZ());
+			if(forward.lengthSquared() == 0) return;
+			forward.normalize();
+			ShipAIEntity aiEntity = ((Ship) segmentController).getAiConfiguration().getAiEntityState();
+			Quat4f q = buildOrientationQuat(forward, desiredUp);
+			// Thrust in the forward direction without letting moveTo override the orientation
+			aiEntity.moveTo(GameServer.getServerState().getController().getTimer(), forward, false);
+			aiEntity.orientate(GameServer.getServerState().getController().getTimer(), q);
+		} catch(Exception exception) {
+			exception.printStackTrace();
+		}
+	}
+
+	/**
+	 * Corrects the ship's roll so its up vector aligns with galactic up (0, 1, 0) while
+	 * preserving its current heading.  Does not apply thrust.
+	 */
+	@LuaMadeCallable
+	public void alignRollToGalacticUp() {
+		if(!(segmentController instanceof Ship) || !segmentController.isOnServer()) return;
+		try {
+			Matrix3f basis = segmentController.getWorldTransform().basis;
+			Vector3f forward = new Vector3f(basis.m02, basis.m12, basis.m22);
+			if(forward.lengthSquared() == 0) return;
+			forward.normalize();
+			Quat4f q = buildOrientationQuat(forward, new Vector3f(0, 1, 0));
+			ShipAIEntity aiEntity = ((Ship) segmentController).getAiConfiguration().getAiEntityState();
+			aiEntity.orientate(GameServer.getServerState().getController().getTimer(), q);
+		} catch(Exception exception) {
+			exception.printStackTrace();
+		}
+	}
+
+	/**
+	 * Builds a full-orientation quaternion from a desired forward and an approximate up vector.
+	 * Gram-Schmidt ensures the axes are orthonormal; the resulting quaternion has w != 0 so
+	 * ShipAIEntity.orientate() treats it as a full orientation rather than forward-only.
+	 */
+	private static Quat4f buildOrientationQuat(Vector3f forward, Vector3f desiredUp) {
+		Vector3f right = new Vector3f();
+		right.cross(desiredUp, forward);
+		if(right.lengthSquared() < 1e-6f) {
+			// Desired up is (nearly) parallel to forward — pick an arbitrary perpendicular
+			right.set(forward.y, -forward.x, 0);
+			if(right.lengthSquared() < 1e-6f) {
+				right.set(0, forward.z, -forward.y);
+			}
+		}
+		right.normalize();
+		Vector3f up = new Vector3f();
+		up.cross(forward, right);
+		up.normalize();
+
+		// Build rotation matrix: col0=right, col1=up, col2=forward
+		Matrix3f m = new Matrix3f();
+		m.m00 = right.x;   m.m10 = right.y;   m.m20 = right.z;
+		m.m01 = up.x;      m.m11 = up.y;       m.m21 = up.z;
+		m.m02 = forward.x; m.m12 = forward.y;  m.m22 = forward.z;
+
+		Quat4f q = new Quat4f();
+		Quat4fTools.set(m, q);
+		// If w == 0, the engine treats the quaternion as forward-only; nudge it
+		if(q.w == 0) q.w = Float.MIN_VALUE;
+		return q;
 	}
 
 	private static Vector3f calculateMoveToPos(SegmentController segmentController, SegmentController target) {

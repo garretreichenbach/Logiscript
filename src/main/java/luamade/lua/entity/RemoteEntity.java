@@ -55,6 +55,32 @@ public class RemoteEntity extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public Vec3f getUp() {
+		Vector3f up = new Vector3f(segmentController.getWorldTransform().basis.m01, segmentController.getWorldTransform().basis.m11, segmentController.getWorldTransform().basis.m21);
+		if(up.lengthSquared() == 0) return new Vec3f(0, 1, 0);
+		up.normalize();
+		return new Vec3f(up);
+	}
+
+	@LuaMadeCallable
+	public Float getRoll() {
+		javax.vecmath.Matrix3f basis = segmentController.getWorldTransform().basis;
+		Vector3f forward = new Vector3f(basis.m02, basis.m12, basis.m22);
+		Vector3f shipUp = new Vector3f(basis.m01, basis.m11, basis.m21);
+		if(forward.lengthSquared() == 0 || shipUp.lengthSquared() == 0) return 0f;
+		forward.normalize();
+		shipUp.normalize();
+		float proj = forward.y;
+		Vector3f refUp = new Vector3f(-proj * forward.x, 1f - proj * forward.y, -proj * forward.z);
+		float refLen = refUp.length();
+		if(refLen < 0.001f) return 0f;
+		refUp.scale(1f / refLen);
+		Vector3f cross = new Vector3f();
+		cross.cross(refUp, shipUp);
+		return (float) Math.atan2(cross.dot(forward), refUp.dot(shipUp));
+	}
+
+	@LuaMadeCallable
 	public Float getMass() {
 		return segmentController.getMass();
 	}
