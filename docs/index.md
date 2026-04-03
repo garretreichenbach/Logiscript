@@ -21,6 +21,7 @@ markdown/core/json
 
 markdown/io/filesystem
 markdown/io/networking
+markdown/io/ftp
 markdown/io/virtualfile
 markdown/io/input
 ```
@@ -64,8 +65,12 @@ markdown/systems/peripheral
 markdown/systems/block
 markdown/systems/block-info
 markdown/systems/chamber
+markdown/systems/datastore-block
+markdown/systems/disk-drive-block
 markdown/systems/display-module-block
+markdown/systems/factory-block
 markdown/systems/inventory-block
+markdown/systems/password-permission-module
 markdown/systems/reactor
 markdown/systems/shield
 markdown/systems/shield-system
