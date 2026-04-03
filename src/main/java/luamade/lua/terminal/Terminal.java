@@ -5,6 +5,7 @@ import luamade.lua.Console;
 import luamade.lua.data.Vec3f;
 import luamade.lua.data.Vec3i;
 import luamade.lua.fs.FileSystem;
+import luamade.lua.ftp.FtpApi;
 import luamade.lua.peripheral.PeripheralsApi;
 import luamade.lua.util.UtilApi;
 import luamade.luawrap.LuaMadeCallable;
@@ -969,6 +970,7 @@ public class Terminal extends LuaMadeUserdata {
 		// Expose raw userdata for advanced scripts that rely on userdata behavior.
 		globals.set("termRaw", this);
 		globals.set("net", module.getNetworkInterface());
+		globals.set("ftp", new FtpApi(module));
 		globals.set("peripheral", new PeripheralsApi(module));
 		globals.set("input", module.getInputApi());
 		globals.set("gfx2d", module.getGfxApi());

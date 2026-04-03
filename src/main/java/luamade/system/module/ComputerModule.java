@@ -2,6 +2,7 @@ package luamade.system.module;
 
 import luamade.lua.Console;
 import luamade.lua.fs.FileSystem;
+import luamade.lua.ftp.FtpApi;
 import luamade.lua.gfx.Gfx2d;
 import luamade.lua.input.InputApi;
 import luamade.lua.networking.NetworkInterface;
@@ -312,6 +313,7 @@ public class ComputerModule {
 	 * This should be called when the computer goes idle or when the server shuts down.
 	 */
 	public void saveAndCleanup() {
+		FtpApi.onComputerRemoved(networkInterface.getHostname());
 		terminal.stop();
 		if(fileSystem.saveToDisk()) {
 			fileSystem.cleanupTempFiles();
