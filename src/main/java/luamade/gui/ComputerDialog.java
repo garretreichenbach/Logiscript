@@ -2,6 +2,7 @@ package luamade.gui;
 
 import api.common.GameClient;
 import api.utils.gui.GUIInputDialogPanel;
+import luamade.lua.terminal.Terminal;
 import luamade.manager.ConfigManager;
 import luamade.system.module.ComputerModule;
 import org.schema.game.client.controller.PlayerInput;
@@ -232,6 +233,13 @@ public class ComputerDialog extends PlayerInput {
 			this.computerModule = computerModule;
 			setCancelButton(false);
 			setOkButton(true);
+		}
+
+		private static String stars(int count) {
+			if(count <= 0) return "";
+			char[] buf = new char[count];
+			java.util.Arrays.fill(buf, '*');
+			return new String(buf);
 		}
 
 		private static String stripAnsi(String text) {
@@ -1146,6 +1154,7 @@ public class ComputerDialog extends PlayerInput {
 
 		private void handleHistoryUp() {
 			if(computerModule == null || computerModule.getTerminal() == null) return;
+			if(computerModule.getTerminal().isPasswordInputMode()) return;
 			computerModule.getTerminal().setCurrentInput(currentInputLine);
 			String command = computerModule.getTerminal().getPreviousCommand();
 			setHistoryCommand(command);
@@ -1153,6 +1162,7 @@ public class ComputerDialog extends PlayerInput {
 
 		private void handleHistoryDown() {
 			if(computerModule == null || computerModule.getTerminal() == null) return;
+			if(computerModule.getTerminal().isPasswordInputMode()) return;
 			String command = computerModule.getTerminal().getNextCommand();
 			setHistoryCommand(command);
 		}
@@ -1453,6 +1463,54 @@ public class ComputerDialog extends PlayerInput {
 					String moduleContent = computerModule.getLastTextContent();
 					lastModuleContent = moduleContent == null ? "" : moduleContent;
 					return lastModuleContent;
+				}
+
+				// Password masking: keep currentInputLine as the real text, display stars.
+				Terminal terminal = computerModule.getTerminal();
+				if(terminal != null && terminal.isPasswordInputMode()) {
+					if(input != null && lastModuleContent != null && !lastModuleContent.isEmpty()
+							&& !input.startsWith(lastModuleContent)) {
+						// Console prefix was corrupted; restore stable display.
+						return lastModuleContent + stars(currentInputLine.length());
+					}
+					if(input != null) {
+						String[] lines = input.split("\n");
+						if(lines.length > 0) {
+							String lastLine = lines[lines.length - 1];
+							int promptIndex = lastLine.lastIndexOf(PROMPT_MARKER);
+							if(promptIndex >= 0) {
+								int lineStartPos = 0;
+								for(int i = 0; i < lines.length - 1; i++) {
+									lineStartPos += lines[i].length() + 1;
+								}
+								promptStartPosition = lineStartPos + promptIndex + PROMPT_MARKER.length();
+								String afterPrompt = lastLine.substring(promptIndex + PROMPT_MARKER.length());
+								int prevLen = currentInputLine.length();
+								int newLen = afterPrompt.length();
+								if(newLen > prevLen) {
+									// Characters were appended; real chars are the non-star suffix.
+									currentInputLine = currentInputLine + afterPrompt.substring(prevLen);
+								} else if(newLen < prevLen) {
+									// Characters were deleted.
+									currentInputLine = currentInputLine.substring(0, newLen);
+								}
+								userIsTyping = !currentInputLine.isEmpty();
+								String promptPrefix = lastLine.substring(0, promptIndex + PROMPT_MARKER.length());
+								// Force caret to end so mid-line cursor movement can't corrupt the buffer.
+								TextAreaInput pwTextArea = consolePane.getTextArea();
+								if(pwTextArea != null) {
+									String fullMasked = lastModuleContent + promptPrefix + stars(currentInputLine.length());
+									int endPos = fullMasked.length();
+									if(pwTextArea.getChatCarrier() != endPos) {
+										pwTextArea.setChatCarrier(endPos);
+										pwTextArea.setBufferChanged();
+									}
+								}
+								return lastModuleContent + promptPrefix + stars(currentInputLine.length());
+							}
+						}
+					}
+					return lastModuleContent + stars(currentInputLine.length());
 				}
 
 				if(input != null && lastModuleContent != null && !lastModuleContent.isEmpty()) {

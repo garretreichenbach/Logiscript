@@ -175,6 +175,17 @@ while true do
 end
 ```
 
+## CLI text input
+
+For simple line-at-a-time input (e.g. prompts, menus, login screens) prefer `term.readLine()` and `term.readPassword()` over raw key events. They block the script until the user submits a line via the terminal text bar, handle backspace automatically, and integrate cleanly with the normal terminal flow.
+
+```lua
+local name = term.readLine("Username: ")
+local pass = term.readPassword("Password: ")
+```
+
+Use raw `input` events when you need per-keystroke control, mouse interaction, or a full custom UI overlay.
+
 ## Notes
 
 - `input.waitFor()` blocks the Lua script thread, not the game thread. Other scripts and the game continue running

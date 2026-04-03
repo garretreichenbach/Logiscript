@@ -56,6 +56,9 @@ public class Terminal extends LuaMadeUserdata {
 	private final List<String> history = new ArrayList<>();
 	private final AtomicInteger nextJobId = new AtomicInteger(1);
 	private final AtomicInteger activeScripts = new AtomicInteger(0);
+	private final LinkedBlockingQueue<String> readLineQueue = new LinkedBlockingQueue<>();
+	private final AtomicInteger readLineWaiters = new AtomicInteger(0);
+	private volatile boolean passwordInputMode = false;
 	private volatile Semaphore scriptSlots;
 	private volatile int maxParallelSlots;
 	private volatile ScriptExecutionContext activeForegroundContext;
@@ -141,6 +144,7 @@ public class Terminal extends LuaMadeUserdata {
 		// and reset the input API to release keyboard/mouse locks the script held.
 		module.getGfxApi().forceClear();
 		module.getInputApi().reset();
+		readLineQueue.clear();
 		logInterruptDebug("cancelForegroundScript after clear: visibleAfterClear=" + module.getGfxApi().hasVisibleCommands());
 		if(printInterruptMarker) {
 			console.print(valueOf("^C"));
@@ -229,6 +233,79 @@ public class Terminal extends LuaMadeUserdata {
 	}
 
 	/**
+	 * Blocks the calling Lua script until the user submits a line of text in the
+	 * terminal input bar, then returns that text as a string.  If the script is
+	 * canceled (Ctrl+C / reset) while waiting, a LuaError is thrown.
+	 */
+	@LuaMadeCallable
+	public LuaValue readLine() {
+		return readLineInternal(null, false);
+	}
+
+	/**
+	 * Prints {@code prompt} inline (no newline) then blocks until the user
+	 * submits a line of text.  Returns the submitted text as a string.
+	 */
+	@LuaMadeCallable
+	public LuaValue readLine(String prompt) {
+		return readLineInternal(prompt, false);
+	}
+
+	/**
+	 * Like {@link #readLine()} but the input bar displays typed characters as
+	 * {@code *} and the submitted text is echoed as stars in the console log.
+	 * Use for passwords and other sensitive input.
+	 */
+	@LuaMadeCallable
+	public LuaValue readPassword() {
+		return readLineInternal(null, true);
+	}
+
+	/**
+	 * Like {@link #readLine(String)} but masks typed characters as {@code *}.
+	 */
+	@LuaMadeCallable
+	public LuaValue readPassword(String prompt) {
+		return readLineInternal(prompt, true);
+	}
+
+	/** Returns {@code true} while a {@code readPassword} call is blocking. */
+	public boolean isPasswordInputMode() {
+		return passwordInputMode;
+	}
+
+	private LuaValue readLineInternal(String prompt, boolean masked) {
+		if(prompt != null && !prompt.isEmpty()) {
+			console.appendInline(valueOf(prompt));
+		}
+		passwordInputMode = masked;
+		readLineWaiters.incrementAndGet();
+		try {
+			ScriptExecutionContext context = scriptContextThreadLocal.get();
+			while(true) {
+				if(context != null) {
+					context.throwIfCancellationRequested();
+				}
+				try {
+					String line = readLineQueue.poll(100, TimeUnit.MILLISECONDS);
+					if(line != null) {
+						return valueOf(line);
+					}
+				} catch(InterruptedException e) {
+					Thread.currentThread().interrupt();
+					if(context != null && context.isCancellationRequested()) {
+						throw new LuaError("Script canceled");
+					}
+					return NIL;
+				}
+			}
+		} finally {
+			readLineWaiters.decrementAndGet();
+			passwordInputMode = false;
+		}
+	}
+
+	/**
 	 * Handles input from the user
 	 */
 	@LuaMadeCallable
@@ -242,10 +319,27 @@ public class Terminal extends LuaMadeUserdata {
 		String submittedInput = input == null ? "" : input;
 
 		// Commit the typed command into the console transcript before processing.
-		console.appendInline(valueOf(submittedInput));
+		// Mask the echo when a readPassword() is waiting so the real text never
+		// appears in the permanent console log.
+		String echoText = submittedInput;
+		if(readLineWaiters.get() > 0 && passwordInputMode) {
+			char[] stars = new char[submittedInput.length()];
+			java.util.Arrays.fill(stars, '*');
+			echoText = new String(stars);
+		}
+		console.appendInline(valueOf(echoText));
 
 		// Move to a new line after the inline prompt when Enter is pressed.
 		console.print(valueOf(""));
+
+		// If a script is blocking in readLine(), hand it the input directly and
+		// skip normal command processing.  Suppress auto-prompt so the script's
+		// own prompt (from the next readLine call or its own print) controls flow.
+		if(readLineWaiters.get() > 0) {
+			readLineQueue.offer(submittedInput);
+			promptDeferredByCommand.set(true);
+			return;
+		}
 
 		List<QueuedCommand> queuedCommands = splitQueuedCommands(submittedInput);
 		boolean previousSucceeded = true;

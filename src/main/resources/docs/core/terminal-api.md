@@ -7,6 +7,25 @@ The built-in `pkg` package manager is a shell command (invoked through `runComma
 
 ## Reference
 
+- `readLine()`
+Blocks the running script until the user submits a line of text in the terminal input bar, then returns that text as a string. If the script is canceled while waiting, an error is raised.
+
+- `readLine(prompt: String)`
+Prints `prompt` inline (no newline) then blocks as above.
+
+- `readPassword()`
+Like `readLine()` but the input bar displays typed characters as `*` and the console echoes stars instead of the real text. Use for passwords and other sensitive input.
+
+- `readPassword(prompt: String)`
+Prints `prompt` inline then blocks with masked input.
+
+Example:
+```lua
+local name = term.readLine("Enter your name: ")
+local pass = term.readPassword("Password: ")
+print("Hello, " .. name)
+```
+
 - `start()`
 - `stop()`
 - `reboot()`
