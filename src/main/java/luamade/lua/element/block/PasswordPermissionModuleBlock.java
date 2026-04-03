@@ -169,7 +169,7 @@ public class PasswordPermissionModuleBlock extends Block {
 		byte[] salt = new byte[16];
 		SECURE_RANDOM.nextBytes(salt);
 		byte[] hash = hashPassword(password, salt);
-		return hash == null ? "" : toHex(salt) + ":" + toHex(hash);
+		return toHex(salt) + ":" + toHex(hash);
 	}
 
 	static boolean verifyPassword(String password, String saltHash) {
@@ -179,7 +179,7 @@ public class PasswordPermissionModuleBlock extends Block {
 		byte[] salt = fromHex(saltHash.substring(0, colon));
 		String expected = saltHash.substring(colon + 1);
 		byte[] hash = hashPassword(password, salt);
-		return hash != null && toHex(hash).equals(expected);
+		return MessageDigest.isEqual(fromHex(expected), hash);
 	}
 
 	private static byte[] hashPassword(String password, byte[] salt) {
@@ -187,8 +187,8 @@ public class PasswordPermissionModuleBlock extends Block {
 			MessageDigest md = MessageDigest.getInstance("SHA-256");
 			md.update(salt);
 			return md.digest(password.getBytes(StandardCharsets.UTF_8));
-		} catch(NoSuchAlgorithmException ignored) {
-			return null;
+		} catch(NoSuchAlgorithmException e) {
+			throw new LuaError("SHA-256 is not available on this JVM: " + e.getMessage());
 		}
 	}
 
