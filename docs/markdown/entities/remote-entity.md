@@ -19,6 +19,12 @@ Returns current speed in blocks/s as a `Double`.
 - `getHeading()`
   Returns normalized forward heading as `LuaVec3f`.
 
+- `getUp()`
+  Returns normalized up vector as `LuaVec3f`.
+
+- `getRoll()`
+  Returns the current roll angle in radians relative to galactic up (world Y axis). Returns `0` when pointing straight up or down.
+
 - `getMass()`
 Returns total mass as a `Double`.
 

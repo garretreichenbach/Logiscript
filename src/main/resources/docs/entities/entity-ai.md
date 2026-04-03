@@ -85,6 +85,30 @@ Commands the AI to turn toward `direction`. Also causes the ship to begin moving
 - `faceTowards(entity: RemoteEntity)`
 Commands the AI to face toward `entity`. Computes direction from current position to target automatically.
 
+## Roll control
+
+- `getUp()`
+Returns the ship's normalized up vector as a `LuaVec3f` (basis column 1 of the world transform).
+
+- `getRoll()`
+Returns the ship's current roll angle in radians relative to galactic up (world Y axis).
+Positive values indicate counter-clockwise roll when viewed from behind; negative values indicate clockwise roll.
+Returns `0` when the ship is pointing straight up or down (roll is undefined in that orientation).
+
+- `isRollAligned(threshold: Number)`
+Returns `true` if the ship's up vector Y-component is >= `threshold`.
+Equivalent to checking `dot(shipUp, galacticUp) >= threshold`.
+Use `0.99` for tight alignment, `0.9` for loose.
+
+- `faceWithRoll(forward: LuaVec3f, up: LuaVec3f)`
+Commands the AI to orient the ship so that it faces `forward` with `up` as the desired up vector, giving full roll control.
+Also applies thrust in the `forward` direction (equivalent to `faceDirection` plus roll).
+`up` does not need to be perfectly perpendicular to `forward` — it is Gram-Schmidt orthogonalized internally.
+
+- `alignRollToGalacticUp()`
+Corrects the ship's roll so its up vector aligns with galactic up `(0, 1, 0)` while preserving the current heading.
+Does **not** apply thrust — use `faceDirection` or `moveToPos` for movement.
+
 ## Typical alignment workflow
 
 ```lua
@@ -92,4 +116,18 @@ local station = ...
 ai:faceTowards(station)
 while not ai:isFacingTowards(station, 0.95) do sleep(0.5) end
 ai:stopNavigation()
+```
+
+## Typical roll alignment workflow
+
+```lua
+-- Correct roll while holding heading
+while math.abs(ai:getRoll()) > 0.05 do
+    ai:alignRollToGalacticUp()
+    sleep(0.1)
+end
+
+-- Fly toward a point level with galactic up
+local heading = ai:getHeading()
+ai:faceWithRoll(heading, vec3f(0, 1, 0))
 ```
