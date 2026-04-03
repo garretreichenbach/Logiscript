@@ -22,6 +22,7 @@ markdown/core/json
 markdown/io/filesystem
 markdown/io/networking
 markdown/io/virtualfile
+markdown/io/input
 ```
 
 ```{toctree}

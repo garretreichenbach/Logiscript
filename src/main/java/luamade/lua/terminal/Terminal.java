@@ -2,6 +2,8 @@ package luamade.lua.terminal;
 
 import luamade.LuaMade;
 import luamade.lua.Console;
+import luamade.lua.data.Vec3f;
+import luamade.lua.data.Vec3i;
 import luamade.lua.fs.FileSystem;
 import luamade.lua.peripheral.PeripheralsApi;
 import luamade.lua.util.UtilApi;
@@ -877,7 +879,24 @@ public class Terminal extends LuaMadeUserdata {
 		globals.set("input", module.getInputApi());
 		globals.set("gfx2d", module.getGfxApi());
 		globals.set("shell", createShellCompatibilityApi());
-
+		globals.set("vec3i", new VarArgFunction() {
+			@Override
+			public Varargs invoke(Varargs vargs) {
+				int x = vargs.narg() >= 1 ? vargs.arg(1).toint() : 0;
+				int y = vargs.narg() >= 2 ? vargs.arg(2).toint() : 0;
+				int z = vargs.narg() >= 3 ? vargs.arg(3).toint() : 0;
+				return new Vec3i(x, y, z);
+			}
+		});
+		globals.set("vec3f", new VarArgFunction() {
+			@Override
+			public Varargs invoke(Varargs vargs) {
+				float x = vargs.narg() >= 1 ? (float) vargs.arg(1).todouble() : 0f;
+				float y = vargs.narg() >= 2 ? (float) vargs.arg(2).todouble() : 0f;
+				float z = vargs.narg() >= 3 ? (float) vargs.arg(3).todouble() : 0f;
+				return new Vec3f(x, y, z);
+			}
+		});
 
 		LuaTable jsonLibrary = loadBuiltinLibrary(globals, "scripts/lib/json.lua", "json");
 		LuaTable utilLibrary = loadBuiltinLibrary(globals, "scripts/lib/util.lua", "util");
@@ -1040,6 +1059,10 @@ public class Terminal extends LuaMadeUserdata {
 		return new VarArgFunction() {
 			@Override
 			public Varargs invoke(Varargs vargs) {
+				ScriptExecutionContext context = scriptContextThreadLocal.get();
+				if(context != null) {
+					context.throwIfCancellationRequested();
+				}
 				console.print(vargs);
 				return NONE;
 			}

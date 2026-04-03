@@ -63,7 +63,10 @@ public class Thrust extends Module {
 		if(moveDirection.lengthSquared() == 0) return;
 		moveDirection.normalize();
 		try {
-			ShipAIEntity aiEntity = ((Ship) segmentController).getAiConfiguration().getAiEntityState();
+			Ship ship = (Ship) segmentController;
+			if(ship.getAiConfiguration() == null) return;
+			ShipAIEntity aiEntity = ship.getAiConfiguration().getAiEntityState();
+			if(aiEntity == null) return;
 			aiEntity.moveTo(GameServer.getServerState().getController().getTimer(), moveDirection, true);
 		} catch(Exception exception) {
 			exception.printStackTrace();
@@ -74,7 +77,11 @@ public class Thrust extends Module {
 	public void stopMovement() {
 		if(!(segmentController instanceof Ship) || !segmentController.isOnServer()) return;
 		try {
-			((Ship) segmentController).getAiConfiguration().getAiEntityState().stop();
+			Ship ship = (Ship) segmentController;
+			if(ship.getAiConfiguration() == null) return;
+			ShipAIEntity aiEntity = ship.getAiConfiguration().getAiEntityState();
+			if(aiEntity == null) return;
+			aiEntity.stop();
 		} catch(Exception exception) {
 			exception.printStackTrace();
 		}
