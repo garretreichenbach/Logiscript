@@ -8,6 +8,7 @@ import api.mod.StarLoader;
 import luamade.LuaMade;
 import luamade.gui.ComputerDialog;
 import luamade.listener.BlockPublicPermissionListener;
+import luamade.listener.JumpTargetListener;
 import luamade.system.module.AccessPointModuleContainer;
 import luamade.system.module.ComputerModule;
 import luamade.system.module.ComputerModuleContainer;
@@ -122,6 +123,7 @@ public class EventManager {
 		}, instance);
 
 		BlockPublicPermissionListener.register(instance);
+		JumpTargetListener.register(instance);
 
 		StarLoader.registerListener(ManagerContainerRegisterEvent.class, new Listener<ManagerContainerRegisterEvent>() {
 			@Override

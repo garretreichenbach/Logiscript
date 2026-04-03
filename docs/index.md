@@ -70,6 +70,7 @@ markdown/systems/disk-drive-block
 markdown/systems/display-module-block
 markdown/systems/factory-block
 markdown/systems/inventory-block
+markdown/systems/jump-drive
 markdown/systems/password-permission-module
 markdown/systems/reactor
 markdown/systems/shield

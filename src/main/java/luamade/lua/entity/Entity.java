@@ -9,6 +9,7 @@ import luamade.lua.data.Vec3f;
 import luamade.lua.data.Vec3i;
 import luamade.lua.element.block.Block;
 import luamade.lua.element.inventory.Inventory;
+import luamade.lua.element.system.module.JumpDrive;
 import luamade.lua.element.system.module.Thrust;
 import luamade.lua.element.system.reactor.Reactor;
 import luamade.lua.element.system.shield.ShieldSystem;
@@ -186,6 +187,11 @@ public class Entity extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public Thrust getThrust() {
 		return new Thrust(segmentController);
+	}
+
+	@LuaMadeCallable
+	public JumpDrive getJumpDrive() {
+		return new JumpDrive(segmentController);
 	}
 
 	@LuaMadeCallable
