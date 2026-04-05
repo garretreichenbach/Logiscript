@@ -7,7 +7,13 @@ Use it to automate ship behavior, build status dashboards, and coordinate multip
 ## Quick start
 
 1. Place and activate a Computer Block.
-2. Open terminal and create a script:
+2. Open terminal and create a script using either editor:
+
+```text
+edit /home/hello.lua
+```
+
+Or use the in-game editor:
 
 ```text
 nano /home/hello.lua

@@ -22,9 +22,9 @@ public class DiskDrive extends Block implements SegmentPiecePlayerInteractListen
 	public void initData() {
 		super.initData();
 		blockInfo.setDescription("Single-slot drive that can read and write LuaMade disk items.");
+		blockInfo.setDeprecated(true);
 		blockInfo.setInRecipe(false);
 		blockInfo.setShoppable(false);
-		blockInfo.setDeprecated(true);
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price);
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(true);

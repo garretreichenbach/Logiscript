@@ -25,7 +25,7 @@ The terminal is the command shell and script runner for each computer.
 - `which [-a] <name-or-path>`: resolve commands and script paths (`-a` shows all matches).
 - `ls [-a] [-l] [-R] [path]`, `cd <directory>`, `pwd [-L|-P]`, `mkdir [-p] <directory>...`, `cat [-n] [-A] <file>...`,
   `touch <file>`.
-- `rm [-r] [-f] <path>...`, `cp [-r] <source> <destination>`, `mv <source> <destination>`, `edit <file> <content>`.
+- `rm [-r] [-f] <path>...`, `cp [-r] <source> <destination>`, `mv <source> <destination>`, `writefile <file> <content>`.
 - `find [path] [-name <glob>] [-type f|d] [-maxdepth <n>]` for recursive search.
 - `grep [-n] [-i] [-r] <pattern> <path>` for content search.
 - `history` to list indexed commands and `!<n>` to re-run a history entry.
@@ -41,13 +41,49 @@ The terminal is the command shell and script runner for each computer.
 - `runbg <script> [args...]` to execute in background.
 - `jobs` to list background jobs.
 - `kill [-TERM|-KILL|-INT|-HUP|-15|-9|-2|-1] <job-id>` to stop a background job.
-- `nano <file>` to open the file editor pane.
+- `nano <file>` to open the in-game editor pane.
+- `edit <file>` to open a file in the Swing GUI editor (syntax highlighting, line numbers, bracket matching).
 - `httpget <url> [output-file]` to fetch web content (if enabled by server config).
 - `httpput [--content-type <mime>] <url> <payload|@file> [output-file]` to send web content via HTTP PUT.
 - `pkg <search|info|fetch|install|list|remove> ...` to use the trusted package manager.
 - `reboot` to re-run startup flow and reset prompt behavior.
 - `scrollmode [NONE|HORIZONTAL|VERTICAL|BOTH]` to inspect or set editor/terminal scrollbar mode.
 - `maskenter [on|off]` to control whether Enter is forwarded to scripts while gfx2d masks terminal input.
+
+## Editors
+
+The terminal provides two editors for writing scripts:
+
+### In-game editor (`nano`)
+
+Open a file with `nano <file>`. The editor runs inside the game window using the terminal text area.
+
+Shortcuts:
+
+- `Ctrl+S` save, `Ctrl+X` exit without saving, `Ctrl+R` save and run.
+- `Tab` insert 4 spaces, `Shift+Tab` dedent current line.
+- `Enter` auto-indents to match the current line.
+- `Ctrl+D` duplicate current line.
+- `Ctrl+F` find text, `Ctrl+G` go to line number.
+
+The hint bar at the bottom shows the current file path and cursor position (`Ln`, `Col`).
+
+### GUI editor (`edit`)
+
+Open a file with `edit <file>`. This opens a separate Swing window with:
+
+- Lua syntax highlighting (plus JSON, XML, Markdown, YAML, HTML, CSS, JS by extension).
+- Line numbers, bracket matching, code folding, auto-indent.
+- `Ctrl+S` save, `Ctrl+W` close, `Ctrl+R` save and run.
+- `Ctrl+T` toggle dark/light theme (setting is persisted across sessions).
+
+The GUI editor reads and writes directly from the virtual filesystem. No files are written to your real disk.
+
+Editor theme preference is stored in:
+
+```text
+config/luamade/editor_theme.txt
+```
 
 If trusted-only mode is enabled, allowed domains come from:
 

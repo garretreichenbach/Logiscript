@@ -1,6 +1,7 @@
 package luamade.lua.terminal;
 
 import luamade.LuaMade;
+import luamade.gui.editor.SwingEditorFrame;
 import luamade.lua.Console;
 import luamade.lua.data.Vec3f;
 import luamade.lua.data.Vec3i;
@@ -2638,13 +2639,13 @@ public class Terminal extends LuaMadeUserdata {
 			}
 		});
 
-		// Edit command (simple write)
-		commands.put("edit", new Command("edit", "Creates or overwrites a file with text") {
+		// Writefile command (formerly "edit" — writes inline content to a file)
+		commands.put("writefile", new Command("writefile", "Creates or overwrites a file with text") {
 			@Override
 			public void execute(String args) {
 				List<String> parts = parseCommandTokens(args == null ? "" : args.trim());
 				if(parts.size() < 2) {
-					console.print(valueOf("Error: Usage: edit <file> <content>"));
+					console.print(valueOf("Error: Usage: writefile <file> <content>"));
 					return;
 				}
 
@@ -2655,6 +2656,57 @@ public class Terminal extends LuaMadeUserdata {
 					console.print(valueOf("File written"));
 				} else {
 					console.print(valueOf(fsErrorOr("Error: Could not write file")));
+				}
+			}
+		});
+
+		// Edit command (Swing GUI editor)
+		commands.put("edit", new Command("edit", "Opens a file in the Swing GUI editor") {
+			@Override
+			public void execute(String args) {
+				List<String> parts = parseCommandTokens(args == null ? "" : args.trim());
+				if(parts.isEmpty()) {
+					console.print(valueOf("Error: Usage: edit <file>"));
+					return;
+				}
+
+				// Backward compat: if called with 2+ args, forward to writefile with deprecation notice
+				if(parts.size() >= 2) {
+					console.print(valueOf("Note: 'edit <file> <content>' is deprecated, use 'writefile' instead. Forwarding..."));
+					Command writefile = commands.get("writefile");
+					if(writefile != null) {
+						writefile.execute(args);
+					}
+					return;
+				}
+
+				String file = parts.get(0);
+				String normalized = fileSystem.normalizePath(file);
+				if(fileSystem.isDir(normalized)) {
+					console.print(valueOf("Error: Cannot edit a directory"));
+					return;
+				}
+
+				if(!fileSystem.exists(normalized)) {
+					fileSystem.write(normalized, "");
+				}
+
+				String content = fileSystem.read(normalized);
+				if(content == null) {
+					console.print(valueOf(fsErrorOr("Error: Could not read file")));
+					return;
+				}
+
+				if(SwingEditorFrame.isFileOpen(normalized)) {
+					SwingEditorFrame.open(normalized, content, fileSystem, Terminal.this);
+					console.print(valueOf("Editor already open for: " + normalized));
+					return;
+				}
+
+				if(SwingEditorFrame.open(normalized, content, fileSystem, Terminal.this)) {
+					console.print(valueOf("Opened editor for: " + normalized));
+				} else {
+					console.print(valueOf("Error: Could not open GUI editor"));
 				}
 			}
 		});
@@ -2918,7 +2970,8 @@ public class Terminal extends LuaMadeUserdata {
 		setCommandHelp("maskenter", "maskenter [on|off]", "Enable or disable Enter key forwarding to scripts while gfx2d input masking is active.");
 		setCommandHelp("cp", "cp [-r] <source> <destination>", "Copy file or directory. Use -r when source is a directory.");
 		setCommandHelp("mv", "mv <source> <destination>", "Move or rename a file path.");
-		setCommandHelp("edit", "edit <file> <content>", "Write provided content to a file in one command.");
+		setCommandHelp("writefile", "writefile <file> <content>", "Write provided content to a file in one command.");
+		setCommandHelp("edit", "edit <file>", "Open file in the Swing GUI editor with syntax highlighting.");
 		setCommandHelp("nano", "nano <file>", "Open file in the in-game editor view.");
 		setCommandHelp("run", "run <script> [args...]", "Execute a Lua script in foreground with optional script arguments.");
 		setCommandHelp("httpget", "httpget <url> [output-file]", "Fetch HTTP/HTTPS response and print or save it.");

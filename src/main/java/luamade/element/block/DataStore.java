@@ -3,6 +3,7 @@ package luamade.element.block;
 import api.config.BlockConfig;
 import api.listener.fastevents.segmentpiece.SegmentPieceKilledListener;
 import api.listener.fastevents.segmentpiece.SegmentPieceRemoveListener;
+import api.utils.element.Blocks;
 import luamade.element.ElementRegistry;
 import luamade.system.module.DataStoreModuleContainer;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -40,8 +41,8 @@ public class DataStore extends Block implements SegmentPieceRemoveListener, Segm
 
 	@Override
 	public void initResources() {
-		blockInfo.setBuildIconNum(ElementKeyMap.getInfo(451).getBuildIconNum());
-		blockInfo.setTextureId(ElementKeyMap.getInfo(451).getTextureIds());
+		blockInfo.setBuildIconNum(Blocks.DECORATIVE_SERVER.getInfo().getBuildIconNum());
+		blockInfo.setTextureId(Blocks.DECORATIVE_SERVER.getInfo().getTextureIds());
 	}
 
 	@Override

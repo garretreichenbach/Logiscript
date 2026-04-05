@@ -64,6 +64,14 @@ public final class ConfigManager {
 	private static final Pattern SAFE_LUA_MODULE_PATTERN = Pattern.compile("[a-z0-9_]+(?:\\.[a-z0-9_]+)*");
 	private static volatile Set<String> allowedLuaPackagesCache = new LinkedHashSet<>(DEFAULT_ALLOWED_LUA_PACKAGES);
 	private static volatile String packageManagerBaseUrlCache = DEFAULT_PACKAGE_MANAGER_BASE_URL;
+	private static final String DEFAULT_EDITOR_THEME = "dark";
+	private static final Path EDITOR_THEME_PATH = Paths.get("config", "luamade", "editor_theme.txt");
+	private static volatile String editorThemeCache = DEFAULT_EDITOR_THEME;
+	private static final int DEFAULT_EDITOR_FONT_SIZE = 14;
+	private static final int MIN_EDITOR_FONT_SIZE = 8;
+	private static final int MAX_EDITOR_FONT_SIZE = 48;
+	private static final Path EDITOR_FONT_SIZE_PATH = Paths.get("config", "luamade", "editor_font_size.txt");
+	private static volatile int editorFontSizeCache = DEFAULT_EDITOR_FONT_SIZE;
 
 	private ConfigManager() {
 	}
@@ -100,9 +108,13 @@ public final class ConfigManager {
 		ensureTrustedDomainsFileExists(instance);
 		ensureAllowedLuaPackagesFileExists(instance);
 		ensurePackageManagerBaseUrlFileExists(instance);
+		ensureEditorThemeFileExists(instance);
+		ensureEditorFontSizeFileExists(instance);
 		reloadTrustedWebDomains(instance);
 		reloadAllowedLuaPackages(instance);
 		reloadPackageManagerBaseUrl(instance);
+		reloadEditorTheme(instance);
+		reloadEditorFontSize(instance);
 		if(isDebugMode()) {
 			String mode = config.isServer() ? "server" : (config.local ? "client-local" : "client-synced");
 			instance.logInfo("Config initialized via SimpleConfigContainer (mode=" + mode + ")");
@@ -116,6 +128,8 @@ public final class ConfigManager {
 		reloadTrustedWebDomains(LuaMade.getInstance());
 		reloadAllowedLuaPackages(LuaMade.getInstance());
 		reloadPackageManagerBaseUrl(LuaMade.getInstance());
+		reloadEditorTheme(LuaMade.getInstance());
+		reloadEditorFontSize(LuaMade.getInstance());
 	}
 
 	public static boolean isDebugMode() {
@@ -436,6 +450,138 @@ public final class ConfigManager {
 		}
 
 		allowedLuaPackagesCache = loaded;
+	}
+
+	public static String getEditorTheme() {
+		return editorThemeCache;
+	}
+
+	public static boolean isEditorDarkTheme() {
+		return "dark".equalsIgnoreCase(editorThemeCache);
+	}
+
+	public static void setEditorTheme(String theme) {
+		String normalized = theme == null ? DEFAULT_EDITOR_THEME : theme.trim().toLowerCase(Locale.ROOT);
+		if(!"dark".equals(normalized) && !"light".equals(normalized)) {
+			normalized = DEFAULT_EDITOR_THEME;
+		}
+		editorThemeCache = normalized;
+		saveEditorTheme();
+	}
+
+	private static void saveEditorTheme() {
+		try {
+			if(EDITOR_THEME_PATH.getParent() != null) {
+				Files.createDirectories(EDITOR_THEME_PATH.getParent());
+			}
+			String content = "# LuaMade Swing editor theme\n# Options: dark, light\n\n" + editorThemeCache + '\n';
+			Files.write(EDITOR_THEME_PATH, content.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+		} catch(IOException exception) {
+			LuaMade.getInstance().logException("Failed to save editor theme file: " + EDITOR_THEME_PATH, exception);
+		}
+	}
+
+	private static void ensureEditorThemeFileExists(LuaMade instance) {
+		if(Files.exists(EDITOR_THEME_PATH)) {
+			return;
+		}
+		try {
+			if(EDITOR_THEME_PATH.getParent() != null) {
+				Files.createDirectories(EDITOR_THEME_PATH.getParent());
+			}
+			String content = "# LuaMade Swing editor theme\n# Options: dark, light\n\n" + DEFAULT_EDITOR_THEME + '\n';
+			Files.write(EDITOR_THEME_PATH, content.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+		} catch(IOException exception) {
+			if(instance != null) {
+				instance.logException("Failed to create editor theme file: " + EDITOR_THEME_PATH, exception);
+			}
+		}
+	}
+
+	private static void reloadEditorTheme(LuaMade instance) {
+		String loaded = DEFAULT_EDITOR_THEME;
+		try {
+			if(Files.exists(EDITOR_THEME_PATH)) {
+				for(String line : Files.readAllLines(EDITOR_THEME_PATH, StandardCharsets.UTF_8)) {
+					String value = line == null ? "" : line.trim().toLowerCase(Locale.ROOT);
+					if(value.isEmpty() || value.startsWith("#")) {
+						continue;
+					}
+					if("dark".equals(value) || "light".equals(value)) {
+						loaded = value;
+					}
+					break;
+				}
+			}
+		} catch(IOException exception) {
+			if(instance != null) {
+				instance.logException("Failed to read editor theme file: " + EDITOR_THEME_PATH, exception);
+			}
+		}
+		editorThemeCache = loaded;
+	}
+
+	public static int getEditorFontSize() {
+		return editorFontSizeCache;
+	}
+
+	public static void setEditorFontSize(int size) {
+		editorFontSizeCache = Math.max(MIN_EDITOR_FONT_SIZE, Math.min(MAX_EDITOR_FONT_SIZE, size));
+		saveEditorFontSize();
+	}
+
+	private static void saveEditorFontSize() {
+		try {
+			if(EDITOR_FONT_SIZE_PATH.getParent() != null) {
+				Files.createDirectories(EDITOR_FONT_SIZE_PATH.getParent());
+			}
+			String content = "# LuaMade Swing editor font size\n# Range: " + MIN_EDITOR_FONT_SIZE + "-" + MAX_EDITOR_FONT_SIZE + "\n\n" + editorFontSizeCache + '\n';
+			Files.write(EDITOR_FONT_SIZE_PATH, content.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+		} catch(IOException exception) {
+			LuaMade.getInstance().logException("Failed to save editor font size file: " + EDITOR_FONT_SIZE_PATH, exception);
+		}
+	}
+
+	private static void ensureEditorFontSizeFileExists(LuaMade instance) {
+		if(Files.exists(EDITOR_FONT_SIZE_PATH)) {
+			return;
+		}
+		try {
+			if(EDITOR_FONT_SIZE_PATH.getParent() != null) {
+				Files.createDirectories(EDITOR_FONT_SIZE_PATH.getParent());
+			}
+			String content = "# LuaMade Swing editor font size\n# Range: " + MIN_EDITOR_FONT_SIZE + "-" + MAX_EDITOR_FONT_SIZE + "\n\n" + DEFAULT_EDITOR_FONT_SIZE + '\n';
+			Files.write(EDITOR_FONT_SIZE_PATH, content.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+		} catch(IOException exception) {
+			if(instance != null) {
+				instance.logException("Failed to create editor font size file: " + EDITOR_FONT_SIZE_PATH, exception);
+			}
+		}
+	}
+
+	private static void reloadEditorFontSize(LuaMade instance) {
+		int loaded = DEFAULT_EDITOR_FONT_SIZE;
+		try {
+			if(Files.exists(EDITOR_FONT_SIZE_PATH)) {
+				for(String line : Files.readAllLines(EDITOR_FONT_SIZE_PATH, StandardCharsets.UTF_8)) {
+					String value = line == null ? "" : line.trim();
+					if(value.isEmpty() || value.startsWith("#")) {
+						continue;
+					}
+					try {
+						int parsed = Integer.parseInt(value);
+						loaded = Math.max(MIN_EDITOR_FONT_SIZE, Math.min(MAX_EDITOR_FONT_SIZE, parsed));
+					} catch(NumberFormatException ignored) {
+					}
+					break;
+				}
+			}
+		} catch(IOException exception) {
+			if(instance != null) {
+				instance.logException("Failed to read editor font size file: " + EDITOR_FONT_SIZE_PATH, exception);
+			}
+		}
+		editorFontSizeCache = loaded;
 	}
 
 	private static String normalizeLuaModuleName(String rawModuleName) {

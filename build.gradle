@@ -35,6 +35,7 @@ repositories {
 dependencies {
     implementation "org.commonmark:commonmark:0.21.0"
     implementation 'org.lz4:lz4-java:1.8.1'
+    implementation 'com.fifesoft:rsyntaxtextarea:3.3.4'
     compileOnly(files(starmadeJar))
     compileOnly(fileTree(dir: starmadeLibDir, include: "*.jar"))
 }

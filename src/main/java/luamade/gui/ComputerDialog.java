@@ -164,7 +164,8 @@ public class ComputerDialog extends PlayerInput {
 
 		private static final String PROMPT_MARKER = " $ ";
 		private static final int LINE_WRAP = 100;
-		private static final String EDITOR_HINT_PREFIX = "Editor: Ctrl+S Save | Ctrl+X Exit | Ctrl+R Save & Run";
+		private static final String EDITOR_HINT_PREFIX = "Ctrl+S Save | Ctrl+X Exit | Ctrl+R Run | Ctrl+F Find | Ctrl+G GoTo";
+		private static final String EDITOR_TAB_SPACES = "    ";
 		private static final int DOCS_BUTTON_OFFSET_X = 12;
 		private static final int DOCS_BUTTON_OFFSET_Y = 30;
 		private static final int RESET_BUTTON_GAP_X = 8;
@@ -227,6 +228,10 @@ public class ComputerDialog extends PlayerInput {
 		private boolean pathCompletionMode;
 		private String pathCompletionPrefix = "";
 		private long lastInputEditAtMs = System.currentTimeMillis();
+		/** Active inline find query for Ctrl+F in editor mode, or null when not searching. */
+		private String editorFindQuery;
+		/** Last find/goto cursor position for "find next" behavior. */
+		private int editorFindLastPos = -1;
 
 		public ComputerPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
 			super(inputState, "COMPUTER_PANEL", "", "", 850, 650, guiCallback);
@@ -715,6 +720,204 @@ public class ComputerDialog extends PlayerInput {
 			}
 		}
 
+		// ---- Nano editor enhancements ----
+
+		private String computeCursorPosition() {
+			if(consolePane == null) {
+				return "Ln 1, Col 1";
+			}
+			TextAreaInput textArea = consolePane.getTextArea();
+			if(textArea == null) {
+				return "Ln 1, Col 1";
+			}
+			String text = textArea.getCache();
+			if(text == null || text.isEmpty()) {
+				return "Ln 1, Col 1";
+			}
+			int caret = Math.max(0, Math.min(text.length(), textArea.getChatCarrier()));
+			int line = 1;
+			int lastNewline = -1;
+			for(int i = 0; i < caret; i++) {
+				if(text.charAt(i) == '\n') {
+					line++;
+					lastNewline = i;
+				}
+			}
+			int col = caret - lastNewline;
+			return "Ln " + line + ", Col " + col;
+		}
+
+		/**
+		 * Inserts 4 spaces at the cursor, or dedents the current line by up to 4 spaces if shift is held.
+		 */
+		public void handleTabIndent(boolean shift) {
+			if(!isFileEditMode() || consolePane == null) return;
+			TextAreaInput textArea = consolePane.getTextArea();
+			if(textArea == null) return;
+			String text = textArea.getCache();
+			if(text == null) text = "";
+			int caret = Math.max(0, Math.min(text.length(), textArea.getChatCarrier()));
+
+			if(!shift) {
+				// Insert 4 spaces at cursor
+				String newText = text.substring(0, caret) + EDITOR_TAB_SPACES + text.substring(caret);
+				consolePane.setTextWithoutCallback(newText);
+				textArea.setChatCarrier(caret + EDITOR_TAB_SPACES.length());
+				textArea.setBufferChanged();
+				textArea.update();
+			} else {
+				// Dedent: find current line start, remove up to 4 leading spaces
+				int lineStart = text.lastIndexOf('\n', caret - 1) + 1;
+				int spacesToRemove = 0;
+				for(int i = lineStart; i < text.length() && i < lineStart + 4 && text.charAt(i) == ' '; i++) {
+					spacesToRemove++;
+				}
+				if(spacesToRemove > 0) {
+					String newText = text.substring(0, lineStart) + text.substring(lineStart + spacesToRemove);
+					consolePane.setTextWithoutCallback(newText);
+					textArea.setChatCarrier(Math.max(lineStart, caret - spacesToRemove));
+					textArea.setBufferChanged();
+					textArea.update();
+				}
+			}
+		}
+
+		/**
+		 * Inserts a newline at the cursor with auto-indentation matching the current line.
+		 */
+		public void handleAutoIndentEnter() {
+			if(!isFileEditMode() || consolePane == null) return;
+			TextAreaInput textArea = consolePane.getTextArea();
+			if(textArea == null) return;
+			String text = textArea.getCache();
+			if(text == null) text = "";
+			int caret = Math.max(0, Math.min(text.length(), textArea.getChatCarrier()));
+
+			// Find current line start and measure leading whitespace
+			int lineStart = text.lastIndexOf('\n', caret - 1) + 1;
+			StringBuilder indent = new StringBuilder();
+			for(int i = lineStart; i < text.length(); i++) {
+				char c = text.charAt(i);
+				if(c == ' ' || c == '\t') {
+					indent.append(c);
+				} else {
+					break;
+				}
+			}
+
+			String insertion = "\n" + indent.toString();
+			String newText = text.substring(0, caret) + insertion + text.substring(caret);
+			consolePane.setTextWithoutCallback(newText);
+			textArea.setChatCarrier(caret + insertion.length());
+			textArea.setBufferChanged();
+			textArea.update();
+			scrollPaneToCursor();
+		}
+
+		/**
+		 * Duplicates the current line below.
+		 */
+		public void handleDuplicateLine() {
+			if(!isFileEditMode() || consolePane == null) return;
+			TextAreaInput textArea = consolePane.getTextArea();
+			if(textArea == null) return;
+			String text = textArea.getCache();
+			if(text == null) text = "";
+			int caret = Math.max(0, Math.min(text.length(), textArea.getChatCarrier()));
+
+			int lineStart = text.lastIndexOf('\n', caret - 1) + 1;
+			int lineEnd = text.indexOf('\n', caret);
+			if(lineEnd < 0) lineEnd = text.length();
+
+			String line = text.substring(lineStart, lineEnd);
+			String newText = text.substring(0, lineEnd) + "\n" + line + text.substring(lineEnd);
+			consolePane.setTextWithoutCallback(newText);
+			// Place cursor on the duplicated line at the same column offset
+			int colOffset = caret - lineStart;
+			textArea.setChatCarrier(lineEnd + 1 + colOffset);
+			textArea.setBufferChanged();
+			textArea.update();
+			scrollPaneToCursor();
+		}
+
+		/**
+		 * Initiates or continues a Ctrl+F find in the editor. Uses a simple JOptionPane
+		 * input dialog to avoid fighting with the in-game text input.
+		 */
+		public void handleFindText() {
+			if(!isFileEditMode() || consolePane == null) return;
+			TextAreaInput textArea = consolePane.getTextArea();
+			if(textArea == null) return;
+
+			// Use a Swing input dialog on a separate thread to avoid blocking the game loop
+			javax.swing.SwingUtilities.invokeLater(() -> {
+				String query = javax.swing.JOptionPane.showInputDialog(null, "Find:", "Find in File", javax.swing.JOptionPane.PLAIN_MESSAGE);
+				if(query == null || query.isEmpty()) {
+					editorFindQuery = null;
+					editorFindLastPos = -1;
+					return;
+				}
+				editorFindQuery = query;
+				findNext(textArea);
+			});
+		}
+
+		private void findNext(TextAreaInput textArea) {
+			String text = textArea.getCache();
+			if(text == null || editorFindQuery == null) return;
+
+			int startPos = editorFindLastPos >= 0 ? editorFindLastPos + 1 : 0;
+			int idx = text.indexOf(editorFindQuery, startPos);
+			if(idx < 0 && startPos > 0) {
+				// Wrap around
+				idx = text.indexOf(editorFindQuery, 0);
+			}
+
+			if(idx >= 0) {
+				editorFindLastPos = idx;
+				textArea.setChatCarrier(idx + editorFindQuery.length());
+				textArea.setBufferChanged();
+				textArea.update();
+				scrollPaneToCursor();
+			}
+		}
+
+		/**
+		 * Go to a specific line number via a Swing input dialog.
+		 */
+		public void handleGoToLine() {
+			if(!isFileEditMode() || consolePane == null) return;
+			TextAreaInput textArea = consolePane.getTextArea();
+			if(textArea == null) return;
+
+			javax.swing.SwingUtilities.invokeLater(() -> {
+				String input = javax.swing.JOptionPane.showInputDialog(null, "Go to line:", "Go to Line", javax.swing.JOptionPane.PLAIN_MESSAGE);
+				if(input == null || input.trim().isEmpty()) return;
+				int targetLine;
+				try {
+					targetLine = Integer.parseInt(input.trim());
+				} catch(NumberFormatException e) {
+					return;
+				}
+				if(targetLine < 1) targetLine = 1;
+
+				String text = textArea.getCache();
+				if(text == null) text = "";
+				int currentLine = 1;
+				int pos = 0;
+				while(currentLine < targetLine && pos < text.length()) {
+					if(text.charAt(pos) == '\n') {
+						currentLine++;
+					}
+					pos++;
+				}
+				textArea.setChatCarrier(Math.min(pos, text.length()));
+				textArea.setBufferChanged();
+				textArea.update();
+				scrollPaneToCursor();
+			});
+		}
+
 		private void updateEditorHintOverlay() {
 			if(editorHintsOverlay == null) {
 				return;
@@ -736,7 +939,8 @@ public class ComputerDialog extends PlayerInput {
 				currentFile = "(unspecified file)";
 			}
 
-			String hintText = EDITOR_HINT_PREFIX + " | " + currentFile;
+			String posInfo = computeCursorPosition();
+			String hintText = EDITOR_HINT_PREFIX + " | " + currentFile + " | " + posInfo;
 			if(!hintText.equals(lastEditorHintText)) {
 				editorHintsOverlay.setTextSimple(hintText);
 				lastEditorHintText = hintText;

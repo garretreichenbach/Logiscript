@@ -83,6 +83,21 @@ public class EventManager {
 						event.setCanceled(true);
 						panel.handleEditorShortcut(key);
 						// still forward to InputApi so scripts can react
+					} else if(panel.isFileEditMode() && ctrlDown && key == GLFW.GLFW_KEY_F) {
+						event.setCanceled(true);
+						panel.handleFindText();
+					} else if(panel.isFileEditMode() && ctrlDown && key == GLFW.GLFW_KEY_G) {
+						event.setCanceled(true);
+						panel.handleGoToLine();
+					} else if(panel.isFileEditMode() && ctrlDown && key == GLFW.GLFW_KEY_D) {
+						event.setCanceled(true);
+						panel.handleDuplicateLine();
+					} else if(panel.isFileEditMode() && key == GLFW.GLFW_KEY_TAB) {
+						event.setCanceled(true);
+						panel.handleTabIndent(shiftDown);
+					} else if(panel.isFileEditMode() && key == GLFW.GLFW_KEY_ENTER) {
+						event.setCanceled(true);
+						panel.handleAutoIndentEnter();
 					} else if(!panel.isFileEditMode() && key == GLFW.GLFW_KEY_TAB) {
 						event.setCanceled(true);
 						panel.handleTabAutocomplete();
