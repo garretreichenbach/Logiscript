@@ -13,8 +13,5 @@
 	],
 	"core_mod": false,
 	"requires_class_resize": false,
-	"hard_load_all_classes": false,
-	"mixin_configs": [
-		"mixins.luamade.json"
-	]
+	"hard_load_all_classes": false
 }
