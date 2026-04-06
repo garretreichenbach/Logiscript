@@ -2,11 +2,15 @@ package luamade.element.block;
 
 import api.config.BlockConfig;
 import api.listener.fastevents.segmentpiece.SegmentPieceKilledListener;
+import api.listener.fastevents.segmentpiece.SegmentPiecePlayerInteractListener;
 import api.listener.fastevents.segmentpiece.SegmentPieceRemoveListener;
 import api.utils.element.Blocks;
+import api.network.packets.PacketUtil;
 import luamade.element.ElementRegistry;
+import luamade.network.PacketCSRequestDataStoreContents;
 import luamade.system.module.DataStoreModuleContainer;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.schema.game.client.controller.manager.ingame.PlayerInteractionControlManager;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SendableSegmentController;
 import org.schema.game.common.controller.damage.Damager;
@@ -14,9 +18,10 @@ import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementCollection;
 import org.schema.game.common.data.element.ElementKeyMap;
 import org.schema.game.common.data.element.FactoryResource;
+import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.world.Segment;
 
-public class DataStore extends Block implements SegmentPieceRemoveListener, SegmentPieceKilledListener {
+public class DataStore extends Block implements SegmentPieceRemoveListener, SegmentPieceKilledListener, SegmentPiecePlayerInteractListener {
 
 	public DataStore() {
 		super("Data Store");
@@ -30,7 +35,7 @@ public class DataStore extends Block implements SegmentPieceRemoveListener, Segm
 		blockInfo.setShoppable(true);
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price * 2);
 		blockInfo.setOrientatable(true);
-		blockInfo.setCanActivate(false);
+		blockInfo.setCanActivate(true);
 		blockInfo.volume = 0.2f;
 	}
 
@@ -74,5 +79,16 @@ public class DataStore extends Block implements SegmentPieceRemoveListener, Segm
 		if(container != null) {
 			container.removeBlock(segmentPiece.getAbsoluteIndex());
 		}
+	}
+
+	@Override
+	public void onInteract(SegmentPiece segmentPiece, PlayerState playerState, PlayerInteractionControlManager playerInteractionControlManager) {
+		if(segmentPiece.getType() != ElementRegistry.DATA_STORE.getId()) return;
+		if(!(segmentPiece.getSegmentController() instanceof ManagedUsableSegmentController<?>)) return;
+		ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentPiece.getSegmentController();
+		DataStoreModuleContainer container = DataStoreModuleContainer.getContainer(controller.getManagerContainer());
+		if(container == null) return;
+		String uuid = container.getOrAssignUuid(segmentPiece.getAbsoluteIndex());
+		PacketUtil.sendPacketToServer(new PacketCSRequestDataStoreContents(uuid, ""));
 	}
 }

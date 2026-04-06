@@ -2,7 +2,10 @@ package luamade;
 
 import api.config.BlockConfig;
 import api.mod.StarMod;
+import api.network.Packet;
 import luamade.element.ElementRegistry;
+import luamade.network.PacketCSRequestDataStoreContents;
+import luamade.network.PacketSCDataStoreContents;
 import luamade.lua.peripheral.PeripheralRegistry;
 import luamade.lua.datastore.NetworkedDataStoreRegistry;
 import luamade.lua.datastore.SharedDataStore;
@@ -38,6 +41,7 @@ public class LuaMade extends StarMod {
 		ConfigManager.initialize(this);
 		EventManager.registerEvents(this);
 		NetworkedDataStoreRegistry.load();
+		registerPackets();
 	}
 
 	@Override
@@ -76,5 +80,10 @@ public class LuaMade extends StarMod {
 		if(ConfigManager.isDebugMode()) {
 			logMessage("[DEBUG]: [ResourcesReorganized] " + message);
 		}
+	}
+
+	private void registerPackets() {
+		Packet.registerPacket(PacketCSRequestDataStoreContents.class);
+		Packet.registerPacket(PacketSCDataStoreContents.class);
 	}
 }
