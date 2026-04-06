@@ -121,6 +121,19 @@ public final class SharedDataStore {
 		}
 	}
 
+	/**
+	 * Removes a store entirely — deletes the in-memory map and the backing
+	 * JSON file on disk. Used when a Networked Data Store block is destroyed.
+	 */
+	public static void deleteStore(String storeUuid) {
+		stores.remove(storeUuid);
+		storeLocks.remove(storeUuid);
+		File file = storeFile(storeUuid);
+		if(file != null && file.exists()) {
+			file.delete();
+		}
+	}
+
 	// -------------------------------------------------------------------------
 	// Internal helpers
 	// -------------------------------------------------------------------------

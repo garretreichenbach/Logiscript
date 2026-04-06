@@ -31,6 +31,7 @@ systems/block.md
 systems/chamber.md
 systems/channels.md
 systems/datastore-block.md
+systems/networked-datastore-block.md
 systems/disk-drive-block.md
 systems/display-module-block.md
 systems/factory-block.md

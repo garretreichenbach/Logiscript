@@ -66,6 +66,7 @@ markdown/systems/block
 markdown/systems/block-info
 markdown/systems/chamber
 markdown/systems/datastore-block
+markdown/systems/networked-datastore-block
 markdown/systems/disk-drive-block
 markdown/systems/display-module-block
 markdown/systems/factory-block

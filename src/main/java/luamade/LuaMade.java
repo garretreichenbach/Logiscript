@@ -4,6 +4,7 @@ import api.config.BlockConfig;
 import api.mod.StarMod;
 import luamade.element.ElementRegistry;
 import luamade.lua.peripheral.PeripheralRegistry;
+import luamade.lua.datastore.NetworkedDataStoreRegistry;
 import luamade.lua.datastore.SharedDataStore;
 import luamade.manager.ComputerDataCleanupManager;
 import luamade.manager.ConfigManager;
@@ -36,6 +37,7 @@ public class LuaMade extends StarMod {
 		PeripheralRegistry.registerDefaults();
 		ConfigManager.initialize(this);
 		EventManager.registerEvents(this);
+		NetworkedDataStoreRegistry.load();
 	}
 
 	@Override
@@ -51,6 +53,11 @@ public class LuaMade extends StarMod {
 			SharedDataStore.saveAll();
 		} catch(Exception exception) {
 			logException("Failed to save data store state on disable", exception);
+		}
+		try {
+			NetworkedDataStoreRegistry.saveAll();
+		} catch(Exception exception) {
+			logException("Failed to save networked data store registry on disable", exception);
 		}
 		super.onDisable();
 	}

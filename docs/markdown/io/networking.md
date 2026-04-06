@@ -70,6 +70,21 @@ Useful for coordination between foreground commands and background scripts on on
 - `receiveModem()`
 - `hasModemMessage()`
 
+## Networked Data Stores
+
+- `getDataStore(name)`
+  Returns a `RemoteDataStore` handle for the named [Networked Data Store](../systems/networked-datastore-block.md),
+  or `nil` if the name is not registered. The handle allows reading and writing
+  data without the owning entity being loaded.
+
+```lua
+local store = net:getDataStore("faction-prices")
+if store then
+    print(store:getValue("iron_ore"))
+    store:set("iron_ore", "200")
+end
+```
+
 ## Discovery helpers
 
 - `getHostnames()`
