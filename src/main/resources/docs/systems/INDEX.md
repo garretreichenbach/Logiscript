@@ -15,6 +15,7 @@ Game systems including blocks, modules, inventories, and specialized mechanics.
 - **block-info.md** - Block information reference
 - **chamber.md** - Reactor chamber wrapper
 - **datastore-block.md** - Per-block shared data store wrapper
+- **networked-datastore-block.md** - Networked data store (entity-independent access)
 - **disk-drive-block.md** - Disk drive block wrapper
 - **password-permission-module.md** - Password-gated permission module wrapper
 - **display-module-block.md** - Display module wrapper
