@@ -1,0 +1,19 @@
+<scene formatVersion="1.0" minOgreVersion="1.8" ogreMaxVersion="2.6.1" unitType="/10" unitsPerMeter="3.93701" upAxis="y">
+    <environment>
+        <colourAmbient b="0.333333" g="0.333333" r="0.333333"/>
+        <colourBackground b="0" g="0" r="0"/>
+        <clipping far="10000" near="0"/>
+    </environment>
+    <nodes>
+        <node name="Computer">
+            <position x="0" y="0" z="0"/>
+            <scale x="1" y="1" z="1"/>
+            <rotation qw="0" qx="0" qy="0" qz="0"/>
+            <entity castShadows="true" meshFile="Computer.mesh" name="Computer" receiveShadows="true">
+                <subentities>
+                    <subentity index="0" materialName="Computer"/>
+                </subentities>
+            </entity>
+        </node>
+    </nodes>
+</scene>

@@ -34,6 +34,7 @@ public class Computer extends Block implements SegmentPiecePlayerInteractListene
 		blockInfo.setCanActivate(true);
 		blockInfo.volume = 0.1f;
 		blockInfo.consoleAccessible = true;
+		blockInfo.drawOnlyInBuildMode = true;
 	}
 
 	@Override
@@ -45,7 +46,7 @@ public class Computer extends Block implements SegmentPiecePlayerInteractListene
 	@Override
 	public void initResources() {
 		blockInfo.setBuildIconNum(ElementKeyMap.getInfo(451).getBuildIconNum());
-		blockInfo.setTextureId(ElementKeyMap.getInfo(451).getTextureIds());
+		blockInfo.lodShapeString = "LuaMade~Computer";
 	}
 
 	@Override

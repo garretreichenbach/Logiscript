@@ -62,7 +62,7 @@ public class LuaMade extends StarMod {
 
 	@Override
 	public void onResourceLoad(ResourceLoader loader) {
-		ResourceManager.loadResources(this, loader);
+		ResourceManager.loadResources(loader);
 	}
 
 	public void logDebug(String message) {
