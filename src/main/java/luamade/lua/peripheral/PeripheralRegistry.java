@@ -182,6 +182,23 @@ public class PeripheralRegistry {
 		register(new PeripheralProvider() {
 			@Override
 			public String[] getTypeNames() {
+				return new String[]{"networkeddatastore", "networked_data_store", "networked-data-store", "netdatastore", "net_data_store"};
+			}
+
+			@Override
+			public boolean canWrap(SegmentPiece piece) {
+				return piece.getType() == ElementRegistry.NETWORKED_DATA_STORE.getId();
+			}
+
+			@Override
+			public Block wrap(SegmentPiece piece, ComputerModule module) {
+				return new NetworkedDataStoreBlock(piece, module);
+			}
+		});
+
+		register(new PeripheralProvider() {
+			@Override
+			public String[] getTypeNames() {
 				return new String[]{"inventory"};
 			}
 

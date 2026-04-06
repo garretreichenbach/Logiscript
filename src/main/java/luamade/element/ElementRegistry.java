@@ -7,6 +7,7 @@ import luamade.LuaMade;
 import luamade.element.block.Computer;
 import luamade.element.block.DataStore;
 import luamade.element.block.DiskDrive;
+import luamade.element.block.NetworkedDataStore;
 import luamade.element.block.PasswordPermissionModule;
 import luamade.element.block.RemoteAccessPoint;
 import luamade.element.item.Disk;
@@ -23,6 +24,7 @@ public enum ElementRegistry {
 	DISK_DRIVE(new DiskDrive()),
 	REMOTE_ACCESS_POINT(new RemoteAccessPoint()),
 	DATA_STORE(new DataStore()),
+	NETWORKED_DATA_STORE(new NetworkedDataStore()),
 	PASSWORD_PERMISSION_MODULE(new PasswordPermissionModule()),
 	DISK(new Disk()),
 	REMOTE_CONTROL(new RemoteControl());

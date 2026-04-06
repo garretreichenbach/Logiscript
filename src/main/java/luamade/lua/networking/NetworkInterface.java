@@ -1,5 +1,7 @@
 package luamade.lua.networking;
 
+import luamade.lua.datastore.NetworkedDataStoreRegistry;
+import luamade.lua.datastore.RemoteDataStoreHandle;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.system.module.ComputerModule;
@@ -420,6 +422,18 @@ public class NetworkInterface extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public boolean ping(String targetHostname) {
 		return networkInterfaces.containsKey(targetHostname);
+	}
+
+	/**
+	 * Returns a remote handle to a Networked Data Store by its registered name.
+	 * The handle allows reading and writing data without the owning entity being
+	 * loaded. Returns {@code nil} if the name is not registered.
+	 */
+	@LuaMadeCallable
+	public RemoteDataStoreHandle getDataStore(String name) {
+		if(name == null || name.isEmpty()) return null;
+		if(!NetworkedDataStoreRegistry.isNameTaken(name)) return null;
+		return new RemoteDataStoreHandle(name, module);
 	}
 
 	private boolean subscribeToChannel(Map<String, Channel> registry, String channelName, String password) {
