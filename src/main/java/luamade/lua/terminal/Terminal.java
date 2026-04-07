@@ -11,6 +11,7 @@ import luamade.lua.peripheral.PeripheralsApi;
 import luamade.lua.util.UtilApi;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import luamade.luawrap.WrapMethod;
 import luamade.manager.ConfigManager;
 import luamade.system.module.ComputerModule;
 import org.luaj.vm2.*;
@@ -108,11 +109,35 @@ public class Terminal extends LuaMadeUserdata {
 	/**
 	 * Stops the terminal
 	 */
+	private static final int STOP_AWAIT_TIMEOUT_MS = 2000;
+
 	@LuaMadeCallable
 	public void stop() {
 		cancelForegroundScript(false);
 		cancelAllBackgroundJobs(true);
 		running = false;
+		// During save/cleanup, wait for script threads to actually terminate so
+		// they don't access game objects after the world is unloaded.
+		awaitScriptThreadsDrained();
+	}
+
+	private void awaitScriptThreadsDrained() {
+		long deadline = System.currentTimeMillis() + STOP_AWAIT_TIMEOUT_MS;
+		while(activeScripts.get() > 0 && System.currentTimeMillis() < deadline) {
+			try {
+				Thread.sleep(50);
+			} catch(InterruptedException interruptedException) {
+				Thread.currentThread().interrupt();
+				break;
+			}
+		}
+		if(activeScripts.get() > 0) {
+			LuaMade instance = LuaMade.getInstance();
+			if(instance != null) {
+				instance.logWarning("Terminal stop: " + activeScripts.get()
+						+ " script thread(s) still active after " + STOP_AWAIT_TIMEOUT_MS + "ms timeout");
+			}
+		}
 	}
 
 	@LuaMadeCallable
@@ -167,6 +192,12 @@ public class Terminal extends LuaMadeUserdata {
 		if(future != null) {
 			future.cancel(true);
 		}
+		// Release the script slot immediately so subsequent scripts are not
+		// permanently blocked when the worker thread ignores the interrupt
+		// (e.g. pure-Lua loops or non-interruptible Java calls).
+		// tryReleaseSlot is idempotent; the task's finally block will no-op
+		// if we already released here.
+		context.tryReleaseSlot(scriptSlots);
 		int canceledBackground = cancelAllBackgroundJobs(false);
 		logInterruptDebug("cancelForegroundScript foreground canceled; canceledBackgroundJobs=" + canceledBackground
 				+ ", signaledRunningContexts=" + signaledRunningContexts);
@@ -187,6 +218,9 @@ public class Terminal extends LuaMadeUserdata {
 				job.getContext().requestCancel();
 				job.setStatus(JobStatus.CANCELED);
 				future.cancel(true);
+				// Release the slot immediately so it is not leaked if the
+				// worker thread ignores the interrupt.
+				job.getContext().tryReleaseSlot(scriptSlots);
 				canceled++;
 			}
 		}
@@ -537,14 +571,16 @@ public class Terminal extends LuaMadeUserdata {
 			scriptContextThreadLocal.set(context);
 			context.bindToCurrentThread();
 			runningScriptContexts.add(context);
+			WrapMethod.setCancellationChecker(context::throwIfCancellationRequested);
 			activeScripts.incrementAndGet();
 			try {
 				return executeScript(scriptPath, script, args);
 			} finally {
+				WrapMethod.setCancellationChecker(null);
 				scriptContextThreadLocal.remove();
 				runningScriptContexts.remove(context);
 				activeScripts.decrementAndGet();
-				scriptSlots.release();
+				context.tryReleaseSlot(scriptSlots);
 				module.getGfxApi().clear();
 			}
 		});
@@ -605,7 +641,14 @@ public class Terminal extends LuaMadeUserdata {
 		}
 
 		ScriptExecutionContext context = new ScriptExecutionContext();
-		Future<Boolean> future = submitScriptTask(scriptPath, script, args, context);
+		Future<Boolean> future;
+		try {
+			future = submitScriptTask(scriptPath, script, args, context);
+		} catch(RejectedExecutionException rejectedExecutionException) {
+			context.tryReleaseSlot(scriptSlots);
+			console.print(valueOf("Error: Script executor rejected task"));
+			return false;
+		}
 		activeForegroundContext = context;
 		activeForegroundFuture = future;
 		AtomicBoolean promptPrinted = new AtomicBoolean(false);
@@ -643,7 +686,13 @@ public class Terminal extends LuaMadeUserdata {
 		int jobId = nextJobId.getAndIncrement();
 		ScriptExecutionContext context = new ScriptExecutionContext();
 		BackgroundJob job = new BackgroundJob(jobId, scriptPath, context);
-		Future<Boolean> future = submitScriptTask(scriptPath, script, args, context);
+		Future<Boolean> future;
+		try {
+			future = submitScriptTask(scriptPath, script, args, context);
+		} catch(RejectedExecutionException rejectedExecutionException) {
+			context.tryReleaseSlot(scriptSlots);
+			return -1;
+		}
 		job.setFuture(future);
 		backgroundJobs.put(jobId, job);
 
@@ -896,6 +945,13 @@ public class Terminal extends LuaMadeUserdata {
 		globals.load(new CoroutineLib());
 		LuaC.install(globals);
 
+		// Install DebugLib so the LuaJ VM fires instruction hooks, then
+		// set a count-based hook that checks for script cancellation every
+		// 1000 VM instructions.  This makes even tight pure-Lua loops
+		// (e.g. `while true do end`) interruptible by Ctrl+C / reset.
+		// User access to the debug library is removed immediately after.
+		installCancellationHook(globals, context);
+
 		// Create our own sandboxed versions of these
 		globals.set("dofile", new VarArgFunction() {
 			@Override
@@ -1021,6 +1077,42 @@ public class Terminal extends LuaMadeUserdata {
 			globals.set("util", nativeUtil);
 		}
 		return globals;
+	}
+
+	private static final int CANCELLATION_HOOK_INSTRUCTION_COUNT = 1000;
+
+	private void installCancellationHook(Globals globals, ScriptExecutionContext context) {
+		if(context == null) {
+			return;
+		}
+		try {
+			globals.load(new DebugLib());
+			LuaValue debugLib = globals.get("debug");
+			if(debugLib.isnil()) {
+				return;
+			}
+			LuaValue sethook = debugLib.get("sethook");
+			if(sethook.isnil()) {
+				return;
+			}
+			sethook.invoke(varargsOf(new ZeroArgFunction() {
+				@Override
+				public LuaValue call() {
+					context.throwIfCancellationRequested();
+					return NIL;
+				}
+			}, valueOf(""), valueOf(CANCELLATION_HOOK_INSTRUCTION_COUNT)));
+		} catch(Exception e) {
+			// DebugLib may not be available in all environments; the
+			// WrapMethod check still covers Java method dispatches.
+			LuaMade instance = LuaMade.getInstance();
+			if(instance != null) {
+				instance.logDebug("Could not install cancellation hook: " + e.getMessage());
+			}
+		} finally {
+			// Never expose the debug library to user scripts.
+			globals.set("debug", NIL);
+		}
 	}
 
 	private LuaTable createSandboxedPackageTable() {
@@ -4452,6 +4544,7 @@ public class Terminal extends LuaMadeUserdata {
 
 	private static final class ScriptExecutionContext {
 		private final AtomicBoolean cancellationRequested = new AtomicBoolean(false);
+		private final AtomicBoolean slotReleased = new AtomicBoolean(false);
 		private volatile Thread workerThread;
 
 		private void bindToCurrentThread() {
@@ -4474,6 +4567,20 @@ public class Terminal extends LuaMadeUserdata {
 			if(cancellationRequested.get()) {
 				throw new LuaError("Script canceled");
 			}
+		}
+
+		/**
+		 * Releases the script slot exactly once, even if called from multiple
+		 * threads (e.g. the cancel path and the task finally block).
+		 *
+		 * @return true if this call actually released the slot.
+		 */
+		private boolean tryReleaseSlot(Semaphore slots) {
+			if(slotReleased.compareAndSet(false, true)) {
+				slots.release();
+				return true;
+			}
+			return false;
 		}
 	}
 
