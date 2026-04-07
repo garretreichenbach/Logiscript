@@ -174,6 +174,9 @@ public enum ElementRegistry {
 		}
 
 		public short getId() {
+			if(getInfo() == null) {
+				return -1;
+			}
 			return getInfo().id;
 		}
 	}
