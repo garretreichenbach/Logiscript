@@ -2,6 +2,7 @@ package luamade.element.block;
 
 import api.config.BlockConfig;
 import api.listener.fastevents.segmentpiece.*;
+import api.utils.element.Blocks;
 import luamade.element.ElementRegistry;
 import luamade.gui.ComputerDialog;
 import luamade.system.module.ComputerModule;
@@ -29,18 +30,28 @@ public class Computer extends Block implements SegmentPiecePlayerInteractListene
 		blockInfo.setDescription("A fully programmable computer utilizing the LUA language.");
 		blockInfo.setInRecipe(true);
 		blockInfo.setShoppable(true);
-		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price);
+		blockInfo.setPrice(Blocks.DISPLAY_MODULE.getInfo().price);
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(true);
 		blockInfo.volume = 0.1f;
 		blockInfo.consoleAccessible = true;
 		blockInfo.drawOnlyInBuildMode = true;
+		blockInfo.blended = true;
 	}
 
 	@Override
 	public void postInitData() {
 		BlockUtils.addControlling(blockInfo, ElementInformation::isConsole);
-		BlockConfig.addRecipe(blockInfo, ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).getProducedInFactoryType(), (int) ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).getFactoryBakeTime(), new FactoryResource(1, ElementKeyMap.TEXT_BOX), new FactoryResource(50, (short) 220));
+		if(ElementRegistry.isRRSInstalled()) {
+			BlockConfig.addRecipe(blockInfo, ElementRegistry.RRSElements.BLOCK_ASSEMBLER.getId(), (int) Blocks.DISPLAY_MODULE.getInfo().getFactoryBakeTime(),
+					new FactoryResource(1, ElementRegistry.RRSElements.PRISMATIC_CIRCUIT.getId()),
+					new FactoryResource(5, ElementRegistry.RRSElements.THRENS_WIRE_MATRIX.getId()),
+					new FactoryResource(1, ElementRegistry.RRSElements.CRYSTAL_PANEL.getId()));
+		} else {
+			BlockConfig.addRecipe(blockInfo, Blocks.DISPLAY_MODULE.getInfo().getProducedInFactoryType(), (int) Blocks.DISPLAY_MODULE.getInfo().getFactoryBakeTime(),
+					new FactoryResource(1, Blocks.DISPLAY_MODULE.getId()),
+					new FactoryResource(1, Blocks.BLUE_CONSOLE.getId()));
+		}
 	}
 
 	@Override
