@@ -10,7 +10,29 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Optional cancellation hook that can be installed by the script runtime so
+ * every {@code @LuaMadeCallable} dispatch checks whether the calling script
+ * has been canceled.  When set, it is invoked at the top of every method call
+ * and is expected to throw {@link LuaError} if cancellation was requested.
+ */
+
 public class WrapMethod extends VarArgFunction {
+
+	private static final ThreadLocal<Runnable> cancellationChecker = new ThreadLocal<>();
+
+	/**
+	 * Sets a per-thread cancellation checker that is invoked at the top of
+	 * every {@code @LuaMadeCallable} dispatch.  Pass {@code null} to clear.
+	 */
+	public static void setCancellationChecker(Runnable checker) {
+		if(checker == null) {
+			cancellationChecker.remove();
+		} else {
+			cancellationChecker.set(checker);
+		}
+	}
+
 	public final String name;
 	private final Class<?> clazz;
 	private final Map<Integer, VarArgFunction> methods = new HashMap<>();
@@ -72,6 +94,11 @@ public class WrapMethod extends VarArgFunction {
 
 	@Override
 	public Varargs invoke(Varargs vargs) {
+		Runnable checker = cancellationChecker.get();
+		if(checker != null) {
+			checker.run();
+		}
+
 		int argc = vargs.narg() - 1;
 
 		if(argc < 0) throw new LuaError("Method must be supplied with 'self'.");
