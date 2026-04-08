@@ -9,6 +9,7 @@ import luamade.system.module.ComputerModule;
 import luamade.system.module.ComputerModuleContainer;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.schema.game.client.controller.manager.ingame.PlayerInteractionControlManager;
+import org.schema.game.client.view.cubes.shapes.BlockStyle;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.SendableSegmentController;
@@ -36,18 +37,10 @@ public class Computer extends Block implements SegmentPiecePlayerInteractListene
 		blockInfo.volume = 0.1f;
 		blockInfo.consoleAccessible = true;
 		blockInfo.drawOnlyInBuildMode = true;
-		blockInfo.blended = true;
 	}
 
 	@Override
 	public void postInitData() {
-		blockInfo.lodShapeString = "LuaMade~Computer";
-		blockInfo.lodCollisionPhysical = true;
-		blockInfo.lodCollision = new ElementInformation.LodCollision();
-		blockInfo.lodDetailCollision = new ElementInformation.LodCollision();
-		blockInfo.cubeCubeCollision = true;
-		blockInfo.lodUseDetailCollision = true;
-
 		BlockUtils.addControlling(blockInfo, ElementInformation::isConsole);
 		if(ElementRegistry.isRRSInstalled()) {
 			BlockConfig.addRecipe(blockInfo, ElementRegistry.RRSElements.BLOCK_ASSEMBLER.getId(), (int) Blocks.DISPLAY_MODULE.getInfo().getFactoryBakeTime(),
@@ -65,6 +58,13 @@ public class Computer extends Block implements SegmentPiecePlayerInteractListene
 	public void initResources() {
 		blockInfo.setBuildIconNum(ElementKeyMap.getInfo(451).getBuildIconNum());
 		blockInfo.lodShapeString = "LuaMade~Computer";
+		blockInfo.lodCollision = Blocks.BLUE_CONSOLE.getInfo().lodCollision;
+		blockInfo.lodCollision.blockTypeToEmulate = BlockStyle.NORMAL;
+		blockInfo.lodDetailCollision = Blocks.BLUE_CONSOLE.getInfo().lodDetailCollision;
+		blockInfo.lodDetailCollision.blockTypeToEmulate = BlockStyle.NORMAL;
+		blockInfo.cubeCubeCollision = true;
+		blockInfo.lodUseDetailCollision = true;
+		blockInfo.lodCollisionPhysical = true;
 	}
 
 	@Override
