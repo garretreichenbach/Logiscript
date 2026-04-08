@@ -41,6 +41,13 @@ public class Computer extends Block implements SegmentPiecePlayerInteractListene
 
 	@Override
 	public void postInitData() {
+		blockInfo.lodShapeString = "LuaMade~Computer";
+		blockInfo.lodCollisionPhysical = true;
+		blockInfo.lodCollision = new ElementInformation.LodCollision();
+		blockInfo.lodDetailCollision = new ElementInformation.LodCollision();
+		blockInfo.cubeCubeCollision = true;
+		blockInfo.lodUseDetailCollision = true;
+
 		BlockUtils.addControlling(blockInfo, ElementInformation::isConsole);
 		if(ElementRegistry.isRRSInstalled()) {
 			BlockConfig.addRecipe(blockInfo, ElementRegistry.RRSElements.BLOCK_ASSEMBLER.getId(), (int) Blocks.DISPLAY_MODULE.getInfo().getFactoryBakeTime(),
