@@ -1,12 +1,14 @@
 package luamade.manager;
 
 import luamade.LuaMade;
+import org.schema.schine.graphicsengine.forms.AbstractSceneNode;
 import org.schema.schine.graphicsengine.forms.Mesh;
 import org.schema.schine.resource.ResourceLoader;
 
 import javax.vecmath.AxisAngle4f;
 import javax.vecmath.Matrix3f;
 import javax.vecmath.Quat4f;
+import javax.vecmath.Vector4f;
 
 public class ResourceManager {
 
@@ -29,13 +31,19 @@ public class ResourceManager {
 				return null;
 			}
 			LuaMade.getInstance().logDebug("Loaded mesh '" + path + "': children=" + mesh.getChilds().size());
-			// Rotate the parent MeshGroup's transform to correct orientation.
-			// The renderer applies mesh.getParent().getTransform() during drawing (SegmentDrawer line 649).
+			// Apply rotation correction to both the parent transform (used by preview/hand rendering)
+			// and each child's initialQuadRot (used by SegmentDrawer for placed blocks).
 			Quat4f correctionRot = new Quat4f();
-			correctionRot.set(new AxisAngle4f(1, 0, 0, -(float)(Math.PI / 2)));
+			correctionRot.set(new AxisAngle4f(1, 0, 0, (float)(Math.PI / 2)));
 			Matrix3f rotMatrix = new Matrix3f();
 			rotMatrix.set(correctionRot);
 			mesh.getTransform().basis.set(rotMatrix);
+			Vector4f rotVec = new Vector4f(correctionRot.x, correctionRot.y, correctionRot.z, correctionRot.w);
+			for(AbstractSceneNode child : mesh.getChilds()) {
+				if(child instanceof Mesh) {
+					((Mesh) child).setInitialQuadRot(rotVec);
+				}
+			}
 			mesh.setFirstDraw(true);
 			return mesh;
 		} catch(Exception exception) {
