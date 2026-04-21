@@ -31,13 +31,10 @@ public class ResourceManager {
 				return null;
 			}
 			LuaMade.getInstance().logDebug("Loaded mesh '" + path + "': children=" + mesh.getChilds().size());
-			// Apply rotation correction to both the parent transform (used by preview/hand rendering)
-			// and each child's initialQuadRot (used by SegmentDrawer for placed blocks).
+			// Set rotation on child meshes' initialQuadRot (used by SegmentDrawer for placed blocks).
+			// The parent transform is left as identity since the preview path already applies initialQuadRot.
 			Quat4f correctionRot = new Quat4f();
 			correctionRot.set(new AxisAngle4f(1, 0, 0, (float)(Math.PI / 2)));
-			Matrix3f rotMatrix = new Matrix3f();
-			rotMatrix.set(correctionRot);
-			mesh.getTransform().basis.set(rotMatrix);
 			Vector4f rotVec = new Vector4f(correctionRot.x, correctionRot.y, correctionRot.z, correctionRot.w);
 			for(AbstractSceneNode child : mesh.getChilds()) {
 				if(child instanceof Mesh) {
