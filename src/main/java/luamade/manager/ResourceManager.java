@@ -6,7 +6,6 @@ import org.schema.schine.graphicsengine.forms.Mesh;
 import org.schema.schine.resource.ResourceLoader;
 
 import javax.vecmath.AxisAngle4f;
-import javax.vecmath.Matrix3f;
 import javax.vecmath.Quat4f;
 import javax.vecmath.Vector4f;
 
@@ -34,11 +33,11 @@ public class ResourceManager {
 			// Set rotation on child meshes' initialQuadRot (used by SegmentDrawer for placed blocks).
 			// The parent transform is left as identity since the preview path already applies initialQuadRot.
 			Quat4f correctionRot = new Quat4f();
-			correctionRot.set(new AxisAngle4f(1, 0, 0, -(float)(Math.PI / 2)));
+			correctionRot.set(new AxisAngle4f(1, 0, 0, (float) Math.PI));
 			Vector4f rotVec = new Vector4f(correctionRot.x, correctionRot.y, correctionRot.z, correctionRot.w);
 			for(AbstractSceneNode child : mesh.getChilds()) {
 				if(child instanceof Mesh) {
-					((Mesh) child).setInitialQuadRot(rotVec);
+					child.setInitialQuadRot(rotVec);
 				}
 			}
 			mesh.setFirstDraw(true);
