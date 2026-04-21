@@ -38,6 +38,7 @@ public class Computer extends Block implements SegmentPiecePlayerInteractListene
 		blockInfo.setPrice((long) (Blocks.DISPLAY_MODULE.getInfo().price * 1.5f));
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(true);
+		blockInfo.type = Blocks.DISPLAY_MODULE.getInfo().type;
 		blockInfo.volume = 0.1f;
 		blockInfo.consoleAccessible = true;
 	}
