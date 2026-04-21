@@ -3,6 +3,7 @@ package luamade.element.block;
 import api.config.BlockConfig;
 import api.listener.fastevents.segmentpiece.SegmentPieceKilledListener;
 import api.listener.fastevents.segmentpiece.SegmentPieceRemoveListener;
+import api.utils.element.Blocks;
 import luamade.element.ElementRegistry;
 import luamade.system.module.PasswordPermissionModuleContainer;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -53,8 +54,8 @@ public class PasswordPermissionModule extends Block implements SegmentPieceRemov
 
 	@Override
 	public void initResources() {
-		blockInfo.setBuildIconNum(ElementKeyMap.getInfo(346).getBuildIconNum());
-		blockInfo.setTextureId(ElementKeyMap.getInfo(346).getTextureIds());
+		blockInfo.setBuildIconNum(Blocks.PUBLIC_PERMISSION_MODULE.getInfo().getBuildIconNum());
+		blockInfo.setTextureId(Blocks.PUBLIC_PERMISSION_MODULE.getInfo().getTextureIds());
 	}
 
 	@Override

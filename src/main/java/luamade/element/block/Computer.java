@@ -3,6 +3,7 @@ package luamade.element.block;
 import api.config.BlockConfig;
 import api.listener.fastevents.segmentpiece.*;
 import api.utils.element.Blocks;
+import luamade.LuaMade;
 import luamade.element.ElementRegistry;
 import luamade.gui.ComputerDialog;
 import luamade.system.module.ComputerModule;
@@ -36,7 +37,6 @@ public class Computer extends Block implements SegmentPiecePlayerInteractListene
 		blockInfo.setCanActivate(true);
 		blockInfo.volume = 0.1f;
 		blockInfo.consoleAccessible = true;
-		blockInfo.drawOnlyInBuildMode = true;
 	}
 
 	@Override
@@ -57,14 +57,7 @@ public class Computer extends Block implements SegmentPiecePlayerInteractListene
 	@Override
 	public void initResources() {
 		blockInfo.setBuildIconNum(ElementKeyMap.getInfo(451).getBuildIconNum());
-		blockInfo.lodShapeString = "LuaMade~Computer";
-		blockInfo.lodCollision = Blocks.BLUE_CONSOLE.getInfo().lodCollision;
-		blockInfo.lodCollision.blockTypeToEmulate = BlockStyle.NORMAL;
-		blockInfo.lodDetailCollision = Blocks.BLUE_CONSOLE.getInfo().lodDetailCollision;
-		blockInfo.lodDetailCollision.blockTypeToEmulate = BlockStyle.NORMAL;
-		blockInfo.cubeCubeCollision = true;
-		blockInfo.lodUseDetailCollision = true;
-		blockInfo.lodCollisionPhysical = true;
+		BlockConfig.assignLod(blockInfo, LuaMade.getInstance(), "Computer", null);
 	}
 
 	@Override
