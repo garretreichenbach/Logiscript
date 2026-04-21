@@ -34,7 +34,7 @@ public class ResourceManager {
 			// Set rotation on child meshes' initialQuadRot (used by SegmentDrawer for placed blocks).
 			// The parent transform is left as identity since the preview path already applies initialQuadRot.
 			Quat4f correctionRot = new Quat4f();
-			correctionRot.set(new AxisAngle4f(1, 0, 0, (float)(Math.PI / 2)));
+			correctionRot.set(new AxisAngle4f(1, 0, 0, -(float)(Math.PI / 2)));
 			Vector4f rotVec = new Vector4f(correctionRot.x, correctionRot.y, correctionRot.z, correctionRot.w);
 			for(AbstractSceneNode child : mesh.getChilds()) {
 				if(child instanceof Mesh) {
