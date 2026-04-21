@@ -10,13 +10,15 @@ import luamade.system.module.ComputerModule;
 import luamade.system.module.ComputerModuleContainer;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.schema.game.client.controller.manager.ingame.PlayerInteractionControlManager;
-import org.schema.game.client.view.cubes.shapes.BlockStyle;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.SendableSegmentController;
 import org.schema.game.common.controller.damage.Damager;
 import org.schema.game.common.data.SegmentPiece;
-import org.schema.game.common.data.element.*;
+import org.schema.game.common.data.element.ElementCollection;
+import org.schema.game.common.data.element.ElementInformation;
+import org.schema.game.common.data.element.ElementKeyMap;
+import org.schema.game.common.data.element.FactoryResource;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.world.Segment;
 
@@ -32,7 +34,7 @@ public class Computer extends Block implements SegmentPiecePlayerInteractListene
 		blockInfo.setDescription("A fully programmable computer utilizing the LUA language.");
 		blockInfo.setInRecipe(true);
 		blockInfo.setShoppable(true);
-		blockInfo.setPrice(Blocks.DISPLAY_MODULE.getInfo().price);
+		blockInfo.setPrice((long) (Blocks.DISPLAY_MODULE.getInfo().price * 1.5f));
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(true);
 		blockInfo.volume = 0.1f;
@@ -48,7 +50,7 @@ public class Computer extends Block implements SegmentPiecePlayerInteractListene
 					new FactoryResource(5, ElementRegistry.RRSElements.THRENS_WIRE_MATRIX.getId()),
 					new FactoryResource(1, ElementRegistry.RRSElements.CRYSTAL_PANEL.getId()));
 		} else {
-			BlockConfig.addRecipe(blockInfo, Blocks.DISPLAY_MODULE.getInfo().getProducedInFactoryType(), (int) Blocks.DISPLAY_MODULE.getInfo().getFactoryBakeTime(),
+			BlockConfig.addRecipe(blockInfo, Blocks.ADVANCED_FACTORY.getId(), (int) Blocks.DISPLAY_MODULE.getInfo().getFactoryBakeTime(),
 					new FactoryResource(1, Blocks.DISPLAY_MODULE.getId()),
 					new FactoryResource(1, Blocks.BLUE_CONSOLE.getId()));
 		}
