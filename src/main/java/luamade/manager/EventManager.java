@@ -14,6 +14,7 @@ import luamade.system.module.ComputerModule;
 import luamade.system.module.ComputerModuleContainer;
 import luamade.system.module.DataStoreModuleContainer;
 import luamade.system.module.PasswordPermissionModuleContainer;
+import luamade.system.module.VaultModuleContainer;
 import org.schema.schine.graphicsengine.core.GLFW;
 import org.schema.schine.input.Keyboard;
 
@@ -147,6 +148,7 @@ public class EventManager {
 				event.addModMCModule(new AccessPointModuleContainer(event.getSegmentController(), event.getContainer()));
 				event.addModMCModule(new DataStoreModuleContainer(event.getSegmentController(), event.getContainer()));
 				event.addModMCModule(new PasswordPermissionModuleContainer(event.getSegmentController(), event.getContainer()));
+				event.addModMCModule(new VaultModuleContainer(event.getSegmentController(), event.getContainer()));
 			}
 		}, instance);
 	}

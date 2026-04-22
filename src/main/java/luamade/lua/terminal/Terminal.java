@@ -1030,6 +1030,7 @@ public class Terminal extends LuaMadeUserdata {
 		globals.set("ftp", new FtpApi(module));
 		globals.set("peripheral", new PeripheralsApi(module));
 		globals.set("trade", new luamade.lua.shop.TradeNetwork());
+		globals.set("player", new luamade.lua.player.Player());
 		globals.set("input", module.getInputApi());
 		globals.set("gfx2d", module.getGfxApi());
 		globals.set("shell", createShellCompatibilityApi());

@@ -5,10 +5,15 @@ import api.mod.StarMod;
 import api.network.Packet;
 import luamade.element.ElementRegistry;
 import luamade.network.PacketCSRequestDataStoreContents;
+import luamade.network.PacketCSRequestVaultView;
+import luamade.network.PacketCSVaultDeposit;
+import luamade.network.PacketCSVaultWithdraw;
 import luamade.network.PacketSCDataStoreContents;
+import luamade.network.PacketSCVaultView;
 import luamade.lua.peripheral.PeripheralRegistry;
 import luamade.lua.datastore.NetworkedDataStoreRegistry;
 import luamade.lua.datastore.SharedDataStore;
+import luamade.lua.vault.SharedVaultLedger;
 import luamade.manager.ComputerDataCleanupManager;
 import luamade.manager.ConfigManager;
 import luamade.manager.EventManager;
@@ -63,6 +68,11 @@ public class LuaMade extends StarMod {
 		} catch(Exception exception) {
 			logException("Failed to save networked data store registry on disable", exception);
 		}
+		try {
+			SharedVaultLedger.saveAll();
+		} catch(Exception exception) {
+			logException("Failed to save vault ledger on disable", exception);
+		}
 		super.onDisable();
 	}
 
@@ -85,5 +95,9 @@ public class LuaMade extends StarMod {
 	private void registerPackets() {
 		Packet.registerPacket(PacketCSRequestDataStoreContents.class);
 		Packet.registerPacket(PacketSCDataStoreContents.class);
+		Packet.registerPacket(PacketCSRequestVaultView.class);
+		Packet.registerPacket(PacketSCVaultView.class);
+		Packet.registerPacket(PacketCSVaultDeposit.class);
+		Packet.registerPacket(PacketCSVaultWithdraw.class);
 	}
 }
