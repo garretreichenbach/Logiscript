@@ -174,6 +174,14 @@ Jamming state query and control.
 - `isCloaking()` / `canCloak()` / `activateCloaking(active: Boolean)`
 Cloaking state query and control.
 
+## Trading
+
+- `isShop()`
+Returns `true` when this entity is a valid shop station (see `systems/shop.md`).
+
+- `asShop()`
+Returns a `Shop` wrapper for this entity, or `nil` when `isShop()` is `false`.
+
 ## Inventory / fleet
 
 - `getNamedInventory(name: String)`

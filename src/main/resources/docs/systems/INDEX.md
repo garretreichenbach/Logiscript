@@ -9,6 +9,8 @@ Game systems including blocks, modules, inventories, and specialized mechanics.
 - **inventory.md** - Inventory system API
 - **item-stack.md** - Item stack object reference
 - **peripheral.md** - Peripheral block wrapper
+- **shop.md** - Shop access (credits, stock, prices, buy/sell)
+- **trade-network.md** - Galaxy-wide trade-node queries and market snapshots
 
 ### Block & Module Wrappers
 - **block.md** - Base block wrapper

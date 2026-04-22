@@ -64,6 +64,12 @@ Returns the entity type string: `"SHIP"` or `"SPACE_STATION"`.
 - `getPilot()`
 Returns the pilot's player name, or `nil` when unoccupied.
 
+- `isShop()`
+Returns `true` when this entity is a valid shop station.
+
+- `asShop()`
+Returns a `Shop` wrapper (see `systems/shop.md`), or `nil` when `isShop()` is `false`. Use this on results from `getNearbyEntities()` to inspect shop inventories and prices without docking.
+
 ## Notes
 
 - Use this wrapper for scan/targeting/intel flows where full control is not needed.
