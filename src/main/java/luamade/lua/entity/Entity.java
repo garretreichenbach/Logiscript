@@ -17,6 +17,7 @@ import luamade.lua.element.system.shipyard.Shipyard;
 import luamade.lua.entity.ai.EntityAI;
 import luamade.lua.entity.ai.Fleet;
 import luamade.lua.faction.Faction;
+import luamade.lua.shop.Shop;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.manager.ConfigManager;
@@ -25,6 +26,7 @@ import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SegmentBufferInterface;
 import org.schema.game.common.controller.SegmentController;
+import org.schema.game.common.controller.ShopInterface;
 import org.schema.game.common.controller.SpaceStation;
 import org.schema.game.common.controller.elements.ElementCollectionManager;
 import org.schema.game.common.controller.elements.ManagerContainer;
@@ -531,6 +533,17 @@ public class Entity extends LuaMadeUserdata {
 			}
 		}
 		return shipyards.toArray(new Shipyard[0]);
+	}
+
+	@LuaMadeCallable
+	public Boolean isShop() {
+		return segmentController instanceof ShopInterface && ((ShopInterface) segmentController).isValidShop();
+	}
+
+	@LuaMadeCallable
+	public Shop asShop() {
+		if(!isShop()) return null;
+		return new Shop((ShopInterface) segmentController);
 	}
 
 	@LuaMadeCallable

@@ -6,11 +6,13 @@ import luamade.lua.data.Vec3f;
 import luamade.lua.data.Vec3i;
 import luamade.lua.element.system.shield.ShieldSystem;
 import luamade.lua.faction.Faction;
+import luamade.lua.shop.Shop;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.Ship;
+import org.schema.game.common.controller.ShopInterface;
 
 import javax.vecmath.Vector3f;
 
@@ -115,6 +117,17 @@ public class RemoteEntity extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public String getEntityType() {
 		return segmentController.getTypeString();
+	}
+
+	@LuaMadeCallable
+	public Boolean isShop() {
+		return segmentController instanceof ShopInterface && ((ShopInterface) segmentController).isValidShop();
+	}
+
+	@LuaMadeCallable
+	public Shop asShop() {
+		if(!isShop()) return null;
+		return new Shop((ShopInterface) segmentController);
 	}
 
 	@LuaMadeCallable

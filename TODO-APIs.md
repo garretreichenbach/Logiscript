@@ -1,6 +1,6 @@
 # Logiscript - Planned API Additions
 
-Identified from the StarMade codebase at `org.schema.game`. Organized by priority.
+Identified from the StarMade codebase at `C:\Users\garre\OneDrive\Projects\StarMade-Open\src\main\java\`. Organized by priority.
 
 ---
 

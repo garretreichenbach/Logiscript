@@ -13,6 +13,8 @@ public class WrapUtils {
 		if(o instanceof LuaValue) return (LuaValue) o;
 		else if(o instanceof Boolean) return LuaValue.valueOf((Boolean) o);
 		else if(o instanceof Integer) return LuaValue.valueOf((Integer) o);
+		else if(o instanceof Short) return LuaValue.valueOf(((Short) o).intValue());
+		else if(o instanceof Byte) return LuaValue.valueOf(((Byte) o).intValue());
 		else if(o instanceof Long) return LuaValue.valueOf((Long) o);
 		else if(o instanceof Double) return LuaValue.valueOf((Double) o);
 		else if(o instanceof Float) return LuaValue.valueOf(((Float) o).doubleValue());
@@ -57,6 +59,10 @@ public class WrapUtils {
 		else if(clazz == float.class || clazz == Float.class) return (float) o.checkdouble();
 
 		else if(clazz == int.class || clazz == Integer.class) return o.checkint();
+
+		else if(clazz == short.class || clazz == Short.class) return (short) o.checkint();
+
+		else if(clazz == byte.class || clazz == Byte.class) return (byte) o.checkint();
 
 		else if(clazz == long.class || clazz == Long.class) return o.checkint();
 

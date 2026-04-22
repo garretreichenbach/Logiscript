@@ -21,7 +21,12 @@ public class Console extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public synchronized void print(Varargs vargs) {
-		textContents.append(vargs.arg(1).toString()).append("\n");
+		int n = vargs.narg();
+		for(int i = 1; i <= n; i++) {
+			if(i > 1) textContents.append("    ");
+			textContents.append(vargs.arg(i).tojstring());
+		}
+		textContents.append('\n');
 		trimScrollbackIfNeeded();
 	}
 
