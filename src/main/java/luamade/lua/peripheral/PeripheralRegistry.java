@@ -199,6 +199,23 @@ public class PeripheralRegistry {
 		register(new PeripheralProvider() {
 			@Override
 			public String[] getTypeNames() {
+				return new String[]{"networkmodule", "network_module", "network-module", "netmodule", "net_module"};
+			}
+
+			@Override
+			public boolean canWrap(SegmentPiece piece) {
+				return piece.getType() == ElementRegistry.NETWORK_MODULE.getId();
+			}
+
+			@Override
+			public Block wrap(SegmentPiece piece, ComputerModule module) {
+				return new NetworkModuleBlock(piece, module);
+			}
+		});
+
+		register(new PeripheralProvider() {
+			@Override
+			public String[] getTypeNames() {
 				return new String[]{"inventory"};
 			}
 

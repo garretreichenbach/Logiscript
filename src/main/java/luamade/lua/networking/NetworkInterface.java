@@ -2,10 +2,11 @@ package luamade.lua.networking;
 
 import luamade.lua.datastore.NetworkedDataStoreRegistry;
 import luamade.lua.datastore.RemoteDataStoreHandle;
+import luamade.lua.ftp.FtpApi;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
-import luamade.system.module.ComputerModule;
 import org.schema.common.util.linAlg.Vector3i;
+import org.schema.game.common.data.SegmentPiece;
 
 import java.util.Map;
 import java.util.Set;
@@ -16,6 +17,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * Implements networking capabilities for computers in the game.
  * Supports direct messages, galaxy-wide channels, local same-sector channels,
  * and explicit long-range 1-to-1 modem links.
+ *
+ * <p>Each NetworkInterface is tied to a physical Network Module block and
+ * identified by a persistent UUID. Obtain an instance through
+ * {@link #getOrCreate(SegmentPiece, String)}.
  */
 public class NetworkInterface extends LuaMadeUserdata {
 
@@ -26,20 +31,67 @@ public class NetworkInterface extends LuaMadeUserdata {
 	private static final String MAILBOX_COMPUTER_PREFIX = "computer:";
 	private static final String MAILBOX_MODEM = "modem";
 
-	private final ComputerModule module;
+	private volatile SegmentPiece segmentPiece;
+	private final String uuid;
 	private String hostname;
 	private static final Map<String, NetworkInterface> networkInterfaces = new ConcurrentHashMap<>();
+	private static final Map<String, NetworkInterface> instancesByUuid = new ConcurrentHashMap<>();
 	private static final Map<String, Map<String, MessageQueue>> messageQueues = new ConcurrentHashMap<>();
 	private static final Map<String, Channel> globalChannels = new ConcurrentHashMap<>();
 	private static final Map<String, Channel> localChannels = new ConcurrentHashMap<>();
 	private static final Map<String, ModemEndpoint> modemEndpoints = new ConcurrentHashMap<>();
 	private static final Map<String, ModemConnection> modemConnections = new ConcurrentHashMap<>();
 
-	public NetworkInterface(ComputerModule module) {
-		this.module = module;
-		hostname = "computer-" + module.getUUID();
+	private NetworkInterface(SegmentPiece segmentPiece, String uuid) {
+		this.segmentPiece = segmentPiece;
+		this.uuid = uuid;
+		hostname = "network-" + uuid;
 		networkInterfaces.put(hostname, this);
-		messageQueues.put(hostname, new ConcurrentHashMap<String, MessageQueue>());
+		messageQueues.put(hostname, new ConcurrentHashMap<>());
+	}
+
+	/**
+	 * Returns the existing NetworkInterface for the given UUID, or creates a
+	 * new one. The SegmentPiece reference is always updated so that sector and
+	 * entity lookups reflect the current world state.
+	 */
+	public static NetworkInterface getOrCreate(SegmentPiece segmentPiece, String uuid) {
+		NetworkInterface existing = instancesByUuid.get(uuid);
+		if(existing != null) {
+			existing.segmentPiece = segmentPiece;
+			return existing;
+		}
+		NetworkInterface created = new NetworkInterface(segmentPiece, uuid);
+		instancesByUuid.put(uuid, created);
+		return created;
+	}
+
+	/**
+	 * Returns the NetworkInterface for the given UUID, or null if none exists.
+	 */
+	public static NetworkInterface getByUuid(String uuid) {
+		return instancesByUuid.get(uuid);
+	}
+
+	/**
+	 * Removes and cleans up the NetworkInterface for the given UUID.
+	 * Should be called when a Network Module block is destroyed.
+	 */
+	public static void remove(String uuid) {
+		NetworkInterface removed = instancesByUuid.remove(uuid);
+		if(removed == null) return;
+		String host = removed.hostname;
+		networkInterfaces.remove(host);
+		messageQueues.remove(host);
+		for(Channel channel : globalChannels.values()) {
+			channel.getSubscribers().remove(host);
+		}
+		for(Channel channel : localChannels.values()) {
+			channel.getSubscribers().remove(host);
+		}
+		removed.disconnectModemInternal(host);
+		modemEndpoints.remove(host);
+		FtpApi.onHostnameRemoved(host);
 	}
 
 	/**
@@ -433,7 +485,7 @@ public class NetworkInterface extends LuaMadeUserdata {
 	public RemoteDataStoreHandle getDataStore(String name) {
 		if(name == null || name.isEmpty()) return null;
 		if(!NetworkedDataStoreRegistry.isNameTaken(name)) return null;
-		return new RemoteDataStoreHandle(name, module);
+		return new RemoteDataStoreHandle(name, segmentPiece);
 	}
 
 	private boolean subscribeToChannel(Map<String, Channel> registry, String channelName, String password) {
@@ -497,7 +549,7 @@ public class NetworkInterface extends LuaMadeUserdata {
 	}
 
 	private MessageQueue getOrCreateMailbox(String targetHostname, String mailbox) {
-		Map<String, MessageQueue> queues = messageQueues.computeIfAbsent(targetHostname, key -> new ConcurrentHashMap<String, MessageQueue>());
+		Map<String, MessageQueue> queues = messageQueues.computeIfAbsent(targetHostname, key -> new ConcurrentHashMap<>());
 		return queues.computeIfAbsent(mailbox, key -> new MessageQueue());
 	}
 
@@ -537,12 +589,12 @@ public class NetworkInterface extends LuaMadeUserdata {
 	}
 
 	private String getSectorKey() {
-		Vector3i sector = module.getSegmentPiece().getSegmentController().getSector(new Vector3i());
+		Vector3i sector = segmentPiece.getSegmentController().getSector(new Vector3i());
 		return sector.x + ":" + sector.y + ":" + sector.z;
 	}
 
 	private String getEntityKey() {
-		return String.valueOf(module.getSegmentPiece().getSegmentController().getId());
+		return String.valueOf(segmentPiece.getSegmentController().getId());
 	}
 
 	/**

@@ -1,4 +1,5 @@
 -- Long-range modem helper
+-- Requires a Network Module block adjacent to this computer.
 -- Usage:
 --   run /bin/modem.lua listen [password]
 --   run /bin/modem.lua dial <hostname> [password]
@@ -6,6 +7,13 @@
 --   run /bin/modem.lua recv
 --   run /bin/modem.lua status
 --   run /bin/modem.lua hangup
+
+local nm = peripheral.wrapRelative("front", "networkmodule")
+if not nm then
+    print("No Network Module found adjacent to this computer")
+    return
+end
+local net = nm.getNet()
 
 local command = args[1]
 

@@ -1,6 +1,6 @@
 # Networked Data Store API
 
-`NetworkedDataStore` is a persistent key-value store that registers itself in a global name registry, allowing any computer to access its data via the network API (`net:getDataStore(name)`) **without the owning entity being loaded**.
+`NetworkedDataStore` is a persistent key-value store that registers itself in a global name registry, allowing any computer to access its data via the network API (`net.getDataStore(name)`) **without the owning entity being loaded**. The `net` handle is obtained from a [Network Module](../io/networking.md) peripheral.
 
 Unlike the regular [DataStore](datastore-block.md), access control is configured programmatically rather than through adjacent permission blocks.
 
@@ -10,7 +10,7 @@ Unlike the regular [DataStore](datastore-block.md), access control is configured
 | --- | --- | --- |
 | Access when entity unloaded | No | **Yes** |
 | Access control | Adjacent permission blocks | Configurable via `setAccessLevel()` |
-| Network-accessible | No | **Yes**, via `net:getDataStore(name)` |
+| Network-accessible | No | **Yes**, via `net.getDataStore(name)` |
 | Requires registration | No | Yes, must call `register(name)` |
 | Data on block destruction | Preserved | **Deleted** |
 
@@ -27,23 +27,26 @@ nds:register("faction-market-prices")
 nds:setAccessLevel("public")
 
 -- Write data
-nds:set("iron_ore", "150")
-nds:set("gold_ore", "500")
+nds:set("ship_core", "150")
 ```
 
 ## Remote access (from any computer, anywhere)
 
 ```lua
+-- Obtain net handle from a Network Module peripheral
+local nm  = peripheral.wrapRelative("front", "networkmodule")
+local net = nm.getNet()
+
 -- Get a handle by name - no entity load required
-local store = net:getDataStore("faction-market-prices")
+local store = net.getDataStore("faction-market-prices")
 
 if store then
-    print(store:getValue("iron_ore"))   -- "150"
-    store:set("iron_ore", "175")        -- write back
+    print(store.getValue("ship_core"))   -- "150"
+    store.set("ship_core", "175")        -- write back
 
-    local keys = store:keys()
+    local keys = store.keys()
     for i = 1, #keys do
-        print(keys[i], store:getValue(keys[i]))
+        print(keys[i], store.getValue(keys[i]))
     end
 end
 ```
@@ -113,7 +116,7 @@ These methods are available when wrapping the physical block via `peripheral.wra
 
 ## Remote handle reference (`RemoteDataStore`)
 
-These methods are available on the handle returned by `net:getDataStore(name)`.
+These methods are available on the handle returned by `net.getDataStore(name)`.
 
 ### Data access
 
@@ -150,4 +153,4 @@ Exceeding any limit raises a Lua error.
 - The store's UUID is assigned when the block is placed and never changes.
 - Data is stored at `<worldData>/datastores/<uuid>.json` (same system as regular DataStore).
 - The global name registry is stored at `<worldData>/networked_datastores.json`.
-- A store with `"entity"` access level **cannot** be accessed remotely via `net:getDataStore()`. Set access to `"faction"` or `"public"` for remote access.
+- A store with `"entity"` access level **cannot** be accessed remotely via `net.getDataStore()`. Set access to `"faction"` or `"public"` for remote access.

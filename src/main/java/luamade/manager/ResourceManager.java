@@ -6,15 +6,16 @@ import org.schema.schine.resource.ResourceLoader;
 
 import javax.vecmath.Matrix3f;
 import javax.vecmath.Quat4f;
+import javax.vecmath.Vector3f;
 import javax.vecmath.Vector4f;
 
 public class ResourceManager {
 
 	public static void loadResources(ResourceLoader loader) {
-		loadMesh(loader, "Computer");
+		loadMesh(loader, "Computer", new Vector3f(0.0f, -270.0f, 0.0f));
 	}
 
-	private static void loadMesh(ResourceLoader loader, String path) {
+	private static void loadMesh(ResourceLoader loader, String path, Vector3f rotation) {
 		try {
 			loader.getMeshLoader().loadModMesh(LuaMade.getInstance(), path, LuaMade.getInstance().getJarResource("models/" + path + ".zip"), null);
 			Mesh mesh = loader.getMeshLoader().getModMesh(LuaMade.getInstance(), path);
@@ -22,7 +23,7 @@ public class ResourceManager {
 				LuaMade.getInstance().logException("Mesh loaded but getModMesh returned null for: " + path, new NullPointerException());
 				return;
 			}
-			Quat4f q = eulerQuat(0, -270.0f, 0);
+			Quat4f q = eulerQuat(rotation.x, rotation.y, rotation.z);
 			Vector4f rotVec = new Vector4f(q.x, q.y, q.z, q.w);
 			mesh.getChilds().get(0).setInitialQuadRot(rotVec);
 			LuaMade.getInstance().logDebug("Loaded mesh '" + path + "': children=" + mesh.getChilds().size());

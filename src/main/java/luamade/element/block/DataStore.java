@@ -31,8 +31,9 @@ public class DataStore extends Block implements SegmentPieceRemoveListener, Segm
 	public void initData() {
 		super.initData();
 		blockInfo.setDescription("A programmable data store. Key-value data persists across server restarts. Place adjacent Permission Modules to control cross-entity or cross-faction access.");
-		blockInfo.setInRecipe(true);
-		blockInfo.setShoppable(true);
+		blockInfo.setDeprecated(true);
+		blockInfo.setInRecipe(false);
+		blockInfo.setShoppable(false);
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price * 2);
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(true);

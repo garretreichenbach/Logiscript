@@ -1,9 +1,9 @@
 package luamade.lua.ftp;
 
 import luamade.lua.fs.FileSystem;
+import luamade.lua.networking.NetworkInterface;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
-import luamade.system.module.ComputerModule;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -20,6 +20,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <p><b>Server side:</b>
  * <pre>
+ * local nm = peripheral.wrapRelative("front", "networkmodule")
+ * local ftp = nm.getFtp()
  * ftp.listen("secret")          -- start accepting connections
  * ftp.listen("secret", true)    -- read-only: clients can only download
  * ftp.stop()                    -- stop serving and disconnect any client
@@ -27,6 +29,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <p><b>Client side:</b>
  * <pre>
+ * local nm = peripheral.wrapRelative("front", "networkmodule")
+ * local ftp = nm.getFtp()
  * if ftp.connect("server-host", "secret") then
  *     ftp.download("/remote/prog.lua", "/local/prog.lua")
  *     ftp.upload("/local/data.txt", "/remote/data.txt")
@@ -49,20 +53,22 @@ public class FtpApi extends LuaMadeUserdata {
 
 	private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
-	private final ComputerModule module;
+	private final NetworkInterface networkInterface;
+	private final FileSystem fileSystem;
 
-	public FtpApi(ComputerModule module) {
-		this.module = module;
+	public FtpApi(NetworkInterface networkInterface, FileSystem fileSystem) {
+		this.networkInterface = networkInterface;
+		this.fileSystem = fileSystem;
 	}
 
 	// ─── Identity ────────────────────────────────────────────────────────────────
 
 	private String hostname() {
-		return module.getNetworkInterface().getHostname();
+		return networkInterface.getHostname();
 	}
 
 	private FileSystem localFs() {
-		return module.getFileSystem();
+		return fileSystem;
 	}
 
 	// ─── Server API ──────────────────────────────────────────────────────────────
@@ -317,12 +323,13 @@ public class FtpApi extends LuaMadeUserdata {
 	// ─── Static lifecycle ─────────────────────────────────────────────────────────
 
 	/**
-	 * Clean up all FTP state for a computer that is being removed or shut down.
-	 * Call this from ComputerModule.saveAndCleanup().
+	 * Clean up all FTP state for a hostname that is being removed.
+	 * Called when a Network Module block is destroyed or its NetworkInterface
+	 * is cleaned up.
 	 *
-	 * @param hostname the hostname of the computer being removed
+	 * @param hostname the hostname being removed
 	 */
-	public static void onComputerRemoved(String hostname) {
+	public static void onHostnameRemoved(String hostname) {
 		// Remove server registration and disconnect any connected client
 		FtpServer server = listeningServers.remove(hostname);
 		if(server != null && server.connectedClient != null) {

@@ -5,13 +5,7 @@ import api.listener.fastevents.FastListenerCommon;
 import api.listener.fastevents.segmentpiece.*;
 import api.mod.StarLoader;
 import luamade.LuaMade;
-import luamade.element.block.Computer;
-import luamade.element.block.DataStore;
-import luamade.element.block.DiskDrive;
-import luamade.element.block.NetworkedDataStore;
-import luamade.element.block.PasswordPermissionModule;
-import luamade.element.block.RemoteAccessPoint;
-import luamade.element.block.Vault;
+import luamade.element.block.*;
 import luamade.element.item.Disk;
 import luamade.element.item.RemoteControl;
 import org.schema.game.common.data.element.ElementInformation;
@@ -26,6 +20,7 @@ import java.util.Objects;
 public enum ElementRegistry {
 
 	COMPUTER(new Computer()),
+	NETWORK_MODULE(new NetworkModule()),
 	DISK_DRIVE(new DiskDrive()),
 	REMOTE_ACCESS_POINT(new RemoteAccessPoint()),
 	DATA_STORE(new DataStore()),

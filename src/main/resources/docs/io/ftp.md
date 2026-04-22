@@ -1,16 +1,29 @@
 # FTP API
 
-`ftp` transfers files directly between computers in memory, bypassing the network message queue.
+FTP transfers files directly between computers in memory, bypassing the network message queue.
 This makes it far more efficient than line-by-line script-driven transfers via `net`.
+
+FTP is provided through the **Network Module** block, accessed via the [peripheral](../systems/peripheral.md) system.
+
+## Setup
+
+```lua
+local nm  = peripheral.wrapRelative("front", "networkmodule")
+local ftp = nm.getFtp()
+```
 
 ## Typical usage
 
 ```lua
 -- ── Server computer ──────────────────────────────────────────────────────────
+local nm  = peripheral.wrapRelative("front", "networkmodule")
+local ftp = nm.getFtp()
 ftp.listen("secret")          -- accept one client at a time
 -- optional: ftp.listen("secret", true)  -- read-only (no uploads/deletes)
 
 -- ── Client computer ──────────────────────────────────────────────────────────
+local nm  = peripheral.wrapRelative("front", "networkmodule")
+local ftp = nm.getFtp()
 if ftp.connect("server-host", "secret") then
     -- single-file transfers
     ftp.download("/remote/prog.lua", "/local/prog.lua")
@@ -99,5 +112,5 @@ ftp.stop()
 - The server's existing `fs.protect` / `fs.auth` rules are enforced on every transfer. Protect a path and call `fs.auth` on the server before `ftp.listen` if you want FTP clients to be able to write to protected directories.
 - Transfers are in-memory operations. No data crosses the network message queue and there is no per-file protocol overhead.
 - Both the server and client must be in the same running game instance (same JVM). FTP does not work across separate servers.
-- When a computer is removed or shut down, any active FTP server or client state is cleaned up automatically.
+- When a Network Module block is removed, any active FTP server or client state associated with its hostname is cleaned up automatically.
 - `downloadDir` and `uploadDir` skip files that fail to read or write (e.g. due to permission rules) and continue transferring the rest; the returned count reflects only files that succeeded.

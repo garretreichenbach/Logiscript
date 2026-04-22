@@ -39,8 +39,9 @@ public class PasswordPermissionModule extends Block implements SegmentPieceRemov
 	public void initData() {
 		super.initData();
 		blockInfo.setDescription("A password-gated permission module. When placed adjacent to a block, it allows access only to factions that have authenticated via a computer script. Compatible with StarMade's native permission system.");
-		blockInfo.setInRecipe(true);
-		blockInfo.setShoppable(true);
+		blockInfo.setDeprecated(true);
+		blockInfo.setInRecipe(false);
+		blockInfo.setShoppable(false);
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price);
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(false);

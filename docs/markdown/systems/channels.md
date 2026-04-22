@@ -1,6 +1,11 @@
 # Network Usage Guide
 
-LuaMade networking is exposed through the `net` global.
+LuaMade networking is provided through the **Network Module** block, accessed via the [peripheral](peripheral.md) system. Place a Network Module adjacent to a computer and wrap it to get the `net` handle.
+
+```lua
+local nm  = peripheral.wrapRelative("front", "networkmodule")
+local net = nm.getNet()
+```
 
 ## Message types
 
@@ -16,7 +21,7 @@ net.send("relay-1", "chat", "hello")
 
 if net.hasMessage("chat") then
   msg = net.receive("chat")
-  print("From", msg.getSender(), msg.getData())
+  print("From", msg.getSender(), msg.getContent())
 end
 ```
 
@@ -28,7 +33,7 @@ net.sendChannel("trade", "pw123", "uranium wanted")
 
 if net.hasChannelMessage("trade") then
   msg = net.receiveChannel("trade")
-  print("[trade]", msg.getSender(), msg.getData())
+  print("[trade]", msg.getSender(), msg.getContent())
 end
 ```
 
@@ -40,7 +45,7 @@ net.sendLocal("dockyard", "localpw", "pad clear")
 
 if net.hasLocalMessage("dockyard") then
   msg = net.receiveLocal("dockyard")
-  print("[local]", msg.getSender(), msg.getData())
+  print("[local]", msg.getSender(), msg.getContent())
 end
 ```
 
@@ -56,7 +61,7 @@ net.sendModem("ping")
 
 if net.hasModemMessage() then
   msg = net.receiveModem()
-  print("[modem]", msg.getSender(), msg.getData())
+  print("[modem]", msg.getSender(), msg.getContent())
 end
 ```
 

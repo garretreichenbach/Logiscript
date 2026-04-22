@@ -41,8 +41,9 @@ public class NetworkedDataStore extends Block implements SegmentPieceRemoveListe
 	public void initData() {
 		super.initData();
 		blockInfo.setDescription("A networked data store. Registers a named key-value store in a global registry accessible by any computer via the network API, even when this entity is unloaded. Data is destroyed when this block is removed.");
-		blockInfo.setInRecipe(true);
-		blockInfo.setShoppable(true);
+		blockInfo.setDeprecated(true);
+		blockInfo.setInRecipe(false);
+		blockInfo.setShoppable(false);
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price * 4);
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(true);

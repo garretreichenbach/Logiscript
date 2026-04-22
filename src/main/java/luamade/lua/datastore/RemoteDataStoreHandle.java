@@ -5,10 +5,10 @@ import luamade.lua.datastore.NetworkedDataStoreRegistry.StoreEntry;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeClass;
 import luamade.luawrap.LuaMadeUserdata;
-import luamade.system.module.ComputerModule;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
+import org.schema.game.common.data.SegmentPiece;
 
 import java.util.List;
 
@@ -23,11 +23,11 @@ import java.util.List;
 public class RemoteDataStoreHandle extends LuaMadeUserdata {
 
 	private final String storeName;
-	private final ComputerModule module;
+	private final SegmentPiece segmentPiece;
 
-	public RemoteDataStoreHandle(String storeName, ComputerModule module) {
+	public RemoteDataStoreHandle(String storeName, SegmentPiece segmentPiece) {
 		this.storeName = storeName;
-		this.module = module;
+		this.segmentPiece = segmentPiece;
 	}
 
 	// -------------------------------------------------------------------------
@@ -119,7 +119,7 @@ public class RemoteDataStoreHandle extends LuaMadeUserdata {
 			case PUBLIC:
 				return;
 			case FACTION:
-				int computerFaction = module.getSegmentPiece().getSegmentController().getFactionId();
+				int computerFaction = segmentPiece.getSegmentController().getFactionId();
 				if(computerFaction != 0 && computerFaction == entry.getOwnerFactionId()) return;
 				throw new LuaError("Access denied: computer is not in the same faction as networked data store '" + storeName + "'");
 			case ENTITY:

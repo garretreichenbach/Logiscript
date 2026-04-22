@@ -1,5 +1,13 @@
 -- Simple chat client
+-- Requires a Network Module block adjacent to this computer.
 -- Usage: run /bin/chat.lua <target_hostname> <message>
+
+local nm = peripheral.wrapRelative("front", "networkmodule")
+if not nm then
+    print("No Network Module found adjacent to this computer")
+    return
+end
+local net = nm.getNet()
 
 local target = args[1]
 local message = args[2] or "Hello!"

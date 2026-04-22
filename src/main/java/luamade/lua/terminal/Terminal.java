@@ -6,7 +6,6 @@ import luamade.lua.Console;
 import luamade.lua.data.Vec3f;
 import luamade.lua.data.Vec3i;
 import luamade.lua.fs.FileSystem;
-import luamade.lua.ftp.FtpApi;
 import luamade.lua.peripheral.PeripheralsApi;
 import luamade.lua.util.UtilApi;
 import luamade.luawrap.LuaMadeCallable;
@@ -1026,8 +1025,9 @@ public class Terminal extends LuaMadeUserdata {
 		globals.set("terminal", terminalApi);
 		// Expose raw userdata for advanced scripts that rely on userdata behavior.
 		globals.set("termRaw", this);
-		globals.set("net", module.getNetworkInterface());
-		globals.set("ftp", new FtpApi(module));
+		// Networking (net) and FTP (ftp) are now provided through the
+		// Network Module peripheral — wrap a Network Module block via
+		// peripheral.wrapRelative() to obtain these APIs.
 		globals.set("peripheral", new PeripheralsApi(module));
 		globals.set("trade", new luamade.lua.shop.TradeNetwork());
 		globals.set("player", new luamade.lua.player.Player());
@@ -1967,9 +1967,7 @@ public class Terminal extends LuaMadeUserdata {
 	private String formatPrompt() {
 		String template = promptTemplate == null || promptTemplate.isEmpty() ? DEFAULT_PROMPT_TEMPLATE : promptTemplate;
 		String promptPath = getPromptPath();
-		String hostname = module.getNetworkInterface() != null ? module.getNetworkInterface().getHostname() : "unknown";
-
-		return template.replace("{name}", module.getPromptComputerName()).replace("{display}", module.getDisplayName()).replace("{hostname}", hostname).replace("{dir}", promptPath);
+		return template.replace("{name}", module.getPromptComputerName()).replace("{display}", module.getDisplayName()).replace("{hostname}", module.getDisplayName()).replace("{dir}", promptPath);
 	}
 
 	private String getPromptPath() {

@@ -39,6 +39,7 @@ public class RemoteAccessPoint extends Block implements SegmentPiecePlayerIntera
 	public void initData() {
 		super.initData();
 		blockInfo.setDescription("Lets linked remote control items forward input to a LuaMade computer without opening its UI.");
+		blockInfo.setDeprecated(true);
 		blockInfo.setInRecipe(false);
 		blockInfo.setShoppable(false);
 		blockInfo.setDeprecated(true);

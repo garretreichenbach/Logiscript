@@ -1,6 +1,6 @@
 # Logiscript - Planned API Additions
 
-Identified from the StarMade codebase at `C:\Users\garre\OneDrive\Projects\StarMade-Open\src\main\java\`. Organized by priority.
+Identified from the StarMade codebase at `/Users/garret/Documents/Game Files/StarMade Files/Dev Build/`. Organized by priority.
 
 ---
 
@@ -59,19 +59,6 @@ Enables chatbots, command systems, and alert notifications from Lua scripts.
 
 ---
 
-## 4. Status Effects (Medium Priority)
-
-Read and react to active effects on entities. Useful for defensive automation.
-
-### Block Effects
-- **Query effects** - `BlockEffect`, `BlockEffectTypes`, `BlockEffectManager` - 25+ effect types
-- **Armor effects** - `StatusArmorHardenEffect`, `StatusArmorHpAbsorptionBonusEffect`
-- **Shield effects** - `StatusShieldHardenEffect`, `StatusPowerShieldEffect`
-- **Movement effects** - `PullEffect`, `PushEffect`, `StopEffect`, `ThrusterOutageEffect`
-- **Other effects** - `EvadeEffect`, `PowerRegenDownEffect`, `ShieldRegenDownEffect`, `StatusAntiGravityEffect`, `StatusTopSpeedEffect`, `StatusPiercingProtectionEffect`
-
----
-
 ## 5. Docking & Rails (Medium Priority)
 
 Control docked turrets, manage carrier operations, and rail-based automation.
@@ -84,7 +71,6 @@ Control docked turrets, manage carrier operations, and rail-based automation.
 ### Rails
 - **Rail movement** - `RailController`, `RailRequest` - move entities along rails
 - **Rail relations** - `RailRelation` - query rail connections
-- **Lifts** - `LiftContainerInterface`, `NetworkLiftInterface` - control lifts
 
 ---
 
@@ -160,11 +146,3 @@ Query and interact with NPC faction behavior.
 
 ### NPC Trade
 - **Trade routes** - `NPCTradeController`, `NPCTradeNode` - query NPC trade networks
-
----
-
-## 11. Pathfinding (Lower Priority)
-
-### Character Pathfinding
-- **Path calculation** - `SegmentPathFindingHandler` - calculate paths within entities
-- **Ground pathfinding** - `SegmentPathGroundFindingHandler` - gravity-aware pathing

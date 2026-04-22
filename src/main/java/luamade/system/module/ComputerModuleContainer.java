@@ -391,7 +391,7 @@ public class ComputerModuleContainer extends SystemModule {
 				(byte) module.getLastMode().ordinal(),
 				module.getLastOpenFile(),
 				module.getSavedTerminalInput(),
-				module.getNetworkInterface() == null ? "" : module.getNetworkInterface().getHostname(),
+				"", // hostname is now per Network Module block, not per computer
 				module.getDisplayName(),
 				module.getLastDocsTopicPath(),
 					module.getScrollModeName(),

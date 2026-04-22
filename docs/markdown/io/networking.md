@@ -1,10 +1,20 @@
 # Network Interface API
 
-`net` provides direct messaging plus channel/local/modem transports.
+Networking is provided by the **Network Module** block, accessed through the [peripheral](../systems/peripheral.md) system. Place a Network Module adjacent to a computer and wrap it to obtain the `net` handle.
+
+## Setup
+
+```lua
+local nm  = peripheral.wrapRelative("front", "networkmodule")
+local net = nm.getNet()
+```
 
 ## Typical usage
 
 ```lua
+local nm  = peripheral.wrapRelative("front", "networkmodule")
+local net = nm.getNet()
+
 net.setHostname("miner-01")
 
 net.send("miner-02", "job", "start")
@@ -78,10 +88,13 @@ Useful for coordination between foreground commands and background scripts on on
   data without the owning entity being loaded.
 
 ```lua
-local store = net:getDataStore("faction-prices")
+local nm  = peripheral.wrapRelative("front", "networkmodule")
+local net = nm.getNet()
+
+local store = net.getDataStore("faction-prices")
 if store then
-    print(store:getValue("iron_ore"))
-    store:set("iron_ore", "200")
+    print(store.getValue("iron_ore"))
+    store.set("iron_ore", "200")
 end
 ```
 

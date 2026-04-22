@@ -1,10 +1,18 @@
 -- Galaxy-wide or local channel chat helper
+-- Requires a Network Module block adjacent to this computer.
 -- Usage:
 --   run /bin/channel_chat.lua open <channel> [password]
 --   run /bin/channel_chat.lua send <channel> <message> [password]
 --   run /bin/channel_chat.lua sendlocal <channel> <message> [password]
 --   run /bin/channel_chat.lua recv <channel>
 --   run /bin/channel_chat.lua recvlocal <channel>
+
+local nm = peripheral.wrapRelative("front", "networkmodule")
+if not nm then
+    print("No Network Module found adjacent to this computer")
+    return
+end
+local net = nm.getNet()
 
 local command = args[1]
 local channel = args[2]
