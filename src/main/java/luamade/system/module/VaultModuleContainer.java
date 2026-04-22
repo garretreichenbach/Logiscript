@@ -58,6 +58,25 @@ public class VaultModuleContainer extends SystemModule {
 		return blockUuids.get(absIndex);
 	}
 
+	/**
+	 * Reverse lookup — returns the absIndex of the block with the given UUID on
+	 * this entity, or {@link Long#MIN_VALUE} if no vault on this entity has that
+	 * UUID. Callers must treat the sentinel as "not found" (absIndex is unsigned
+	 * in practice but Long.MIN_VALUE never corresponds to a valid block index).
+	 */
+	public long getAbsIndexByUuid(String uuid) {
+		if(uuid == null) return Long.MIN_VALUE;
+		for(long abs : blockUuids.keySet().toLongArray()) {
+			if(uuid.equals(blockUuids.get(abs))) return abs;
+		}
+		return Long.MIN_VALUE;
+	}
+
+	/** Returns a snapshot of all vault UUIDs on this entity. */
+	public String[] listUuids() {
+		return blockUuids.values().toArray(new String[0]);
+	}
+
 	public void removeBlock(long absIndex) {
 		String uuid = blockUuids.remove(absIndex);
 		if(uuid != null) {

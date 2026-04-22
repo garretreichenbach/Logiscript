@@ -7,8 +7,10 @@ import luamade.element.ElementRegistry;
 import luamade.network.PacketCSRequestDataStoreContents;
 import luamade.network.PacketCSRequestVaultView;
 import luamade.network.PacketCSVaultDeposit;
+import luamade.network.PacketCSVaultScriptOp;
 import luamade.network.PacketCSVaultWithdraw;
 import luamade.network.PacketSCDataStoreContents;
+import luamade.network.PacketSCVaultScriptResponse;
 import luamade.network.PacketSCVaultView;
 import luamade.lua.peripheral.PeripheralRegistry;
 import luamade.lua.datastore.NetworkedDataStoreRegistry;
@@ -99,5 +101,7 @@ public class LuaMade extends StarMod {
 		Packet.registerPacket(PacketSCVaultView.class);
 		Packet.registerPacket(PacketCSVaultDeposit.class);
 		Packet.registerPacket(PacketCSVaultWithdraw.class);
+		Packet.registerPacket(PacketCSVaultScriptOp.class);
+		Packet.registerPacket(PacketSCVaultScriptResponse.class);
 	}
 }
