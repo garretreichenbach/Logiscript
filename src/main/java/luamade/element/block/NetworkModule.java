@@ -18,8 +18,9 @@ public class NetworkModule extends Block {
 	public void initData() {
 		super.initData();
 		blockInfo.setDescription("Module that provides networking capabilities to connected computers.");
-		blockInfo.setInRecipe(true);
-		blockInfo.setShoppable(true);
+		blockInfo.setDeprecated(true);
+		blockInfo.setInRecipe(false);
+		blockInfo.setShoppable(false);
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price * 4);
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(true);

@@ -3,13 +3,16 @@
 	"author": "TheDerpGamer, LupoCani",
 	"description": "Adds Lua scriptable computers to StarMade.",
 	"version": "2.1.3",
-	"starmade_version": "0.205.4",
+	"starmade_version": "0.303.3",
 	"client_mod": false,
 	"server_mod": false,
 	"main_class": "luamade.LuaMade",
 	"smd_resource_id": 8501,
 	"dependencies": [
 		-1
+	],
+	"optional_dependencies": [
+		8292
 	],
 	"core_mod": false,
 	"requires_class_resize": false,
