@@ -140,6 +140,7 @@ public class EventManager {
 
 		BlockPublicPermissionListener.register(instance);
 		JumpTargetListener.register(instance);
+		luamade.listener.CombatEventListener.register(instance);
 
 		StarLoader.registerListener(ManagerContainerRegisterEvent.class, new Listener<ManagerContainerRegisterEvent>() {
 			@Override

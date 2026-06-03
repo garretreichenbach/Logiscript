@@ -267,6 +267,12 @@ public class ComputerModuleContainer extends SystemModule {
 		}
 	}
 
+	public void forEachComputerModule(java.util.function.Consumer<ComputerModule> action) {
+		for(ComputerModule module : computerModules.values()) {
+			action.accept(module);
+		}
+	}
+
 	private void collectKnownUUIDs(Set<String> uuids) {
 		for(ComputerModule module : computerModules.values()) {
 			if(module != null && module.getUUID() != null && !module.getUUID().isEmpty()) {

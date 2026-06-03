@@ -5,6 +5,7 @@ Game systems including blocks, modules, inventories, and specialized mechanics.
 ## Contents
 
 ### Game Systems
+- **combat-events.md** - Combat event queue (block damage, shield hits)
 - **channels.md** - Communication channels reference
 - **inventory.md** - Inventory system API
 - **item-stack.md** - Item stack object reference
@@ -28,4 +29,7 @@ Game systems including blocks, modules, inventories, and specialized mechanics.
 - **shipyard.md** - Shipyard module wrapper
 - **thrust.md** - Thrust system wrapper
 - **usable-chamber.md** - Usable chamber wrapper
+- **weapon-system.md** - Weapon system access (cannons, beams, missiles, ammo)
+- **weapon-group.md** - Individual weapon group stats and queries
+- **weapon-stats.md** - Per-unit weapon stat details
 

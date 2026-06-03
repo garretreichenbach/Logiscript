@@ -16,6 +16,7 @@ import luamade.lua.element.system.shield.ShieldSystem;
 import luamade.lua.element.system.shipyard.Shipyard;
 import luamade.lua.entity.ai.EntityAI;
 import luamade.lua.entity.ai.Fleet;
+import luamade.lua.entity.combat.WeaponSystem;
 import luamade.lua.faction.Faction;
 import luamade.lua.shop.Shop;
 import luamade.luawrap.LuaMadeCallable;
@@ -522,6 +523,11 @@ public class Entity extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public ShieldSystem getShieldSystem() {
 		return new ShieldSystem(segmentController);
+	}
+
+	@LuaMadeCallable
+	public WeaponSystem getWeaponSystem() {
+		return new WeaponSystem(segmentController);
 	}
 
 	@LuaMadeCallable

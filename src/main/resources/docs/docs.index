@@ -30,6 +30,7 @@ systems/block-info.md
 systems/block.md
 systems/chamber.md
 systems/channels.md
+systems/combat-events.md
 systems/datastore-block.md
 systems/disk-drive-block.md
 systems/display-module-block.md
@@ -48,3 +49,6 @@ systems/shop.md
 systems/thrust.md
 systems/trade-network.md
 systems/usable-chamber.md
+systems/weapon-group.md
+systems/weapon-stats.md
+systems/weapon-system.md

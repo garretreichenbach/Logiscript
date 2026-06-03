@@ -1,6 +1,6 @@
 # Logiscript - Planned API Additions
 
-Identified from the StarMade codebase at `/Users/garret/Documents/Game Files/StarMade Files/Dev Build/`. Organized by priority.
+Identified from the StarMade codebase at `/Users/garret/Documents/GitHub/StarMade`. Organized by priority.
 
 ---
 

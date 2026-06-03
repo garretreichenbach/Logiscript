@@ -92,6 +92,9 @@ Returns the `Thrust` wrapper.
 - `getShieldSystem()`
 Returns the `ShieldSystem` wrapper.
 
+- `getWeaponSystem()`
+Returns the `WeaponSystem` wrapper for querying cannons, beams, missiles, and ammo capacity. See `systems/weapon-system.md`.
+
 - `getShipyards()`
 Returns all `Shipyard[]` wrappers on this entity.
 

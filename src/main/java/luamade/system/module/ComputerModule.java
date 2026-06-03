@@ -1,6 +1,7 @@
 package luamade.system.module;
 
 import luamade.lua.Console;
+import luamade.lua.entity.combat.CombatEventApi;
 import luamade.lua.fs.FileSystem;
 import luamade.lua.gfx.Gfx2d;
 import luamade.lua.input.InputApi;
@@ -26,6 +27,7 @@ public class ComputerModule {
 	private final Gfx2d gfxApi;
 	private final Terminal terminal;
 	private final InputApi inputApi;
+	private final CombatEventApi combatEventApi;
 	private ComputerMode lastMode = ComputerMode.OFF;
 	private long lastTouched;
 	private String lastOpenFile = "";
@@ -46,6 +48,7 @@ public class ComputerModule {
 		gfxApi = new Gfx2d();
 		terminal = new Terminal(this, console, fileSystem);
 		inputApi = new InputApi();
+		combatEventApi = new CombatEventApi();
 	}
 
 	public static String generateComputerUUID(long absIndex) {
@@ -193,6 +196,10 @@ public class ComputerModule {
 
 	public InputApi getInputApi() {
 		return inputApi;
+	}
+
+	public CombatEventApi getCombatEventApi() {
+		return combatEventApi;
 	}
 
 	public String getSavedTerminalInput() {
