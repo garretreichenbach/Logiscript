@@ -12,13 +12,13 @@ def docsSourceDir = layout.projectDirectory.dir('docs/markdown')
 def docsResourceDir = layout.projectDirectory.dir('src/main/resources/docs')
 group = project.property('mod_org_id')
 version = project.property('mod_version')
-mainClassName = group + modName
+def mainClassName = group + modName
 def starmadeJar = file(starmadeDirectory + "StarMade.jar")
 def starmadeLibDir = file(starmadeDirectory + "lib")
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 repositories {
@@ -38,28 +38,6 @@ dependencies {
     implementation 'com.fifesoft:rsyntaxtextarea:3.3.4'
     compileOnly(files(starmadeJar))
     compileOnly(fileTree(dir: starmadeLibDir, include: "*.jar"))
-}
-
-tasks.register('prepareStarmadeCompileDependencies', Exec) {
-    group = 'build setup'
-    description = 'Downloads and stages StarMade compile dependencies under .ci/starmade/StarMade/.'
-
-    commandLine 'bash', '.github/scripts/prepare_starmade.sh'
-    environment 'WORK_ROOT', layout.projectDirectory.dir('.ci/starmade').asFile.absolutePath
-
-    def starmadeBuildUrl = (project.findProperty('starmade_build_url') ?: '').toString().trim()
-    if (!starmadeBuildUrl.isEmpty()) {
-        environment 'STARMADE_BUILD_URL', starmadeBuildUrl
-    }
-
-    outputs.file(layout.projectDirectory.file('.ci/starmade/StarMade/StarMade.jar'))
-    outputs.dir(layout.projectDirectory.dir('.ci/starmade/StarMade/lib'))
-}
-
-tasks.withType(JavaCompile).configureEach {
-    if (useAutoPreparedStarmadeRoot && (!starmadeJar.exists() || !starmadeLibDir.exists())) {
-        dependsOn(tasks.named('prepareStarmadeCompileDependencies'))
-    }
 }
 
 tasks.withType(JavaCompile).configureEach {
