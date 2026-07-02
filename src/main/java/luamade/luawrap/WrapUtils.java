@@ -66,6 +66,16 @@ public class WrapUtils {
 
 		else if(clazz == long.class || clazz == Long.class) return o.checkint();
 
+		// Allow @LuaMadeCallable methods to accept another userdata object as a
+		// parameter (e.g. projector.publish(gfx3dFrame)). Userdata returns already
+		// work because a LuaMadeUserdata is itself a LuaValue; this is the matching
+		// inbound coercion. A nil argument maps to a null Java reference.
+		else if(LuaMadeUserdata.class.isAssignableFrom(clazz)) {
+			if(o.isnil()) return null;
+			if(clazz.isInstance(o)) return o;
+			throw new LuaError(String.format("Expected %s, got %s.", clazz.getSimpleName(), o.typename()));
+		}
+
 		throw new LuaError(String.format("Cannot unwrap %s to %s.", o.getClass(), clazz));
 	}
 

@@ -1,6 +1,6 @@
 # Projector Block — Lua-Driven World-Space 2D/3D Graphics
 
-Status: **not started**. Design only. Written up after the [server-side script execution migration](#note-simplification-unlocked-by-the-server-side-migration) landed, which changes and simplifies part of this design (see note at the bottom) — read that note before implementing.
+Status: **implemented (v1)**. The design below is the original write-up; the networking section was simplified per the [server-side migration note](#note-simplification-unlocked-by-the-server-side-migration) at the bottom. What actually shipped: no publish packets and no `ProjectorScriptRequests` — a script builds a `Gfx3d` frame via `proj.newFrame()`, draws into it, and `proj.publish(frame)` hands the snapshot to `ProjectorModuleContainer` (server-side), which stores it and calls `flagUpdatedData()`; StarMade's built-in `SystemModule` tag sync pushes it to nearby clients and persists it. See `docs/markdown/graphics/gfx3d.md` for the Lua API. (Passing a `Gfx3d` userdata as a `publish()` argument also required a one-line addition to `WrapUtils.unwrapSingle` so `@LuaMadeCallable` methods can accept userdata parameters.)
 
 ## Context
 

@@ -41,6 +41,11 @@ public final class ConfigManager {
 	private static SimpleConfigInt packageManagerMaxBytes;
 	private static SimpleConfigInt gfxMaxCommandsPerLayer;
 	private static SimpleConfigInt gfxMaxLayers;
+	private static SimpleConfigInt projectorMaxCommandsPerFrame;
+	private static SimpleConfigInt projectorMaxSurfacesPerFrame;
+	private static SimpleConfigInt projectorMaxCommandsPerSurface;
+	private static SimpleConfigInt projectorMaxLayers;
+	private static SimpleConfigDouble projectorMaxOffsetBlocks;
 	private static SimpleConfigBool dockingRequirePermissions;
 	private static SimpleConfigBool dockingAllowFriendFactions;
 	private static SimpleConfigInt dockingSnapRadius;
@@ -102,6 +107,11 @@ public final class ConfigManager {
 		packageManagerMaxBytes = new SimpleConfigInt(config, "package_manager_max_bytes", 2097152, "Maximum package response payload size in bytes.");
 		gfxMaxCommandsPerLayer = new SimpleConfigInt(config, "gfx_max_commands_per_layer", 4096, "Maximum number of queued draw commands in a single gfx2d layer.");
 		gfxMaxLayers = new SimpleConfigInt(config, "gfx_max_layers", 32, "Maximum number of gfx2d layers per computer.");
+		projectorMaxCommandsPerFrame = new SimpleConfigInt(config, "projector_max_commands_per_frame", 2048, "Maximum number of 3D draw commands in a single projector frame (across all layers).");
+		projectorMaxSurfacesPerFrame = new SimpleConfigInt(config, "projector_max_surfaces_per_frame", 32, "Maximum number of 2D surfaces attached to a single projector frame.");
+		projectorMaxCommandsPerSurface = new SimpleConfigInt(config, "projector_max_commands_per_surface", 1024, "Maximum number of 2D draw commands on a single projector surface.");
+		projectorMaxLayers = new SimpleConfigInt(config, "projector_max_layers", 16, "Maximum number of layers in a single projector frame.");
+		projectorMaxOffsetBlocks = new SimpleConfigDouble(config, "projector_max_offset_blocks", 5.0, "Maximum per-axis offset (in blocks) a projector may draw from its block. Hard-capped at 5.0; config may only lower it.");
 		dockingRequirePermissions = new SimpleConfigBool(config, "docking_require_permissions", true, "If true, Lua docking helpers require same-faction or friend-faction permissions.");
 		dockingAllowFriendFactions = new SimpleConfigBool(config, "docking_allow_friend_factions", true, "If true, docking permission checks allow faction friends in addition to same faction.");
 		dockingSnapRadius = new SimpleConfigInt(config, "docking_snap_radius", 5, "Maximum block distance used by Lua docking helpers when snapping to rail targets.");
@@ -227,6 +237,27 @@ public final class ConfigManager {
 		return clampInt(intOrDefault(gfxMaxLayers, 32), 1, 256);
 	}
 
+	public static int getProjectorMaxCommandsPerFrame() {
+		return clampInt(intOrDefault(projectorMaxCommandsPerFrame, 2048), 64, 8192);
+	}
+
+	public static int getProjectorMaxSurfacesPerFrame() {
+		return clampInt(intOrDefault(projectorMaxSurfacesPerFrame, 32), 1, 256);
+	}
+
+	public static int getProjectorMaxCommandsPerSurface() {
+		return clampInt(intOrDefault(projectorMaxCommandsPerSurface, 1024), 64, 8192);
+	}
+
+	public static int getProjectorMaxLayers() {
+		return clampInt(intOrDefault(projectorMaxLayers, 16), 1, 64);
+	}
+
+	/** Hard-capped at 5.0 blocks; config may only lower it. */
+	public static double getProjectorMaxOffsetBlocks() {
+		return clampDouble(doubleOrDefault(projectorMaxOffsetBlocks, 5.0), 0.1, 5.0);
+	}
+
 	public static boolean isDockingPermissionRequired() {
 		return boolOrDefault(dockingRequirePermissions, true);
 	}
@@ -269,6 +300,13 @@ public final class ConfigManager {
 
 
 	private static int clampInt(int value, int min, int max) {
+		return Math.max(min, Math.min(max, value));
+	}
+
+	private static double clampDouble(double value, double min, double max) {
+		if(Double.isNaN(value)) {
+			return min;
+		}
 		return Math.max(min, Math.min(max, value));
 	}
 

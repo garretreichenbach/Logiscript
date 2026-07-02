@@ -3,18 +3,21 @@ package luamade.manager;
 import api.listener.Listener;
 import api.listener.events.input.KeyPressEvent;
 import api.listener.events.input.MousePressEvent;
+import api.listener.events.draw.RegisterWorldDrawersEvent;
 import api.listener.events.player.PlayerLeaveWorldEvent;
 import api.listener.events.register.ManagerContainerRegisterEvent;
 import api.mod.StarLoader;
 import luamade.LuaMade;
 import luamade.gui.ComputerDialog;
 import luamade.gui.ComputerSessionView;
+import luamade.gui.ProjectorWorldDrawer;
 import luamade.listener.BlockPublicPermissionListener;
 import luamade.listener.JumpTargetListener;
 import luamade.system.module.AccessPointModuleContainer;
 import luamade.system.module.ComputerModuleContainer;
 import luamade.system.module.DataStoreModuleContainer;
 import luamade.system.module.PasswordPermissionModuleContainer;
+import luamade.system.module.ProjectorModuleContainer;
 import luamade.system.module.VaultModuleContainer;
 import org.schema.schine.graphicsengine.core.GLFW;
 import org.schema.schine.input.Keyboard;
@@ -129,6 +132,15 @@ public class EventManager {
 				event.addModMCModule(new DataStoreModuleContainer(event.getSegmentController(), event.getContainer()));
 				event.addModMCModule(new PasswordPermissionModuleContainer(event.getSegmentController(), event.getContainer()));
 				event.addModMCModule(new VaultModuleContainer(event.getSegmentController(), event.getContainer()));
+				event.addModMCModule(new ProjectorModuleContainer(event.getSegmentController(), event.getContainer()));
+			}
+		}, instance);
+
+		// Render every projector's synced frame in world space each client frame.
+		StarLoader.registerListener(RegisterWorldDrawersEvent.class, new Listener<RegisterWorldDrawersEvent>() {
+			@Override
+			public void onEvent(RegisterWorldDrawersEvent event) {
+				event.getModDrawables().add(new ProjectorWorldDrawer());
 			}
 		}, instance);
 

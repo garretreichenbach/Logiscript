@@ -27,6 +27,7 @@ public enum ElementRegistry {
 	NETWORKED_DATA_STORE(new NetworkedDataStore()),
 	PASSWORD_PERMISSION_MODULE(new PasswordPermissionModule()),
 	VAULT(new Vault()),
+	PROJECTOR(new Projector()),
 	DISK(new Disk()),
 	REMOTE_CONTROL(new RemoteControl());
 
