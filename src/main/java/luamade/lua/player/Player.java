@@ -1,64 +1,71 @@
 package luamade.lua.player;
 
+import api.network.packets.PacketUtil;
+import luamade.lua.terminal.ScriptInvoker;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import luamade.network.PacketSCPlayerDialogRequest;
 import org.luaj.vm2.LuaError;
-import org.schema.game.client.controller.PlayerGameOkCancelInput;
-import org.schema.game.client.data.GameClientState;
 import org.schema.game.common.data.player.PlayerState;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Lua-facing userdata for the local player. Scripts reach it via the {@code player}
- * global.
+ * Lua-facing userdata for "whichever player caused this script to run".
+ * Scripts reach it via the {@code player} global.
  *
- * <p>Read-only credit queries are available via {@link #getCredits()}; all mutating
- * credit operations live on the Vault API so they stay enforceable by the server.
- * Scripts should treat credit balances they observe through this class as "may be
- * stale by up to one network tick" — the authoritative value is always server-side.
+ * <p>Scripts now execute server-side, so there is no single "local player" —
+ * {@link ScriptInvoker} tracks which connected {@link PlayerState} sent the
+ * input that started the current script (set by {@link luamade.lua.terminal.Terminal}).
+ * A script invoked with no associated player (e.g. the startup script running
+ * with nobody connected) sees every method here return {@code null}/throw,
+ * since there's nobody to query or show a dialog to.
  *
- * <p>The dialog methods ({@link #confirm}, {@link #message}) block the script thread
- * until the user dismisses the dialog. Scripts run on a dedicated executor
- * ({@link luamade.lua.terminal.Terminal}), so blocking is safe and avoids the
- * ergonomic cost of callback-style Lua APIs. Thread interruption (e.g. Ctrl+C in
- * the terminal) wakes the waiting script with a {@link LuaError}.
+ * <p>Credit queries ({@link #getCredits()}) read the server-authoritative
+ * {@code PlayerState} directly — no staleness caveat needed now that this
+ * runs on the server. All mutating credit operations still live on the Vault
+ * API so they stay enforceable independent of this class.
+ *
+ * <p>The dialog methods ({@link #confirm}, {@link #message}) block the script
+ * thread until the target player's client dismisses the dialog, round-tripping
+ * over {@link PacketSCPlayerDialogRequest} / {@code PacketCSPlayerDialogResponse}.
+ * Scripts run on a dedicated executor ({@link luamade.lua.terminal.Terminal}),
+ * so blocking is safe. Thread interruption (e.g. Ctrl+C in the terminal) wakes
+ * the waiting script with a {@link LuaError}.
  */
 public class Player extends LuaMadeUserdata {
 
 	/** Upper bound on how long a dialog can block a script thread. */
 	private static final long DIALOG_TIMEOUT_MS = 5 * 60 * 1000L;
 
-	private static final AtomicInteger windowCounter = new AtomicInteger(0);
-
 	@LuaMadeCallable
 	public String getName() {
-		PlayerState player = localPlayer();
+		PlayerState player = ScriptInvoker.get();
 		return player == null ? null : player.getName();
 	}
 
 	@LuaMadeCallable
 	public Long getCredits() {
-		PlayerState player = localPlayer();
+		PlayerState player = ScriptInvoker.get();
 		return player == null ? null : player.getCredits();
 	}
 
 	@LuaMadeCallable
 	public Boolean isValid() {
-		return localPlayer() != null;
+		return ScriptInvoker.get() != null;
 	}
 
 	/**
-	 * Opens a native OK/Cancel dialog and blocks the calling script thread until
-	 * the user dismisses it. Returns true for OK, false for Cancel, Esc, or any
-	 * other deactivation (window close, player teleport, etc).
+	 * Opens a native OK/Cancel dialog on the invoking player's client and
+	 * blocks the calling script thread until they dismiss it. Returns true for
+	 * OK, false for Cancel, Esc, or any other deactivation (window close,
+	 * player teleport, etc).
 	 */
 	@LuaMadeCallable
 	public Boolean confirm(String title, String body) {
-		return showDialog(title, body, "LOGI_CONFIRM");
+		return showDialog(title, body);
 	}
 
 	/**
@@ -69,76 +76,40 @@ public class Player extends LuaMadeUserdata {
 	 */
 	@LuaMadeCallable
 	public Boolean message(String title, String body) {
-		showDialog(title, body, "LOGI_MESSAGE");
+		showDialog(title, body);
 		return Boolean.TRUE;
 	}
 
-	private Boolean showDialog(String title, String body, String windowIdPrefix) {
-		GameClientState client = GameClientState.instance;
-		if(client == null) {
-			throw new LuaError("No active client — cannot show dialog");
+	private Boolean showDialog(String title, String body) {
+		PlayerState target = ScriptInvoker.get();
+		if(target == null) {
+			throw new LuaError("No player associated with this script invocation — cannot show dialog");
 		}
-		String windowId = windowIdPrefix + "_" + windowCounter.incrementAndGet();
+
 		String safeTitle = title == null ? "" : title;
 		String safeBody = body == null ? "" : body;
 
 		CompletableFuture<Boolean> result = new CompletableFuture<>();
-		DialogHolder holder = new DialogHolder();
-
-		PlayerGameOkCancelInput dialog = new PlayerGameOkCancelInput(windowId, client, safeTitle, safeBody) {
-			@Override
-			public void pressedOK() {
-				result.complete(Boolean.TRUE);
-				deactivate();
-			}
-
-			@Override
-			public void onDeactivate() {
-				// Covers Cancel, Esc, window close, and any case where pressedOK already
-				// completed the future — the second complete() is a no-op.
-				result.complete(Boolean.FALSE);
-			}
-		};
-		holder.dialog = dialog;
-		dialog.activate();
+		int requestId = PlayerDialogRequests.allocate(result);
+		try {
+			PacketUtil.sendPacket(target, new PacketSCPlayerDialogRequest(requestId, safeTitle, safeBody));
+		} catch(Exception ex) {
+			PlayerDialogRequests.cancel(requestId);
+			throw new LuaError("Failed to send dialog request: " + ex.getMessage());
+		}
 
 		try {
 			return result.get(DIALOG_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 		} catch(InterruptedException e) {
-			// Script canceled mid-dialog — close it so the player isn't left staring
-			// at a zombie window.
 			Thread.currentThread().interrupt();
-			deactivateSafely(holder.dialog);
+			PlayerDialogRequests.cancel(requestId);
 			throw new LuaError("Dialog interrupted");
 		} catch(TimeoutException e) {
-			deactivateSafely(holder.dialog);
+			PlayerDialogRequests.cancel(requestId);
 			throw new LuaError("Dialog timed out after " + DIALOG_TIMEOUT_MS + "ms");
 		} catch(Exception e) {
-			deactivateSafely(holder.dialog);
+			PlayerDialogRequests.cancel(requestId);
 			throw new LuaError("Dialog failed: " + e.getMessage());
 		}
-	}
-
-	private static void deactivateSafely(PlayerGameOkCancelInput dialog) {
-		if(dialog == null) return;
-		try {
-			dialog.deactivate();
-		} catch(Exception ignored) {
-		}
-	}
-
-	private static PlayerState localPlayer() {
-		GameClientState client = GameClientState.instance;
-		if(client == null) return null;
-		try {
-			return client.getPlayer();
-		} catch(Exception e) {
-			return null;
-		}
-	}
-
-	/** Mutable box so the anonymous dialog subclass and the waiting thread share a ref. */
-	private static final class DialogHolder {
-		PlayerGameOkCancelInput dialog;
 	}
 }

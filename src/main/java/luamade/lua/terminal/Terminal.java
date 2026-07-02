@@ -1,7 +1,6 @@
 package luamade.lua.terminal;
 
 import luamade.LuaMade;
-import luamade.gui.editor.SwingEditorFrame;
 import luamade.lua.Console;
 import luamade.lua.data.Vec3f;
 import luamade.lua.data.Vec3i;
@@ -13,6 +12,7 @@ import luamade.luawrap.LuaMadeUserdata;
 import luamade.luawrap.WrapMethod;
 import luamade.manager.ConfigManager;
 import luamade.system.module.ComputerModule;
+import org.schema.game.common.data.player.PlayerState;
 import org.luaj.vm2.*;
 import org.luaj.vm2.compiler.LuaC;
 import org.luaj.vm2.lib.*;
@@ -66,6 +66,8 @@ public class Terminal extends LuaMadeUserdata {
 	private volatile ScriptExecutionContext activeForegroundContext;
 	private volatile Future<Boolean> activeForegroundFuture;
 	private int historyIndex;
+	/** The player (if any) whose input is currently being processed by {@link #handleInput(String, PlayerState)}. */
+	private volatile PlayerState currentInputInvoker;
 	private String currentInput = "";
 	private boolean running;
 	private boolean autoPromptEnabled = true;
@@ -341,14 +343,30 @@ public class Terminal extends LuaMadeUserdata {
 	}
 
 	/**
-	 * Handles input from the user
+	 * Handles input from the user. Inherits whichever player (if any) is
+	 * already bound to the current thread via {@link ScriptInvoker} — this is
+	 * how a nested {@code term.runCommand(...)} call from within a running
+	 * script propagates the same invoker to whatever it starts, and how the
+	 * startup script boots with no invoker at all.
 	 */
 	@LuaMadeCallable
 	public void handleInput(String input) {
+		handleInput(input, ScriptInvoker.get());
+	}
+
+	/**
+	 * Handles input from the user on behalf of {@code invoker}. This is the
+	 * entry point the network layer calls ({@code PacketCSComputerInput}),
+	 * since it's the only place that actually knows which connected player
+	 * sent the input. Not {@code @LuaMadeCallable} — scripts only ever see the
+	 * single-argument overload above.
+	 */
+	public void handleInput(String input, PlayerState invoker) {
 		if(!running) {
 			return;
 		}
 
+		currentInputInvoker = invoker;
 		promptDeferredByCommand.set(false);
 
 		String submittedInput = input == null ? "" : input;
@@ -571,6 +589,7 @@ public class Terminal extends LuaMadeUserdata {
 			context.bindToCurrentThread();
 			runningScriptContexts.add(context);
 			WrapMethod.setCancellationChecker(context::throwIfCancellationRequested);
+			ScriptInvoker.set(context.getInvokingPlayer());
 			activeScripts.incrementAndGet();
 			try {
 				return executeScript(scriptPath, script, args);
@@ -581,6 +600,7 @@ public class Terminal extends LuaMadeUserdata {
 				activeScripts.decrementAndGet();
 				context.tryReleaseSlot(scriptSlots);
 				module.getGfxApi().clear();
+				ScriptInvoker.clear();
 			}
 		});
 	}
@@ -639,7 +659,7 @@ public class Terminal extends LuaMadeUserdata {
 			return false;
 		}
 
-		ScriptExecutionContext context = new ScriptExecutionContext();
+		ScriptExecutionContext context = new ScriptExecutionContext(currentInputInvoker);
 		Future<Boolean> future;
 		try {
 			future = submitScriptTask(scriptPath, script, args, context);
@@ -683,7 +703,7 @@ public class Terminal extends LuaMadeUserdata {
 		}
 
 		int jobId = nextJobId.getAndIncrement();
-		ScriptExecutionContext context = new ScriptExecutionContext();
+		ScriptExecutionContext context = new ScriptExecutionContext(currentInputInvoker);
 		BackgroundJob job = new BackgroundJob(jobId, scriptPath, context);
 		Future<Boolean> future;
 		try {
@@ -1612,6 +1632,42 @@ public class Terminal extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public boolean interruptForeground() {
 		return cancelForegroundScript(true);
+	}
+
+	/**
+	 * Force-cancels any running script (foreground or background) whose
+	 * wall-clock runtime exceeds {@code maxWallClockMs}. Intended to be called
+	 * every server tick from {@link luamade.system.module.ComputerModuleContainer#handle}.
+	 * Now that scripts execute server-side, a runaway script is a shared server
+	 * resource rather than just one player's hung client, so this is a hard
+	 * backstop beyond the cooperative instruction-count cancellation hook
+	 * (which only helps tight loops that actually hit the debug hook).
+	 *
+	 * @return the number of scripts newly force-cancelled by this call.
+	 */
+	public int enforceWallClockTimeout(long maxWallClockMs) {
+		if(maxWallClockMs <= 0) {
+			return 0;
+		}
+		long now = System.currentTimeMillis();
+		int timedOutCount = 0;
+		for(ScriptExecutionContext context : runningScriptContexts) {
+			if(context == null || (now - context.startTimeMs) < maxWallClockMs) {
+				continue;
+			}
+			if(!context.markTimedOutOnce()) {
+				continue;
+			}
+			context.requestCancel();
+			context.tryReleaseSlot(scriptSlots);
+			timedOutCount++;
+		}
+		if(timedOutCount > 0) {
+			console.print(valueOf(timedOutCount == 1
+					? "Warning: a script exceeded the " + maxWallClockMs + "ms execution limit and was terminated"
+					: "Warning: " + timedOutCount + " scripts exceeded the " + maxWallClockMs + "ms execution limit and were terminated"));
+		}
+		return timedOutCount;
 	}
 
 	/**
@@ -2791,17 +2847,17 @@ public class Terminal extends LuaMadeUserdata {
 					return;
 				}
 
-				if(SwingEditorFrame.isFileOpen(normalized)) {
-					SwingEditorFrame.open(normalized, content, fileSystem, Terminal.this);
-					console.print(valueOf("Editor already open for: " + normalized));
+				// The Swing editor is a real OS window, so it must open on whichever
+				// player's client ran this command — the server only knows who to tell.
+				PlayerState invoker = currentInputInvoker;
+				if(invoker == null) {
+					console.print(valueOf("Error: 'edit' requires an interactive player session"));
 					return;
 				}
-
-				if(SwingEditorFrame.open(normalized, content, fileSystem, Terminal.this)) {
-					console.print(valueOf("Opened editor for: " + normalized));
-				} else {
-					console.print(valueOf("Error: Could not open GUI editor"));
-				}
+				int entityId = module.getSegmentPiece().getSegmentController().getId();
+				long absIndex = module.getSegmentPiece().getAbsoluteIndex();
+				api.network.packets.PacketUtil.sendPacket(invoker, new luamade.network.PacketSCOpenSwingEditor(entityId, absIndex, normalized, content));
+				console.print(valueOf("Opening editor for: " + normalized));
 			}
 		});
 
@@ -4547,7 +4603,19 @@ public class Terminal extends LuaMadeUserdata {
 	private static final class ScriptExecutionContext {
 		private final AtomicBoolean cancellationRequested = new AtomicBoolean(false);
 		private final AtomicBoolean slotReleased = new AtomicBoolean(false);
+		private final AtomicBoolean timedOut = new AtomicBoolean(false);
+		private final long startTimeMs = System.currentTimeMillis();
+		/** The player (if any) whose input started this specific script run. May be null (e.g. the startup script). */
+		private final PlayerState invokingPlayer;
 		private volatile Thread workerThread;
+
+		private ScriptExecutionContext(PlayerState invokingPlayer) {
+			this.invokingPlayer = invokingPlayer;
+		}
+
+		private PlayerState getInvokingPlayer() {
+			return invokingPlayer;
+		}
 
 		private void bindToCurrentThread() {
 			workerThread = Thread.currentThread();
@@ -4569,6 +4637,17 @@ public class Terminal extends LuaMadeUserdata {
 			if(cancellationRequested.get()) {
 				throw new LuaError("Script canceled");
 			}
+		}
+
+		/**
+		 * Marks this context as timed out exactly once, so a sweep that runs every
+		 * tick doesn't re-count or re-log the same script on every subsequent pass
+		 * while it's still unwinding.
+		 *
+		 * @return true if this call was the one that flipped the flag.
+		 */
+		private boolean markTimedOutOnce() {
+			return timedOut.compareAndSet(false, true);
 		}
 
 		/**

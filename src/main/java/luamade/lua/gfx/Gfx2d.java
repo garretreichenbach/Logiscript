@@ -711,6 +711,11 @@ public class Gfx2d extends LuaMadeUserdata {
 			this.revision = revision;
 			this.layers = layers;
 		}
+
+		/** Reconstructs a snapshot received over the network (e.g. {@code PacketSCGfxSnapshot}). */
+		public static FrameSnapshot fromWire(int width, int height, int viewportWidth, int viewportHeight, float scaleX, float scaleY, long revision, List<LayerSnapshot> layers) {
+			return new FrameSnapshot(width, height, viewportWidth, viewportHeight, scaleX, scaleY, revision, layers == null ? new ArrayList<>() : layers);
+		}
 	}
 
 	public static final class LayerSnapshot {
@@ -724,6 +729,11 @@ public class Gfx2d extends LuaMadeUserdata {
 			this.order = order;
 			this.visible = visible;
 			this.commands = commands;
+		}
+
+		/** Reconstructs a layer snapshot received over the network (e.g. {@code PacketSCGfxSnapshot}). */
+		public static LayerSnapshot fromWire(String name, int order, boolean visible, List<DrawCommand> commands) {
+			return new LayerSnapshot(name, order, visible, commands == null ? new ArrayList<>() : commands);
 		}
 	}
 
@@ -818,6 +828,11 @@ public class Gfx2d extends LuaMadeUserdata {
 
 		private static DrawCommand bitmap(float x, float y, int width, int height, int[] rgbaPixels) {
 			return new DrawCommand(Kind.BITMAP, x, y, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, true, 0, null, null, 1, width, height, Arrays.copyOf(rgbaPixels, rgbaPixels.length), 1.0f, -1, -1, "left", false);
+		}
+
+		/** Reconstructs a draw command received over the network (e.g. {@code PacketSCGfxSnapshot}). */
+		public static DrawCommand fromWire(Kind kind, float x1, float y1, float x2, float y2, float r, float g, float b, float a, boolean filled, int segments, float[] points, String text, int textScale, int bitmapWidth, int bitmapHeight, int[] bitmapPixels, float lineWidth, int textMaxWidth, int textMaxHeight, String textAlign, boolean textWrap) {
+			return new DrawCommand(kind, x1, y1, x2, y2, r, g, b, a, filled, segments, points, text, textScale, bitmapWidth, bitmapHeight, bitmapPixels, lineWidth, textMaxWidth, textMaxHeight, textAlign, textWrap);
 		}
 
 		public enum Kind {

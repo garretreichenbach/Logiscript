@@ -31,9 +31,8 @@ public class DataStoreDialog extends PlayerInput {
 	@Override
 	public void callback(GUIElement callingElement, MouseEvent mouseEvent) {
 		if(!isOccluded() && mouseEvent.pressedLeftMouse()) {
-			if(callingElement.getUserPointer() instanceof String) {
-				String ptr = (String) callingElement.getUserPointer();
-				if("X".equals(ptr) || "CANCEL".equals(ptr) || "OK".equals(ptr)) {
+			if(callingElement.getUserPointer() instanceof String ptr) {
+                if("X".equals(ptr) || "CANCEL".equals(ptr) || "OK".equals(ptr)) {
 					deactivate();
 				}
 			}

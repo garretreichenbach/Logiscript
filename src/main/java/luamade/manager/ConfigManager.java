@@ -25,6 +25,7 @@ public final class ConfigManager {
 	private static SimpleConfigInt scriptMaxParallel;
 	private static SimpleConfigInt scriptQueueWaitMs;
 	private static SimpleConfigInt scriptOverloadMode;
+	private static SimpleConfigInt scriptMaxWallClockMs;
 	private static SimpleConfigBool webFetchEnabled;
 	private static SimpleConfigBool webFetchTrustedDomainsOnly;
 	private static SimpleConfigInt webFetchTimeoutMs;
@@ -85,6 +86,7 @@ public final class ConfigManager {
 		scriptMaxParallel = new SimpleConfigInt(config, "script_max_parallel", 2, "Maximum number of Lua scripts that may run at once per computer.");
 		scriptQueueWaitMs = new SimpleConfigInt(config, "script_queue_wait_ms", 250, "Queue wait budget in milliseconds used by hybrid overload mode.");
 		scriptOverloadMode = new SimpleConfigInt(config, "script_overload_mode", 2, "Script overload policy: 0=hard-stop, 1=stall, 2=hybrid.");
+		scriptMaxWallClockMs = new SimpleConfigInt(config, "script_max_wall_clock_ms", 20000, "Maximum wall-clock runtime in milliseconds for a single script before the server force-cancels it. Now that scripts execute on the server, a runaway script is a shared resource, not just one player's problem.");
 		webFetchEnabled = new SimpleConfigBool(config, "web_fetch_enabled", true, "If true, allows terminal/scripts to fetch HTTP(S) data from the web.");
 		webFetchTrustedDomainsOnly = new SimpleConfigBool(config, "web_fetch_trusted_domains_only", true, "If true, web fetch is limited to a built-in trusted domain allowlist.");
 		webFetchTimeoutMs = new SimpleConfigInt(config, "web_fetch_timeout_ms", 4000, "Web fetch connect/read timeout in milliseconds.");
@@ -155,6 +157,10 @@ public final class ConfigManager {
 
 	public static int getScriptOverloadMode() {
 		return clampInt(intOrDefault(scriptOverloadMode, 2), 0, 2);
+	}
+
+	public static long getScriptMaxWallClockMs() {
+		return clampInt(intOrDefault(scriptMaxWallClockMs, 20000), 1000, 300000);
 	}
 
 	public static boolean isWebFetchEnabled() {

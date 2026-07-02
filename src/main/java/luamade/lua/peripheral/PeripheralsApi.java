@@ -152,20 +152,11 @@ public class PeripheralsApi extends LuaMadeUserdata {
 		}
 
 		String value = side.trim().toLowerCase(Locale.ROOT);
-		switch(value) {
-			case "up":
-			case "top":
-				return "up";
-			case "down":
-			case "bottom":
-				return "down";
-			case "left":
-			case "right":
-			case "front":
-			case "back":
-				return value;
-			default:
-				return null;
-		}
+        return switch (value) {
+            case "up", "top" -> "up";
+            case "down", "bottom" -> "down";
+            case "left", "right", "front", "back" -> value;
+            default -> null;
+        };
 	}
 }

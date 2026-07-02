@@ -1,6 +1,5 @@
 package luamade.lua.element.block;
 
-import luamade.element.ElementRegistry;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeClass;
 import luamade.manager.PasswordAuthManager;

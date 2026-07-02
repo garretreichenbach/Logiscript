@@ -1,7 +1,6 @@
 package luamade.lua.element.block;
 
 import luamade.luawrap.LuaMadeCallable;
-import luamade.manager.RemoteSessionManager;
 import luamade.system.module.AccessPointModuleContainer;
 import luamade.system.module.ComputerModule;
 import luamade.system.module.ComputerModuleContainer;
@@ -81,10 +80,29 @@ public class RemoteAccessPointBlock extends Block {
 		return linked == null ? null : linked.getDisplayName();
 	}
 
+	/**
+	 * True if anyone is currently viewing the linked computer — direct and
+	 * remote-access-point sessions are the same networked session mechanism
+	 * now, so there's no separate "remote mode" to distinguish; this reflects
+	 * whether the linked computer has any active viewer at all.
+	 */
 	@LuaMadeCallable
 	public Boolean isSessionActive() {
 		SegmentPiece piece = getSegmentPiece();
-		return RemoteSessionManager.isActive()
-				&& RemoteSessionManager.getActiveAccessPointIndex() == piece.getAbsoluteIndex();
+		if(!(piece.getSegmentController() instanceof ManagedUsableSegmentController<?>)) {
+			return false;
+		}
+		ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) piece.getSegmentController();
+		AccessPointModuleContainer accessPointContainer = AccessPointModuleContainer.getContainer(controller.getManagerContainer());
+		ComputerModuleContainer computerContainer = ComputerModuleContainer.getContainer(controller.getManagerContainer());
+		if(accessPointContainer == null || computerContainer == null) {
+			return false;
+		}
+		String uuid = accessPointContainer.getLinkedComputerUUID(piece);
+		ComputerModule linked = computerContainer.getModuleByUUID(uuid);
+		if(linked == null || linked.getSegmentPiece() == null) {
+			return false;
+		}
+		return computerContainer.hasAnyViewer(linked.getSegmentPiece().getAbsoluteIndex());
 	}
 }

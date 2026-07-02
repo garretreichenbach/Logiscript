@@ -5,7 +5,6 @@ import api.utils.gui.GUIInputDialogPanel;
 import luamade.docs.DocTopic;
 import luamade.docs.DocsRepository;
 import luamade.docs.MarkdownDocRenderer;
-import luamade.system.module.ComputerModule;
 import org.newdawn.slick.UnicodeFont;
 import org.schema.game.client.controller.PlayerInput;
 import org.schema.schine.common.TabCallback;
@@ -27,17 +26,17 @@ import java.util.Locale;
 public class DocsViewerDialog extends PlayerInput {
 
 	private final DocsPanel docsPanel;
-	private final ComputerModule reopenComputerModule;
+	private final ComputerSessionView reopenSessionView;
 	private boolean reopenHandled;
 
 	public DocsViewerDialog() {
 		this(null);
 	}
 
-	public DocsViewerDialog(ComputerModule reopenComputerModule) {
+	public DocsViewerDialog(ComputerSessionView reopenSessionView) {
 		super(GameClient.getClientState());
-		this.reopenComputerModule = reopenComputerModule;
-		docsPanel = new DocsPanel(getState(), this, reopenComputerModule);
+		this.reopenSessionView = reopenSessionView;
+		docsPanel = new DocsPanel(getState(), this);
 	}
 
 	@Override
@@ -65,9 +64,9 @@ public class DocsViewerDialog extends PlayerInput {
 	public void onDeactivate() {
 		// Invalidate the topic cache so a failed first-load is retried next open
 		DocsRepository.invalidateCache();
-		if(reopenComputerModule != null && !reopenHandled) {
+		if(reopenSessionView != null && !reopenHandled) {
 			reopenHandled = true;
-			new ComputerDialog(reopenComputerModule).activate();
+			new ComputerDialog(reopenSessionView).activate();
 		}
 	}
 
@@ -101,7 +100,6 @@ public class DocsViewerDialog extends PlayerInput {
 		private final List<DocTopic> allTopics = new ArrayList<>(DocsRepository.getTopics());
 		private final List<DocTopic> filteredTopics = new ArrayList<>();
 		private final java.util.Set<String> collapsedSections = new java.util.HashSet<>();
-		private final ComputerModule computerModule;
 		private DocTopic selectedTopic;
 		private String searchQuery = "";
 
@@ -118,9 +116,8 @@ public class DocsViewerDialog extends PlayerInput {
 		private GUIContentPane mainContentPane;
 		private GUIAncor rootContentPane;
 
-		public DocsPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
+		public DocsPanel(InputState inputState, GUICallback guiCallback) {
 			super(inputState, "LUAMADE_DOCS", "LuaMade Documentation", "", WINDOW_WIDTH, WINDOW_HEIGHT, guiCallback);
-			this.computerModule = computerModule;
 			setCancelButton(false);
 			setOkButton(false);
 		}
@@ -237,22 +234,13 @@ public class DocsViewerDialog extends PlayerInput {
 			layoutComponents();
 		}
 
+		/**
+		 * No longer restores the last-viewed topic across dialog reopens — that
+		 * state lived on the server-side {@code ComputerModule}, and persisting
+		 * it here isn't worth another network round trip for this minor a UX
+		 * nicety. Always starts fresh within the current viewing session.
+		 */
 		private DocTopic resolveInitialTopic() {
-			if(computerModule == null) {
-				return null;
-			}
-
-			String lastTopicPath = computerModule.getLastDocsTopicPath();
-			if(lastTopicPath == null || lastTopicPath.trim().isEmpty()) {
-				return null;
-			}
-
-			for(DocTopic topic : allTopics) {
-				if(topic != null && lastTopicPath.equals(topic.getResourcePath())) {
-					return topic;
-				}
-			}
-
 			return null;
 		}
 
@@ -464,9 +452,6 @@ public class DocsViewerDialog extends PlayerInput {
 
 		private void selectTopic(DocTopic topic) {
 			selectedTopic = topic;
-			if(computerModule != null) {
-				computerModule.setLastDocsTopicPath(topic == null ? "" : topic.getResourcePath());
-			}
 			// Auto-expand the section if the selected topic is in a collapsed one
 			if(topic != null) {
 				collapsedSections.remove(topic.getSectionKey());
@@ -506,26 +491,17 @@ public class DocsViewerDialog extends PlayerInput {
 			contentBlocks.setHeight(Math.max(y + 12.0F, contentScrollPanel.getHeight()));
 		}
 
+		/**
+		 * Collapsed-section state used to live on the server-side
+		 * {@code ComputerModule} and restore across reopens; now purely
+		 * in-memory for the current viewing session (see
+		 * {@link #resolveInitialTopic()} for the same tradeoff).
+		 */
 		private void restoreCollapsedSectionsFromModule() {
-			if(computerModule == null) {
-				return;
-			}
-
-			java.util.Set<String> validSectionKeys = getAllSectionKeys();
-			collapsedSections.clear();
-			for(String sectionKey : computerModule.getCollapsedDocsSections()) {
-				if(validSectionKeys.contains(sectionKey)) {
-					collapsedSections.add(sectionKey);
-				}
-			}
 			persistCollapsedSections();
 		}
 
 		private void persistCollapsedSections() {
-			if(computerModule == null) {
-				return;
-			}
-
 			java.util.Set<String> validSectionKeys = getAllSectionKeys();
 			java.util.Set<String> normalizedCollapsed = new java.util.HashSet<>();
 			for(String sectionKey : collapsedSections) {
@@ -536,7 +512,6 @@ public class DocsViewerDialog extends PlayerInput {
 
 			collapsedSections.clear();
 			collapsedSections.addAll(normalizedCollapsed);
-			computerModule.setCollapsedDocsSections(normalizedCollapsed);
 		}
 
 		private int addRenderedBlock(int width, int y, MarkdownDocRenderer.RenderedBlock block) {

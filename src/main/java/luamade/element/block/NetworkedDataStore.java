@@ -75,9 +75,8 @@ public class NetworkedDataStore extends Block implements SegmentPieceRemoveListe
 	@Override
 	public void onBlockKilled(SegmentPiece segmentPiece, SendableSegmentController sendableSegmentController, @Nullable Damager damager, boolean b) {
 		if(segmentPiece == null || segmentPiece.getType() != ElementRegistry.NETWORKED_DATA_STORE.getId()) return;
-		if(!(sendableSegmentController instanceof ManagedUsableSegmentController<?>)) return;
-		ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) sendableSegmentController;
-		NetworkedDataStoreModuleContainer container = NetworkedDataStoreModuleContainer.getContainer(controller.getManagerContainer());
+		if(!(sendableSegmentController instanceof ManagedUsableSegmentController<?> controller)) return;
+        NetworkedDataStoreModuleContainer container = NetworkedDataStoreModuleContainer.getContainer(controller.getManagerContainer());
 		if(container != null) {
 			container.removeBlock(segmentPiece.getAbsoluteIndex());
 		}
@@ -86,9 +85,8 @@ public class NetworkedDataStore extends Block implements SegmentPieceRemoveListe
 	@Override
 	public void onInteract(SegmentPiece segmentPiece, PlayerState playerState, PlayerInteractionControlManager playerInteractionControlManager) {
 		if(segmentPiece.getType() != ElementRegistry.NETWORKED_DATA_STORE.getId()) return;
-		if(!(segmentPiece.getSegmentController() instanceof ManagedUsableSegmentController<?>)) return;
-		ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentPiece.getSegmentController();
-		NetworkedDataStoreModuleContainer container = NetworkedDataStoreModuleContainer.getContainer(controller.getManagerContainer());
+		if(!(segmentPiece.getSegmentController() instanceof ManagedUsableSegmentController<?> controller)) return;
+        NetworkedDataStoreModuleContainer container = NetworkedDataStoreModuleContainer.getContainer(controller.getManagerContainer());
 		if(container == null) return;
 		String uuid = container.getOrAssignUuid(segmentPiece.getAbsoluteIndex());
 		String name = container.getName(segmentPiece.getAbsoluteIndex());
