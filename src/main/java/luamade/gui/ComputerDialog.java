@@ -193,14 +193,14 @@ public class ComputerDialog extends PlayerInput {
 
 		private final ComputerSessionView sessionView;
 		private final List<String> commandSuggestions = new ArrayList<>();
-		/**
-		 * Client-local echo of submitted command lines, used for Up/Down history
-		 * navigation. Real history (persisted server-side across sessions) would
-		 * need a network round trip per keypress — deferred; this covers the
-		 * common "recall what I just typed this session" case.
-		 */
-		private final List<String> localCommandHistory = new ArrayList<>();
-		private int localHistoryIndex = 0;
+		/** Request id of an in-flight history query, or -1 if none (see {@link #handleHistoryUp()}). */
+		private int pendingHistoryRequestId = -1;
+		/** Request id of an in-flight suggestions query, or -1 if none (see {@link #requestCommandSuggestions(boolean)}). */
+		private int pendingSuggestionsRequestId = -1;
+		/** The input text a pending suggestions request was made for — used to discard a stale reply if the input changed meanwhile. */
+		private String pendingSuggestionsQueryText = "";
+		/** Whether to immediately apply the first result when a pending suggestions request resolves (Tab-triggered) vs. just populate the list (idle auto-refresh). */
+		private boolean pendingSuggestionsAutoApply;
 		public TerminalGfxOverlay terminalGfxOverlay;
 		private GUIScrollablePanel consolePanel;
 		private GUIActivatableTextBar consolePane;
@@ -239,6 +239,15 @@ public class ComputerDialog extends PlayerInput {
 		private int lastKnownWindowY = -1;
 		private int lastKnownCanvasX = -1;
 		private int lastKnownCanvasY = -1;
+		/** Last UI layout actually sent to the server — avoids sending on every frame when nothing changed. */
+		private int lastSentWindowX = Integer.MIN_VALUE;
+		private int lastSentWindowY = Integer.MIN_VALUE;
+		private int lastSentWindowWidth = Integer.MIN_VALUE;
+		private int lastSentWindowHeight = Integer.MIN_VALUE;
+		private int lastSentCanvasX = Integer.MIN_VALUE;
+		private int lastSentCanvasY = Integer.MIN_VALUE;
+		private int lastSentCanvasWidth = Integer.MIN_VALUE;
+		private int lastSentCanvasHeight = Integer.MIN_VALUE;
 		private int selectedSuggestionIndex = -1;
 		private String suggestionSeedInput = "";
 		private boolean pathCompletionMode;
@@ -280,11 +289,14 @@ public class ComputerDialog extends PlayerInput {
 		}
 
 		/**
-		 * No-op: saved-input persistence across dialog reopens lived on the
-		 * server-side {@code ComputerModule}; not synced client-side in this
-		 * pass (a minor UX nicety, not load-bearing — see class docs).
+		 * Persists the current partial input line server-side so it can be
+		 * restored if the dialog is reopened later (fire-and-forget — nothing
+		 * to wait on when the dialog is already closing).
 		 */
 		public void saveCurrentInput() {
+			if(sessionView != null && !isFileEditMode()) {
+				sessionView.sendSetSavedInput(currentInputLine == null ? "" : currentInputLine);
+			}
 		}
 
 		public void requestConsoleFocus() {
@@ -554,17 +566,15 @@ public class ComputerDialog extends PlayerInput {
 			return sessionView != null && sessionView.isFileEditMode();
 		}
 
-		/**
-		 * Scroll-mode preference used to be read from the server-side
-		 * {@code ComputerModule}; not synced client-side in this pass (a minor
-		 * cosmetic setting, not load-bearing) — always applies the default.
-		 */
 		private void applyConfiguredScrollMode() {
-			if(consolePanel == null) {
+			if(consolePanel == null || sessionView == null) {
 				return;
 			}
 
-			ComputerModule.ScrollMode mode = ComputerModule.ScrollMode.VERTICAL;
+			ComputerModule.ScrollMode mode = sessionView.getScrollMode();
+			if(mode == null) {
+				mode = ComputerModule.ScrollMode.VERTICAL;
+			}
 			if(mode == appliedScrollMode) {
 				return;
 			}
@@ -1239,10 +1249,21 @@ public class ComputerDialog extends PlayerInput {
 				currentCanvasHeight = Math.max(1, Math.round(consolePane.getHeight()));
 			}
 
-			// NOTE: input.getUiLayout() is no longer populated server-side in this pass —
-			// InputApi now lives on the server, and replicating window/canvas layout there
-			// for the (rare) script that queries it directly wasn't included; per-event
-			// uiX/uiY on mouse events (already forwarded) covers the common case.
+			// Feeds the server-side InputApi so scripts calling input.getUiLayout()
+			// see real bounds — only sent when something actually changed, since
+			// this runs every frame.
+			if(sessionView != null && (currentWindowX != lastSentWindowX || currentWindowY != lastSentWindowY || currentWindowWidth != lastSentWindowWidth || currentWindowHeight != lastSentWindowHeight
+					|| currentCanvasX != lastSentCanvasX || currentCanvasY != lastSentCanvasY || currentCanvasWidth != lastSentCanvasWidth || currentCanvasHeight != lastSentCanvasHeight)) {
+				lastSentWindowX = currentWindowX;
+				lastSentWindowY = currentWindowY;
+				lastSentWindowWidth = currentWindowWidth;
+				lastSentWindowHeight = currentWindowHeight;
+				lastSentCanvasX = currentCanvasX;
+				lastSentCanvasY = currentCanvasY;
+				lastSentCanvasWidth = currentCanvasWidth;
+				lastSentCanvasHeight = currentCanvasHeight;
+				sessionView.sendUiLayout(currentWindowX, currentWindowY, currentWindowWidth, currentWindowHeight, currentCanvasX, currentCanvasY, currentCanvasWidth, currentCanvasHeight);
+			}
 
 			if(consolePane == null || terminalGfxOverlay == null) {
 				return;
@@ -1375,31 +1396,23 @@ public class ComputerDialog extends PlayerInput {
 		}
 
 		/**
-		 * History navigation used to defer to the server-side {@code Terminal}'s
-		 * persistent history; now cycles {@link #localCommandHistory}, a
-		 * client-local echo of what's been submitted this session (see field docs).
+		 * History navigation queries the server-side {@code Terminal} directly
+		 * (async — see {@link #applyPendingQueryResults()}, polled each frame in
+		 * {@code draw()}). Note: history shares one cursor per computer, not per
+		 * viewer — see {@code PacketCSTerminalQuery}'s class docs.
 		 */
 		private void handleHistoryUp() {
-			if(sessionView == null || localCommandHistory.isEmpty()) {
+			if(sessionView == null) {
 				return;
 			}
-			if(localHistoryIndex > 0) {
-				localHistoryIndex--;
-			}
-			setHistoryCommand(localCommandHistory.get(localHistoryIndex));
+			pendingHistoryRequestId = sessionView.sendHistoryPrev(currentInputLine == null ? "" : currentInputLine);
 		}
 
 		private void handleHistoryDown() {
-			if(sessionView == null || localCommandHistory.isEmpty()) {
+			if(sessionView == null) {
 				return;
 			}
-			if(localHistoryIndex < localCommandHistory.size() - 1) {
-				localHistoryIndex++;
-				setHistoryCommand(localCommandHistory.get(localHistoryIndex));
-			} else {
-				localHistoryIndex = localCommandHistory.size();
-				setHistoryCommand("");
-			}
+			pendingHistoryRequestId = sessionView.sendHistoryNext();
 		}
 
 		private void setHistoryCommand(String command) {
@@ -1444,14 +1457,95 @@ public class ComputerDialog extends PlayerInput {
 		}
 
 		/**
-		 * Command/path suggestions used to query the server-side {@code Terminal}
-		 * directly. A per-keystroke network round trip isn't worth it for this
-		 * pass (deferred, per plan) — suggestions are disabled rather than
-		 * risking a laggy/frozen-feeling input bar.
+		 * Queries the server-side {@code Terminal} for command-name suggestions
+		 * (async — see {@link #applyPendingQueryResults()}). Used by both the idle
+		 * auto-refresh below and Tab-with-no-args; {@code autoApplyFirstMatch}
+		 * distinguishes "just populate the list" from "apply the top match now,
+		 * as Tab would have done synchronously before this was networked."
 		 */
-		private boolean refreshCommandSuggestions(boolean force) {
-			clearCommandSuggestions();
-			return false;
+		private void requestCommandSuggestions(boolean autoApplyFirstMatch) {
+			if(isFileEditMode() || sessionView == null) {
+				clearCommandSuggestions();
+				return;
+			}
+
+			String normalizedInput = currentInputLine == null ? "" : currentInputLine.trim();
+			if(normalizedInput.isEmpty()) {
+				clearCommandSuggestions();
+				return;
+			}
+
+			if(normalizedInput.equals(suggestionSeedInput) && !pathCompletionMode && !commandSuggestions.isEmpty()) {
+				if(autoApplyFirstMatch) {
+					cycleCommandSuggestion(1);
+				}
+				return;
+			}
+
+			if(pendingSuggestionsRequestId != -1) {
+				return;
+			}
+			pendingSuggestionsQueryText = normalizedInput;
+			pendingSuggestionsAutoApply = autoApplyFirstMatch;
+			pendingSuggestionsRequestId = sessionView.sendCommandSuggestions(normalizedInput);
+		}
+
+		private void requestPathSuggestions(boolean autoApplyFirstMatch) {
+			if(sessionView == null) {
+				return;
+			}
+			String input = currentInputLine == null ? "" : currentInputLine;
+
+			if(!commandSuggestions.isEmpty() && pathCompletionMode) {
+				if(autoApplyFirstMatch) {
+					cycleCommandSuggestion(1);
+				}
+				return;
+			}
+
+			if(pendingSuggestionsRequestId != -1) {
+				return;
+			}
+			pendingSuggestionsQueryText = input;
+			pendingSuggestionsAutoApply = autoApplyFirstMatch;
+			pendingSuggestionsRequestId = sessionView.sendPathSuggestions(input);
+		}
+
+		/** Applies a suggestions result once it arrives, discarding it if the input line changed while the request was in flight. */
+		private void applySuggestionsResult(List<String> suggestions, boolean pathMode) {
+			String currentNormalized = currentInputLine == null ? "" : currentInputLine.trim();
+			boolean stillRelevant = pathMode
+					? Objects.equals(pendingSuggestionsQueryText, currentInputLine == null ? "" : currentInputLine)
+					: Objects.equals(pendingSuggestionsQueryText, currentNormalized);
+			if(!stillRelevant || suggestions == null || suggestions.isEmpty()) {
+				return;
+			}
+
+			commandSuggestions.clear();
+			if(pathMode) {
+				pathCompletionPrefix = getInputPrefixBeforeLastToken(currentInputLine == null ? "" : currentInputLine);
+				pathCompletionMode = true;
+				for(String path : suggestions) {
+					commandSuggestions.add(pathCompletionPrefix + path);
+				}
+			} else {
+				pathCompletionMode = false;
+				pathCompletionPrefix = "";
+				commandSuggestions.addAll(suggestions);
+			}
+
+			suggestionSeedInput = currentNormalized;
+			selectedSuggestionIndex = 0;
+			for(int i = 0; i < commandSuggestions.size(); i++) {
+				if(commandSuggestions.get(i).equalsIgnoreCase(currentNormalized)) {
+					selectedSuggestionIndex = i;
+					break;
+				}
+			}
+
+			if(pendingSuggestionsAutoApply) {
+				setTerminalInputLine(commandSuggestions.get(selectedSuggestionIndex), true);
+			}
 		}
 
 		private boolean cycleCommandSuggestion(int direction) {
@@ -1478,29 +1572,30 @@ public class ComputerDialog extends PlayerInput {
 			boolean hasArgs = input.contains(" ");
 
 			if(hasArgs) {
-				// Path completion queried the server-side Terminal directly; disabled
-				// for this pass (see refreshCommandSuggestions).
-				if(!commandSuggestions.isEmpty() && pathCompletionMode) {
-					cycleCommandSuggestion(1);
-				}
+				requestPathSuggestions(true);
+			} else {
+				requestCommandSuggestions(true);
+			}
+		}
+
+		/**
+		 * Polled once per frame from {@code draw()} — applies history/suggestion
+		 * query results once they arrive, without ever blocking the render thread.
+		 */
+		private void applyPendingQueryResults() {
+			if(sessionView == null) {
 				return;
 			}
 
-			// Command completion mode (first token only).
-			if(!commandSuggestions.isEmpty()) {
-				cycleCommandSuggestion(1);
-				return;
+			if(pendingHistoryRequestId != -1 && sessionView.getHistoryResponseId() == pendingHistoryRequestId) {
+				pendingHistoryRequestId = -1;
+				setHistoryCommand(sessionView.getHistoryResponseText());
 			}
 
-			if(!refreshCommandSuggestions(true)) {
-				return;
+			if(pendingSuggestionsRequestId != -1 && sessionView.getSuggestionsResponseId() == pendingSuggestionsRequestId) {
+				pendingSuggestionsRequestId = -1;
+				applySuggestionsResult(sessionView.getSuggestionsResponseList(), sessionView.isSuggestionsResponsePathMode());
 			}
-
-			if(selectedSuggestionIndex < 0 || selectedSuggestionIndex >= commandSuggestions.size()) {
-				selectedSuggestionIndex = 0;
-			}
-
-			setTerminalInputLine(commandSuggestions.get(selectedSuggestionIndex), true);
 		}
 
 		private String getInputPrefixBeforeLastToken(String input) {
@@ -1585,7 +1680,6 @@ public class ComputerDialog extends PlayerInput {
 				currentInputLine = "";
 
 				sessionView.sendLineInput(inputToExecute);
-				recordLocalHistory(inputToExecute);
 
 				userIsTyping = false;
 				// Don't synchronously refresh console text here — the server echoes
@@ -1596,13 +1690,6 @@ public class ComputerDialog extends PlayerInput {
 			}
 		}
 
-		private void recordLocalHistory(String command) {
-			if(command == null || command.trim().isEmpty()) {
-				return;
-			}
-			localCommandHistory.add(command);
-			localHistoryIndex = localCommandHistory.size();
-		}
 
 		@Override
 		public void onInit() {
@@ -1789,10 +1876,13 @@ public class ComputerDialog extends PlayerInput {
 					}
 
 					if(!currentInputLine.equals(lastSavedInput)) {
-						// No longer persisted server-side (see class docs) — kept as a
-						// local marker so this branch still only fires on real edits.
+						// Just a local edit marker — the actual server-side persistence
+						// happens once on dialog close (saveCurrentInput()), not per
+						// keystroke, to avoid a network send on every character typed.
 						lastSavedInput = currentInputLine;
 					}
+
+					applyPendingQueryResults();
 
 					if(!userIsTyping) {
 						String moduleContent = sessionView.getConsoleText();
@@ -1809,7 +1899,7 @@ public class ComputerDialog extends PlayerInput {
 					if(currentInputLine != null && !currentInputLine.trim().isEmpty()) {
 						long nowMs = System.currentTimeMillis();
 						if(nowMs - lastInputEditAtMs >= SUGGESTION_IDLE_DELAY_MS) {
-							refreshCommandSuggestions(false);
+							requestCommandSuggestions(false);
 						}
 					}
 

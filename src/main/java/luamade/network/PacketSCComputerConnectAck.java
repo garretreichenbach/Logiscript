@@ -27,11 +27,13 @@ public class PacketSCComputerConnectAck extends Packet {
 	private byte modeOrdinal;
 	private String lastOpenFile;
 	private boolean passwordInputMode;
+	private byte scrollModeOrdinal;
+	private String savedTerminalInput;
 
 	public PacketSCComputerConnectAck() {
 	}
 
-	private PacketSCComputerConnectAck(int requestId, int entityId, long absIndex, boolean success, String message, String consoleText, Gfx2d.FrameSnapshot gfxSnapshot, boolean keyboardConsumed, boolean mouseConsumed, byte modeOrdinal, String lastOpenFile, boolean passwordInputMode) {
+	private PacketSCComputerConnectAck(int requestId, int entityId, long absIndex, boolean success, String message, String consoleText, Gfx2d.FrameSnapshot gfxSnapshot, boolean keyboardConsumed, boolean mouseConsumed, byte modeOrdinal, String lastOpenFile, boolean passwordInputMode, byte scrollModeOrdinal, String savedTerminalInput) {
 		this.requestId = requestId;
 		this.entityId = entityId;
 		this.absIndex = absIndex;
@@ -44,14 +46,16 @@ public class PacketSCComputerConnectAck extends Packet {
 		this.modeOrdinal = modeOrdinal;
 		this.lastOpenFile = lastOpenFile == null ? "" : lastOpenFile;
 		this.passwordInputMode = passwordInputMode;
+		this.scrollModeOrdinal = scrollModeOrdinal;
+		this.savedTerminalInput = savedTerminalInput == null ? "" : savedTerminalInput;
 	}
 
-	public static PacketSCComputerConnectAck success(int requestId, int entityId, long absIndex, String consoleText, Gfx2d.FrameSnapshot gfxSnapshot, boolean keyboardConsumed, boolean mouseConsumed, byte modeOrdinal, String lastOpenFile, boolean passwordInputMode) {
-		return new PacketSCComputerConnectAck(requestId, entityId, absIndex, true, "", consoleText, gfxSnapshot, keyboardConsumed, mouseConsumed, modeOrdinal, lastOpenFile, passwordInputMode);
+	public static PacketSCComputerConnectAck success(int requestId, int entityId, long absIndex, String consoleText, Gfx2d.FrameSnapshot gfxSnapshot, boolean keyboardConsumed, boolean mouseConsumed, byte modeOrdinal, String lastOpenFile, boolean passwordInputMode, byte scrollModeOrdinal, String savedTerminalInput) {
+		return new PacketSCComputerConnectAck(requestId, entityId, absIndex, true, "", consoleText, gfxSnapshot, keyboardConsumed, mouseConsumed, modeOrdinal, lastOpenFile, passwordInputMode, scrollModeOrdinal, savedTerminalInput);
 	}
 
 	public static PacketSCComputerConnectAck failure(int requestId, int entityId, long absIndex, String message) {
-		return new PacketSCComputerConnectAck(requestId, entityId, absIndex, false, message, "", null, false, false, (byte) 0, "", false);
+		return new PacketSCComputerConnectAck(requestId, entityId, absIndex, false, message, "", null, false, false, (byte) 0, "", false, (byte) 0, "");
 	}
 
 	public boolean isKeyboardConsumed() {
@@ -72,6 +76,14 @@ public class PacketSCComputerConnectAck extends Packet {
 
 	public boolean isPasswordInputMode() {
 		return passwordInputMode;
+	}
+
+	public byte getScrollModeOrdinal() {
+		return scrollModeOrdinal;
+	}
+
+	public String getSavedTerminalInput() {
+		return savedTerminalInput;
 	}
 
 	public int getRequestId() {
@@ -117,6 +129,8 @@ public class PacketSCComputerConnectAck extends Packet {
 		modeOrdinal = buffer.readByte();
 		lastOpenFile = buffer.readString();
 		passwordInputMode = buffer.readBoolean();
+		scrollModeOrdinal = buffer.readByte();
+		savedTerminalInput = buffer.readString();
 	}
 
 	@Override
@@ -136,6 +150,8 @@ public class PacketSCComputerConnectAck extends Packet {
 		buffer.writeByte(modeOrdinal);
 		buffer.writeString(lastOpenFile);
 		buffer.writeBoolean(passwordInputMode);
+		buffer.writeByte(scrollModeOrdinal);
+		buffer.writeString(savedTerminalInput);
 	}
 
 	@Override

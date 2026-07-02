@@ -3,6 +3,7 @@ package luamade.gui;
 import luamade.network.PacketSCComputerConnectAck;
 import luamade.network.PacketSCConsoleSnapshot;
 import luamade.network.PacketSCGfxSnapshot;
+import luamade.network.PacketSCTerminalQueryResult;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -15,8 +16,18 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class ComputerSessionRegistry {
 
 	private static final ConcurrentHashMap<String, ComputerSessionView> sessions = new ConcurrentHashMap<>();
+	/**
+	 * Pending {@code PacketCSTerminalQuery} requests awaiting a reply, keyed by
+	 * requestId. The response packet only carries a requestId (not entityId/
+	 * absIndex), so this is how it's routed back to the right session view.
+	 */
+	private static final ConcurrentHashMap<Integer, ComputerSessionView> pendingQueries = new ConcurrentHashMap<>();
 
 	private ComputerSessionRegistry() {
+	}
+
+	static void registerPendingQuery(int requestId, ComputerSessionView view) {
+		pendingQueries.put(requestId, view);
 	}
 
 	private static String key(int entityId, long absIndex) {
@@ -35,7 +46,7 @@ public final class ComputerSessionRegistry {
 	public static void handleConnectAck(PacketSCComputerConnectAck ack) {
 		ComputerSessionView view = getOrCreate(ack.getEntityId(), ack.getAbsIndex());
 		if(ack.isSuccess()) {
-			view.applyConnectSuccess(ack.getConsoleText(), ack.getGfxSnapshot(), ack.isKeyboardConsumed(), ack.isMouseConsumed(), ack.getModeOrdinal(), ack.getLastOpenFile(), ack.isPasswordInputMode());
+			view.applyConnectSuccess(ack.getConsoleText(), ack.getGfxSnapshot(), ack.isKeyboardConsumed(), ack.isMouseConsumed(), ack.getModeOrdinal(), ack.getLastOpenFile(), ack.isPasswordInputMode(), ack.getScrollModeOrdinal(), ack.getSavedTerminalInput());
 		} else {
 			view.applyConnectFailure(ack.getMessage());
 		}
@@ -44,7 +55,7 @@ public final class ComputerSessionRegistry {
 	public static void handleConsoleSnapshot(PacketSCConsoleSnapshot packet) {
 		ComputerSessionView view = sessions.get(key(packet.getEntityId(), packet.getAbsIndex()));
 		if(view != null) {
-			view.applyConsoleSnapshot(packet.getText(), packet.isKeyboardConsumed(), packet.isMouseConsumed(), packet.getModeOrdinal(), packet.getLastOpenFile(), packet.isPasswordInputMode());
+			view.applyConsoleSnapshot(packet.getText(), packet.isKeyboardConsumed(), packet.isMouseConsumed(), packet.getModeOrdinal(), packet.getLastOpenFile(), packet.isPasswordInputMode(), packet.getScrollModeOrdinal(), packet.getSavedTerminalInput());
 		}
 	}
 
@@ -52,6 +63,18 @@ public final class ComputerSessionRegistry {
 		ComputerSessionView view = sessions.get(key(packet.getEntityId(), packet.getAbsIndex()));
 		if(view != null) {
 			view.applyGfxSnapshot(packet.getSnapshot());
+		}
+	}
+
+	public static void handleTerminalQueryResult(PacketSCTerminalQueryResult packet) {
+		ComputerSessionView view = pendingQueries.remove(packet.getRequestId());
+		if(view == null) {
+			return;
+		}
+		if(packet.isHistoryKind()) {
+			view.applyHistoryResult(packet.getRequestId(), packet.getResultText());
+		} else {
+			view.applySuggestionsResult(packet.getRequestId(), packet.getResultList(), packet.isPathMode());
 		}
 	}
 }

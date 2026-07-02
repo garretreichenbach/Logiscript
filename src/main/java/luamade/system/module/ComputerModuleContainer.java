@@ -250,20 +250,25 @@ public class ComputerModuleContainer extends SystemModule {
 			byte modeOrdinal = (byte) module.getLastMode().ordinal();
 			String lastOpenFile = module.getLastOpenFile();
 			boolean passwordInputMode = module.getTerminal() != null && module.getTerminal().isPasswordInputMode();
+			byte scrollModeOrdinal = (byte) module.getScrollMode().ordinal();
+			String savedTerminalInput = module.getSavedTerminalInput();
 
 			for(Map.Entry<PlayerState, ViewerSyncState> entry : byPlayer.entrySet()) {
 				PlayerState player = entry.getKey();
 				ViewerSyncState state = entry.getValue();
 
 				if(!Objects.equals(consoleText, state.lastConsoleText) || keyboardConsumed != state.lastKeyboardConsumed || mouseConsumed != state.lastMouseConsumed
-						|| modeOrdinal != state.lastModeOrdinal || !Objects.equals(lastOpenFile, state.lastOpenFile) || passwordInputMode != state.lastPasswordInputMode) {
+						|| modeOrdinal != state.lastModeOrdinal || !Objects.equals(lastOpenFile, state.lastOpenFile) || passwordInputMode != state.lastPasswordInputMode
+						|| scrollModeOrdinal != state.lastScrollModeOrdinal || !Objects.equals(savedTerminalInput, state.lastSavedTerminalInput)) {
 					state.lastConsoleText = consoleText;
 					state.lastKeyboardConsumed = keyboardConsumed;
 					state.lastMouseConsumed = mouseConsumed;
 					state.lastModeOrdinal = modeOrdinal;
 					state.lastOpenFile = lastOpenFile;
 					state.lastPasswordInputMode = passwordInputMode;
-					PacketUtil.sendPacket(player, new PacketSCConsoleSnapshot(entityId, absIndex, consoleText, keyboardConsumed, mouseConsumed, modeOrdinal, lastOpenFile, passwordInputMode));
+					state.lastScrollModeOrdinal = scrollModeOrdinal;
+					state.lastSavedTerminalInput = savedTerminalInput;
+					PacketUtil.sendPacket(player, new PacketSCConsoleSnapshot(entityId, absIndex, consoleText, keyboardConsumed, mouseConsumed, modeOrdinal, lastOpenFile, passwordInputMode, scrollModeOrdinal, savedTerminalInput));
 				}
 
 				if(gfxSnapshot.revision != state.lastGfxRevision) {
@@ -544,6 +549,8 @@ public class ComputerModuleContainer extends SystemModule {
 		private byte lastModeOrdinal = -1;
 		private String lastOpenFile;
 		private boolean lastPasswordInputMode;
+		private byte lastScrollModeOrdinal = -1;
+		private String lastSavedTerminalInput;
 	}
 
 	private static final class PendingModuleState {

@@ -23,11 +23,13 @@ public class PacketSCConsoleSnapshot extends Packet {
 	private byte modeOrdinal;
 	private String lastOpenFile;
 	private boolean passwordInputMode;
+	private byte scrollModeOrdinal;
+	private String savedTerminalInput;
 
 	public PacketSCConsoleSnapshot() {
 	}
 
-	public PacketSCConsoleSnapshot(int entityId, long absIndex, String text, boolean keyboardConsumed, boolean mouseConsumed, byte modeOrdinal, String lastOpenFile, boolean passwordInputMode) {
+	public PacketSCConsoleSnapshot(int entityId, long absIndex, String text, boolean keyboardConsumed, boolean mouseConsumed, byte modeOrdinal, String lastOpenFile, boolean passwordInputMode, byte scrollModeOrdinal, String savedTerminalInput) {
 		this.entityId = entityId;
 		this.absIndex = absIndex;
 		this.text = text == null ? "" : text;
@@ -36,6 +38,8 @@ public class PacketSCConsoleSnapshot extends Packet {
 		this.modeOrdinal = modeOrdinal;
 		this.lastOpenFile = lastOpenFile == null ? "" : lastOpenFile;
 		this.passwordInputMode = passwordInputMode;
+		this.scrollModeOrdinal = scrollModeOrdinal;
+		this.savedTerminalInput = savedTerminalInput == null ? "" : savedTerminalInput;
 	}
 
 	public int getEntityId() {
@@ -70,6 +74,14 @@ public class PacketSCConsoleSnapshot extends Packet {
 		return passwordInputMode;
 	}
 
+	public byte getScrollModeOrdinal() {
+		return scrollModeOrdinal;
+	}
+
+	public String getSavedTerminalInput() {
+		return savedTerminalInput;
+	}
+
 	@Override
 	public void readPacketData(PacketReadBuffer buffer) throws IOException {
 		entityId = buffer.readInt();
@@ -80,6 +92,8 @@ public class PacketSCConsoleSnapshot extends Packet {
 		modeOrdinal = buffer.readByte();
 		lastOpenFile = buffer.readString();
 		passwordInputMode = buffer.readBoolean();
+		scrollModeOrdinal = buffer.readByte();
+		savedTerminalInput = buffer.readString();
 	}
 
 	@Override
@@ -92,6 +106,8 @@ public class PacketSCConsoleSnapshot extends Packet {
 		buffer.writeByte(modeOrdinal);
 		buffer.writeString(lastOpenFile);
 		buffer.writeBoolean(passwordInputMode);
+		buffer.writeByte(scrollModeOrdinal);
+		buffer.writeString(savedTerminalInput);
 	}
 
 	@Override

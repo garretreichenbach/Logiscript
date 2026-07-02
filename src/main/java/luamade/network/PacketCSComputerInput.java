@@ -29,7 +29,7 @@ import java.io.IOException;
  */
 public class PacketCSComputerInput extends Packet {
 
-	public enum Kind { CONNECT, DISCONNECT, LINE_INPUT, KEY_EVENT, MOUSE_EVENT, INTERRUPT, RESET, EXIT_EDITOR, VIEWPORT_RESIZE }
+	public enum Kind { CONNECT, DISCONNECT, LINE_INPUT, KEY_EVENT, MOUSE_EVENT, INTERRUPT, RESET, EXIT_EDITOR, VIEWPORT_RESIZE, SET_SAVED_INPUT, UI_LAYOUT }
 
 	private int requestId;
 	private String kind;
@@ -66,6 +66,16 @@ public class PacketCSComputerInput extends Packet {
 	// VIEWPORT_RESIZE
 	private int viewportWidth;
 	private int viewportHeight;
+
+	// UI_LAYOUT
+	private int windowX;
+	private int windowY;
+	private int windowWidth;
+	private int windowHeight;
+	private int canvasX;
+	private int canvasY;
+	private int canvasWidth;
+	private int canvasHeight;
 
 	public PacketCSComputerInput() {
 	}
@@ -140,6 +150,25 @@ public class PacketCSComputerInput extends Packet {
 		return packet;
 	}
 
+	public static PacketCSComputerInput setSavedInput(int entityId, long absIndex, String text) {
+		PacketCSComputerInput packet = new PacketCSComputerInput(Kind.SET_SAVED_INPUT, entityId, absIndex);
+		packet.text = text == null ? "" : text;
+		return packet;
+	}
+
+	public static PacketCSComputerInput uiLayout(int entityId, long absIndex, int windowX, int windowY, int windowWidth, int windowHeight, int canvasX, int canvasY, int canvasWidth, int canvasHeight) {
+		PacketCSComputerInput packet = new PacketCSComputerInput(Kind.UI_LAYOUT, entityId, absIndex);
+		packet.windowX = windowX;
+		packet.windowY = windowY;
+		packet.windowWidth = windowWidth;
+		packet.windowHeight = windowHeight;
+		packet.canvasX = canvasX;
+		packet.canvasY = canvasY;
+		packet.canvasWidth = canvasWidth;
+		packet.canvasHeight = canvasHeight;
+		return packet;
+	}
+
 	@Override
 	public void readPacketData(PacketReadBuffer buffer) throws IOException {
 		requestId = buffer.readInt();
@@ -167,6 +196,14 @@ public class PacketCSComputerInput extends Packet {
 		dragButton = buffer.readString();
 		viewportWidth = buffer.readInt();
 		viewportHeight = buffer.readInt();
+		windowX = buffer.readInt();
+		windowY = buffer.readInt();
+		windowWidth = buffer.readInt();
+		windowHeight = buffer.readInt();
+		canvasX = buffer.readInt();
+		canvasY = buffer.readInt();
+		canvasWidth = buffer.readInt();
+		canvasHeight = buffer.readInt();
 	}
 
 	@Override
@@ -196,6 +233,14 @@ public class PacketCSComputerInput extends Packet {
 		buffer.writeString(dragButton == null ? "none" : dragButton);
 		buffer.writeInt(viewportWidth);
 		buffer.writeInt(viewportHeight);
+		buffer.writeInt(windowX);
+		buffer.writeInt(windowY);
+		buffer.writeInt(windowWidth);
+		buffer.writeInt(windowHeight);
+		buffer.writeInt(canvasX);
+		buffer.writeInt(canvasY);
+		buffer.writeInt(canvasWidth);
+		buffer.writeInt(canvasHeight);
 	}
 
 	@Override
@@ -240,7 +285,7 @@ public class PacketCSComputerInput extends Packet {
 			}
 			container.addViewer(absIndex, sender);
 			boolean passwordInputMode = module.getTerminal() != null && module.getTerminal().isPasswordInputMode();
-			PacketUtil.sendPacket(sender, PacketSCComputerConnectAck.success(requestId, entityId, absIndex, module.getLastTextContent(), module.getGfxApi().snapshot(), module.getInputApi().isKeyboardConsumed(), module.getInputApi().isMouseConsumed(), (byte) module.getLastMode().ordinal(), module.getLastOpenFile(), passwordInputMode));
+			PacketUtil.sendPacket(sender, PacketSCComputerConnectAck.success(requestId, entityId, absIndex, module.getLastTextContent(), module.getGfxApi().snapshot(), module.getInputApi().isKeyboardConsumed(), module.getInputApi().isMouseConsumed(), (byte) module.getLastMode().ordinal(), module.getLastOpenFile(), passwordInputMode, (byte) module.getScrollMode().ordinal(), module.getSavedTerminalInput()));
 			return;
 		}
 
@@ -284,6 +329,12 @@ public class PacketCSComputerInput extends Packet {
 				break;
 			case VIEWPORT_RESIZE:
 				module.getGfxApi().setViewportSize(viewportWidth, viewportHeight);
+				break;
+			case SET_SAVED_INPUT:
+				module.setSavedTerminalInput(text == null ? "" : text);
+				break;
+			case UI_LAYOUT:
+				module.getInputApi().setUiLayout(windowX, windowY, windowWidth, windowHeight, canvasX, canvasY, canvasWidth, canvasHeight);
 				break;
 			default:
 				break;

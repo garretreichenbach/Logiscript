@@ -7,12 +7,16 @@ import luamade.network.PacketCSClipboardImport;
 import luamade.network.PacketCSComputerInput;
 import luamade.network.PacketCSFileRead;
 import luamade.network.PacketCSFileWrite;
+import luamade.network.PacketCSTerminalQuery;
 import luamade.system.module.ComputerModule;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Client-side view of a computer session. Scripts now execute server-side
@@ -42,6 +46,15 @@ public final class ComputerSessionView {
 	private volatile byte modeOrdinal = (byte) ComputerModule.ComputerMode.TERMINAL.ordinal();
 	private volatile String lastOpenFile = "";
 	private volatile boolean passwordInputMode;
+	private volatile byte scrollModeOrdinal = (byte) ComputerModule.ScrollMode.VERTICAL.ordinal();
+	private volatile String savedTerminalInput = "";
+
+	private static final AtomicInteger queryRequestIdGenerator = new AtomicInteger(1);
+	private volatile int historyResponseId = -1;
+	private volatile String historyResponseText = "";
+	private volatile int suggestionsResponseId = -1;
+	private volatile List<String> suggestionsResponseList = Collections.emptyList();
+	private volatile boolean suggestionsResponsePathMode;
 
 	ComputerSessionView(int entityId, long absIndex) {
 		this.entityId = entityId;
@@ -98,12 +111,41 @@ public final class ComputerSessionView {
 		return passwordInputMode;
 	}
 
+	public ComputerModule.ScrollMode getScrollMode() {
+		ComputerModule.ScrollMode[] modes = ComputerModule.ScrollMode.values();
+		return scrollModeOrdinal >= 0 && scrollModeOrdinal < modes.length ? modes[scrollModeOrdinal] : ComputerModule.ScrollMode.VERTICAL;
+	}
+
+	public String getSavedTerminalInput() {
+		return savedTerminalInput;
+	}
+
+	public int getHistoryResponseId() {
+		return historyResponseId;
+	}
+
+	public String getHistoryResponseText() {
+		return historyResponseText;
+	}
+
+	public int getSuggestionsResponseId() {
+		return suggestionsResponseId;
+	}
+
+	public List<String> getSuggestionsResponseList() {
+		return suggestionsResponseList;
+	}
+
+	public boolean isSuggestionsResponsePathMode() {
+		return suggestionsResponsePathMode;
+	}
+
 	// ------------------------------------------------------------------
 	// Inbound — called by ComputerSessionRegistry from packet handlers
 	// (network thread).
 	// ------------------------------------------------------------------
 
-	void applyConnectSuccess(String consoleText, Gfx2d.FrameSnapshot gfxSnapshot, boolean keyboardConsumed, boolean mouseConsumed, byte modeOrdinal, String lastOpenFile, boolean passwordInputMode) {
+	void applyConnectSuccess(String consoleText, Gfx2d.FrameSnapshot gfxSnapshot, boolean keyboardConsumed, boolean mouseConsumed, byte modeOrdinal, String lastOpenFile, boolean passwordInputMode, byte scrollModeOrdinal, String savedTerminalInput) {
 		this.connected = true;
 		this.connectFailureMessage = null;
 		this.consoleText = consoleText == null ? "" : consoleText;
@@ -113,6 +155,8 @@ public final class ComputerSessionView {
 		this.modeOrdinal = modeOrdinal;
 		this.lastOpenFile = lastOpenFile == null ? "" : lastOpenFile;
 		this.passwordInputMode = passwordInputMode;
+		this.scrollModeOrdinal = scrollModeOrdinal;
+		this.savedTerminalInput = savedTerminalInput == null ? "" : savedTerminalInput;
 	}
 
 	void applyConnectFailure(String message) {
@@ -120,17 +164,30 @@ public final class ComputerSessionView {
 		this.connectFailureMessage = message;
 	}
 
-	void applyConsoleSnapshot(String consoleText, boolean keyboardConsumed, boolean mouseConsumed, byte modeOrdinal, String lastOpenFile, boolean passwordInputMode) {
+	void applyConsoleSnapshot(String consoleText, boolean keyboardConsumed, boolean mouseConsumed, byte modeOrdinal, String lastOpenFile, boolean passwordInputMode, byte scrollModeOrdinal, String savedTerminalInput) {
 		this.consoleText = consoleText == null ? "" : consoleText;
 		this.keyboardConsumed = keyboardConsumed;
 		this.mouseConsumed = mouseConsumed;
 		this.passwordInputMode = passwordInputMode;
 		this.modeOrdinal = modeOrdinal;
 		this.lastOpenFile = lastOpenFile == null ? "" : lastOpenFile;
+		this.scrollModeOrdinal = scrollModeOrdinal;
+		this.savedTerminalInput = savedTerminalInput == null ? "" : savedTerminalInput;
 	}
 
 	void applyGfxSnapshot(Gfx2d.FrameSnapshot snapshot) {
 		this.gfxSnapshot = snapshot;
+	}
+
+	void applyHistoryResult(int requestId, String text) {
+		this.historyResponseText = text == null ? "" : text;
+		this.historyResponseId = requestId;
+	}
+
+	void applySuggestionsResult(int requestId, List<String> list, boolean pathMode) {
+		this.suggestionsResponseList = list == null ? Collections.emptyList() : list;
+		this.suggestionsResponsePathMode = pathMode;
+		this.suggestionsResponseId = requestId;
 	}
 
 	// ------------------------------------------------------------------
@@ -173,6 +230,51 @@ public final class ComputerSessionView {
 
 	public void sendViewportResize(int width, int height) {
 		PacketUtil.sendPacketToServer(PacketCSComputerInput.viewportResize(entityId, absIndex, width, height));
+	}
+
+	/** Fire-and-forget — persists the partial input line so it can be restored if the dialog is reopened later. */
+	public void sendSetSavedInput(String text) {
+		PacketUtil.sendPacketToServer(PacketCSComputerInput.setSavedInput(entityId, absIndex, text));
+	}
+
+	/** Feeds the server-side InputApi so scripts calling {@code input.getUiLayout()} see real window/canvas bounds. */
+	public void sendUiLayout(int windowX, int windowY, int windowWidth, int windowHeight, int canvasX, int canvasY, int canvasWidth, int canvasHeight) {
+		PacketUtil.sendPacketToServer(PacketCSComputerInput.uiLayout(entityId, absIndex, windowX, windowY, windowWidth, windowHeight, canvasX, canvasY, canvasWidth, canvasHeight));
+	}
+
+	/**
+	 * Requests the previous history entry (server also records {@code currentInput}
+	 * as the "in progress" line, matching {@code Terminal.getPreviousCommand()}'s
+	 * existing semantics). Async — call {@link #getHistoryResponseId()} /
+	 * {@link #getHistoryResponseText()} on a later frame to pick up the result;
+	 * never blocks the calling thread.
+	 */
+	public int sendHistoryPrev(String currentInput) {
+		int requestId = queryRequestIdGenerator.getAndIncrement();
+		ComputerSessionRegistry.registerPendingQuery(requestId, this);
+		PacketUtil.sendPacketToServer(PacketCSTerminalQuery.historyPrev(requestId, entityId, absIndex, currentInput));
+		return requestId;
+	}
+
+	public int sendHistoryNext() {
+		int requestId = queryRequestIdGenerator.getAndIncrement();
+		ComputerSessionRegistry.registerPendingQuery(requestId, this);
+		PacketUtil.sendPacketToServer(PacketCSTerminalQuery.historyNext(requestId, entityId, absIndex));
+		return requestId;
+	}
+
+	public int sendCommandSuggestions(String partialInput) {
+		int requestId = queryRequestIdGenerator.getAndIncrement();
+		ComputerSessionRegistry.registerPendingQuery(requestId, this);
+		PacketUtil.sendPacketToServer(PacketCSTerminalQuery.commandSuggestions(requestId, entityId, absIndex, partialInput));
+		return requestId;
+	}
+
+	public int sendPathSuggestions(String partialInput) {
+		int requestId = queryRequestIdGenerator.getAndIncrement();
+		ComputerSessionRegistry.registerPendingQuery(requestId, this);
+		PacketUtil.sendPacketToServer(PacketCSTerminalQuery.pathSuggestions(requestId, entityId, absIndex, partialInput));
+		return requestId;
 	}
 
 	/**

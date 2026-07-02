@@ -22,6 +22,8 @@ import luamade.network.PacketSCFileResult;
 import luamade.network.PacketSCGfxSnapshot;
 import luamade.network.PacketSCOpenSwingEditor;
 import luamade.network.PacketSCPlayerDialogRequest;
+import luamade.network.PacketCSTerminalQuery;
+import luamade.network.PacketSCTerminalQueryResult;
 import luamade.network.PacketSCVaultScriptResponse;
 import luamade.network.PacketSCVaultView;
 import luamade.lua.peripheral.PeripheralRegistry;
@@ -130,5 +132,7 @@ public class LuaMade extends StarMod {
 		Packet.registerPacket(PacketSCOpenSwingEditor.class);
 		Packet.registerPacket(PacketSCPlayerDialogRequest.class);
 		Packet.registerPacket(PacketCSPlayerDialogResponse.class);
+		Packet.registerPacket(PacketCSTerminalQuery.class);
+		Packet.registerPacket(PacketSCTerminalQueryResult.class);
 	}
 }
