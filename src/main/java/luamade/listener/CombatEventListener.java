@@ -18,45 +18,40 @@ import org.schema.game.common.controller.elements.ManagerContainer;
 public class CombatEventListener {
 
 	public static void register(LuaMade instance) {
-		FastListenerCommon.segmentPieceDamageListeners.add(new SegmentPieceDamageListener() {
-			@Override
-			public int onBlockDamage(SegmentController controller, long pos, short type, int damage, DamageDealerType damageType, Damager from, boolean isServer) {
-				try {
-					LuaTable luaEvent = new LuaTable();
-					luaEvent.set("type", "block_damage");
-					luaEvent.set("damageType", damageType != null ? damageType.name() : "GENERAL");
-					luaEvent.set("damage", damage);
-					luaEvent.set("blockType", type);
-					if(from != null) {
-						luaEvent.set("attackerName", from.getName() != null ? from.getName() : "");
-						luaEvent.set("attackerFaction", from.getFactionId());
-					}
-					luaEvent.set("isServer", LuaValue.valueOf(isServer));
-					dispatchToComputers(controller, luaEvent);
-				} catch(Exception ignored) {
-				}
-				return damage;
-			}
-		});
+		FastListenerCommon.register(FastListenerCommon.segmentPieceDamageListeners, (controller, pos, type, damage, damageType, from, isServer) -> {
+            try {
+                LuaTable luaEvent = new LuaTable();
+                luaEvent.set("type", "block_damage");
+                luaEvent.set("damageType", damageType != null ? damageType.name() : "GENERAL");
+                luaEvent.set("damage", damage);
+                luaEvent.set("blockType", type);
+                if(from != null) {
+                    luaEvent.set("attackerName", from.getName() != null ? from.getName() : "");
+                    luaEvent.set("attackerFaction", from.getFactionId());
+                }
+                luaEvent.set("isServer", LuaValue.valueOf(isServer));
+                dispatchToComputers(controller, luaEvent);
+            } catch(Exception ignored) {
+            }
+            return damage;
+        }, instance);
 
-		StarLoader.registerListener(ShieldHitEvent.class, new Listener<ShieldHitEvent>() {
-			@Override
-			public void onEvent(ShieldHitEvent event) {
-				try {
-					SegmentController controller = event.getHitController();
-					if(controller == null) return;
+		StarLoader.registerListener(ShieldHitEvent.class, new Listener<>() {
+            @Override
+            public void onEvent(ShieldHitEvent event) {
+                try {
+                    SegmentController controller = event.getHitController();
+                    if (controller == null) return;
 
-					LuaTable luaEvent = new LuaTable();
-					luaEvent.set("type", "shield_hit");
-					luaEvent.set("damageType", event.getDamageType() != null ? event.getDamageType().name() : "GENERAL");
-					luaEvent.set("isHighDamage", LuaValue.valueOf(event.isHighDamage()));
-					luaEvent.set("isLowDamage", LuaValue.valueOf(event.isLowDamage()));
-					luaEvent.set("isServer", LuaValue.valueOf(event.isServer()));
-					dispatchToComputers(controller, luaEvent);
-				} catch(Exception ignored) {
-				}
-			}
-		}, instance);
+                    LuaTable luaEvent = new LuaTable();
+                    luaEvent.set("type", "shield_hit");
+                    luaEvent.set("damageType", event.getDamageType() != null ? event.getDamageType().name() : "GENERAL");
+                    luaEvent.set("isServer", LuaValue.valueOf(event.isServer()));
+                    dispatchToComputers(controller, luaEvent);
+                } catch (Exception ignored) {
+                }
+            }
+        }, instance);
 	}
 
 	private static void dispatchToComputers(SegmentController controller, LuaTable event) {

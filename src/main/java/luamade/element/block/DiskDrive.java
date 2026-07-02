@@ -51,11 +51,10 @@ public class DiskDrive extends Block implements SegmentPiecePlayerInteractListen
 		if(!DiskDriveDialog.isSingleSlotUiAvailable()) {
 			return;
 		}
-		if(!(segmentPiece.getSegmentController() instanceof ManagedUsableSegmentController<?>)) {
+		if(!(segmentPiece.getSegmentController() instanceof ManagedUsableSegmentController<?> controller)) {
 			return;
 		}
-		ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentPiece.getSegmentController();
-		org.schema.game.common.data.player.inventory.Inventory inventory = controller.getManagerContainer().getInventory(segmentPiece.getAbsoluteIndex());
+      Inventory inventory = controller.getManagerContainer().getInventory(segmentPiece.getAbsoluteIndex());
 		if(inventory != null) {
 			(new DiskDriveDialog(inventory)).activate();
 		}

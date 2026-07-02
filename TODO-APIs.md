@@ -50,6 +50,7 @@ Enables automated trading bots, market monitors, and price comparison scripts.
 ## 3. Chat System (High Priority)
 
 Enables chatbots, command systems, and alert notifications from Lua scripts.
+TODO: Have config option to prevent broadcasting into public "all" chat to prevent spam.
 
 ### Chat Channels
 - **Send messages** - `ChatChannel`, `ChannelRouter` - send chat messages
@@ -81,7 +82,7 @@ Know what's around you. Enables navigation aids, sector scanners, and map tools.
 ### Sector Information
 - **Sector contents** - `SectorInformation` - query entities, type, and ownership of sectors
 - **Nearby sectors** - `ClientProximitySector`, `ClientProximitySystem` - scan nearby space
-- **Sector generation** - `SectorGenerationDefault` - query sector type (void, asteroid, nebula, etc.)
+- **Sector generation** - `SectorGenerationDefault` - query sector type (void, asteroid, etc.)
 
 ### Galaxy & Star Systems
 - **Galaxy data** - `GalaxyManager` - star system positions, names
@@ -104,45 +105,3 @@ Deeper faction control beyond just reading basic faction info.
 ### Members
 - **Invitations** - `RemoteFactionInvitation` - invite/kick members
 - **Faction news** - `RemoteFactionNewsPostBuffer` - post/read faction news
-
----
-
-## 8. Blueprint System (Lower Priority)
-
-Query and work with ship/station blueprints.
-
-### Blueprints
-- **Ship blueprints** - `ShipOutline` - query saved ship designs
-- **Station blueprints** - `SpaceStationOutline` - query station designs
-- **Blueprint spawning** - `BluePrintSpawnQueueElement` - spawn from blueprint (admin/creative)
-- **Blueprint I/O** - `BluePrintReadQueueElement`, `BluePrintWriteQueueElement` - read/write blueprint files
-
----
-
-## 9. Player & Server Info (Lower Priority)
-
-### Player Stats
-- **Player data** - `RequestPlayerStats` - query player stats, credits, playtime
-
-### Server Stats
-- **Server info** - `RequestServerStats` - query server performance, player count, uptime
-
-### Game Rules
-- **Rule queries** - `RuleContainer`, `RuleSet` - query active game configuration and rules
-
----
-
-## 10. NPC Simulation & Diplomacy (Lower Priority)
-
-Query and interact with NPC faction behavior.
-
-### NPC Factions
-- **Faction state** - `NPCFaction`, `NPCFactionManager` - query NPC faction status
-- **Faction FSM** - `NPCFactionFSM` - query current NPC faction behavior state
-
-### Diplomacy
-- **Relations** - `NPCDiplomacy`, `DiplomacyConfig` - query faction relations (war/peace/allied)
-- **NPC news** - `NPCFactionNews` - 9 event types (war declared, territory lost, etc.)
-
-### NPC Trade
-- **Trade routes** - `NPCTradeController`, `NPCTradeNode` - query NPC trade networks

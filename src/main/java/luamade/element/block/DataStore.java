@@ -56,12 +56,11 @@ public class DataStore extends Block implements SegmentPieceRemoveListener, Segm
 		if(type != ElementRegistry.DATA_STORE.getId()) {
 			return;
 		}
-		if(!(segment.getSegmentController() instanceof ManagedUsableSegmentController<?>)) {
+		if(!(segment.getSegmentController() instanceof ManagedUsableSegmentController<?> controller)) {
 			return;
 		}
 		long absIndex = ElementCollection.getIndex(x, y, z);
-		ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segment.getSegmentController();
-		DataStoreModuleContainer container = DataStoreModuleContainer.getContainer(controller.getManagerContainer());
+        DataStoreModuleContainer container = DataStoreModuleContainer.getContainer(controller.getManagerContainer());
 		if(container != null) {
 			container.removeBlock(absIndex);
 		}
@@ -72,11 +71,10 @@ public class DataStore extends Block implements SegmentPieceRemoveListener, Segm
 		if(segmentPiece == null || segmentPiece.getType() != ElementRegistry.DATA_STORE.getId()) {
 			return;
 		}
-		if(!(sendableSegmentController instanceof ManagedUsableSegmentController<?>)) {
+		if(!(sendableSegmentController instanceof ManagedUsableSegmentController<?> controller)) {
 			return;
 		}
-		ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) sendableSegmentController;
-		DataStoreModuleContainer container = DataStoreModuleContainer.getContainer(controller.getManagerContainer());
+        DataStoreModuleContainer container = DataStoreModuleContainer.getContainer(controller.getManagerContainer());
 		if(container != null) {
 			container.removeBlock(segmentPiece.getAbsoluteIndex());
 		}
@@ -85,9 +83,8 @@ public class DataStore extends Block implements SegmentPieceRemoveListener, Segm
 	@Override
 	public void onInteract(SegmentPiece segmentPiece, PlayerState playerState, PlayerInteractionControlManager playerInteractionControlManager) {
 		if(segmentPiece.getType() != ElementRegistry.DATA_STORE.getId()) return;
-		if(!(segmentPiece.getSegmentController() instanceof ManagedUsableSegmentController<?>)) return;
-		ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentPiece.getSegmentController();
-		DataStoreModuleContainer container = DataStoreModuleContainer.getContainer(controller.getManagerContainer());
+		if(!(segmentPiece.getSegmentController() instanceof ManagedUsableSegmentController<?> controller)) return;
+        DataStoreModuleContainer container = DataStoreModuleContainer.getContainer(controller.getManagerContainer());
 		if(container == null) return;
 		String uuid = container.getOrAssignUuid(segmentPiece.getAbsoluteIndex());
 		PacketUtil.sendPacketToServer(new PacketCSRequestDataStoreContents(uuid, ""));

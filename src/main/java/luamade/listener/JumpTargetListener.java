@@ -18,17 +18,17 @@ import org.schema.game.common.controller.SegmentController;
 public class JumpTargetListener {
 
 	public static void register(LuaMade instance) {
-		StarLoader.registerListener(ShipJumpEngageEvent.class, new Listener<ShipJumpEngageEvent>() {
-			@Override
-			public void onEvent(ShipJumpEngageEvent event) {
-				SegmentController controller = event.getController();
-				if(controller == null) return;
+		StarLoader.registerListener(ShipJumpEngageEvent.class, new Listener<>() {
+            @Override
+            public void onEvent(ShipJumpEngageEvent event) {
+                SegmentController controller = event.getController();
+                if (controller == null) return;
 
-				Vector3i target = JumpScriptTargetManager.consumeTarget(controller);
-				if(target == null) return;
+                Vector3i target = JumpScriptTargetManager.consumeTarget(controller);
+                if (target == null) return;
 
-				event.setNewSector(target);
-			}
-		}, instance);
+                event.setNewSector(target);
+            }
+        }, instance);
 	}
 }

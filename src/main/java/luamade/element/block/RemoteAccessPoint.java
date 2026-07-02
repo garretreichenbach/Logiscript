@@ -65,12 +65,11 @@ public class RemoteAccessPoint extends Block implements SegmentPiecePlayerIntera
 		if(segmentPiece.getType() != ElementRegistry.REMOTE_ACCESS_POINT.getId()) {
 			return;
 		}
-		if(!(segmentPiece.getSegmentController() instanceof ManagedUsableSegmentController<?>)) {
+		if(!(segmentPiece.getSegmentController() instanceof ManagedUsableSegmentController<?> controller)) {
 			return;
 		}
-		ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentPiece.getSegmentController();
 
-		InventorySlot heldSlot = getHeldSlot(playerState, interactionManager);
+        InventorySlot heldSlot = getHeldSlot(playerState, interactionManager);
 		if(heldSlot == null || heldSlot.getType() != ElementRegistry.REMOTE_CONTROL.getId()) {
 			notifyPlayer(playerState, "Hold a Remote Controller to connect.");
 			return;
@@ -104,15 +103,17 @@ public class RemoteAccessPoint extends Block implements SegmentPiecePlayerIntera
 		if(type != ElementRegistry.REMOTE_ACCESS_POINT.getId()) {
 			return;
 		}
-		if(!(segment.getSegmentController() instanceof ManagedUsableSegmentController<?>)) {
+
+		if(!(segment.getSegmentController() instanceof ManagedUsableSegmentController<?> controller)) {
 			return;
 		}
+
 		SegmentPiece segmentPiece = segment.getSegmentController().getSegmentBuffer().getPointUnsave(org.schema.game.common.data.element.ElementCollection.getIndex(x, y, z));
 		if(segmentPiece == null) {
 			return;
 		}
-		ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segment.getSegmentController();
-		AccessPointModuleContainer container = AccessPointModuleContainer.getContainer(controller.getManagerContainer());
+
+        AccessPointModuleContainer container = AccessPointModuleContainer.getContainer(controller.getManagerContainer());
 		if(container != null) {
 			container.removeAccessPoint(segmentPiece.getAbsoluteIndex());
 		}
@@ -123,11 +124,12 @@ public class RemoteAccessPoint extends Block implements SegmentPiecePlayerIntera
 		if(segmentPiece == null || segmentPiece.getType() != ElementRegistry.REMOTE_ACCESS_POINT.getId()) {
 			return;
 		}
-		if(!(sendableSegmentController instanceof ManagedUsableSegmentController<?>)) {
+
+		if(!(sendableSegmentController instanceof ManagedUsableSegmentController<?> controller)) {
 			return;
 		}
-		ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) sendableSegmentController;
-		AccessPointModuleContainer container = AccessPointModuleContainer.getContainer(controller.getManagerContainer());
+
+        AccessPointModuleContainer container = AccessPointModuleContainer.getContainer(controller.getManagerContainer());
 		if(container != null) {
 			container.removeAccessPoint(segmentPiece.getAbsoluteIndex());
 		}
@@ -137,23 +139,7 @@ public class RemoteAccessPoint extends Block implements SegmentPiecePlayerIntera
 		if(playerState == null || message == null || message.isEmpty()) {
 			return;
 		}
-		if(tryInvokeMessageMethod(playerState, "sendServerMessage", message)) {
-			return;
-		}
-		if(tryInvokeMessageMethod(playerState, "sendClientMessage", message)) {
-			return;
-		}
-		tryInvokeMessageMethod(playerState, "sendTextMessage", message);
-	}
-
-	private static boolean tryInvokeMessageMethod(PlayerState playerState, String methodName, String message) {
-		try {
-			Method method = playerState.getClass().getMethod(methodName, String.class);
-			method.invoke(playerState, message);
-			return true;
-		} catch(Exception ignored) {
-			return false;
-		}
+		playerState.sendServerMessagePlayerInfo(new Object[] {message});
 	}
 
 	private static InventorySlot getHeldSlot(PlayerState playerState, PlayerInteractionControlManager interactionManager) {
@@ -175,6 +161,7 @@ public class RemoteAccessPoint extends Block implements SegmentPiecePlayerIntera
 		if(slot == null || accessPoint == null || module == null) {
 			return;
 		}
+
 		JSONObject customData = slot.getOrCreateCustomData();
 		customData.put(REMOTE_COMPUTER_UUID_KEY, module.getUUID());
 		customData.put(REMOTE_ACCESS_POINT_INDEX_KEY, accessPoint.getAbsoluteIndex());

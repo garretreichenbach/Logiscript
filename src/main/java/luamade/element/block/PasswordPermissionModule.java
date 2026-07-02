@@ -64,12 +64,11 @@ public class PasswordPermissionModule extends Block implements SegmentPieceRemov
 		if(type != ElementRegistry.PASSWORD_PERMISSION_MODULE.getId()) {
 			return;
 		}
-		if(!(segment.getSegmentController() instanceof ManagedUsableSegmentController<?>)) {
+		if(!(segment.getSegmentController() instanceof ManagedUsableSegmentController<?> controller)) {
 			return;
 		}
 		long absIndex = ElementCollection.getIndex(x, y, z);
-		ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segment.getSegmentController();
-		PasswordPermissionModuleContainer container = PasswordPermissionModuleContainer.getContainer(controller.getManagerContainer());
+        PasswordPermissionModuleContainer container = PasswordPermissionModuleContainer.getContainer(controller.getManagerContainer());
 		if(container != null) {
 			container.removeBlock(absIndex);
 		}
@@ -80,11 +79,10 @@ public class PasswordPermissionModule extends Block implements SegmentPieceRemov
 		if(segmentPiece == null || segmentPiece.getType() != ElementRegistry.PASSWORD_PERMISSION_MODULE.getId()) {
 			return;
 		}
-		if(!(sendableSegmentController instanceof ManagedUsableSegmentController<?>)) {
+		if(!(sendableSegmentController instanceof ManagedUsableSegmentController<?> controller)) {
 			return;
 		}
-		ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) sendableSegmentController;
-		PasswordPermissionModuleContainer container = PasswordPermissionModuleContainer.getContainer(controller.getManagerContainer());
+        PasswordPermissionModuleContainer container = PasswordPermissionModuleContainer.getContainer(controller.getManagerContainer());
 		if(container != null) {
 			container.removeBlock(segmentPiece.getAbsoluteIndex());
 		}

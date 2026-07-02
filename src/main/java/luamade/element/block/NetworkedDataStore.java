@@ -64,10 +64,9 @@ public class NetworkedDataStore extends Block implements SegmentPieceRemoveListe
 	@Override
 	public void onBlockRemove(short type, int segmentSize, byte x, byte y, byte z, byte b3, Segment segment, boolean preserveControl, boolean server) {
 		if(type != ElementRegistry.NETWORKED_DATA_STORE.getId()) return;
-		if(!(segment.getSegmentController() instanceof ManagedUsableSegmentController<?>)) return;
+		if(!(segment.getSegmentController() instanceof ManagedUsableSegmentController<?> controller)) return;
 		long absIndex = ElementCollection.getIndex(x, y, z);
-		ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segment.getSegmentController();
-		NetworkedDataStoreModuleContainer container = NetworkedDataStoreModuleContainer.getContainer(controller.getManagerContainer());
+        NetworkedDataStoreModuleContainer container = NetworkedDataStoreModuleContainer.getContainer(controller.getManagerContainer());
 		if(container != null) {
 			container.removeBlock(absIndex);
 		}
