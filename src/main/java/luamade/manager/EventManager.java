@@ -3,14 +3,15 @@ package luamade.manager;
 import api.listener.Listener;
 import api.listener.events.input.KeyPressEvent;
 import api.listener.events.input.MousePressEvent;
+import api.listener.events.player.PlayerLeaveWorldEvent;
 import api.listener.events.register.ManagerContainerRegisterEvent;
 import api.mod.StarLoader;
 import luamade.LuaMade;
 import luamade.gui.ComputerDialog;
+import luamade.gui.ComputerSessionView;
 import luamade.listener.BlockPublicPermissionListener;
 import luamade.listener.JumpTargetListener;
 import luamade.system.module.AccessPointModuleContainer;
-import luamade.system.module.ComputerModule;
 import luamade.system.module.ComputerModuleContainer;
 import luamade.system.module.DataStoreModuleContainer;
 import luamade.system.module.PasswordPermissionModuleContainer;
@@ -33,18 +34,6 @@ public class EventManager {
 				boolean shiftDown = isShiftDown();
 				boolean altDown = isAltDown();
 
-				if(RemoteSessionManager.isActive()) {
-					if(key == GLFW.GLFW_KEY_ESCAPE && event.isKeyDown()) {
-						RemoteSessionManager.disconnect();
-						event.setCanceled(true);
-						return;
-					}
-					if(RemoteSessionManager.forwardKeyEvent(event.getKey(), event.getChar(), event.isKeyDown(), (Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RSHIFT)), (Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RCONTROL)), (Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LMETA) || Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RMETA)))) {
-						event.setCanceled(true);
-						return;
-					}
-				}
-
 				ComputerDialog.ComputerPanel panel = ComputerDialog.getActivePanel();
 				if(panel == null) return;
 
@@ -60,18 +49,15 @@ public class EventManager {
 					if(ConfigManager.isDebugMode()) {
 						instance.logDebug("[INTERRUPT] Ctrl+C detected: key=" + key + ", char=" + (int) typedChar + ", ctrlDown=" + ctrlDown + ", panelMasked=" + panel.isTerminalInputMaskedByGfx());
 					}
-					ComputerModule ctrlCModule = panel.getComputerModule();
-					if(ctrlCModule != null && ctrlCModule.getTerminal() != null) {
-						boolean interrupted = ctrlCModule.getTerminal().interruptForeground();
-						if(ConfigManager.isDebugMode()) {
-							instance.logDebug("[INTERRUPT] interruptForeground result=" + interrupted);
-						}
+					ComputerSessionView ctrlCSession = panel.getSessionView();
+					if(ctrlCSession != null) {
+						ctrlCSession.sendInterrupt();
 					}
 					return;
 				}
 
-				ComputerModule module = panel.getComputerModule();
-				boolean keyboardConsumed = module != null && module.getInputApi().isKeyboardConsumed();
+				ComputerSessionView session = panel.getSessionView();
+				boolean keyboardConsumed = session != null && session.isKeyboardConsumed();
 
 				if(keyboardConsumed) {
 					// Script has exclusive keyboard control: cancel the event so
@@ -110,14 +96,12 @@ public class EventManager {
 					}
 				}
 
-				// ---- forward every key event (press + release) to Lua InputApi ----
-				if(module != null) {
-					boolean maskedTerminalInput = panel.isTerminalInputMaskedByGfx();
-					boolean enterKey = key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER;
-					if(maskedTerminalInput && enterKey && !module.isMaskedEnterForwardingEnabled()) {
-						return;
-					}
-					module.getInputApi().pushKeyEvent(key, typedChar, event.isKeyDown(), shiftDown, ctrlDown, altDown);
+				// ---- forward every key event (press + release) over the network to the server-side InputApi ----
+				if(session != null) {
+					// NOTE: the per-computer "forward Enter while masked" preference used
+					// to gate this and isn't synced client-side in this pass (a narrow,
+					// rarely-toggled setting) — Enter is always forwarded now.
+					session.sendKeyEvent(key, typedChar, event.isKeyDown(), shiftDown, ctrlDown, altDown);
 				}
 			}
 		}, instance);
@@ -125,11 +109,6 @@ public class EventManager {
 		StarLoader.registerListener(MousePressEvent.class, new Listener<MousePressEvent>() {
 			@Override
 			public void onEvent(MousePressEvent event) {
-				if(RemoteSessionManager.isActive() && RemoteSessionManager.forwardMouseEvent(event.getRawEvent())) {
-					event.setCanceled(true);
-					return;
-				}
-
 				// Forward mouse events to ComputerDialog if it's active
 				ComputerDialog.ComputerPanel panel = ComputerDialog.getActivePanel();
 				if(panel != null) {
@@ -150,6 +129,16 @@ public class EventManager {
 				event.addModMCModule(new DataStoreModuleContainer(event.getSegmentController(), event.getContainer()));
 				event.addModMCModule(new PasswordPermissionModuleContainer(event.getSegmentController(), event.getContainer()));
 				event.addModMCModule(new VaultModuleContainer(event.getSegmentController(), event.getContainer()));
+			}
+		}, instance);
+
+		// Scripts execute server-side now, streaming console/gfx output to whoever
+		// is viewing; a disconnected player's viewer entry would otherwise linger
+		// forever (only ever cleaned up if the entity itself unloads).
+		StarLoader.registerListener(PlayerLeaveWorldEvent.class, new Listener<PlayerLeaveWorldEvent>() {
+			@Override
+			public void onEvent(PlayerLeaveWorldEvent event) {
+				ComputerModuleContainer.removeViewerByPlayerName(event.getPlayerName());
 			}
 		}, instance);
 	}

@@ -2,7 +2,7 @@ package luamade.gui;
 
 import api.common.GameClient;
 import api.utils.gui.GUIInputDialogPanel;
-import luamade.lua.terminal.Terminal;
+import luamade.lua.gfx.Gfx2d;
 import luamade.manager.ConfigManager;
 import luamade.system.module.ComputerModule;
 import org.schema.game.client.controller.PlayerInput;
@@ -33,8 +33,6 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
 
-import static org.luaj.vm2.LuaValue.valueOf;
-
 public class ComputerDialog extends PlayerInput {
 
 	private static final long RESET_DEBOUNCE_MS = 250L;
@@ -42,14 +40,26 @@ public class ComputerDialog extends PlayerInput {
 	private static ComputerPanel activePanel;
 	/** Tracks the currently open dialog instance so listeners can force-close it. */
 	private static ComputerDialog activeDialog;
-	protected final ComputerModule computerModule;
+	protected final ComputerSessionView sessionView;
 	private final ComputerPanel computerPanel;
 	private long lastResetAtMs;
 
-	public ComputerDialog(ComputerModule computerModule) {
+	public ComputerDialog(ComputerSessionView sessionView) {
 		super(GameClient.getClientState());
-		this.computerModule = computerModule;
-		computerPanel = new ComputerPanel(getState(), this, computerModule);
+		this.sessionView = sessionView;
+		computerPanel = new ComputerPanel(getState(), this, sessionView);
+	}
+
+	/**
+	 * Resolves the target computer's (entityId, absIndex) and opens a session
+	 * against it — the single entry point both direct computer interaction and
+	 * remote-access-point interaction converge on (see {@code Computer} /
+	 * {@code RemoteAccessPoint}), since both now just address a computer over
+	 * the network rather than one holding a local in-process VM reference.
+	 */
+	public static void open(int entityId, long absIndex) {
+		ComputerSessionView sessionView = ComputerSessionRegistry.getOrCreate(entityId, absIndex);
+		new ComputerDialog(sessionView).activate();
 	}
 
 	public static ComputerPanel getActivePanel() {
@@ -72,7 +82,7 @@ public class ComputerDialog extends PlayerInput {
 		super.activate();
 		activeDialog = this;
 		activePanel = computerPanel;
-		computerModule.resumeFromLastMode();
+		sessionView.sendConnect();
 		computerPanel.requestConsoleFocus();
 	}
 
@@ -106,11 +116,11 @@ public class ComputerDialog extends PlayerInput {
 
 	private void openDocumentationPanel() {
 		deactivate();
-		new DocsViewerDialog(computerModule).activate();
+		new DocsViewerDialog(sessionView).activate();
 	}
 
 	private void resetComputerRuntime() {
-		if(computerModule == null || computerModule.getTerminal() == null) {
+		if(sessionView == null) {
 			return;
 		}
 
@@ -120,9 +130,7 @@ public class ComputerDialog extends PlayerInput {
 		}
 		lastResetAtMs = now;
 
-		computerModule.setLastMode(ComputerModule.ComputerMode.TERMINAL);
-		computerModule.setSavedTerminalInput("");
-		computerModule.getTerminal().hardReset();
+		sessionView.sendReset();
 		if(computerPanel != null) {
 			computerPanel.requestConsoleFocus();
 		}
@@ -135,7 +143,7 @@ public class ComputerDialog extends PlayerInput {
 
 	@Override
 	public void handleMouseEvent(MouseEvent mouseEvent) {
-		if(computerModule == null) return;
+		if(sessionView == null) return;
 		if(computerPanel != null) {
 			computerPanel.pushMouseEvent(mouseEvent);
 		}
@@ -154,9 +162,9 @@ public class ComputerDialog extends PlayerInput {
 			computerPanel.resetMouseState();
 			computerPanel.cleanupResources();
 		}
-		if(computerModule != null) {
-			computerModule.getInputApi().clearUiLayout();
-			computerModule.getInputApi().clear();
+		if(sessionView != null) {
+			sessionView.sendDisconnect();
+			ComputerSessionRegistry.forget(sessionView.getEntityId(), sessionView.getAbsIndex());
 		}
 	}
 
@@ -183,8 +191,16 @@ public class ComputerDialog extends PlayerInput {
 		private static final int LUA_HITBOX_NUDGE_X = -5;
 		private static final int LUA_HITBOX_NUDGE_Y = -25;
 
-		private final ComputerModule computerModule;
+		private final ComputerSessionView sessionView;
 		private final List<String> commandSuggestions = new ArrayList<>();
+		/**
+		 * Client-local echo of submitted command lines, used for Up/Down history
+		 * navigation. Real history (persisted server-side across sessions) would
+		 * need a network round trip per keypress — deferred; this covers the
+		 * common "recall what I just typed this session" case.
+		 */
+		private final List<String> localCommandHistory = new ArrayList<>();
+		private int localHistoryIndex = 0;
 		public TerminalGfxOverlay terminalGfxOverlay;
 		private GUIScrollablePanel consolePanel;
 		private GUIActivatableTextBar consolePane;
@@ -233,9 +249,9 @@ public class ComputerDialog extends PlayerInput {
 		/** Last find/goto cursor position for "find next" behavior. */
 		private int editorFindLastPos = -1;
 
-		public ComputerPanel(InputState inputState, GUICallback guiCallback, ComputerModule computerModule) {
+		public ComputerPanel(InputState inputState, GUICallback guiCallback, ComputerSessionView sessionView) {
 			super(inputState, "COMPUTER_PANEL", "", "", 850, 650, guiCallback);
-			this.computerModule = computerModule;
+			this.sessionView = sessionView;
 			setCancelButton(false);
 			setOkButton(true);
 		}
@@ -264,12 +280,11 @@ public class ComputerDialog extends PlayerInput {
 		}
 
 		/**
-		 * Saves the current input line to the computer module for persistence
+		 * No-op: saved-input persistence across dialog reopens lived on the
+		 * server-side {@code ComputerModule}; not synced client-side in this
+		 * pass (a minor UX nicety, not load-bearing — see class docs).
 		 */
 		public void saveCurrentInput() {
-			if(computerModule != null) {
-				computerModule.setSavedTerminalInput(currentInputLine);
-			}
 		}
 
 		public void requestConsoleFocus() {
@@ -278,7 +293,7 @@ public class ComputerDialog extends PlayerInput {
 		}
 
 		public void pushMouseEvent(MouseEvent mouseEvent) {
-			if(mouseEvent == null || computerModule == null) {
+			if(mouseEvent == null || sessionView == null) {
 				return;
 			}
 
@@ -296,7 +311,7 @@ public class ComputerDialog extends PlayerInput {
 			boolean dragging = leftMouseDown || rightMouseDown || middleMouseDown;
 			String dragButton = dragButtonName();
 			updateMouseButtonState(button, pressed);
-			computerModule.getInputApi().pushMouseEvent(button, pressed, mouseEvent.x, normalizeMouseY(mouseEvent.y), mouseEvent.dx, mouseEvent.dy, mouseEvent.dWheel, -1, -1, -1, -1, false, dragging, dragButton);
+			sessionView.sendMouseEvent(button, pressed, mouseEvent.x, normalizeMouseY(mouseEvent.y), mouseEvent.dx, mouseEvent.dy, mouseEvent.dWheel, -1, -1, false, dragging, dragButton);
 			return;
 		}
 
@@ -322,9 +337,10 @@ public class ComputerDialog extends PlayerInput {
 				if(insideCanvas) {
 					int nudgedX = localX + LUA_HITBOX_NUDGE_X;
 					int nudgedY = localY + LUA_HITBOX_NUDGE_Y;
-					if(computerModule.getGfxApi() != null) {
-						uiX = computerModule.getGfxApi().viewportToCanvasX(nudgedX);
-						uiY = computerModule.getGfxApi().viewportToCanvasY(nudgedY);
+					Gfx2d.FrameSnapshot gfxSnapshot = sessionView.getGfxSnapshot();
+					if(gfxSnapshot != null) {
+						uiX = viewportToCanvasCoord(nudgedX, gfxSnapshot.scaleX, gfxSnapshot.width);
+						uiY = viewportToCanvasCoord(nudgedY, gfxSnapshot.scaleY, gfxSnapshot.height);
 					} else {
 						uiX = nudgedX;
 						uiY = nudgedY;
@@ -332,7 +348,16 @@ public class ComputerDialog extends PlayerInput {
 				}
 			}
 
-			computerModule.getInputApi().pushMouseEvent(button, pressed, mouseX, mouseY, mouseEvent.dx, mouseEvent.dy, mouseEvent.dWheel, -1, -1, uiX, uiY, insideCanvas, dragging, dragButton);
+			sessionView.sendMouseEvent(button, pressed, mouseX, mouseY, mouseEvent.dx, mouseEvent.dy, mouseEvent.dWheel, uiX, uiY, insideCanvas, dragging, dragButton);
+		}
+
+		/** Mirrors {@code Gfx2d.viewportToCanvasX/Y}, computed from the last streamed {@code FrameSnapshot} instead of a live local instance. */
+		private static int viewportToCanvasCoord(int viewportCoord, float scale, int drawSize) {
+			if(scale <= 0.0f) {
+				return 0;
+			}
+			int mapped = Math.round(viewportCoord / scale);
+			return Math.max(0, Math.min(mapped, Math.max(0, drawSize - 1)));
 		}
 
 		private int normalizeMouseY(int rawY) {
@@ -526,18 +551,20 @@ public class ComputerDialog extends PlayerInput {
 		}
 
 		public boolean isFileEditMode() {
-			return computerModule != null && computerModule.getLastMode() == ComputerModule.ComputerMode.FILE_EDIT;
+			return sessionView != null && sessionView.isFileEditMode();
 		}
 
+		/**
+		 * Scroll-mode preference used to be read from the server-side
+		 * {@code ComputerModule}; not synced client-side in this pass (a minor
+		 * cosmetic setting, not load-bearing) — always applies the default.
+		 */
 		private void applyConfiguredScrollMode() {
-			if(consolePanel == null || computerModule == null) {
+			if(consolePanel == null) {
 				return;
 			}
 
-			ComputerModule.ScrollMode mode = computerModule.getScrollMode();
-			if(mode == null) {
-				mode = ComputerModule.ScrollMode.VERTICAL;
-			}
+			ComputerModule.ScrollMode mode = ComputerModule.ScrollMode.VERTICAL;
 			if(mode == appliedScrollMode) {
 				return;
 			}
@@ -562,7 +589,7 @@ public class ComputerDialog extends PlayerInput {
 		}
 
 		private void syncTerminalInputMaskingWithGfx() {
-			if(consolePane == null || computerModule == null) {
+			if(consolePane == null || sessionView == null) {
 				return;
 			}
 
@@ -579,7 +606,7 @@ public class ComputerDialog extends PlayerInput {
 					terminalInputMaskedByGfx = true;
 				}
 
-				String moduleContent = computerModule.getLastTextContent();
+				String moduleContent = sessionView.getConsoleText();
 				lastModuleContent = moduleContent == null ? "" : moduleContent;
 
 				if(!Objects.equals(currentInputLine, maskedTerminalInputSnapshot)) {
@@ -632,9 +659,9 @@ public class ComputerDialog extends PlayerInput {
 			return isTerminalInputMaskingActive();
 		}
 
-		/** Returns the {@link ComputerModule} associated with this panel (may be null). */
-		public ComputerModule getComputerModule() {
-			return computerModule;
+		/** Returns the {@link ComputerSessionView} associated with this panel (may be null). */
+		public ComputerSessionView getSessionView() {
+			return sessionView;
 		}
 
 		/**
@@ -668,11 +695,11 @@ public class ComputerDialog extends PlayerInput {
 		}
 
 		private void saveEditorBuffer() {
-			if(!isFileEditMode() || consolePane == null) {
+			if(!isFileEditMode() || consolePane == null || sessionView == null) {
 				return;
 			}
 
-			String file = computerModule.getLastOpenFile();
+			String file = sessionView.getLastOpenFile();
 			if(file == null || file.isEmpty()) {
 				return;
 			}
@@ -681,19 +708,18 @@ public class ComputerDialog extends PlayerInput {
 			if(content == null) {
 				content = "";
 			}
-			computerModule.getFileSystem().write(file, content);
+			sessionView.sendFileWrite(file, content);
 		}
 
 		private void exitEditorToTerminal() {
-			if(computerModule == null) {
+			if(sessionView == null) {
 				return;
 			}
 
-			computerModule.setLastMode(ComputerModule.ComputerMode.TERMINAL);
-			lastModuleContent = computerModule.getLastTextContent();
-			if(consolePane != null) {
-				consolePane.setTextWithoutCallback(lastModuleContent);
-			}
+			sessionView.sendExitEditor();
+			// Actual content refresh happens via the generic mode-change handling in
+			// draw() once the server confirms the mode switch — just reset local UI
+			// state here so the transition feels immediate.
 			currentInputLine = "";
 			userIsTyping = false;
 			clearCommandSuggestions();
@@ -702,21 +728,19 @@ public class ComputerDialog extends PlayerInput {
 			if(mainContentPane != null) {
 				mainContentPane.setTextBoxHeightLast(TEXT_BOX_HEIGHT);
 			}
-			refreshPromptStartPositionFromCurrentText();
-			scrollPaneToCursor();
 			requestConsoleFocus();
 		}
 
 		private void runEditorFile() {
-			if(!isFileEditMode() || computerModule == null) {
+			if(!isFileEditMode() || sessionView == null) {
 				return;
 			}
 
-			String file = computerModule.getLastOpenFile();
+			String file = sessionView.getLastOpenFile();
 			saveEditorBuffer();
 			exitEditorToTerminal();
 			if(file != null && !file.isEmpty()) {
-				computerModule.getTerminal().handleInput("run " + file);
+				sessionView.sendLineInput("run " + file);
 			}
 		}
 
@@ -934,7 +958,7 @@ public class ComputerDialog extends PlayerInput {
 				return;
 			}
 
-			String currentFile = computerModule.getLastOpenFile();
+			String currentFile = sessionView.getLastOpenFile();
 			if(currentFile == null || currentFile.isEmpty()) {
 				currentFile = "(unspecified file)";
 			}
@@ -1017,8 +1041,11 @@ public class ComputerDialog extends PlayerInput {
 			pasteFilesButton.setPos(x + docsButton.getWidth() + RESET_BUTTON_GAP_X + resetButton.getWidth() + PASTE_FILES_BUTTON_GAP_X, y, 0);
 		}
 
+		/** Must match {@code Terminal.CLIPBOARD_BUNDLE_HEADER} — used only to decide client-side which import packet to send. */
+		private static final String CLIPBOARD_BUNDLE_HEADER = "LOGISCRIPT_CLIPBOARD_V1";
+
 		public void pasteFilesFromClipboard() {
-			if(computerModule == null || computerModule.getTerminal() == null) {
+			if(sessionView == null) {
 				return;
 			}
 
@@ -1026,7 +1053,6 @@ public class ComputerDialog extends PlayerInput {
 				Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 				Transferable transferable = clipboard == null ? null : clipboard.getContents(null);
 				if(transferable == null) {
-					printStatus("Clipboard is empty");
 					return;
 				}
 
@@ -1044,28 +1070,26 @@ public class ComputerDialog extends PlayerInput {
 				}
 
 				if(!filesToImport.isEmpty()) {
-					computerModule.getTerminal().importClipboardFiles(filesToImport, true, "clipboard files");
+					sessionView.sendClipboardImportFiles(filesToImport);
 					return;
 				}
 
 				if(transferable.isDataFlavorSupported(DataFlavor.stringFlavor)) {
 					String clipboardText = String.valueOf(transferable.getTransferData(DataFlavor.stringFlavor));
+					String firstLine = clipboardText.replace("\r\n", "\n").replace('\r', '\n').split("\n", 2)[0].trim();
 
-					// Keep support for our explicit clipboard bundle format.
-					if(computerModule.getTerminal().importClipboardProtocol(clipboardText, true)) {
+					if(CLIPBOARD_BUNDLE_HEADER.equals(firstLine)) {
+						sessionView.sendClipboardImportProtocol(clipboardText);
 						return;
 					}
 
 					filesToImport.putAll(collectEntriesFromPathList(clipboardText));
 					if(!filesToImport.isEmpty()) {
-						computerModule.getTerminal().importClipboardFiles(filesToImport, true, "clipboard paths");
-						return;
+						sessionView.sendClipboardImportFiles(filesToImport);
 					}
 				}
-
-				printStatus("No files found in clipboard");
-			} catch(Exception exception) {
-				printStatus("Paste Files failed: " + exception.getMessage());
+			} catch(Exception ignored) {
+				// Best-effort — feedback (if any) arrives via the normal console sync.
 			}
 		}
 
@@ -1151,13 +1175,6 @@ public class ComputerDialog extends PlayerInput {
 			return value;
 		}
 
-		private void printStatus(String message) {
-			if(computerModule == null || computerModule.getConsole() == null || message == null || message.isEmpty()) {
-				return;
-			}
-			computerModule.getConsole().print(valueOf(message));
-		}
-
 		private void activateConsoleFocusIfPending() {
 			if(!focusConsoleOnOpen || consolePane == null) {
 				return;
@@ -1222,9 +1239,10 @@ public class ComputerDialog extends PlayerInput {
 				currentCanvasHeight = Math.max(1, Math.round(consolePane.getHeight()));
 			}
 
-			if(computerModule != null) {
-				computerModule.getInputApi().setUiLayout(currentWindowX, currentWindowY, currentWindowWidth, currentWindowHeight, currentCanvasX, currentCanvasY, currentCanvasWidth, currentCanvasHeight);
-			}
+			// NOTE: input.getUiLayout() is no longer populated server-side in this pass —
+			// InputApi now lives on the server, and replicating window/canvas layout there
+			// for the (rare) script that queries it directly wasn't included; per-event
+			// uiX/uiY on mouse events (already forwarded) covers the common case.
 
 			if(consolePane == null || terminalGfxOverlay == null) {
 				return;
@@ -1356,19 +1374,32 @@ public class ComputerDialog extends PlayerInput {
 			lastAutoScrollTotalLines = -1;
 		}
 
+		/**
+		 * History navigation used to defer to the server-side {@code Terminal}'s
+		 * persistent history; now cycles {@link #localCommandHistory}, a
+		 * client-local echo of what's been submitted this session (see field docs).
+		 */
 		private void handleHistoryUp() {
-			if(computerModule == null || computerModule.getTerminal() == null) return;
-			if(computerModule.getTerminal().isPasswordInputMode()) return;
-			computerModule.getTerminal().setCurrentInput(currentInputLine);
-			String command = computerModule.getTerminal().getPreviousCommand();
-			setHistoryCommand(command);
+			if(sessionView == null || localCommandHistory.isEmpty()) {
+				return;
+			}
+			if(localHistoryIndex > 0) {
+				localHistoryIndex--;
+			}
+			setHistoryCommand(localCommandHistory.get(localHistoryIndex));
 		}
 
 		private void handleHistoryDown() {
-			if(computerModule == null || computerModule.getTerminal() == null) return;
-			if(computerModule.getTerminal().isPasswordInputMode()) return;
-			String command = computerModule.getTerminal().getNextCommand();
-			setHistoryCommand(command);
+			if(sessionView == null || localCommandHistory.isEmpty()) {
+				return;
+			}
+			if(localHistoryIndex < localCommandHistory.size() - 1) {
+				localHistoryIndex++;
+				setHistoryCommand(localCommandHistory.get(localHistoryIndex));
+			} else {
+				localHistoryIndex = localCommandHistory.size();
+				setHistoryCommand("");
+			}
 		}
 
 		private void setHistoryCommand(String command) {
@@ -1412,41 +1443,15 @@ public class ComputerDialog extends PlayerInput {
 			pathCompletionPrefix = "";
 		}
 
+		/**
+		 * Command/path suggestions used to query the server-side {@code Terminal}
+		 * directly. A per-keystroke network round trip isn't worth it for this
+		 * pass (deferred, per plan) — suggestions are disabled rather than
+		 * risking a laggy/frozen-feeling input bar.
+		 */
 		private boolean refreshCommandSuggestions(boolean force) {
-			if(isFileEditMode() || computerModule == null || computerModule.getTerminal() == null) {
-				clearCommandSuggestions();
-				return false;
-			}
-
-			String normalizedInput = currentInputLine == null ? "" : currentInputLine.trim();
-			if(normalizedInput.isEmpty()) {
-				clearCommandSuggestions();
-				return false;
-			}
-
-			if(!force && normalizedInput.equals(suggestionSeedInput) && !commandSuggestions.isEmpty()) {
-				return true;
-			}
-
-			List<String> suggestions = computerModule.getTerminal().getCommandSuggestions(normalizedInput);
-			if(suggestions == null || suggestions.isEmpty()) {
-				clearCommandSuggestions();
-				return false;
-			}
-
-			commandSuggestions.clear();
-			commandSuggestions.addAll(suggestions);
-			suggestionSeedInput = normalizedInput;
-
-			selectedSuggestionIndex = 0;
-			for(int i = 0; i < commandSuggestions.size(); i++) {
-				if(commandSuggestions.get(i).equalsIgnoreCase(normalizedInput)) {
-					selectedSuggestionIndex = i;
-					break;
-				}
-			}
-
-			return true;
+			clearCommandSuggestions();
+			return false;
 		}
 
 		private boolean cycleCommandSuggestion(int direction) {
@@ -1473,31 +1478,11 @@ public class ComputerDialog extends PlayerInput {
 			boolean hasArgs = input.contains(" ");
 
 			if(hasArgs) {
-				// Path/file completion mode: complete the last argument token.
+				// Path completion queried the server-side Terminal directly; disabled
+				// for this pass (see refreshCommandSuggestions).
 				if(!commandSuggestions.isEmpty() && pathCompletionMode) {
 					cycleCommandSuggestion(1);
-					return;
 				}
-
-				if(computerModule == null || computerModule.getTerminal() == null) {
-					return;
-				}
-
-				List<String> paths = computerModule.getTerminal().getPathSuggestions(input);
-				if(paths == null || paths.isEmpty()) {
-					return;
-				}
-
-				// Build full input-line replacements so cycling replaces only the last token.
-				pathCompletionPrefix = getInputPrefixBeforeLastToken(input);
-				pathCompletionMode = true;
-				commandSuggestions.clear();
-				for(String path : paths) {
-					commandSuggestions.add(pathCompletionPrefix + path);
-				}
-				suggestionSeedInput = input.trim();
-				selectedSuggestionIndex = 0;
-				setTerminalInputLine(commandSuggestions.get(0), true);
 				return;
 			}
 
@@ -1595,30 +1580,34 @@ public class ComputerDialog extends PlayerInput {
 			}
 			clearCommandSuggestions();
 
-			if(computerModule != null && computerModule.getTerminal() != null) {
+			if(sessionView != null) {
 				String inputToExecute = currentInputLine;
 				currentInputLine = "";
 
-				computerModule.getTerminal().handleInput(inputToExecute);
-				computerModule.setSavedTerminalInput("");
+				sessionView.sendLineInput(inputToExecute);
+				recordLocalHistory(inputToExecute);
 
 				userIsTyping = false;
-
-				String newContent = computerModule.getLastTextContent();
-				lastModuleContent = newContent;
-				consolePane.setTextWithoutCallback(newContent);
-				followOutputIfChanged(newContent);
-				currentInputLine = "";
-				userIsTyping = false;
-				refreshPromptStartPositionFromCurrentText();
-				scrollPaneToCursor();
+				// Don't synchronously refresh console text here — the server echoes
+				// the submitted line and any script output into the transcript, and
+				// draw()'s existing per-frame poll picks up the change once the next
+				// PacketSCConsoleSnapshot arrives (same generic path as any other
+				// server-initiated output).
 			}
+		}
+
+		private void recordLocalHistory(String command) {
+			if(command == null || command.trim().isEmpty()) {
+				return;
+			}
+			localCommandHistory.add(command);
+			localHistoryIndex = localCommandHistory.size();
 		}
 
 		@Override
 		public void onInit() {
 			super.onInit();
-			if(computerModule == null) {
+			if(sessionView == null) {
 				return;
 			}
 			GUIContentPane contentPane = ((GUIDialogWindow) background).getMainContentPane();
@@ -1664,14 +1653,13 @@ public class ComputerDialog extends PlayerInput {
 				}
 
 				if(isTerminalInputMaskingActive()) {
-					String moduleContent = computerModule.getLastTextContent();
+					String moduleContent = sessionView.getConsoleText();
 					lastModuleContent = moduleContent == null ? "" : moduleContent;
 					return lastModuleContent;
 				}
 
 				// Password masking: keep currentInputLine as the real text, display stars.
-				Terminal terminal = computerModule.getTerminal();
-				if(terminal != null && terminal.isPasswordInputMode()) {
+				if(sessionView.isPasswordInputMode()) {
 					if(input != null && lastModuleContent != null && !lastModuleContent.isEmpty()
 							&& !input.startsWith(lastModuleContent)) {
 						// Console prefix was corrupted; restore stable display.
@@ -1765,13 +1753,13 @@ public class ComputerDialog extends PlayerInput {
 					syncTerminalInputMaskingWithGfx();
 					activateConsoleFocusIfPending();
 
-					ComputerModule.ComputerMode currentMode = computerModule.getLastMode();
+					ComputerModule.ComputerMode currentMode = sessionView.getMode();
 					if(renderedMode != currentMode) {
 						renderedMode = currentMode;
 						lastAutoScrollCursorLine = -1;
 						lastAutoScrollTotalLines = -1;
 						lastAutoFollowContentLength = -1;
-						String modeContent = computerModule.getLastTextContent();
+						String modeContent = sessionView.getConsoleText();
 						setTextWithoutCallback(modeContent == null ? "" : modeContent);
 						lastModuleContent = modeContent == null ? "" : modeContent;
 						followOutputIfChanged(lastModuleContent);
@@ -1801,12 +1789,13 @@ public class ComputerDialog extends PlayerInput {
 					}
 
 					if(!currentInputLine.equals(lastSavedInput)) {
-						computerModule.setSavedTerminalInput(currentInputLine);
+						// No longer persisted server-side (see class docs) — kept as a
+						// local marker so this branch still only fires on real edits.
 						lastSavedInput = currentInputLine;
 					}
 
 					if(!userIsTyping) {
-						String moduleContent = computerModule.getLastTextContent();
+						String moduleContent = sessionView.getConsoleText();
 						if(!Objects.equals(lastModuleContent, moduleContent)) {
 							lastModuleContent = moduleContent;
 							setTextWithoutCallback(moduleContent);
@@ -1847,7 +1836,7 @@ public class ComputerDialog extends PlayerInput {
 			consolePane.onInit();
 			contentPane.getContent(0).attach(consolePane);
 
-			terminalGfxOverlay = new TerminalGfxOverlay(1, 1, GameClient.getClientState(), computerModule.getGfxApi());
+			terminalGfxOverlay = new TerminalGfxOverlay(1, 1, GameClient.getClientState(), sessionView);
 			terminalGfxOverlay.onInit();
 			terminalGfxOverlay.setMouseUpdateEnabled(false);
 			contentPane.getContent(0).attach(terminalGfxOverlay);
@@ -1882,26 +1871,23 @@ public class ComputerDialog extends PlayerInput {
 
 			applyConfiguredScrollMode();
 			consolePane.getTextArea().setLinewrap(LINE_WRAP);
-			String initialContent = computerModule.getLastTextContent();
+			// Starts blank/default until CONNECT's ack (or the first steady-state
+			// snapshot) arrives — draw()'s generic content-changed polling below
+			// picks up the real console text and mode within a frame or two.
+			// Saved-partial-input restore across reopens is no longer synced (see
+			// class docs), so there's nothing to append here.
+			String initialContent = sessionView.getConsoleText();
 
 			if(isFileEditMode()) {
 				currentInputLine = "";
 				userIsTyping = true;
 				clearCommandSuggestions();
-			} else {
-				String savedInput = computerModule.getSavedTerminalInput();
-				if(savedInput != null && !savedInput.isEmpty()) {
-					initialContent = initialContent + savedInput;
-					currentInputLine = savedInput;
-					userIsTyping = true;
-					lastInputEditAtMs = System.currentTimeMillis();
-				}
 			}
 
 			consolePane.setTextWithoutCallback(initialContent);
-			lastModuleContent = computerModule.getLastTextContent();
+			lastModuleContent = sessionView.getConsoleText();
 			lastAutoFollowContentLength = lastModuleContent == null ? 0 : lastModuleContent.length();
-			renderedMode = computerModule.getLastMode();
+			renderedMode = sessionView.getMode();
 			updateGfxOverlayBounds();
 			refreshPromptStartPositionFromCurrentText();
 			scrollPaneToCursor();

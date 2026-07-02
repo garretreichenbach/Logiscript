@@ -4,12 +4,24 @@ import api.config.BlockConfig;
 import api.mod.StarMod;
 import api.network.Packet;
 import luamade.element.ElementRegistry;
+import luamade.network.PacketCSClipboardImport;
+import luamade.network.PacketCSComputerInput;
+import luamade.network.PacketCSFileRead;
+import luamade.network.PacketCSFileWrite;
+import luamade.network.PacketCSPlayerDialogResponse;
 import luamade.network.PacketCSRequestDataStoreContents;
 import luamade.network.PacketCSRequestVaultView;
 import luamade.network.PacketCSVaultDeposit;
 import luamade.network.PacketCSVaultScriptOp;
 import luamade.network.PacketCSVaultWithdraw;
+import luamade.network.PacketSCComputerConnectAck;
+import luamade.network.PacketSCConsoleSnapshot;
 import luamade.network.PacketSCDataStoreContents;
+import luamade.network.PacketSCFileContents;
+import luamade.network.PacketSCFileResult;
+import luamade.network.PacketSCGfxSnapshot;
+import luamade.network.PacketSCOpenSwingEditor;
+import luamade.network.PacketSCPlayerDialogRequest;
 import luamade.network.PacketSCVaultScriptResponse;
 import luamade.network.PacketSCVaultView;
 import luamade.lua.peripheral.PeripheralRegistry;
@@ -103,5 +115,20 @@ public class LuaMade extends StarMod {
 		Packet.registerPacket(PacketCSVaultWithdraw.class);
 		Packet.registerPacket(PacketCSVaultScriptOp.class);
 		Packet.registerPacket(PacketSCVaultScriptResponse.class);
+
+		// Computer session (scripts execute server-side; these carry input to
+		// the server and stream console/gfx output back to viewers).
+		Packet.registerPacket(PacketCSComputerInput.class);
+		Packet.registerPacket(PacketSCComputerConnectAck.class);
+		Packet.registerPacket(PacketSCConsoleSnapshot.class);
+		Packet.registerPacket(PacketSCGfxSnapshot.class);
+		Packet.registerPacket(PacketCSFileRead.class);
+		Packet.registerPacket(PacketSCFileContents.class);
+		Packet.registerPacket(PacketCSFileWrite.class);
+		Packet.registerPacket(PacketSCFileResult.class);
+		Packet.registerPacket(PacketCSClipboardImport.class);
+		Packet.registerPacket(PacketSCOpenSwingEditor.class);
+		Packet.registerPacket(PacketSCPlayerDialogRequest.class);
+		Packet.registerPacket(PacketCSPlayerDialogResponse.class);
 	}
 }

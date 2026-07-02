@@ -2,20 +2,26 @@ package luamade.system.module;
 
 import api.network.PacketReadBuffer;
 import api.network.PacketWriteBuffer;
+import api.network.packets.PacketUtil;
 import api.utils.game.module.util.SystemModule;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import luamade.LuaMade;
 import luamade.element.ElementRegistry;
-import luamade.manager.RemoteSessionManager;
+import luamade.lua.gfx.Gfx2d;
+import luamade.manager.ConfigManager;
+import luamade.network.PacketSCConsoleSnapshot;
+import luamade.network.PacketSCGfxSnapshot;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.elements.ManagerContainer;
 import org.schema.game.common.data.SegmentPiece;
+import org.schema.game.common.data.player.PlayerState;
 import org.schema.schine.graphicsengine.core.Timer;
 
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,6 +38,12 @@ public class ComputerModuleContainer extends SystemModule {
 	private final Long2ObjectOpenHashMap<PendingModuleState> pendingModuleStates = new Long2ObjectOpenHashMap<>();
 	/** Guards all reads and writes to {@code pendingModuleStates} across the game-loop and network threads. */
 	private final Object pendingLock = new Object();
+	/**
+	 * Players currently viewing a computer session (i.e. sent CONNECT and not yet
+	 * DISCONNECT), keyed by the computer's absolute block index. Drives the
+	 * output-push sweep below — only viewers get console/gfx pushes.
+	 */
+	private final Long2ObjectOpenHashMap<Map<PlayerState, ViewerSyncState>> viewers = new Long2ObjectOpenHashMap<>();
 	private long lastIdleSaveSweepAtMs;
 
 	public ComputerModuleContainer(SegmentController ship, ManagerContainer<?> managerContainer) {
@@ -51,6 +63,21 @@ public class ComputerModuleContainer extends SystemModule {
 			container.saveAndCleanupAllModules();
 		}
 		ACTIVE_CONTAINERS.clear();
+	}
+
+	/**
+	 * Removes any viewer named {@code playerName} from every active container.
+	 * Called on {@code PlayerLeaveWorldEvent} (see {@link luamade.manager.EventManager})
+	 * — that event only carries a name, not a {@link PlayerState}, so matching
+	 * is by name rather than object identity.
+	 */
+	public static void removeViewerByPlayerName(String playerName) {
+		if(playerName == null || playerName.isEmpty()) {
+			return;
+		}
+		for(ComputerModuleContainer container : ACTIVE_CONTAINERS) {
+			container.removeViewersNamed(playerName);
+		}
 	}
 
 	public static Set<String> snapshotActiveComputerUUIDs() {
@@ -94,10 +121,156 @@ public class ComputerModuleContainer extends SystemModule {
 			}
 		}
 
+		enforceScriptTimeouts();
+		pushOutputToViewers();
+
 		long now = System.currentTimeMillis();
 		if(now - lastIdleSaveSweepAtMs >= IDLE_SAVE_SWEEP_INTERVAL_MS) {
 			lastIdleSaveSweepAtMs = now;
 			saveIdleModules();
+		}
+	}
+
+	/**
+	 * Force-cancels any script that has been running longer than
+	 * {@link ConfigManager#getScriptMaxWallClockMs()}. Scripts now execute on
+	 * the server, so a runaway script is a shared-server resource rather than
+	 * a single client's problem — this sweep is the hard backstop for that.
+	 */
+	private void enforceScriptTimeouts() {
+		long maxWallClockMs = ConfigManager.getScriptMaxWallClockMs();
+		for(ComputerModule module : computerModules.values()) {
+			if(module == null || module.getTerminal() == null) {
+				continue;
+			}
+			module.getTerminal().enforceWallClockTimeout(maxWallClockMs);
+		}
+	}
+
+	/**
+	 * Registers {@code player} as an active viewer of the computer at
+	 * {@code absIndex}. Called when a client's {@code PacketCSComputerInput}
+	 * CONNECT event is processed. A viewer's sync state starts "unsent" so the
+	 * very next sweep always pushes a fresh snapshot.
+	 */
+	public void addViewer(long absIndex, PlayerState player) {
+		if(player == null) {
+			return;
+		}
+		Map<PlayerState, ViewerSyncState> byPlayer = viewers.get(absIndex);
+		if(byPlayer == null) {
+			byPlayer = new ConcurrentHashMap<>();
+			viewers.put(absIndex, byPlayer);
+		}
+		byPlayer.put(player, new ViewerSyncState());
+	}
+
+	public void removeViewer(long absIndex, PlayerState player) {
+		if(player == null) {
+			return;
+		}
+		Map<PlayerState, ViewerSyncState> byPlayer = viewers.get(absIndex);
+		if(byPlayer == null) {
+			return;
+		}
+		byPlayer.remove(player);
+		if(byPlayer.isEmpty()) {
+			viewers.remove(absIndex);
+		}
+	}
+
+	/** Removes {@code player} from every computer session on this entity. */
+	public void removeViewerFromAllModules(PlayerState player) {
+		if(player == null) {
+			return;
+		}
+		for(long absIndex : viewers.keySet().toLongArray()) {
+			removeViewer(absIndex, player);
+		}
+	}
+
+	/** Removes any viewer whose name matches {@code playerName} from every computer session on this entity. */
+	private void removeViewersNamed(String playerName) {
+		if(playerName == null || playerName.isEmpty()) {
+			return;
+		}
+		for(long absIndex : viewers.keySet().toLongArray()) {
+			Map<PlayerState, ViewerSyncState> byPlayer = viewers.get(absIndex);
+			if(byPlayer == null || byPlayer.isEmpty()) {
+				continue;
+			}
+			byPlayer.keySet().removeIf(player -> player != null && playerName.equals(player.getName()));
+			if(byPlayer.isEmpty()) {
+				viewers.remove(absIndex);
+			}
+		}
+	}
+
+	public boolean isViewer(long absIndex, PlayerState player) {
+		if(player == null) {
+			return false;
+		}
+		Map<PlayerState, ViewerSyncState> byPlayer = viewers.get(absIndex);
+		return byPlayer != null && byPlayer.containsKey(player);
+	}
+
+	/** True if anyone currently has a session open against the computer at {@code absIndex}. */
+	public boolean hasAnyViewer(long absIndex) {
+		Map<PlayerState, ViewerSyncState> byPlayer = viewers.get(absIndex);
+		return byPlayer != null && !byPlayer.isEmpty();
+	}
+
+	/**
+	 * Pushes console text / gfx2d frames to every active viewer, but only when
+	 * the content actually changed since the last push to that specific viewer
+	 * — mirrors {@code Gfx2d}'s own revision-based dirty tracking, just
+	 * relocated across the wire instead of skipped locally.
+	 */
+	private void pushOutputToViewers() {
+		if(viewers.isEmpty()) {
+			return;
+		}
+
+		int entityId = segmentController == null ? -1 : segmentController.getId();
+		for(long absIndex : viewers.keySet().toLongArray()) {
+			Map<PlayerState, ViewerSyncState> byPlayer = viewers.get(absIndex);
+			if(byPlayer == null || byPlayer.isEmpty()) {
+				continue;
+			}
+
+			ComputerModule module = computerModules.get(absIndex);
+			if(module == null) {
+				continue;
+			}
+
+			String consoleText = module.getLastTextContent();
+			Gfx2d.FrameSnapshot gfxSnapshot = module.getGfxApi().snapshot();
+			boolean keyboardConsumed = module.getInputApi().isKeyboardConsumed();
+			boolean mouseConsumed = module.getInputApi().isMouseConsumed();
+			byte modeOrdinal = (byte) module.getLastMode().ordinal();
+			String lastOpenFile = module.getLastOpenFile();
+			boolean passwordInputMode = module.getTerminal() != null && module.getTerminal().isPasswordInputMode();
+
+			for(Map.Entry<PlayerState, ViewerSyncState> entry : byPlayer.entrySet()) {
+				PlayerState player = entry.getKey();
+				ViewerSyncState state = entry.getValue();
+
+				if(!Objects.equals(consoleText, state.lastConsoleText) || keyboardConsumed != state.lastKeyboardConsumed || mouseConsumed != state.lastMouseConsumed
+						|| modeOrdinal != state.lastModeOrdinal || !Objects.equals(lastOpenFile, state.lastOpenFile) || passwordInputMode != state.lastPasswordInputMode) {
+					state.lastConsoleText = consoleText;
+					state.lastKeyboardConsumed = keyboardConsumed;
+					state.lastMouseConsumed = mouseConsumed;
+					state.lastModeOrdinal = modeOrdinal;
+					state.lastOpenFile = lastOpenFile;
+					state.lastPasswordInputMode = passwordInputMode;
+					PacketUtil.sendPacket(player, new PacketSCConsoleSnapshot(entityId, absIndex, consoleText, keyboardConsumed, mouseConsumed, modeOrdinal, lastOpenFile, passwordInputMode));
+				}
+
+				if(gfxSnapshot.revision != state.lastGfxRevision) {
+					state.lastGfxRevision = gfxSnapshot.revision;
+					PacketUtil.sendPacket(player, new PacketSCGfxSnapshot(entityId, absIndex, gfxSnapshot));
+				}
+			}
 		}
 	}
 
@@ -245,10 +418,10 @@ public class ComputerModuleContainer extends SystemModule {
 		if(computerModules.containsKey(segmentPiece.getAbsoluteIndex())) {
 			ComputerModule module = computerModules.get(segmentPiece.getAbsoluteIndex());
 			if(module != null) {
-				RemoteSessionManager.disconnectIfComputerUUID(module.getUUID());
 				module.saveAndCleanup();
 			}
 			computerModules.remove(segmentPiece.getAbsoluteIndex());
+			viewers.remove(segmentPiece.getAbsoluteIndex());
 			flagUpdatedData();
 		}
 	}
@@ -360,6 +533,17 @@ public class ComputerModuleContainer extends SystemModule {
 
 	private String safeString(String value) {
 		return value == null ? "" : value;
+	}
+
+	/** Per-viewer "what did we last send them" bookkeeping for the output-push sweep. */
+	private static final class ViewerSyncState {
+		private String lastConsoleText;
+		private long lastGfxRevision = -1L;
+		private boolean lastKeyboardConsumed;
+		private boolean lastMouseConsumed;
+		private byte lastModeOrdinal = -1;
+		private String lastOpenFile;
+		private boolean lastPasswordInputMode;
 	}
 
 	private static final class PendingModuleState {
