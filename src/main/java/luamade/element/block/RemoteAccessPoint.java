@@ -5,7 +5,7 @@ import api.listener.fastevents.segmentpiece.SegmentPieceKilledListener;
 import api.listener.fastevents.segmentpiece.SegmentPiecePlayerInteractListener;
 import api.listener.fastevents.segmentpiece.SegmentPieceRemoveListener;
 import luamade.element.ElementRegistry;
-import luamade.manager.RemoteSessionManager;
+import luamade.gui.ComputerDialog;
 import luamade.system.module.AccessPointModuleContainer;
 import luamade.system.module.ComputerModule;
 import luamade.system.module.ComputerModuleContainer;
@@ -89,13 +89,17 @@ public class RemoteAccessPoint extends Block implements SegmentPiecePlayerIntera
 		}
 
 		ComputerModule module = computerContainer.getModuleByUUID(computerUuid);
-		if(module == null) {
+		if(module == null || module.getSegmentPiece() == null) {
 			notifyPlayer(playerState, "Linked computer is offline or missing.");
 			return;
 		}
 
 		storeRemoteLinkMetadata(heldSlot, segmentPiece, module);
-		RemoteSessionManager.connect(module, segmentPiece.getAbsoluteIndex(), playerState);
+		// Opens the exact same networked session direct interaction would — once
+		// access is validated (right item, valid link, computer resolved above),
+		// there's no separate "remote mode" left to maintain; it's a normal
+		// ComputerDialog session against the linked computer's (entityId, absIndex).
+		ComputerDialog.open(controller.getId(), module.getSegmentPiece().getAbsoluteIndex());
 	}
 
 	@Override

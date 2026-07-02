@@ -6,7 +6,6 @@ import api.utils.element.Blocks;
 import luamade.LuaMade;
 import luamade.element.ElementRegistry;
 import luamade.gui.ComputerDialog;
-import luamade.system.module.ComputerModule;
 import luamade.system.module.ComputerModuleContainer;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.schema.game.client.controller.manager.ingame.PlayerInteractionControlManager;
@@ -72,19 +71,16 @@ public class Computer extends Block implements SegmentPiecePlayerInteractListene
 
 	@Override
 	public void onInteract(SegmentPiece segmentPiece, PlayerState playerState, PlayerInteractionControlManager playerInteractionControlManager) {
-		if(segmentPiece.getType() == getId()) {
-			if(!(segmentPiece.getSegmentController() instanceof ManagedUsableSegmentController<?>)) {
-				return;
-			}
-			ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) segmentPiece.getSegmentController();
-			ComputerModuleContainer container = ComputerModuleContainer.getContainer(controller.getManagerContainer());
-			if(container != null) {
-				ComputerModule module = container.getOrCreateModule(segmentPiece);
-				if(module != null) {
-					(new ComputerDialog(module)).activate();
-				}
-			}
+		if(segmentPiece.getType() != getId()) {
+			return;
 		}
+		if(!(segmentPiece.getSegmentController() instanceof ManagedUsableSegmentController<?>)) {
+			return;
+		}
+		// Scripts execute server-side now; the client only needs the (entityId,
+		// absIndex) address to open a networked session — see ComputerDialog.open.
+		// RemoteAccessPoint converges on the same call for remote-linked computers.
+		ComputerDialog.open(segmentPiece.getSegmentController().getId(), segmentPiece.getAbsoluteIndex());
 	}
 
 	@Override

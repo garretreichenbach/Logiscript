@@ -39,7 +39,7 @@ public class SegmentPieceUtils {
 	public static SegmentPiece getFirstMatchingAdjacent(SegmentPiece segmentPiece, short type) {
 		ArrayList<SegmentPiece> matching = getMatchingAdjacent(segmentPiece, type);
 		if (matching.isEmpty()) return null;
-		else return matching.get(0);
+		else return matching.getFirst();
 	}
 
 	public static SegmentPiece getAdjacentDir(SegmentPiece segmentPiece, String dir) {
@@ -59,22 +59,15 @@ public class SegmentPieceUtils {
 
 	private static Vector3i getDirectionalOffset(SegmentPiece segmentPiece, String dir) {
 		String side = dir.toLowerCase(Locale.ROOT);
-		switch(side) {
-			case "left":
-				return getOrientedLeft(segmentPiece);
-			case "right":
-				return negate(getOrientedLeft(segmentPiece));
-			case "up":
-				return getOrientedUp(segmentPiece);
-			case "down":
-				return negate(getOrientedUp(segmentPiece));
-			case "front":
-				return getOrientedFront(segmentPiece);
-			case "back":
-				return negate(getOrientedFront(segmentPiece));
-			default:
-				return null;
-		}
+        return switch (side) {
+            case "left" -> getOrientedLeft(segmentPiece);
+            case "right" -> negate(getOrientedLeft(segmentPiece));
+            case "up" -> getOrientedUp(segmentPiece);
+            case "down" -> negate(getOrientedUp(segmentPiece));
+            case "front" -> getOrientedFront(segmentPiece);
+            case "back" -> negate(getOrientedFront(segmentPiece));
+            default -> null;
+        };
 	}
 
 	private static Vector3i getOrientedLeft(SegmentPiece segmentPiece) {

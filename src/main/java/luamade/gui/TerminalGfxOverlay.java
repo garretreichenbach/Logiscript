@@ -16,20 +16,25 @@ import org.schema.schine.network.client.ClientStateInterface;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Draws Lua gfx2d geometry onto a texture-backed overlay and text via GUITextOverlay instances. */
+/**
+ * Draws gfx2d geometry streamed from the server onto a texture-backed overlay
+ * and text via GUITextOverlay instances. The gfx2d buffer itself lives
+ * server-side (scripts execute there); this renders whatever
+ * {@link ComputerSessionView} last received via {@code PacketSCGfxSnapshot}.
+ */
 public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
-	private final Gfx2d gfxApi;
+	private final ComputerSessionView sessionView;
 	private int lastTextureId = -1;
 	private boolean canvasEnabled = true;
 	private int canvasWidth;
 	private int canvasHeight;
 	private boolean textureResizePending;
 
-	public TerminalGfxOverlay(int width, int height, ClientState state, Gfx2d gfxApi) {
+	public TerminalGfxOverlay(int width, int height, ClientState state, ComputerSessionView sessionView) {
 		super(Math.max(1, width), Math.max(1, height), state);
 		canvasWidth = Math.max(1, width);
 		canvasHeight = Math.max(1, height);
-		this.gfxApi = gfxApi;
+		this.sessionView = sessionView;
 	}
 
 	private static List<String> layoutTextLines(String text, int maxWidth, boolean wrap, UnicodeFont font) {
@@ -102,8 +107,8 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 			sprite.setWidth(safeWidth);
 			sprite.setHeight(safeHeight);
 		}
-		if(gfxApi != null) {
-			gfxApi.setViewportSize(safeWidth, safeHeight);
+		if(sizeChanged && sessionView != null) {
+			sessionView.sendViewportResize(safeWidth, safeHeight);
 		}
 	}
 
@@ -123,7 +128,19 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 	}
 
 	public boolean isOverlayActive() {
-		return canvasEnabled && gfxApi != null && gfxApi.hasVisibleCommands();
+		if(!canvasEnabled || sessionView == null) {
+			return false;
+		}
+		Gfx2d.FrameSnapshot snapshot = sessionView.getGfxSnapshot();
+		if(snapshot == null) {
+			return false;
+		}
+		for(Gfx2d.LayerSnapshot layer : snapshot.layers) {
+			if(layer.visible && !layer.commands.isEmpty()) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	@Override
@@ -240,12 +257,15 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 
 	@Override
 	public void drawOverlayTexture(ClientStateInterface state) {
-		if(gfxApi == null) {
+		if(sessionView == null) {
+			return;
+		}
+		Gfx2d.FrameSnapshot frame = sessionView.getGfxSnapshot();
+		if(frame == null) {
 			return;
 		}
 
 		try {
-			Gfx2d.FrameSnapshot frame = gfxApi.snapshot();
 			List<TextOverlaySpec> textOverlays = new ArrayList<>();
 
 			// Only render (and cover the terminal) when at least one visible layer has commands.

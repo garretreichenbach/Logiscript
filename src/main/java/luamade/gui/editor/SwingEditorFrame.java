@@ -1,9 +1,11 @@
 package luamade.gui.editor;
 
 import luamade.LuaMade;
-import luamade.lua.fs.FileSystem;
-import luamade.lua.terminal.Terminal;
+import luamade.gui.ComputerSessionRegistry;
+import luamade.gui.ComputerSessionView;
+import luamade.lua.fs.FileIoRequests;
 import luamade.manager.ConfigManager;
+import luamade.network.PacketSCOpenSwingEditor;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.Style;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
@@ -21,24 +23,28 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Swing-based code editor using RSyntaxTextArea. Reads and writes purely
- * from the mod's virtual filesystem — no files are written to the user's disk.
+ * Swing-based code editor using RSyntaxTextArea. Reads and writes through the
+ * computer's server-side virtual filesystem over the network (see
+ * {@link ComputerSessionView}) — no files are written to the user's disk.
+ *
+ * <p>Save/run round-trip to the server; since this runs on Swing's own event
+ * dispatch thread (not the game's render thread), a bounded blocking wait is
+ * an acceptable tradeoff for a simple, correct implementation.
  */
 public class SwingEditorFrame extends JFrame {
 
 	private static final Map<String, SwingEditorFrame> openEditors = new ConcurrentHashMap<>();
+	private static final long FILE_OP_TIMEOUT_MS = 10_000L;
 
 	private final RSyntaxTextArea textArea;
 	private final String virtualPath;
-	private final FileSystem fileSystem;
-	private final Terminal terminal;
+	private final ComputerSessionView sessionView;
 	private boolean dirty;
 
-	private SwingEditorFrame(String virtualPath, String initialContent, FileSystem fileSystem, Terminal terminal) {
+	private SwingEditorFrame(String virtualPath, String initialContent, ComputerSessionView sessionView) {
 		super("Edit: " + virtualPath);
 		this.virtualPath = virtualPath;
-		this.fileSystem = fileSystem;
-		this.terminal = terminal;
+		this.sessionView = sessionView;
 		dirty = false;
 
 		textArea = new RSyntaxTextArea(30, 100);
@@ -92,38 +98,35 @@ public class SwingEditorFrame extends JFrame {
 	}
 
 	/**
-	 * Opens a file in the Swing editor. If the file is already open, brings
-	 * that window to the front.
-	 *
-	 * @return true if the editor was opened or focused successfully
+	 * Opens the editor for a file the server just told this client to edit
+	 * (the {@code edit} terminal command now runs server-side and can't open
+	 * a Swing window itself — see {@link PacketSCOpenSwingEditor}). If already
+	 * open, brings that window to the front instead of opening a duplicate.
 	 */
-	public static boolean open(String virtualPath, String content, FileSystem fileSystem, Terminal terminal) {
+	public static void openFromServer(PacketSCOpenSwingEditor request) {
+		ComputerSessionView sessionView = ComputerSessionRegistry.getOrCreate(request.getEntityId(), request.getAbsIndex());
+		String virtualPath = request.getPath();
+
 		SwingEditorFrame existing = openEditors.get(virtualPath);
 		if(existing != null) {
 			SwingUtilities.invokeLater(() -> {
 				existing.toFront();
 				existing.requestFocus();
 			});
-			return true;
+			return;
 		}
 
-		try {
-			SwingUtilities.invokeLater(() -> {
-				try {
-					SwingEditorFrame frame = new SwingEditorFrame(virtualPath, content, fileSystem, terminal);
-					openEditors.put(virtualPath, frame);
-					frame.setVisible(true);
-					frame.toFront();
-				} catch(Exception e) {
-					LuaMade.getInstance().logException("Failed to open Swing editor", e);
-					openEditors.remove(virtualPath);
-				}
-			});
-			return true;
-		} catch(Exception e) {
-			LuaMade.getInstance().logException("Failed to schedule Swing editor", e);
-			return false;
-		}
+		SwingUtilities.invokeLater(() -> {
+			try {
+				SwingEditorFrame frame = new SwingEditorFrame(virtualPath, request.getContent(), sessionView);
+				openEditors.put(virtualPath, frame);
+				frame.setVisible(true);
+				frame.toFront();
+			} catch(Exception e) {
+				LuaMade.getInstance().logException("Failed to open Swing editor", e);
+				openEditors.remove(virtualPath);
+			}
+		});
 	}
 
 	public static boolean isFileOpen(String virtualPath) {
@@ -349,25 +352,34 @@ public class SwingEditorFrame extends JFrame {
 	}
 
 	private boolean save() {
+		if(sessionView == null) {
+			return false;
+		}
 		String content = textArea.getText();
-		if(fileSystem.write(virtualPath, content)) {
-			dirty = false;
-			updateTitle();
-			return true;
-		} else {
-			JOptionPane.showMessageDialog(this, "Failed to save file: " + virtualPath, "Save Error", JOptionPane.ERROR_MESSAGE);
+		try {
+			FileIoRequests.ReadResult result = sessionView.writeFileBlocking(virtualPath, content, FILE_OP_TIMEOUT_MS);
+			if(result.success) {
+				dirty = false;
+				updateTitle();
+				return true;
+			}
+			JOptionPane.showMessageDialog(this, "Failed to save file: " + virtualPath + (result.message.isEmpty() ? "" : " (" + result.message + ")"), "Save Error", JOptionPane.ERROR_MESSAGE);
+			return false;
+		} catch(InterruptedException e) {
+			Thread.currentThread().interrupt();
+			return false;
+		} catch(java.util.concurrent.TimeoutException e) {
+			JOptionPane.showMessageDialog(this, "Save timed out: " + virtualPath, "Save Error", JOptionPane.ERROR_MESSAGE);
 			return false;
 		}
 	}
 
 	private void saveAndRun() {
-		if(!save()) {
+		if(!save() || sessionView == null) {
 			return;
 		}
 		closeAndRemove();
-		if(terminal != null) {
-			terminal.handleInput("run " + virtualPath);
-		}
+		sessionView.sendLineInput("run " + virtualPath);
 	}
 
 	private void handleClose() {
