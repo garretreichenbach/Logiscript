@@ -7,6 +7,7 @@ Game systems including blocks, modules, inventories, and specialized mechanics.
 ### Game Systems
 - **combat-events.md** - Combat event queue (block damage, shield hits)
 - **channels.md** - Communication channels reference
+- **galaxy.md** - Galaxy map queries (star systems, ownership, sector types, warp gates)
 - **inventory.md** - Inventory system API
 - **item-stack.md** - Item stack object reference
 - **peripheral.md** - Peripheral block wrapper

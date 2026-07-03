@@ -1,7 +1,6 @@
 package luamade.network;
 
 import api.common.GameServer;
-import com.bulletphysics.linearmath.Transform;
 import luamade.element.ElementRegistry;
 import luamade.system.module.ComputerModuleContainer;
 import org.schema.common.util.linAlg.Vector3fTools;
@@ -29,7 +28,7 @@ final class ComputerPacketUtil {
 	 * server-side replacement. Generous enough to cover interacting from
 	 * anywhere aboard a mid-size ship, not just standing on the block.
 	 */
-	static final float MAX_CONNECT_DISTANCE_BLOCKS = 50f;
+	static final float MAX_CONNECT_DISTANCE_BLOCKS = 50.0f;
 
 	private ComputerPacketUtil() {
 	}
@@ -40,17 +39,23 @@ final class ComputerPacketUtil {
 			return false;
 		}
 		try {
+			SegmentController computerEntity = piece.getSegmentController();
+			if(computerEntity == null) {
+				return false;
+			}
+
 			SimpleTransformableSendableObject controlled = sender.getFirstControlledTransformableWOExc();
 			if(controlled == null) {
 				return false;
 			}
+
+			if(controlled == computerEntity) {
+				return true;
+			}
+
 			Vector3f playerPos = controlled.getWorldTransform().origin;
-
-			Transform blockTransform = new Transform();
-			piece.getTransform(blockTransform);
-			Vector3f blockPos = blockTransform.origin;
-
-			float distance = Vector3fTools.distance(playerPos.x, playerPos.y, playerPos.z, blockPos.x, blockPos.y, blockPos.z);
+			Vector3f entityPos = computerEntity.getWorldTransform().origin;
+			float distance = Vector3fTools.distance(playerPos.x, playerPos.y, playerPos.z, entityPos.x, entityPos.y, entityPos.z);
 			return distance <= MAX_CONNECT_DISTANCE_BLOCKS;
 		} catch(Exception ex) {
 			return false;
@@ -61,10 +66,9 @@ final class ComputerPacketUtil {
 	static SegmentPiece resolveComputerPiece(int entityId, long absIndex) {
 		try {
 			Sendable sendable = GameServer.getServerState().getLocalAndRemoteObjectContainer().getLocalObjects().get(entityId);
-			if(!(sendable instanceof ManagedUsableSegmentController<?>)) {
+			if(!(sendable instanceof ManagedUsableSegmentController<?> sc)) {
 				return null;
 			}
-			SegmentController sc = (SegmentController) sendable;
 			SegmentPiece piece = sc.getSegmentBuffer().getPointUnsave(absIndex);
 			if(piece == null || piece.getType() != ElementRegistry.COMPUTER.getId()) {
 				return null;
@@ -77,10 +81,9 @@ final class ComputerPacketUtil {
 
 	/** Resolves the {@link ComputerModuleContainer} that owns the given live Computer piece, or null. */
 	static ComputerModuleContainer resolveContainer(SegmentPiece computerPiece) {
-		if(computerPiece == null || !(computerPiece.getSegmentController() instanceof ManagedUsableSegmentController<?>)) {
+		if(computerPiece == null || !(computerPiece.getSegmentController() instanceof ManagedUsableSegmentController<?> controller)) {
 			return null;
 		}
-		ManagedUsableSegmentController<?> controller = (ManagedUsableSegmentController<?>) computerPiece.getSegmentController();
 		return ComputerModuleContainer.getContainer(controller.getManagerContainer());
 	}
 }

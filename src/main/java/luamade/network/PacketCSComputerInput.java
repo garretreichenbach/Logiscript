@@ -283,6 +283,9 @@ public class PacketCSComputerInput extends Packet {
 				PacketUtil.sendPacket(sender, PacketSCComputerConnectAck.failure(requestId, entityId, absIndex, "Failed to initialize computer"));
 				return;
 			}
+			if(module.getTerminal() != null && !module.getTerminal().isRunning()) {
+				module.resumeFromLastMode();
+			}
 			container.addViewer(absIndex, sender);
 			boolean passwordInputMode = module.getTerminal() != null && module.getTerminal().isPasswordInputMode();
 			PacketUtil.sendPacket(sender, PacketSCComputerConnectAck.success(requestId, entityId, absIndex, module.getLastTextContent(), module.getGfxApi().snapshot(), module.getInputApi().isKeyboardConsumed(), module.getInputApi().isMouseConsumed(), (byte) module.getLastMode().ordinal(), module.getLastOpenFile(), passwordInputMode, (byte) module.getScrollMode().ordinal(), module.getSavedTerminalInput()));
@@ -335,6 +338,17 @@ public class PacketCSComputerInput extends Packet {
 				break;
 			case UI_LAYOUT:
 				module.getInputApi().setUiLayout(windowX, windowY, windowWidth, windowHeight, canvasX, canvasY, canvasWidth, canvasHeight);
+				break;
+			default:
+				break;
+		}
+
+		switch(parsedKind) {
+			case LINE_INPUT:
+			case INTERRUPT:
+			case RESET:
+			case EXIT_EDITOR:
+				container.pushOutputForAbsIndexNow(absIndex);
 				break;
 			default:
 				break;

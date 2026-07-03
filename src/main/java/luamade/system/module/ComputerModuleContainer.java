@@ -233,26 +233,52 @@ public class ComputerModuleContainer extends SystemModule {
 
 		int entityId = segmentController == null ? -1 : segmentController.getId();
 		for(long absIndex : viewers.keySet().toLongArray()) {
-			Map<PlayerState, ViewerSyncState> byPlayer = viewers.get(absIndex);
-			if(byPlayer == null || byPlayer.isEmpty()) {
-				continue;
-			}
+			pushModuleToViewers(entityId, absIndex, viewers.get(absIndex));
+		}
+	}
 
-			ComputerModule module = computerModules.get(absIndex);
-			if(module == null) {
-				continue;
-			}
+	/**
+	 * Pushes the current state of the computer at {@code absIndex} to its viewers
+	 * immediately, bypassing the wait for the next {@link #handle(Timer)} sweep.
+	 * Called right after a client input event is processed (see
+	 * {@code PacketCSComputerInput}) so synchronous command output echoes back
+	 * without a full server-tick of latency. The per-viewer change tracking is
+	 * shared with the periodic sweep, so this never double-sends: whichever runs
+	 * first updates the {@link ViewerSyncState} and the other no-ops.
+	 */
+	public void pushOutputForAbsIndexNow(long absIndex) {
+		Map<PlayerState, ViewerSyncState> byPlayer = viewers.get(absIndex);
+		if(byPlayer == null || byPlayer.isEmpty()) {
+			return;
+		}
+		int entityId = segmentController == null ? -1 : segmentController.getId();
+		pushModuleToViewers(entityId, absIndex, byPlayer);
+	}
 
-			String consoleText = module.getLastTextContent();
-			Gfx2d.FrameSnapshot gfxSnapshot = module.getGfxApi().snapshot();
-			boolean keyboardConsumed = module.getInputApi().isKeyboardConsumed();
-			boolean mouseConsumed = module.getInputApi().isMouseConsumed();
-			byte modeOrdinal = (byte) module.getLastMode().ordinal();
-			String lastOpenFile = module.getLastOpenFile();
-			boolean passwordInputMode = module.getTerminal() != null && module.getTerminal().isPasswordInputMode();
-			byte scrollModeOrdinal = (byte) module.getScrollMode().ordinal();
-			String savedTerminalInput = module.getSavedTerminalInput();
+	private void pushModuleToViewers(int entityId, long absIndex, Map<PlayerState, ViewerSyncState> byPlayer) {
+		if(byPlayer == null || byPlayer.isEmpty()) {
+			return;
+		}
 
+		ComputerModule module = computerModules.get(absIndex);
+		if(module == null) {
+			return;
+		}
+
+		String consoleText = module.getLastTextContent();
+		Gfx2d.FrameSnapshot gfxSnapshot = module.getGfxApi().snapshot();
+		boolean keyboardConsumed = module.getInputApi().isKeyboardConsumed();
+		boolean mouseConsumed = module.getInputApi().isMouseConsumed();
+		byte modeOrdinal = (byte) module.getLastMode().ordinal();
+		String lastOpenFile = module.getLastOpenFile();
+		boolean passwordInputMode = module.getTerminal() != null && module.getTerminal().isPasswordInputMode();
+		byte scrollModeOrdinal = (byte) module.getScrollMode().ordinal();
+		String savedTerminalInput = module.getSavedTerminalInput();
+
+		// Serialize per-module so the immediate push (network thread) and the
+		// periodic sweep (game-loop thread) can't interleave their read-diff-send
+		// on the same ViewerSyncState and emit duplicate or torn snapshots.
+		synchronized(byPlayer) {
 			for(Map.Entry<PlayerState, ViewerSyncState> entry : byPlayer.entrySet()) {
 				PlayerState player = entry.getKey();
 				ViewerSyncState state = entry.getValue();

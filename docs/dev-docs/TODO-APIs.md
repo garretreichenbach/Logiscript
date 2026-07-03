@@ -84,10 +84,14 @@ Know what's around you. Enables navigation aids, sector scanners, and map tools.
 - **Nearby sectors** - `ClientProximitySector`, `ClientProximitySystem` - scan nearby space
 - **Sector generation** - `SectorGenerationDefault` - query sector type (void, asteroid, etc.)
 
-### Galaxy & Star Systems
-- **Galaxy data** - `GalaxyManager` - star system positions, names
-- **System ownership** - query which faction owns a system
-- **Warp gates** - `FTLConnection` - query jump drive routes and destinations
+### Galaxy & Star Systems ✅ (implemented — `galaxy` global; see `docs/systems/galaxy.md`)
+- **Galaxy data** ✅ - `GalaxyManager` / `StellarSystem` - `galaxy.getSystem()`, `getSystemAt()`, star-system names & positions, center/sector/planet types
+- **System ownership** ✅ - `galaxy.getSystemOwner()` (faction) and `getSystemOwnership()` (relationship: BY_SELF/ALLY/ENEMY/NEUTRAL/NONE)
+- **Warp gates** ✅ - `FTLConnection` - `galaxy.getWarpGates()` returns FTL routes (warp gate / wormhole / race-way) with sources & destinations
+
+Still open in this section:
+- **Sector contents** - `SectorInformation` - list entities/ownership of an arbitrary sector (beyond type)
+- **Nearby-sector proximity scan** - `ClientProximitySector` / `ClientProximitySystem`
 
 ---
 

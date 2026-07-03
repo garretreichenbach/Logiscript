@@ -107,6 +107,11 @@ public class Terminal extends LuaMadeUserdata {
 		bootTerminal(false);
 	}
 
+	/** True once {@link #start()} (or a reset) has booted the terminal and it is accepting input. */
+	public boolean isRunning() {
+		return running;
+	}
+
 	/**
 	 * Stops the terminal
 	 */
@@ -1050,6 +1055,7 @@ public class Terminal extends LuaMadeUserdata {
 		// peripheral.wrapRelative() to obtain these APIs.
 		globals.set("peripheral", new PeripheralsApi(module));
 		globals.set("trade", new luamade.lua.shop.TradeNetwork());
+		globals.set("galaxy", new luamade.lua.galaxy.Galaxy());
 		globals.set("player", new luamade.lua.player.Player());
 		globals.set("vault", new luamade.lua.vault.Vault(module));
 		globals.set("input", module.getInputApi());

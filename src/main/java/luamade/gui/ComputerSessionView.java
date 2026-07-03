@@ -3,11 +3,7 @@ package luamade.gui;
 import api.network.packets.PacketUtil;
 import luamade.lua.fs.FileIoRequests;
 import luamade.lua.gfx.Gfx2d;
-import luamade.network.PacketCSClipboardImport;
-import luamade.network.PacketCSComputerInput;
-import luamade.network.PacketCSFileRead;
-import luamade.network.PacketCSFileWrite;
-import luamade.network.PacketCSTerminalQuery;
+import luamade.network.*;
 import luamade.system.module.ComputerModule;
 
 import java.util.Collections;
@@ -34,9 +30,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class ComputerSessionView {
 
+	private static final AtomicInteger queryRequestIdGenerator = new AtomicInteger(1);
 	private final int entityId;
 	private final long absIndex;
-
+	public volatile long lsdbgLineInputAtMs;
 	private volatile boolean connected;
 	private volatile String connectFailureMessage;
 	private volatile String consoleText = "";
@@ -48,8 +45,6 @@ public final class ComputerSessionView {
 	private volatile boolean passwordInputMode;
 	private volatile byte scrollModeOrdinal = (byte) ComputerModule.ScrollMode.VERTICAL.ordinal();
 	private volatile String savedTerminalInput = "";
-
-	private static final AtomicInteger queryRequestIdGenerator = new AtomicInteger(1);
 	private volatile int historyResponseId = -1;
 	private volatile String historyResponseText = "";
 	private volatile int suggestionsResponseId = -1;
@@ -81,7 +76,9 @@ public final class ComputerSessionView {
 		return consoleText;
 	}
 
-	/** May be null until the first frame arrives. */
+	/**
+	 * May be null until the first frame arrives.
+	 */
 	public Gfx2d.FrameSnapshot getGfxSnapshot() {
 		return gfxSnapshot;
 	}
@@ -136,18 +133,18 @@ public final class ComputerSessionView {
 		return suggestionsResponseList;
 	}
 
-	public boolean isSuggestionsResponsePathMode() {
-		return suggestionsResponsePathMode;
-	}
-
 	// ------------------------------------------------------------------
 	// Inbound — called by ComputerSessionRegistry from packet handlers
 	// (network thread).
 	// ------------------------------------------------------------------
 
+	public boolean isSuggestionsResponsePathMode() {
+		return suggestionsResponsePathMode;
+	}
+
 	void applyConnectSuccess(String consoleText, Gfx2d.FrameSnapshot gfxSnapshot, boolean keyboardConsumed, boolean mouseConsumed, byte modeOrdinal, String lastOpenFile, boolean passwordInputMode, byte scrollModeOrdinal, String savedTerminalInput) {
-		this.connected = true;
-		this.connectFailureMessage = null;
+		connected = true;
+		connectFailureMessage = null;
 		this.consoleText = consoleText == null ? "" : consoleText;
 		this.gfxSnapshot = gfxSnapshot;
 		this.keyboardConsumed = keyboardConsumed;
@@ -160,11 +157,14 @@ public final class ComputerSessionView {
 	}
 
 	void applyConnectFailure(String message) {
-		this.connected = false;
-		this.connectFailureMessage = message;
+		connected = false;
+		connectFailureMessage = message;
 	}
 
 	void applyConsoleSnapshot(String consoleText, boolean keyboardConsumed, boolean mouseConsumed, byte modeOrdinal, String lastOpenFile, boolean passwordInputMode, byte scrollModeOrdinal, String savedTerminalInput) {
+		if(lsdbgLineInputAtMs > 0) {
+			lsdbgLineInputAtMs = 0;
+		}
 		this.consoleText = consoleText == null ? "" : consoleText;
 		this.keyboardConsumed = keyboardConsumed;
 		this.mouseConsumed = mouseConsumed;
@@ -176,24 +176,24 @@ public final class ComputerSessionView {
 	}
 
 	void applyGfxSnapshot(Gfx2d.FrameSnapshot snapshot) {
-		this.gfxSnapshot = snapshot;
+		gfxSnapshot = snapshot;
 	}
 
 	void applyHistoryResult(int requestId, String text) {
-		this.historyResponseText = text == null ? "" : text;
-		this.historyResponseId = requestId;
-	}
-
-	void applySuggestionsResult(int requestId, List<String> list, boolean pathMode) {
-		this.suggestionsResponseList = list == null ? Collections.emptyList() : list;
-		this.suggestionsResponsePathMode = pathMode;
-		this.suggestionsResponseId = requestId;
+		historyResponseText = text == null ? "" : text;
+		historyResponseId = requestId;
 	}
 
 	// ------------------------------------------------------------------
 	// Outbound — forward input over the network instead of calling a
 	// local Terminal/InputApi.
 	// ------------------------------------------------------------------
+
+	void applySuggestionsResult(int requestId, List<String> list, boolean pathMode) {
+		suggestionsResponseList = list == null ? Collections.emptyList() : list;
+		suggestionsResponsePathMode = pathMode;
+		suggestionsResponseId = requestId;
+	}
 
 	public void sendConnect() {
 		PacketUtil.sendPacketToServer(PacketCSComputerInput.connect(0, entityId, absIndex));
@@ -205,6 +205,17 @@ public final class ComputerSessionView {
 	}
 
 	public void sendLineInput(String text) {
+		lsdbgLineInputAtMs = System.currentTimeMillis();
+		int clientQ = -1;
+		int serverQ = -1;
+		try {
+			clientQ = PacketUtil.clientPacketQueue.size();
+		} catch(Exception ignored) {
+		}
+		try {
+			serverQ = PacketUtil.serverPacketQueue.size();
+		} catch(Exception ignored) {
+		}
 		PacketUtil.sendPacketToServer(PacketCSComputerInput.lineInput(entityId, absIndex, text));
 	}
 
@@ -232,12 +243,16 @@ public final class ComputerSessionView {
 		PacketUtil.sendPacketToServer(PacketCSComputerInput.viewportResize(entityId, absIndex, width, height));
 	}
 
-	/** Fire-and-forget — persists the partial input line so it can be restored if the dialog is reopened later. */
+	/**
+	 * Fire-and-forget — persists the partial input line so it can be restored if the dialog is reopened later.
+	 */
 	public void sendSetSavedInput(String text) {
 		PacketUtil.sendPacketToServer(PacketCSComputerInput.setSavedInput(entityId, absIndex, text));
 	}
 
-	/** Feeds the server-side InputApi so scripts calling {@code input.getUiLayout()} see real window/canvas bounds. */
+	/**
+	 * Feeds the server-side InputApi so scripts calling {@code input.getUiLayout()} see real window/canvas bounds.
+	 */
 	public void sendUiLayout(int windowX, int windowY, int windowWidth, int windowHeight, int canvasX, int canvasY, int canvasWidth, int canvasHeight) {
 		PacketUtil.sendPacketToServer(PacketCSComputerInput.uiLayout(entityId, absIndex, windowX, windowY, windowWidth, windowHeight, canvasX, canvasY, canvasWidth, canvasHeight));
 	}
@@ -288,7 +303,9 @@ public final class ComputerSessionView {
 		PacketUtil.sendPacketToServer(new PacketCSFileWrite(0, entityId, absIndex, path, content));
 	}
 
-	/** Blocking file write with a result. Safe from a background/Swing thread — must not be called from the render thread. */
+	/**
+	 * Blocking file write with a result. Safe from a background/Swing thread — must not be called from the render thread.
+	 */
 	public FileIoRequests.ReadResult writeFileBlocking(String path, String content, long timeoutMs) throws InterruptedException, TimeoutException {
 		CompletableFuture<FileIoRequests.ReadResult> future = new CompletableFuture<>();
 		int requestId = FileIoRequests.allocate(future);
@@ -304,7 +321,9 @@ public final class ComputerSessionView {
 		}
 	}
 
-	/** Blocking file read with a result. Safe from a background/Swing thread — must not be called from the render thread. */
+	/**
+	 * Blocking file read with a result. Safe from a background/Swing thread — must not be called from the render thread.
+	 */
 	public FileIoRequests.ReadResult readFileBlocking(String path, long timeoutMs) throws InterruptedException, TimeoutException {
 		CompletableFuture<FileIoRequests.ReadResult> future = new CompletableFuture<>();
 		int requestId = FileIoRequests.allocate(future);

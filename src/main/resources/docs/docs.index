@@ -15,6 +15,7 @@ entities/fleet.md
 entities/remote-entity.md
 graphics/INDEX.md
 graphics/gfx2d.md
+graphics/gfx3d.md
 graphics/gui.md
 io/INDEX.md
 io/filesystem.md
@@ -35,6 +36,7 @@ systems/datastore-block.md
 systems/disk-drive-block.md
 systems/display-module-block.md
 systems/factory-block.md
+systems/galaxy.md
 systems/inventory-block.md
 systems/inventory.md
 systems/item-stack.md

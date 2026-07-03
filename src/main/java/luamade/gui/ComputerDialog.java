@@ -207,6 +207,16 @@ public class ComputerDialog extends PlayerInput {
 		private String currentInputLine = "";
 		private String lastModuleContent = "";
 		private boolean userIsTyping;
+		/**
+		 * Set when a command is submitted so the next server snapshot is applied
+		 * even though {@link #userIsTyping} is (wrongly) still true. Pressing Enter
+		 * makes the text bar re-run its input filter over the still-displayed
+		 * command line, which re-derives {@code userIsTyping = true} right after
+		 * {@link #executeCurrentInput()} cleared it — without this bypass the
+		 * per-frame poll's {@code if(!userIsTyping)} gate would withhold the
+		 * command's output until the dialog is reopened.
+		 */
+		private boolean awaitingSubmittedResult;
 		private int promptStartPosition = -1;
 		private String lastSavedInput = "";
 		private GUIScrollablePanel textBarScrollPanel;
@@ -1682,6 +1692,7 @@ public class ComputerDialog extends PlayerInput {
 				sessionView.sendLineInput(inputToExecute);
 
 				userIsTyping = false;
+				awaitingSubmittedResult = true;
 				// Don't synchronously refresh console text here — the server echoes
 				// the submitted line and any script output into the transcript, and
 				// draw()'s existing per-frame poll picks up the change once the next
@@ -1884,13 +1895,18 @@ public class ComputerDialog extends PlayerInput {
 
 					applyPendingQueryResults();
 
-					if(!userIsTyping) {
+					if(!userIsTyping || awaitingSubmittedResult) {
 						String moduleContent = sessionView.getConsoleText();
 						if(!Objects.equals(lastModuleContent, moduleContent)) {
 							lastModuleContent = moduleContent;
 							setTextWithoutCallback(moduleContent);
 							followOutputIfChanged(moduleContent);
 							currentInputLine = "";
+							// The submitted command's output has now landed; clear both
+							// the stuck typing flag and the one-shot bypass so subsequent
+							// async output follows the normal !userIsTyping poll again.
+							userIsTyping = false;
+							awaitingSubmittedResult = false;
 							clearCommandSuggestions();
 							refreshPromptStartPositionFromCurrentText();
 						}
