@@ -1,8 +1,7 @@
 package luamade.element;
 
-import api.config.BlockConfig;
-import api.listener.fastevents.FastListenerCommon;
-import api.listener.fastevents.segmentpiece.*;
+import api.block.BlockConfig;
+import api.event.block.*;
 import api.mod.StarLoader;
 import luamade.LuaMade;
 import luamade.element.block.*;
@@ -60,25 +59,25 @@ public enum ElementRegistry {
 
 		for(ElementRegistry registry : values()) {
 			if(registry.elementInterface instanceof SegmentPieceAddListener) {
-				FastListenerCommon.segmentPieceAddListeners.add((SegmentPieceAddListener) registry.elementInterface);
+				SegmentPieceAddListener.TYPE.register((SegmentPieceAddListener) registry.elementInterface, LuaMade.getInstance());
 			}
 			if(registry.elementInterface instanceof SegmentPieceAddByMetadataListener) {
-				FastListenerCommon.segmentPieceAddByMetadataListeners.add((SegmentPieceAddByMetadataListener) registry.elementInterface);
+				SegmentPieceAddByMetadataListener.TYPE.register((SegmentPieceAddByMetadataListener) registry.elementInterface, LuaMade.getInstance());
 			}
 			if(registry.elementInterface instanceof SegmentPieceRemoveListener) {
-				FastListenerCommon.segmentPieceRemoveListeners.add((SegmentPieceRemoveListener) registry.elementInterface);
+				SegmentPieceRemoveListener.TYPE.register((SegmentPieceRemoveListener) registry.elementInterface, LuaMade.getInstance());
 			}
 			if(registry.elementInterface instanceof SegmentPieceKilledListener) {
-				FastListenerCommon.segmentPieceKilledListeners.add((SegmentPieceKilledListener) registry.elementInterface);
+				SegmentPieceKilledListener.TYPE.register((SegmentPieceKilledListener) registry.elementInterface, LuaMade.getInstance());
 			}
 			if(registry.elementInterface instanceof SegmentPiecePlayerInteractListener) {
-				FastListenerCommon.segmentPiecePlayerInteractListeners.add((SegmentPiecePlayerInteractListener) registry.elementInterface);
+				SegmentPiecePlayerInteractListener.TYPE.register((SegmentPiecePlayerInteractListener) registry.elementInterface, LuaMade.getInstance());
 			}
 			if(registry.elementInterface instanceof SegmentPieceConsoleInteractListener) {
-				FastListenerCommon.consoleInteractListeners.add((SegmentPieceConsoleInteractListener) registry.elementInterface);
+				SegmentPieceConsoleInteractListener.TYPE.register((SegmentPieceConsoleInteractListener) registry.elementInterface, LuaMade.getInstance());
 			}
 			if(registry.elementInterface instanceof SegmentPieceActivateListener) {
-				FastListenerCommon.segmentPieceActivateListeners.add((SegmentPieceActivateListener) registry.elementInterface);
+				SegmentPieceActivateListener.TYPE.register((SegmentPieceActivateListener) registry.elementInterface, LuaMade.getInstance());
 			}
 		}
 		LuaMade.getInstance().logDebug("Registered event listeners for " + values().length + " elements");

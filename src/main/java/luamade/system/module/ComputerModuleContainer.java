@@ -3,7 +3,7 @@ package luamade.system.module;
 import api.network.PacketReadBuffer;
 import api.network.PacketWriteBuffer;
 import api.network.packets.PacketUtil;
-import api.utils.game.module.util.SystemModule;
+import api.entity.module.util.SystemModule;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import luamade.LuaMade;
 import luamade.element.ElementRegistry;

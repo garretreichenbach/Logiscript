@@ -1,6 +1,6 @@
 package luamade.lua.element.inventory;
 
-import api.utils.game.inventory.InventoryUtils;
+import api.inventory.InventoryUtils;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.data.SegmentPiece;

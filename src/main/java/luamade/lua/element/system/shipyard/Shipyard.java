@@ -1,6 +1,6 @@
 package luamade.lua.element.system.shipyard;
 
-import api.utils.game.SegmentControllerUtils;
+import api.entity.SegmentControllerUtils;
 import luamade.lua.element.inventory.ItemStack;
 import luamade.lua.entity.Entity;
 import luamade.luawrap.LuaMadeCallable;

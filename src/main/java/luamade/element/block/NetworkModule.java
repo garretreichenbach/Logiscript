@@ -1,9 +1,10 @@
 package luamade.element.block;
 
-import api.config.BlockConfig;
-import api.utils.element.Blocks;
+import api.block.BlockConfig;
+import api.block.Blocks;
 import luamade.LuaMade;
 import luamade.element.ElementRegistry;
+import luamade.manager.ResourceManager;
 import org.schema.game.client.view.cubes.shapes.BlockStyle;
 import org.schema.game.common.data.element.ElementKeyMap;
 import org.schema.game.common.data.element.FactoryResource;
@@ -18,9 +19,9 @@ public class NetworkModule extends Block {
 	public void initData() {
 		super.initData();
 		blockInfo.setDescription("Module that provides networking capabilities to connected computers.");
-		blockInfo.setDeprecated(true);
-		blockInfo.setInRecipe(false);
-		blockInfo.setShoppable(false);
+		blockInfo.setDeprecated(false);
+		blockInfo.setInRecipe(true);
+		blockInfo.setShoppable(true);
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price * 4);
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(true);
@@ -43,8 +44,10 @@ public class NetworkModule extends Block {
 
 	@Override
 	public void initResources() {
-		BlockConfig.assignLod(blockInfo, LuaMade.getInstance(), "Computer", null);
+		BlockConfig.assignLod(blockInfo, LuaMade.getInstance(), ResourceManager.Models.MODEM.getName(), null);
 		blockInfo.blockStyle = BlockStyle.NORMAL24;
-		blockInfo.setBuildIconNum(Blocks.WIRELESS_LOGIC_MODULE.getInfo().getBuildIconNum());
+		if(!ResourceManager.BlockIcons.MODEM.apply(blockInfo)) {
+			blockInfo.setBuildIconNum(Blocks.WIRELESS_LOGIC_MODULE.getInfo().getBuildIconNum());
+		}
 	}
 }

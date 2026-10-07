@@ -2,7 +2,7 @@ package luamade.system.module;
 
 import api.network.PacketReadBuffer;
 import api.network.PacketWriteBuffer;
-import api.utils.game.module.util.SystemModule;
+import api.entity.module.util.SystemModule;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import luamade.element.ElementRegistry;
 import luamade.lua.datastore.NetworkedDataStoreRegistry;

@@ -4,14 +4,15 @@ import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import luamade.lua.entity.RemoteEntity;
 import luamade.lua.faction.Faction;
 import luamade.luawrap.LuaMadeCallable;
+import luamade.lua.terminal.ScriptInvoker;
 import luamade.luawrap.LuaMadeUserdata;
+import luamade.utils.ServerThread;
+import org.luaj.vm2.LuaError;
 import org.schema.game.common.controller.ShopInterface;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.inventory.InventorySlot;
 import org.schema.game.common.data.player.inventory.ShopInventory;
 import org.schema.game.network.objects.TradePriceInterface;
-import org.schema.game.server.data.GameServerState;
-import org.schema.schine.network.StateInterface;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,9 +22,30 @@ import java.util.TreeSet;
 public class Shop extends LuaMadeUserdata {
 
 	private final ShopInterface shop;
+	/** True when this is the script's own entity; only then may it place trade orders. */
+	private final boolean own;
 
-	public Shop(ShopInterface shop) {
+	public Shop(ShopInterface shop, boolean own) {
 		this.shop = shop;
+		this.own = own;
+	}
+
+	/**
+	 * Starts a Trading Guild order from this shop to another trade node.
+	 * Only available on the script's own shop (entity.asShop(), not a remote one).
+	 */
+	@LuaMadeCallable
+	public TradeOrderDraft createOrder(Long targetDbId) {
+		if(!own) throw new LuaError("trade orders can only be placed from the computer's own shop");
+		if(targetDbId == null) return null;
+		return new TradeOrderDraft(shop, targetDbId);
+	}
+
+	/** Trading Guild shipments currently in flight to or from this shop. */
+	@LuaMadeCallable
+	public ActiveTrade[] getActiveTrades() {
+		Long dbId = getDbId();
+		return dbId == null ? new ActiveTrade[0] : TradeNetwork.activeTrades(dbId);
 	}
 
 	@LuaMadeCallable
@@ -151,8 +173,11 @@ public class Shop extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public Boolean buy(String playerName, Short typeId, Integer quantity) {
 		if(playerName == null || typeId == null || quantity == null || quantity <= 0) return false;
-		PlayerState player = lookupPlayer(playerName);
-		if(player == null) return false;
+		PlayerState player = requireInvoker(playerName);
+		return ServerThread.call(() -> buyOnServer(player, typeId, quantity));
+	}
+
+	private boolean buyOnServer(PlayerState player, short typeId, int quantity) {
 		int before = player.getInventory().getOverallQuantity(typeId);
 		IntOpenHashSet invMod = new IntOpenHashSet();
 		IntOpenHashSet shopHash = new IntOpenHashSet();
@@ -173,8 +198,11 @@ public class Shop extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public Boolean sell(String playerName, Short typeId, Integer quantity) {
 		if(playerName == null || typeId == null || quantity == null || quantity <= 0) return false;
-		PlayerState player = lookupPlayer(playerName);
-		if(player == null) return false;
+		PlayerState player = requireInvoker(playerName);
+		return ServerThread.call(() -> sellOnServer(player, typeId, quantity));
+	}
+
+	private boolean sellOnServer(PlayerState player, short typeId, int quantity) {
 		int before = player.getInventory().getOverallQuantity(typeId);
 		IntOpenHashSet invMod = new IntOpenHashSet();
 		IntOpenHashSet shopHash = new IntOpenHashSet();
@@ -198,12 +226,12 @@ public class Shop extends LuaMadeUserdata {
 		return shop.getSegmentController() == null ? null : new RemoteEntity(shop.getSegmentController());
 	}
 
-	private PlayerState lookupPlayer(String name) {
-		StateInterface state = shop.getState();
-		if(!(state instanceof GameServerState)) return null;
-		PlayerState p = ((GameServerState) state).getPlayerStatesByName().get(name);
-		if(p == null) p = ((GameServerState) state).getPlayerStatesByNameLowerCase().get(name.toLowerCase());
-		return p;
+	/** Scripts may only trade for the player who ran them, never for someone else by name. */
+	private static PlayerState requireInvoker(String playerName) {
+		PlayerState invoker = ScriptInvoker.get();
+		if(invoker == null) throw new LuaError("shop transactions need a player to have run the script");
+		if(!invoker.getName().equalsIgnoreCase(playerName)) throw new LuaError("shop transactions are limited to the player running the script");
+		return invoker;
 	}
 
 	private ShopStockEntry buildEntry(short type, int count) {

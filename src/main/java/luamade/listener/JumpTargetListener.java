@@ -1,15 +1,14 @@
 package luamade.listener;
 
-import api.listener.Listener;
-import api.listener.events.entity.ShipJumpEngageEvent;
-import api.mod.StarLoader;
+import api.event.EventResult;
+import api.event.entity.ShipJumpEngageListener;
 import luamade.LuaMade;
 import luamade.manager.JumpScriptTargetManager;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.SegmentController;
 
 /**
- * Hooks into {@link ShipJumpEngageEvent} to redirect FTL jumps when a Lua script
+ * Hooks into {@link ShipJumpEngageListener} to redirect FTL jumps when a Lua script
  * has set a target sector via {@link luamade.lua.element.system.module.JumpDrive#setTarget}.
  *
  * <p>The target is consumed on the first jump after it is set, so one call to
@@ -18,17 +17,13 @@ import org.schema.game.common.controller.SegmentController;
 public class JumpTargetListener {
 
 	public static void register(LuaMade instance) {
-		StarLoader.registerListener(ShipJumpEngageEvent.class, new Listener<>() {
-            @Override
-            public void onEvent(ShipJumpEngageEvent event) {
-                SegmentController controller = event.getController();
-                if (controller == null) return;
+		ShipJumpEngageListener.TYPE.register((context, isServer) -> {
+			SegmentController controller = context.getController();
+			if(controller == null) return EventResult.CONTINUE;
 
-                Vector3i target = JumpScriptTargetManager.consumeTarget(controller);
-                if (target == null) return;
-
-                event.setNewSector(target);
-            }
-        }, instance);
+			Vector3i target = JumpScriptTargetManager.consumeTarget(controller);
+			if(target != null) context.setNewSector(target);
+			return EventResult.CONTINUE;
+		}, instance);
 	}
 }

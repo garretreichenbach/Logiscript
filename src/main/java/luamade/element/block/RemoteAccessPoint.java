@@ -1,16 +1,19 @@
 package luamade.element.block;
 
-import api.config.BlockConfig;
-import api.listener.fastevents.segmentpiece.SegmentPieceKilledListener;
-import api.listener.fastevents.segmentpiece.SegmentPiecePlayerInteractListener;
-import api.listener.fastevents.segmentpiece.SegmentPieceRemoveListener;
+import api.block.BlockConfig;
+import api.event.block.SegmentPieceKilledListener;
+import api.event.block.SegmentPiecePlayerInteractListener;
+import api.event.block.SegmentPieceRemoveListener;
+import luamade.LuaMade;
 import luamade.element.ElementRegistry;
 import luamade.gui.ComputerDialog;
+import luamade.manager.ResourceManager;
 import luamade.system.module.AccessPointModuleContainer;
 import luamade.system.module.ComputerModule;
 import luamade.system.module.ComputerModuleContainer;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import javax.annotation.Nullable;
 import org.schema.game.client.controller.manager.ingame.PlayerInteractionControlManager;
+import org.schema.game.client.view.cubes.shapes.BlockStyle;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SendableSegmentController;
 import org.schema.game.common.controller.damage.Damager;
@@ -39,10 +42,9 @@ public class RemoteAccessPoint extends Block implements SegmentPiecePlayerIntera
 	public void initData() {
 		super.initData();
 		blockInfo.setDescription("Lets linked remote control items forward input to a LuaMade computer without opening its UI.");
-		blockInfo.setDeprecated(true);
-		blockInfo.setInRecipe(false);
-		blockInfo.setShoppable(false);
-		blockInfo.setDeprecated(true);
+		blockInfo.setDeprecated(false);
+		blockInfo.setInRecipe(true);
+		blockInfo.setShoppable(true);
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price);
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(true);
@@ -56,8 +58,11 @@ public class RemoteAccessPoint extends Block implements SegmentPiecePlayerIntera
 
 	@Override
 	public void initResources() {
-		blockInfo.setBuildIconNum(ElementKeyMap.getInfo(451).getBuildIconNum());
-		blockInfo.setTextureId(ElementKeyMap.getInfo(451).getTextureIds());
+		BlockConfig.assignLod(blockInfo, LuaMade.getInstance(), ResourceManager.Models.REMOTE_ACCESS_POINT.getName(), null);
+		blockInfo.blockStyle = BlockStyle.NORMAL24; // assignLod leaves SPRITE, which can't reach every face
+		if(!ResourceManager.BlockIcons.REMOTE_ACCESS_POINT.apply(blockInfo)) {
+			blockInfo.setBuildIconNum(ElementKeyMap.getInfo(451).getBuildIconNum());
+		}
 	}
 
 	@Override

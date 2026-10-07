@@ -1,12 +1,13 @@
 package luamade.element.block;
 
-import api.config.BlockConfig;
-import api.listener.fastevents.segmentpiece.SegmentPieceKilledListener;
-import api.listener.fastevents.segmentpiece.SegmentPieceRemoveListener;
-import api.utils.element.Blocks;
+import api.block.BlockConfig;
+import api.event.block.SegmentPieceKilledListener;
+import api.event.block.SegmentPieceRemoveListener;
+import api.block.Blocks;
 import luamade.element.ElementRegistry;
+import luamade.manager.ResourceManager;
 import luamade.system.module.PasswordPermissionModuleContainer;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import javax.annotation.Nullable;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SendableSegmentController;
 import org.schema.game.common.controller.damage.Damager;
@@ -39,9 +40,9 @@ public class PasswordPermissionModule extends Block implements SegmentPieceRemov
 	public void initData() {
 		super.initData();
 		blockInfo.setDescription("A password-gated permission module. When placed adjacent to a block, it allows access only to factions that have authenticated via a computer script. Compatible with StarMade's native permission system.");
-		blockInfo.setDeprecated(true);
-		blockInfo.setInRecipe(false);
-		blockInfo.setShoppable(false);
+		blockInfo.setDeprecated(false);
+		blockInfo.setInRecipe(true);
+		blockInfo.setShoppable(true);
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price);
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(false);
@@ -55,8 +56,12 @@ public class PasswordPermissionModule extends Block implements SegmentPieceRemov
 
 	@Override
 	public void initResources() {
-		blockInfo.setBuildIconNum(Blocks.PUBLIC_PERMISSION_MODULE.getInfo().getBuildIconNum());
-		blockInfo.setTextureId(Blocks.PUBLIC_PERMISSION_MODULE.getInfo().getTextureIds());
+		if(!ResourceManager.BlockIcons.PASSWORD_PERMISSION_MODULE.apply(blockInfo)) {
+			blockInfo.setBuildIconNum(Blocks.PUBLIC_PERMISSION_MODULE.getInfo().getBuildIconNum());
+		}
+		if(!ResourceManager.Textures.PASSWORD_PERMISSION_MODULE.apply(blockInfo)) {
+			blockInfo.setTextureId(Blocks.PUBLIC_PERMISSION_MODULE.getInfo().getTextureIds());
+		}
 	}
 
 	@Override

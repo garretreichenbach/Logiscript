@@ -35,16 +35,35 @@ end
 local rel = galaxy.getSystemOwnership(sector, entity.getFaction().getFactionId())
 print("Ownership:", rel)   -- "BY_SELF" / "BY_ALLY" / "BY_ENEMY" / "BY_NEUTRAL" / "NONE"
 
--- List every warp gate route in the galaxy.
+-- Scan the sectors around the ship and tally what's out there.
+for _, info in ipairs(galaxy.scanSectors(sector, 3)) do
+    if info.isPopulated() then
+        local p = info.getPos()
+        print(p.getX() .. "," .. p.getY() .. "," .. p.getZ(),
+              info.getSectorType(), info.getPlanetType() or info.getStationType() or "")
+    end
+end
+
+-- What's physically in my current sector right now?
+for _, e in ipairs(galaxy.getEntitiesInSector(sector)) do
+    print("contact:", e.getName())
+end
+
+-- List every warp gate route in the galaxy. Vec3i has no tostring, so build
+-- coordinate strings from components.
+local function coords(v) return v.getX() .. "," .. v.getY() .. "," .. v.getZ() end
 for _, gate in ipairs(galaxy.getWarpGates()) do
     local from = gate.getFrom()
     local types = gate.getTypes()
     for i, dest in ipairs(gate.getDestinations()) do
-        print(string.format("%s -> %s (%s)",
-            tostring(from), tostring(dest), types[i] or "UNKNOWN"))
+        print(coords(from) .. " -> " .. coords(dest) .. " (" .. (types[i] or "UNKNOWN") .. ")")
     end
 end
 ```
+
+A ready-made visual example ships as **`/bin/sectormap.lua`** — an in-world 3D
+holographic sector map driven by `galaxy.scanSectors` and the `projector` / gfx3d
+API.
 
 ## Reference
 
@@ -73,6 +92,15 @@ Ownership relationship of that system relative to a faction: `"NONE"`, `"BY_SELF
 
 - `getSectorType(sectorPos: Vec3i)`
 Sector-type name for a specific **sector** position (`"SUN"`, `"PLANET"`, `"ASTEROID"`, `"VOID"`, `"SPACE_STATION"`, …), or `nil`.
+
+- `getSectorInfo(sectorPos: Vec3i)`
+Full composition of one **sector** as a `SectorInfo` (type + planet/station sub-type), or `nil`. Reads persisted data; never loads or generates the sector.
+
+- `scanSectors(centerSectorPos: Vec3i, radius: Integer)`
+Cube scan of sector composition out to `radius` sectors per axis (clamped to `[0, 3]` — the same local perception range as `entity.getNearbyEntities`). Returns a `SectorInfo[]` for every sector in the (2r+1)³ cube, in x→y→z order. Each star-system lookup is reused across the sectors it contains, so a scan touches only a handful of systems.
+
+- `getEntitiesInSector(sectorPos: Vec3i)`
+Loaded entities (ships, stations, asteroids, …) currently in the given **sector**, as a `RemoteEntity[]`. Only actively simulated sectors return results; cloaked / radar-jamming ships are omitted.
 
 - `getWarpGates()`
 Every warp gate / wormhole / race-way link known to the galaxy, as an `FtlConnection[]`. Empty when no server universe is available.
@@ -104,7 +132,37 @@ Sector-type name of the system's center sector (`"SUN"`, `"BLACK_HOLE"`, `"GIANT
 Sector-type name for a specific absolute sector position inside this system, or `nil`.
 
 - `getPlanetType(sectorPos: Vec3i)`
-Planet-type name (`"EARTH"`, `"MARS"`, `"DESERT"`, `"ICE"`, `"PURPLE"`) for a sector that holds a planet, or `nil` otherwise.
+Planet-type config id (`"terrestrial"`, `"barren"`, `"crystalline"`, `"corrupted"`, or a server-defined type) for a sector that holds a planet, or `nil` otherwise.
+
+## SectorInfo
+
+Read-only snapshot of a single sector's composition, decoded from persisted
+star-system data (no sector load required). Produced by `galaxy.getSectorInfo()`
+and `galaxy.scanSectors()`.
+
+- `getPos()`
+Absolute sector position, as a `Vec3i`.
+
+- `getSystemPos()`
+System-grid position of the containing system, as a `Vec3i`.
+
+- `getSectorType()`
+Sector-type name (`"SUN"`, `"PLANET"`, `"ASTEROID"`, `"VOID"`, `"SPACE_STATION"`, `"BLACK_HOLE"`, …), or `nil`.
+
+- `getPlanetType()`
+Planet-type name when this sector holds a planet, otherwise `nil`.
+
+- `getStationType()`
+Station-type name (`"PIRATE"`, `"TRADING_GUILD"`, …) when this sector holds a station, otherwise `nil`.
+
+- `isPopulated()`
+`true` when the sector is anything other than empty `VOID`.
+
+- `isLoaded()`
+`true` when the sector is currently loaded / actively simulated on the server.
+
+- `getProtectionMode()`
+Raw sector protection bitmask (spawn / attack / entry / exit locks) for a currently-loaded sector, or `nil` when the sector is not loaded.
 
 ## FtlConnection
 

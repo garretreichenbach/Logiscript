@@ -50,7 +50,7 @@ run /home/hello.lua
 - `package`: sandboxed package table (`loaded`, `preload`, `path`, `cpath`).
 
 Terminal web requests are available through `httpget` / `term.httpGet(url)` and `httpput` /
-`term.httpPut(url, body[, contentType])` when enabled in server config.
+`term.httpPut(url, body[, contentType])` when enabled in server config. Web requests need a Network Module placed adjacent to the computer.
 
 Trusted package distribution is available through the `pkg` terminal command when `package_manager_enabled` is enabled.
 This is controlled separately from generic web fetch settings.

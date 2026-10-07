@@ -1,9 +1,10 @@
 package luamade.element.block;
 
-import api.config.BlockConfig;
-import api.listener.fastevents.segmentpiece.SegmentPiecePlayerInteractListener;
+import api.block.BlockConfig;
+import api.event.block.SegmentPiecePlayerInteractListener;
 import luamade.element.ElementRegistry;
 import luamade.gui.DiskDriveDialog;
+import luamade.manager.ResourceManager;
 import org.schema.game.client.controller.manager.ingame.PlayerInteractionControlManager;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.data.SegmentPiece;
@@ -22,9 +23,9 @@ public class DiskDrive extends Block implements SegmentPiecePlayerInteractListen
 	public void initData() {
 		super.initData();
 		blockInfo.setDescription("Single-slot drive that can read and write LuaMade disk items.");
-		blockInfo.setDeprecated(true);
-		blockInfo.setInRecipe(false);
-		blockInfo.setShoppable(false);
+		blockInfo.setDeprecated(false);
+		blockInfo.setInRecipe(true);
+		blockInfo.setShoppable(true);
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price);
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(true);
@@ -39,8 +40,12 @@ public class DiskDrive extends Block implements SegmentPiecePlayerInteractListen
 
 	@Override
 	public void initResources() {
-		blockInfo.setBuildIconNum(ElementKeyMap.getInfo(16).getBuildIconNum());
-		blockInfo.setTextureId(ElementKeyMap.getInfo(16).getTextureIds());
+		if(!ResourceManager.BlockIcons.DISK_DRIVE.apply(blockInfo)) {
+			blockInfo.setBuildIconNum(ElementKeyMap.getInfo(16).getBuildIconNum());
+		}
+		if(!ResourceManager.Textures.DISK_DRIVE.apply(blockInfo)) {
+			blockInfo.setTextureId(ElementKeyMap.getInfo(16).getTextureIds());
+		}
 	}
 
 	@Override

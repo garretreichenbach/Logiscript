@@ -82,7 +82,7 @@ public class StarSystem extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public String getSectorType(Vec3i sectorPos) {
 		try {
-			SectorInformation.SectorType type = system.getSectorTypeFromAbsolute(toVector(sectorPos), system.getInfos());
+			SectorInformation.SectorType type = system.getSectorType(toVector(sectorPos));
 			return type == null ? null : type.name();
 		} catch(Exception exception) {
 			return null;
@@ -90,15 +90,16 @@ public class StarSystem extends LuaMadeUserdata {
 	}
 
 	/**
-	 * The {@link SectorInformation.PlanetType} name for a specific absolute sector
-	 * position inside this system (e.g. {@code "EARTH"}, {@code "MARS"},
-	 * {@code "DESERT"}), or {@code nil} when the sector holds no planet.
+	 * The planet-type config id for a specific absolute sector position inside
+	 * this system (e.g. {@code "terrestrial"}, {@code "barren"}), or {@code nil}
+	 * when the sector holds no planet.
 	 */
 	@LuaMadeCallable
 	public String getPlanetType(Vec3i sectorPos) {
 		try {
-			SectorInformation.PlanetType type = system.getPlanetTypeFromAbsolute(toVector(sectorPos), system.getInfos());
-			return type == null ? null : type.name();
+			Vector3i pos = toVector(sectorPos);
+			if(system.getSectorType(pos) != SectorInformation.SectorType.PLANET) return null;
+			return system.getPlanetTypeId(pos);
 		} catch(Exception exception) {
 			return null;
 		}

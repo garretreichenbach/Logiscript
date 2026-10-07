@@ -1,15 +1,16 @@
 package luamade.element.block;
 
-import api.config.BlockConfig;
-import api.listener.fastevents.segmentpiece.SegmentPieceKilledListener;
-import api.listener.fastevents.segmentpiece.SegmentPiecePlayerInteractListener;
-import api.listener.fastevents.segmentpiece.SegmentPieceRemoveListener;
+import api.block.BlockConfig;
+import api.event.block.SegmentPieceKilledListener;
+import api.event.block.SegmentPiecePlayerInteractListener;
+import api.event.block.SegmentPieceRemoveListener;
 import api.network.packets.PacketUtil;
-import api.utils.element.Blocks;
+import api.block.Blocks;
 import luamade.element.ElementRegistry;
+import luamade.manager.ResourceManager;
 import luamade.network.PacketCSRequestVaultView;
 import luamade.system.module.VaultModuleContainer;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import javax.annotation.Nullable;
 import org.schema.game.client.controller.manager.ingame.PlayerInteractionControlManager;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SendableSegmentController;
@@ -43,9 +44,9 @@ public class Vault extends Block implements SegmentPieceRemoveListener, SegmentP
 	public void initData() {
 		super.initData();
 		blockInfo.setDescription("A programmable credit bank. Balance persists across server restarts. Place adjacent Permission Modules to control who can deposit and withdraw. Destroying a Vault destroys its balance.");
-		blockInfo.setDeprecated(true);
-		blockInfo.setInRecipe(false);
-		blockInfo.setShoppable(false);
+		blockInfo.setDeprecated(false);
+		blockInfo.setInRecipe(true);
+		blockInfo.setShoppable(true);
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price * 4);
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(true);
@@ -63,8 +64,12 @@ public class Vault extends Block implements SegmentPieceRemoveListener, SegmentP
 
 	@Override
 	public void initResources() {
-		blockInfo.setBuildIconNum(Blocks.DECORATIVE_SERVER.getInfo().getBuildIconNum());
-		blockInfo.setTextureId(Blocks.DECORATIVE_SERVER.getInfo().getTextureIds());
+		if(!ResourceManager.BlockIcons.VAULT.apply(blockInfo)) {
+			blockInfo.setBuildIconNum(Blocks.DECORATIVE_SERVER.getInfo().getBuildIconNum());
+		}
+		if(!ResourceManager.Textures.VAULT.apply(blockInfo)) {
+			blockInfo.setTextureId(Blocks.DECORATIVE_SERVER.getInfo().getTextureIds());
+		}
 	}
 
 	@Override

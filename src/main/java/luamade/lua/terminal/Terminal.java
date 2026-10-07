@@ -1,6 +1,7 @@
 package luamade.lua.terminal;
 
 import luamade.LuaMade;
+import luamade.element.ElementRegistry;
 import luamade.lua.Console;
 import luamade.lua.data.Vec3f;
 import luamade.lua.data.Vec3i;
@@ -12,6 +13,8 @@ import luamade.luawrap.LuaMadeUserdata;
 import luamade.luawrap.WrapMethod;
 import luamade.manager.ConfigManager;
 import luamade.system.module.ComputerModule;
+import luamade.utils.SegmentPieceUtils;
+import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.player.PlayerState;
 import org.luaj.vm2.*;
 import org.luaj.vm2.compiler.LuaC;
@@ -2979,6 +2982,11 @@ public class Terminal extends LuaMadeUserdata {
 		commands.put("pkg", new Command("pkg", "Trusted package manager (search/info/fetch/install/list/remove)") {
 			@Override
 			public void execute(String args) {
+				String sub = args == null ? "" : args.trim().toLowerCase(Locale.ROOT);
+				// list/remove only touch the local filesystem; everything else downloads
+				if(!sub.startsWith("list") && !sub.startsWith("remove") && !sub.isEmpty() && !requireModem()) {
+					return;
+				}
 				packageManagerService.handleCommand(args);
 			}
 		});
@@ -4207,6 +4215,9 @@ public class Terminal extends LuaMadeUserdata {
 	}
 
 	private String fetchWebData(String rawUrl) {
+		if(!requireModem()) {
+			return null;
+		}
 		if(!ConfigManager.isWebFetchEnabled()) {
 			console.print(valueOf("Error: Web fetch is disabled by server config"));
 			return null;
@@ -4221,6 +4232,9 @@ public class Terminal extends LuaMadeUserdata {
 	}
 
 	private String putWebData(String rawUrl, String payload, String contentType) {
+		if(!requireModem()) {
+			return null;
+		}
 		if(!ConfigManager.isWebPutEnabled()) {
 			console.print(valueOf("Error: Web PUT is disabled by server config"));
 			return null;
@@ -4239,6 +4253,19 @@ public class Terminal extends LuaMadeUserdata {
 		}
 
 		return executeWebRequest(url, "PUT", requestBytes, contentType, ConfigManager.getWebPutTimeoutMs(), ConfigManager.getWebPutMaxResponseBytes(), "web_put_max_response_bytes");
+	}
+
+	/** Network access (web requests, package downloads) needs a Network Module placed against the computer. */
+	private boolean requireModem() {
+		SegmentPiece piece = module.getSegmentPiece();
+		if(piece != null && piece.getSegmentController() != null) {
+			SegmentPiece live = piece.getSegmentController().getSegmentBuffer().getPointUnsave(piece.getAbsoluteIndex());
+			if(live != null && SegmentPieceUtils.getFirstMatchingAdjacent(live, ElementRegistry.NETWORK_MODULE.getId()) != null) {
+				return true;
+			}
+		}
+		console.print(valueOf("Error: No Network Module attached to this computer"));
+		return false;
 	}
 
 	private URL validateWebUrl(String rawUrl, boolean trustedDomainsOnly) {

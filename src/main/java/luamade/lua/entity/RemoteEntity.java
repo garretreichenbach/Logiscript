@@ -1,6 +1,6 @@
 package luamade.lua.entity;
 
-import api.utils.game.SegmentControllerUtils;
+import api.entity.SegmentControllerUtils;
 import luamade.lua.data.BoundingBox;
 import luamade.lua.data.Vec3f;
 import luamade.lua.data.Vec3i;
@@ -127,7 +127,7 @@ public class RemoteEntity extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public Shop asShop() {
 		if(!isShop()) return null;
-		return new Shop((ShopInterface) segmentController);
+		return new Shop((ShopInterface) segmentController, false);
 	}
 
 	@LuaMadeCallable

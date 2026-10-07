@@ -1,10 +1,8 @@
 package luamade.listener;
 
-import api.listener.Listener;
-import api.listener.events.systems.ShieldHitEvent;
-import api.listener.fastevents.FastListenerCommon;
-import api.listener.fastevents.segmentpiece.SegmentPieceDamageListener;
-import api.mod.StarLoader;
+import api.event.EventResult;
+import api.event.block.SegmentPieceDamageListener;
+import api.event.systems.ShieldHitListener;
 import luamade.LuaMade;
 import luamade.system.module.ComputerModuleContainer;
 import org.luaj.vm2.LuaTable;
@@ -18,7 +16,7 @@ import org.schema.game.common.controller.elements.ManagerContainer;
 public class CombatEventListener {
 
 	public static void register(LuaMade instance) {
-		FastListenerCommon.register(FastListenerCommon.segmentPieceDamageListeners, (controller, pos, type, damage, damageType, from, isServer) -> {
+		SegmentPieceDamageListener.TYPE.register((controller, pos, type, damage, damageType, from, isServer) -> {
             try {
                 LuaTable luaEvent = new LuaTable();
                 luaEvent.set("type", "block_damage");
@@ -36,22 +34,20 @@ public class CombatEventListener {
             return damage;
         }, instance);
 
-		StarLoader.registerListener(ShieldHitEvent.class, new Listener<>() {
-            @Override
-            public void onEvent(ShieldHitEvent event) {
-                try {
-                    SegmentController controller = event.getHitController();
-                    if (controller == null) return;
-
-                    LuaTable luaEvent = new LuaTable();
-                    luaEvent.set("type", "shield_hit");
-                    luaEvent.set("damageType", event.getDamageType() != null ? event.getDamageType().name() : "GENERAL");
-                    luaEvent.set("isServer", LuaValue.valueOf(event.isServer()));
-                    dispatchToComputers(controller, luaEvent);
-                } catch (Exception ignored) {
-                }
-            }
-        }, instance);
+		ShieldHitListener.TYPE.register((context, isServer) -> {
+			try {
+				SegmentController controller = context.getHitController();
+				if(controller != null) {
+					LuaTable luaEvent = new LuaTable();
+					luaEvent.set("type", "shield_hit");
+					luaEvent.set("damageType", context.getDamageType() != null ? context.getDamageType().name() : "GENERAL");
+					luaEvent.set("isServer", LuaValue.valueOf(isServer));
+					dispatchToComputers(controller, luaEvent);
+				}
+			} catch(Exception ignored) {
+			}
+			return EventResult.CONTINUE;
+		}, instance);
 	}
 
 	private static void dispatchToComputers(SegmentController controller, LuaTable event) {

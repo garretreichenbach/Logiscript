@@ -7,9 +7,9 @@ import org.schema.game.common.controller.Ship;
 import org.schema.game.common.controller.SpaceStation;
 import org.schema.game.common.controller.elements.ShipManagerContainer;
 import org.schema.game.common.controller.elements.StationaryManagerContainer;
-import org.schema.game.common.controller.elements.weapon.WeaponCollectionManager;
+import org.schema.game.common.controller.elements.cannon.CannonCollectionManager;
 import org.schema.game.common.controller.elements.beam.damageBeam.DamageBeamCollectionManager;
-import org.schema.game.common.controller.elements.missile.dumb.DumbMissileCollectionManager;
+import org.schema.game.common.controller.elements.missile.combinable.CombinableMissileCollectionManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -109,7 +109,7 @@ public class WeaponSystem extends LuaMadeUserdata {
 	private void addGroups(ShipManagerContainer mc, String typeName, List<WeaponGroup> groups) {
 		switch(typeName) {
 			case "CANNON":
-				for(WeaponCollectionManager cm : mc.getWeapon().getCollectionManagers()) {
+				for(CannonCollectionManager cm : mc.getWeapon().getCollectionManagers()) {
 					groups.add(new WeaponGroup(segmentController, cm, typeName));
 				}
 				break;
@@ -119,7 +119,7 @@ public class WeaponSystem extends LuaMadeUserdata {
 				}
 				break;
 			case "MISSILE":
-				for(DumbMissileCollectionManager cm : mc.getMissile().getCollectionManagers()) {
+				for(CombinableMissileCollectionManager cm : mc.getMissile().getCollectionManagers()) {
 					groups.add(new WeaponGroup(segmentController, cm, typeName));
 				}
 				break;
@@ -129,7 +129,7 @@ public class WeaponSystem extends LuaMadeUserdata {
 	private void addGroups(StationaryManagerContainer<?> mc, String typeName, List<WeaponGroup> groups) {
 		switch(typeName) {
 			case "CANNON":
-				for(WeaponCollectionManager cm : mc.getWeapon().getCollectionManagers()) {
+				for(CannonCollectionManager cm : mc.getWeapon().getCollectionManagers()) {
 					groups.add(new WeaponGroup(segmentController, cm, typeName));
 				}
 				break;
@@ -139,7 +139,7 @@ public class WeaponSystem extends LuaMadeUserdata {
 				}
 				break;
 			case "MISSILE":
-				for(DumbMissileCollectionManager cm : mc.getMissile().getCollectionManagers()) {
+				for(CombinableMissileCollectionManager cm : mc.getMissile().getCollectionManagers()) {
 					groups.add(new WeaponGroup(segmentController, cm, typeName));
 				}
 				break;

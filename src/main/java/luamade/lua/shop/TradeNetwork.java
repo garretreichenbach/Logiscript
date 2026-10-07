@@ -5,7 +5,9 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectOpenHashMap;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
+import luamade.utils.ServerThread;
 import org.schema.game.client.data.GameClientState;
+import org.schema.game.common.controller.trade.TradeActive;
 import org.schema.game.common.controller.trade.TradeNodeClient;
 import org.schema.game.common.controller.trade.TradeNodeStub;
 import org.schema.game.network.objects.TradePriceInterface;
@@ -115,6 +117,31 @@ public class TradeNetwork extends LuaMadeUserdata {
 				a.minBuy, a.maxBuy, a.minSell, a.maxSell, a.totalStock));
 		}
 		return out.toArray(new MarketEntry[0]);
+	}
+
+	/** All Trading Guild shipments currently in flight. Server-side only. */
+	@LuaMadeCallable
+	public ActiveTrade[] getActiveTrades() {
+		return activeTrades(null);
+	}
+
+	/** Shipments in flight to or from the given trade node. Server-side only. */
+	@LuaMadeCallable
+	public ActiveTrade[] getActiveTradesFor(Long nodeDbId) {
+		return nodeDbId == null ? new ActiveTrade[0] : activeTrades(nodeDbId);
+	}
+
+	static ActiveTrade[] activeTrades(Long nodeDbId) {
+		GameServerState state = safeServerState();
+		if(state == null) return new ActiveTrade[0];
+		// The list is mutated by the main loop, so copy it there.
+		return ServerThread.call(() -> {
+			ArrayList<ActiveTrade> out = new ArrayList<>();
+			for(TradeActive t : state.getGameState().getTradeManager().getTradeActiveMap().getTradeList()) {
+				if(nodeDbId == null || t.getFromId() == nodeDbId || t.getToId() == nodeDbId) out.add(new ActiveTrade(t));
+			}
+			return out.toArray(new ActiveTrade[0]);
+		});
 	}
 
 	private static class Aggregator {

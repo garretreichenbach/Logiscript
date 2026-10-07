@@ -71,6 +71,8 @@ tasks.register('generateDocumentationIndex') {
 
 tasks.named('processResources') {
     dependsOn('generateDocumentationIndex')
+    exclude('**/*.kra', '**/*.kra~', '**/*.blend', '**/*.blend1') // Krita/Blender sources (and backups); only exported assets ship
+    exclude('models/*/*') // per-model source folders; the game loads the packaged models/<Name>.zip
 }
 
 tasks.register("updateVersion") {

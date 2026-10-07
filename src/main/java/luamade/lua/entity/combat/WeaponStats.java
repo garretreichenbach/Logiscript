@@ -2,7 +2,7 @@ package luamade.lua.entity.combat;
 
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
-import org.schema.game.common.controller.elements.weapon.WeaponUnit;
+import org.schema.game.common.controller.elements.cannon.CannonUnit;
 import org.schema.game.common.controller.elements.beam.damageBeam.DamageBeamUnit;
 import org.schema.game.common.controller.elements.missile.MissileUnit;
 
@@ -23,7 +23,7 @@ public class WeaponStats extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public Float getDamage() {
-		if(unit instanceof WeaponUnit) return ((WeaponUnit) unit).getDamage();
+		if(unit instanceof CannonUnit) return ((CannonUnit) unit).getDamage();
 		if(unit instanceof DamageBeamUnit) return ((DamageBeamUnit) unit).getBeamPower();
 		if(unit instanceof MissileUnit) return ((MissileUnit<?, ?, ?>) unit).getDamage();
 		return 0f;
@@ -31,7 +31,7 @@ public class WeaponStats extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public Float getBaseDamage() {
-		if(unit instanceof WeaponUnit) return ((WeaponUnit) unit).getBaseDamage();
+		if(unit instanceof CannonUnit) return ((CannonUnit) unit).getBaseDamage();
 		if(unit instanceof DamageBeamUnit) return ((DamageBeamUnit) unit).getBaseBeamPower();
 		if(unit instanceof MissileUnit) return ((MissileUnit<?, ?, ?>) unit).getBaseDamage();
 		return 0f;
@@ -39,14 +39,14 @@ public class WeaponStats extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public Float getSpeed() {
-		if(unit instanceof WeaponUnit) return ((WeaponUnit) unit).getSpeed();
+		if(unit instanceof CannonUnit) return ((CannonUnit) unit).getSpeed();
 		if(unit instanceof MissileUnit) return ((MissileUnit<?, ?, ?>) unit).getSpeed();
 		return 0f;
 	}
 
 	@LuaMadeCallable
 	public Float getRange() {
-		if(unit instanceof WeaponUnit) return ((WeaponUnit) unit).getDistanceRaw();
+		if(unit instanceof CannonUnit) return ((CannonUnit) unit).getDistanceRaw();
 		if(unit instanceof DamageBeamUnit) return ((DamageBeamUnit) unit).getDistanceFull();
 		if(unit instanceof MissileUnit) return ((MissileUnit<?, ?, ?>) unit).getDistanceRaw();
 		return 0f;
@@ -54,14 +54,14 @@ public class WeaponStats extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public Float getReloadTime() {
-		if(unit instanceof WeaponUnit) return ((WeaponUnit) unit).getReloadTimeMs();
+		if(unit instanceof CannonUnit) return ((CannonUnit) unit).getReloadTimeMs();
 		if(unit instanceof MissileUnit) return ((MissileUnit<?, ?, ?>) unit).getReloadTimeMs();
 		return 0f;
 	}
 
 	@LuaMadeCallable
 	public Float getPowerConsumption() {
-		if(unit instanceof WeaponUnit) return ((WeaponUnit) unit).getPowerConsumption();
+		if(unit instanceof CannonUnit) return ((CannonUnit) unit).getPowerConsumption();
 		if(unit instanceof DamageBeamUnit) return ((DamageBeamUnit) unit).getPowerConsumption();
 		if(unit instanceof MissileUnit) return ((MissileUnit<?, ?, ?>) unit).getPowerConsumption();
 		return 0f;
@@ -69,7 +69,7 @@ public class WeaponStats extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public Float getBasePowerConsumption() {
-		if(unit instanceof WeaponUnit) return ((WeaponUnit) unit).getBasePowerConsumption();
+		if(unit instanceof CannonUnit) return ((CannonUnit) unit).getBasePowerConsumption();
 		if(unit instanceof DamageBeamUnit) return ((DamageBeamUnit) unit).getBasePowerConsumption();
 		if(unit instanceof MissileUnit) return ((MissileUnit<?, ?, ?>) unit).getBasePowerConsumption();
 		return 0f;
@@ -77,7 +77,7 @@ public class WeaponStats extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public Double getPowerPerSecond() {
-		if(unit instanceof WeaponUnit) return ((WeaponUnit) unit).getPowerConsumedPerSecondCharging();
+		if(unit instanceof CannonUnit) return ((CannonUnit) unit).getPowerConsumedPerSecondCharging();
 		if(unit instanceof DamageBeamUnit) return ((DamageBeamUnit) unit).getPowerConsumedPerSecondCharging();
 		if(unit instanceof MissileUnit) return ((MissileUnit<?, ?, ?>) unit).getPowerConsumedPerSecondCharging();
 		return 0.0;
@@ -91,13 +91,13 @@ public class WeaponStats extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public Float getImpactForce() {
-		if(unit instanceof WeaponUnit) return ((WeaponUnit) unit).getImpactForce();
+		if(unit instanceof CannonUnit) return ((CannonUnit) unit).getImpactForce();
 		return 0f;
 	}
 
 	@LuaMadeCallable
 	public Float getRecoil() {
-		if(unit instanceof WeaponUnit) return ((WeaponUnit) unit).getRecoil();
+		if(unit instanceof CannonUnit) return ((CannonUnit) unit).getRecoil();
 		return 0f;
 	}
 }

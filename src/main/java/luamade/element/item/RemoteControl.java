@@ -1,6 +1,6 @@
 package luamade.element.item;
 
-import api.config.BlockConfig;
+import api.block.BlockConfig;
 import luamade.LuaMade;
 import luamade.element.ElementInterface;
 import luamade.element.ElementRegistry;
@@ -27,9 +27,9 @@ public class RemoteControl implements ElementInterface {
 		itemInfo = BlockConfig.newElement(LuaMade.getInstance(), "Remote Control", new short[6]);
 		itemInfo.placable = false;
 		itemInfo.setDescription("Portable controller that can link to LuaMade remote access points and forward player inputs.");
-		itemInfo.setDeprecated(true);
-		itemInfo.setInRecipe(false);
-		itemInfo.setShoppable(false);
+		itemInfo.setDeprecated(false);
+		itemInfo.setInRecipe(true);
+		itemInfo.setShoppable(true);
 		itemInfo.setPrice(Math.max(1, ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price / 2));
 		itemInfo.volume = 0.01f;
 	}

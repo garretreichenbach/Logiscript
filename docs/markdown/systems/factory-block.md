@@ -51,7 +51,7 @@ When wrapping explicitly with `peripheral.wrap(block, asType)`:
 ### Status
 
 - `getFactoryType()`
-Returns a string identifying the factory sub-type: `"basic"`, `"standard"`, `"advanced"`, `"micro_assembler"`, or `"capsule_assembler"`.
+Returns the factory block's name in snake_case (e.g. `"standard_factory"`), or `"unknown"`. Factory types are config-defined, so the set depends on the server.
 
 - `isProducing()`
 Returns `true` when the factory is actively consuming power to run a recipe.

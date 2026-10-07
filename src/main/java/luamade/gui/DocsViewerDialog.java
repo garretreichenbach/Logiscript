@@ -1,11 +1,11 @@
 package luamade.gui;
 
 import api.common.GameClient;
-import api.utils.gui.GUIInputDialogPanel;
+import api.gui.GUIInputDialogPanel;
 import luamade.docs.DocTopic;
 import luamade.docs.DocsRepository;
 import luamade.docs.MarkdownDocRenderer;
-import org.newdawn.slick.UnicodeFont;
+import org.schema.schine.graphicsengine.forms.font.unicode.UnicodeFont;
 import org.schema.game.client.controller.PlayerInput;
 import org.schema.schine.common.TabCallback;
 import org.schema.schine.common.TextAreaInput;
@@ -103,18 +103,18 @@ public class DocsViewerDialog extends PlayerInput {
 		private DocTopic selectedTopic;
 		private String searchQuery = "";
 
-		private GUIAncor searchAnchor;
+		private GUIAnchor searchAnchor;
 		private GUIActivatableTextBar searchBar;
 		private GUITextButton collapseAllButton;
 		private GUIScrollablePanel topicsScrollPanel;
-		private GUIAncor topicsContent;
-		private GUIAncor topicsPane;
+		private GUIAnchor topicsContent;
+		private GUIAnchor topicsPane;
 		private GUIScrollablePanel contentScrollPanel;
-		private GUIAncor contentBlocks;
-		private GUIAncor contentPane;
+		private GUIAnchor contentBlocks;
+		private GUIAnchor contentPane;
 		private GUITextOverlay emptyTopicsOverlay;
 		private GUIContentPane mainContentPane;
-		private GUIAncor rootContentPane;
+		private GUIAnchor rootContentPane;
 
 		public DocsPanel(InputState inputState, GUICallback guiCallback) {
 			super(inputState, "LUAMADE_DOCS", "LuaMade Documentation", "", WINDOW_WIDTH, WINDOW_HEIGHT, guiCallback);
@@ -130,7 +130,7 @@ public class DocsViewerDialog extends PlayerInput {
 			rootContentPane = mainContentPane.getContent(0);
 			GUIElement root = rootContentPane;
 
-			searchAnchor = new GUIAncor(getState(), LEFT_WIDTH - (PADDING * 2), SEARCH_HEIGHT);
+			searchAnchor = new GUIAnchor(getState(), LEFT_WIDTH - (PADDING * 2), SEARCH_HEIGHT);
 			root.attach(searchAnchor);
 
 			collapseAllButton = new GUITextButton(getState(), COLLAPSE_ALL_BUTTON_WIDTH, COLLAPSE_ALL_BUTTON_HEIGHT, GUITextButton.ColorPalette.NEUTRAL, new Object() {
@@ -201,13 +201,13 @@ public class DocsViewerDialog extends PlayerInput {
 				};
 			}
 
-			topicsPane = new GUIAncor(getState(), LEFT_WIDTH, WINDOW_HEIGHT - 80);
+			topicsPane = new GUIAnchor(getState(), LEFT_WIDTH, WINDOW_HEIGHT - 80);
 			root.attach(topicsPane);
 
 			// Parent the scroll panel to its pane background so scrollbar math stays local to this pane.
 			topicsScrollPanel = new GUIScrollablePanel(LEFT_WIDTH, WINDOW_HEIGHT - 80, topicsPane, getState());
 			topicsScrollPanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);
-			topicsContent = new GUIAncor(getState(), LEFT_WIDTH - 12, WINDOW_HEIGHT - 80);
+			topicsContent = new GUIAnchor(getState(), LEFT_WIDTH - 12, WINDOW_HEIGHT - 80);
 			topicsScrollPanel.setContent(topicsContent);
 			topicsPane.attach(topicsScrollPanel);
 
@@ -215,13 +215,13 @@ public class DocsViewerDialog extends PlayerInput {
 			emptyTopicsOverlay.setTextSimple("No matching topics");
 			emptyTopicsOverlay.onInit();
 
-			contentPane = new GUIAncor(getState(), WINDOW_WIDTH - LEFT_WIDTH - (PADDING * 3), WINDOW_HEIGHT - 44);
+			contentPane = new GUIAnchor(getState(), WINDOW_WIDTH - LEFT_WIDTH - (PADDING * 3), WINDOW_HEIGHT - 44);
 			root.attach(contentPane);
 
 			// Parent the right scroll panel to its background to keep scrollbar inside the right pane bounds.
 			contentScrollPanel = new GUIScrollablePanel(WINDOW_WIDTH - LEFT_WIDTH - (PADDING * 3), WINDOW_HEIGHT - 44, contentPane, getState());
 			contentScrollPanel.setScrollable(GUIScrollablePanel.SCROLLABLE_VERTICAL);
-			contentBlocks = new GUIAncor(getState(), WINDOW_WIDTH - LEFT_WIDTH - (PADDING * 3), WINDOW_HEIGHT - 44);
+			contentBlocks = new GUIAnchor(getState(), WINDOW_WIDTH - LEFT_WIDTH - (PADDING * 3), WINDOW_HEIGHT - 44);
 			contentScrollPanel.setContent(contentBlocks);
 			contentPane.attach(contentScrollPanel);
 

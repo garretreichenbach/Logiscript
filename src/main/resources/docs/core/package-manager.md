@@ -8,6 +8,8 @@ LuaMade now includes a built-in package manager design for trusted package distr
 - Keep package install available even when generic web fetch is disabled.
 - Enforce a server-controlled trusted registry endpoint.
 
+Downloading commands (`search`, `info`, `fetch`, `install`) need a Network Module adjacent to the computer; `list` and `remove` work offline.
+
 ## Trust and Security Model
 
 - Generic `httpget`/`httpput` controls remain unchanged.

@@ -132,11 +132,8 @@ public class PeripheralRegistry {
 			@Override
 			public boolean canWrap(SegmentPiece piece) {
 				short type = piece.getType();
-				return type == ElementKeyMap.FACTORY_BASIC_ID
-					|| type == ElementKeyMap.FACTORY_STANDARD_ID
-					|| type == ElementKeyMap.FACTORY_ADVANCED_ID
-					|| type == ElementKeyMap.FACTORY_CAPSULE_ASSEMBLER_ID
-					|| type == ElementKeyMap.FACTORY_MICRO_ASSEMBLER_ID;
+				// Factories are config-defined now; any block with a <Factory> entry counts.
+				return ElementKeyMap.isValidType(type) && ElementKeyMap.getInfo(type).getFactory() != null;
 			}
 
 			@Override

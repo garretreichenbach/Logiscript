@@ -1,15 +1,16 @@
 package luamade.element.block;
 
-import api.config.BlockConfig;
-import api.listener.fastevents.segmentpiece.SegmentPieceKilledListener;
-import api.listener.fastevents.segmentpiece.SegmentPiecePlayerInteractListener;
-import api.listener.fastevents.segmentpiece.SegmentPieceRemoveListener;
-import api.utils.element.Blocks;
+import api.block.BlockConfig;
+import api.event.block.SegmentPieceKilledListener;
+import api.event.block.SegmentPiecePlayerInteractListener;
+import api.event.block.SegmentPieceRemoveListener;
+import api.block.Blocks;
 import api.network.packets.PacketUtil;
 import luamade.element.ElementRegistry;
+import luamade.manager.ResourceManager;
 import luamade.network.PacketCSRequestDataStoreContents;
 import luamade.system.module.DataStoreModuleContainer;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import javax.annotation.Nullable;
 import org.schema.game.client.controller.manager.ingame.PlayerInteractionControlManager;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SendableSegmentController;
@@ -31,9 +32,9 @@ public class DataStore extends Block implements SegmentPieceRemoveListener, Segm
 	public void initData() {
 		super.initData();
 		blockInfo.setDescription("A programmable data store. Key-value data persists across server restarts. Place adjacent Permission Modules to control cross-entity or cross-faction access.");
-		blockInfo.setDeprecated(true);
-		blockInfo.setInRecipe(false);
-		blockInfo.setShoppable(false);
+		blockInfo.setDeprecated(false);
+		blockInfo.setInRecipe(true);
+		blockInfo.setShoppable(true);
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price * 2);
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(true);
@@ -47,8 +48,12 @@ public class DataStore extends Block implements SegmentPieceRemoveListener, Segm
 
 	@Override
 	public void initResources() {
-		blockInfo.setBuildIconNum(Blocks.DECORATIVE_SERVER.getInfo().getBuildIconNum());
-		blockInfo.setTextureId(Blocks.DECORATIVE_SERVER.getInfo().getTextureIds());
+		if(!ResourceManager.BlockIcons.DATA_STORE.apply(blockInfo)) {
+			blockInfo.setBuildIconNum(Blocks.DECORATIVE_SERVER.getInfo().getBuildIconNum());
+		}
+		if(!ResourceManager.Textures.DATA_STORE.apply(blockInfo)) {
+			blockInfo.setTextureId(Blocks.DECORATIVE_SERVER.getInfo().getTextureIds());
+		}
 	}
 
 	@Override

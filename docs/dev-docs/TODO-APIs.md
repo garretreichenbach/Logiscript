@@ -1,7 +1,5 @@
 # LuaMade - Planned API Additions
 
-Identified from the StarMade codebase at `/Users/garret/Documents/GitHub/StarMade`. Organized by priority.
-
 ---
 
 ## 1. Combat & Weapons (High Priority)
@@ -31,19 +29,17 @@ The biggest missing system. Enables automated turrets, damage callbacks, and scr
 
 ---
 
-## 2. Trading & Economy (High Priority)
-
-Enables automated trading bots, market monitors, and price comparison scripts.
+## 2. Trading & Economy ✅ (implemented — see `docs/systems/shop.md`, `docs/systems/trade-network.md`)
 
 ### Trade System
-- **Trade orders** - `TradeManager`, `TradeOrder`, `TradeOrderConfig` - create and manage trade orders
-- **Trade nodes** - `TradeNode`, `TradeNodeClient` - query available trade routes
-- **Trade history** - `TradeHistoryElement` - query past trades
+- **Trade orders** ✅ - `shop.createOrder(targetDbId)` → `TradeOrderDraft` (addBuy/addSell, quote, submit); runs the game's own `checkTrade` / `executeTradeOrderServer` on the server thread. Own shop only.
+- **Active trades** ✅ - `shop.getActiveTrades()`, `trade.getActiveTrades()` / `getActiveTradesFor(dbId)` → `ActiveTrade` (in-flight shipments from `TradeActiveMap`)
+- **Trade nodes** ✅ - `trade.getNodes()`, `findBuyOffers` / `findSellOffers`, `getMarketSnapshot()`
+- **Trade history** ⛔ skipped - vanilla never writes the `TRADE_HISTORY` table (`insertTradeHistory` has no callers), so it is always empty. Would need our own ledger.
 
-### Shop Interaction
-- **Buy/sell** - `ShopInterface`, `ShopNetworkInterface` - interact with shops programmatically
-- **Shop options** - `ShopOption` - query available items and prices
-- **Shop inventory** - `ShopInventory` - query shop stock
+### Shop Interaction ✅
+- **Buy/sell** ✅ - `shop.buy` / `shop.sell` on behalf of a player
+- **Shop options / inventory** ✅ - prices, buyable/sellable types, `getStock()`
 
 ---
 
@@ -60,7 +56,7 @@ TODO: Have config option to prevent broadcasting into public "all" chat to preve
 
 ---
 
-## 5. Docking & Rails (Medium Priority)
+## 4. Docking & Rails (Medium Priority)
 
 Control docked turrets, manage carrier operations, and rail-based automation.
 
@@ -75,27 +71,24 @@ Control docked turrets, manage carrier operations, and rail-based automation.
 
 ---
 
-## 6. Sector & World Queries (Medium Priority)
+## 5. Sector & World Queries ✅
 
 Know what's around you. Enables navigation aids, sector scanners, and map tools.
-
-### Sector Information
-- **Sector contents** - `SectorInformation` - query entities, type, and ownership of sectors
-- **Nearby sectors** - `ClientProximitySector`, `ClientProximitySystem` - scan nearby space
-- **Sector generation** - `SectorGenerationDefault` - query sector type (void, asteroid, etc.)
 
 ### Galaxy & Star Systems ✅ (implemented — `galaxy` global; see `docs/systems/galaxy.md`)
 - **Galaxy data** ✅ - `GalaxyManager` / `StellarSystem` - `galaxy.getSystem()`, `getSystemAt()`, star-system names & positions, center/sector/planet types
 - **System ownership** ✅ - `galaxy.getSystemOwner()` (faction) and `getSystemOwnership()` (relationship: BY_SELF/ALLY/ENEMY/NEUTRAL/NONE)
 - **Warp gates** ✅ - `FTLConnection` - `galaxy.getWarpGates()` returns FTL routes (warp gate / wormhole / race-way) with sources & destinations
 
-Still open in this section:
-- **Sector contents** - `SectorInformation` - list entities/ownership of an arbitrary sector (beyond type)
-- **Nearby-sector proximity scan** - `ClientProximitySector` / `ClientProximitySystem`
+### Sector Information ✅ (implemented — `galaxy` global; see `docs/systems/galaxy.md`)
+- **Sector contents** ✅ - `galaxy.getSectorInfo()` → `SectorInfo` (type + planet/station sub-type, loaded state, protection mode); `galaxy.getEntitiesInSector()` → loaded ships/stations/asteroids in a sector
+- **Nearby-sector proximity scan** ✅ - `galaxy.scanSectors(center, radius)` → `SectorInfo[]` cube scan (server-side, reuses star-system lookups per system, no sector loading — same technique as `ClientProximitySector.updateServer`)
+
+Demo: **`/bin/sectormap.lua`** — in-world 3D holographic sector map (galaxy scan + gfx3d projector).
 
 ---
 
-## 7. Faction Management (Medium Priority)
+## 6. Faction Management (Medium Priority)
 
 Deeper faction control beyond just reading basic faction info.
 
@@ -104,7 +97,7 @@ Deeper faction control beyond just reading basic faction info.
 - **Build rights** - `FactionBuildRight` - query build permissions
 
 ### Territory
-- **System ownership** - `RemoteSystemOwnershipChange` - query/claim territory
+- **Claim territory** - `RemoteSystemOwnershipChange` - claim systems (reading ownership is covered by `galaxy.getSystemOwner()`)
 
 ### Members
 - **Invitations** - `RemoteFactionInvitation` - invite/kick members

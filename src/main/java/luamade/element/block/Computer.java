@@ -1,13 +1,14 @@
 package luamade.element.block;
 
-import api.config.BlockConfig;
-import api.listener.fastevents.segmentpiece.*;
-import api.utils.element.Blocks;
+import api.block.BlockConfig;
+import api.event.block.*;
+import api.block.Blocks;
 import luamade.LuaMade;
 import luamade.element.ElementRegistry;
 import luamade.gui.ComputerDialog;
+import luamade.manager.ResourceManager;
 import luamade.system.module.ComputerModuleContainer;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import javax.annotation.Nullable;
 import org.schema.game.client.controller.manager.ingame.PlayerInteractionControlManager;
 import org.schema.game.client.view.cubes.shapes.BlockStyle;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
@@ -61,7 +62,9 @@ public class Computer extends Block implements SegmentPiecePlayerInteractListene
 	public void initResources() {
 		BlockConfig.assignLod(blockInfo, LuaMade.getInstance(), "Computer", null);
 		blockInfo.blockStyle = BlockStyle.NORMAL24;
-		blockInfo.setBuildIconNum(ElementKeyMap.getInfo(451).getBuildIconNum());
+		if(!ResourceManager.BlockIcons.COMPUTER.apply(blockInfo)) {
+			blockInfo.setBuildIconNum(ElementKeyMap.getInfo(451).getBuildIconNum());
+		}
 	}
 
 	@Override

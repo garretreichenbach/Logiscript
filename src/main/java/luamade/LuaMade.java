@@ -1,6 +1,6 @@
 package luamade;
 
-import api.config.BlockConfig;
+import api.block.BlockConfig;
 import api.mod.StarMod;
 import api.network.Packet;
 import luamade.element.ElementRegistry;
@@ -109,30 +109,30 @@ public class LuaMade extends StarMod {
 	}
 
 	private void registerPackets() {
-		Packet.registerPacket(PacketCSRequestDataStoreContents.class);
-		Packet.registerPacket(PacketSCDataStoreContents.class);
-		Packet.registerPacket(PacketCSRequestVaultView.class);
-		Packet.registerPacket(PacketSCVaultView.class);
-		Packet.registerPacket(PacketCSVaultDeposit.class);
-		Packet.registerPacket(PacketCSVaultWithdraw.class);
-		Packet.registerPacket(PacketCSVaultScriptOp.class);
-		Packet.registerPacket(PacketSCVaultScriptResponse.class);
+		Packet.registerPacket(this, PacketCSRequestDataStoreContents.class);
+		Packet.registerPacket(this, PacketSCDataStoreContents.class);
+		Packet.registerPacket(this, PacketCSRequestVaultView.class);
+		Packet.registerPacket(this, PacketSCVaultView.class);
+		Packet.registerPacket(this, PacketCSVaultDeposit.class);
+		Packet.registerPacket(this, PacketCSVaultWithdraw.class);
+		Packet.registerPacket(this, PacketCSVaultScriptOp.class);
+		Packet.registerPacket(this, PacketSCVaultScriptResponse.class);
 
 		// Computer session (scripts execute server-side; these carry input to
 		// the server and stream console/gfx output back to viewers).
-		Packet.registerPacket(PacketCSComputerInput.class);
-		Packet.registerPacket(PacketSCComputerConnectAck.class);
-		Packet.registerPacket(PacketSCConsoleSnapshot.class);
-		Packet.registerPacket(PacketSCGfxSnapshot.class);
-		Packet.registerPacket(PacketCSFileRead.class);
-		Packet.registerPacket(PacketSCFileContents.class);
-		Packet.registerPacket(PacketCSFileWrite.class);
-		Packet.registerPacket(PacketSCFileResult.class);
-		Packet.registerPacket(PacketCSClipboardImport.class);
-		Packet.registerPacket(PacketSCOpenSwingEditor.class);
-		Packet.registerPacket(PacketSCPlayerDialogRequest.class);
-		Packet.registerPacket(PacketCSPlayerDialogResponse.class);
-		Packet.registerPacket(PacketCSTerminalQuery.class);
-		Packet.registerPacket(PacketSCTerminalQueryResult.class);
+		Packet.registerPacket(this, PacketCSComputerInput.class);
+		Packet.registerPacket(this, PacketSCComputerConnectAck.class);
+		Packet.registerPacket(this, PacketSCConsoleSnapshot.class);
+		Packet.registerPacket(this, PacketSCGfxSnapshot.class);
+		Packet.registerPacket(this, PacketCSFileRead.class);
+		Packet.registerPacket(this, PacketSCFileContents.class);
+		Packet.registerPacket(this, PacketCSFileWrite.class);
+		Packet.registerPacket(this, PacketSCFileResult.class);
+		Packet.registerPacket(this, PacketCSClipboardImport.class);
+		Packet.registerPacket(this, PacketSCOpenSwingEditor.class);
+		Packet.registerPacket(this, PacketSCPlayerDialogRequest.class);
+		Packet.registerPacket(this, PacketCSPlayerDialogResponse.class);
+		Packet.registerPacket(this, PacketCSTerminalQuery.class);
+		Packet.registerPacket(this, PacketSCTerminalQueryResult.class);
 	}
 }

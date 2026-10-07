@@ -1,10 +1,10 @@
 package luamade.gui;
 
 import api.common.GameClient;
-import api.utils.gui.GUIInputDialogPanel;
+import api.gui.GUIInputDialogPanel;
 import org.schema.game.client.controller.PlayerInput;
 import org.schema.schine.graphicsengine.core.MouseEvent;
-import org.schema.schine.graphicsengine.forms.gui.GUIAncor;
+import org.schema.schine.graphicsengine.forms.gui.GUIAnchor;
 import org.schema.schine.graphicsengine.forms.gui.GUICallback;
 import org.schema.schine.graphicsengine.forms.gui.GUIElement;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIContentPane;
@@ -62,7 +62,7 @@ public class NetworkedDataStoreDialog extends PlayerInput {
 		public void onInit() {
 			super.onInit();
 			GUIContentPane contentPane = ((GUIDialogWindow) background).getMainContentPane();
-			GUIAncor root = contentPane.getContent(0);
+			GUIAnchor root = contentPane.getContent(0);
 
 			DataStoreDialog.DataStoreScrollableList list = new DataStoreDialog.DataStoreScrollableList(getState(), 620, 380, root, storeUuid);
 			list.onInit();

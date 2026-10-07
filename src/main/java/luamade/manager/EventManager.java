@@ -1,12 +1,9 @@
 package luamade.manager;
 
-import api.listener.Listener;
-import api.listener.events.input.KeyPressEvent;
-import api.listener.events.input.MousePressEvent;
-import api.listener.events.draw.RegisterWorldDrawersEvent;
-import api.listener.events.player.PlayerLeaveWorldEvent;
-import api.listener.events.register.ManagerContainerRegisterEvent;
-import api.mod.StarLoader;
+import api.event.input.KeyPressListener;
+import api.event.lifecycle.ManagerContainerRegisterListener;
+import api.event.player.PlayerLeaveWorldListener;
+import api.event.render.RegisterWorldDrawersListener;
 import luamade.LuaMade;
 import luamade.gui.ComputerDialog;
 import luamade.gui.ComputerSessionView;
@@ -21,6 +18,7 @@ import luamade.system.module.ProjectorModuleContainer;
 import luamade.system.module.VaultModuleContainer;
 import org.schema.schine.graphicsengine.core.GLFW;
 import org.schema.schine.input.Keyboard;
+import org.schema.schine.input.KeyboardEvent;
 
 public class EventManager {
 
@@ -28,146 +26,114 @@ public class EventManager {
 		// Intercept navigation and completion keys so they don't reach TextAreaInput when the
 		// ComputerDialog is open. This prevents the caret from moving into protected
 		// console output territory and enables proper terminal history navigation.
-		StarLoader.registerListener(KeyPressEvent.class, new Listener<KeyPressEvent>() {
-			@Override
-			public void onEvent(KeyPressEvent event) {
-				int key = event.getKey();
-				char typedChar = event.getChar();
-				boolean ctrlDown = isControlDown();
-				boolean shiftDown = isShiftDown();
-				boolean altDown = isAltDown();
+		// The listener fires after the game has handled the key and carries no cancel; the
+		// setCanceled() calls this used to make were never read by the fire site either.
+		KeyPressListener.TYPE.register((event, isServer) -> {
+			int key = event.getKey();
+			String chars = event.getCharacter();
+			char typedChar = (chars != null && !chars.isEmpty()) ? chars.charAt(0) : '\0';
+			boolean ctrlDown = isControlDown();
+			boolean shiftDown = isShiftDown();
+			boolean altDown = isAltDown();
 
-				ComputerDialog.ComputerPanel panel = ComputerDialog.getActivePanel();
-				if(panel == null) return;
+			ComputerDialog.ComputerPanel panel = ComputerDialog.getActivePanel();
+			if(panel == null) return;
 
-				if(event.isKeyDown() && key == GLFW.GLFW_KEY_ESCAPE) {
-					event.setCanceled(true);
-					ComputerDialog.deactivateActiveDialog();
-					return;
+			if(event.isPressed() && key == GLFW.GLFW_KEY_ESCAPE) {
+				ComputerDialog.deactivateActiveDialog();
+				return;
+			}
+
+			if(!panel.isFileEditMode() && isCtrlCPress(event, ctrlDown)) {
+				// Ctrl+C is a hard interrupt in terminal mode and must never be consumed by text selection.
+				if(ConfigManager.isDebugMode()) {
+					instance.logDebug("[INTERRUPT] Ctrl+C detected: key=" + key + ", char=" + (int) typedChar + ", ctrlDown=" + ctrlDown + ", panelMasked=" + panel.isTerminalInputMaskedByGfx());
 				}
-
-				if(!panel.isFileEditMode() && isCtrlCPress(event, ctrlDown)) {
-					// Ctrl+C is a hard interrupt in terminal mode and must never be consumed by text selection.
-					event.setCanceled(true);
-					if(ConfigManager.isDebugMode()) {
-						instance.logDebug("[INTERRUPT] Ctrl+C detected: key=" + key + ", char=" + (int) typedChar + ", ctrlDown=" + ctrlDown + ", panelMasked=" + panel.isTerminalInputMaskedByGfx());
-					}
-					ComputerSessionView ctrlCSession = panel.getSessionView();
-					if(ctrlCSession != null) {
-						ctrlCSession.sendInterrupt();
-					}
-					return;
+				ComputerSessionView ctrlCSession = panel.getSessionView();
+				if(ctrlCSession != null) {
+					ctrlCSession.sendInterrupt();
 				}
+				return;
+			}
 
-				ComputerSessionView session = panel.getSessionView();
-				boolean keyboardConsumed = session != null && session.isKeyboardConsumed();
+			ComputerSessionView session = panel.getSessionView();
+			boolean keyboardConsumed = session != null && session.isKeyboardConsumed();
 
-				if(keyboardConsumed) {
-					// Script has exclusive keyboard control: cancel the event so
-					// the terminal text bar never receives the keystroke but still
-					// forward it to the Lua input queue below.
-					event.setCanceled(true);
-				} else if(event.isKeyDown()) {
-					// Normal mode: intercept editor shortcuts and navigation keys.
-					if(panel.isFileEditMode() && ctrlDown && (key == GLFW.GLFW_KEY_S || key == GLFW.GLFW_KEY_X || key == GLFW.GLFW_KEY_R)) {
-						event.setCanceled(true);
-						panel.handleEditorShortcut(key);
-						// still forward to InputApi so scripts can react
-					} else if(panel.isFileEditMode() && ctrlDown && key == GLFW.GLFW_KEY_F) {
-						event.setCanceled(true);
-						panel.handleFindText();
-					} else if(panel.isFileEditMode() && ctrlDown && key == GLFW.GLFW_KEY_G) {
-						event.setCanceled(true);
-						panel.handleGoToLine();
-					} else if(panel.isFileEditMode() && ctrlDown && key == GLFW.GLFW_KEY_D) {
-						event.setCanceled(true);
-						panel.handleDuplicateLine();
-					} else if(panel.isFileEditMode() && key == GLFW.GLFW_KEY_TAB) {
-						event.setCanceled(true);
-						panel.handleTabIndent(shiftDown);
-					} else if(panel.isFileEditMode() && key == GLFW.GLFW_KEY_ENTER) {
-						event.setCanceled(true);
-						panel.handleAutoIndentEnter();
-					} else if(!panel.isFileEditMode() && key == GLFW.GLFW_KEY_TAB) {
-						event.setCanceled(true);
-						panel.handleTabAutocomplete();
-						// still forward to InputApi below
-					} else if(!panel.isFileEditMode() && (key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_DOWN || key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT || key == GLFW.GLFW_KEY_HOME || key == GLFW.GLFW_KEY_END)) {
-						event.setCanceled(true);
-						panel.handleNavigationKey(key);
-						// still forward to InputApi below
-					}
+			if(keyboardConsumed) {
+				// Script has exclusive keyboard control: cancel the event so
+				// the terminal text bar never receives the keystroke but still
+				// forward it to the Lua input queue below.
+			} else if(event.isPressed()) {
+				// Normal mode: intercept editor shortcuts and navigation keys.
+				if(panel.isFileEditMode() && ctrlDown && (key == GLFW.GLFW_KEY_S || key == GLFW.GLFW_KEY_X || key == GLFW.GLFW_KEY_R)) {
+					panel.handleEditorShortcut(key);
+					// still forward to InputApi so scripts can react
+				} else if(panel.isFileEditMode() && ctrlDown && key == GLFW.GLFW_KEY_F) {
+					panel.handleFindText();
+				} else if(panel.isFileEditMode() && ctrlDown && key == GLFW.GLFW_KEY_G) {
+					panel.handleGoToLine();
+				} else if(panel.isFileEditMode() && ctrlDown && key == GLFW.GLFW_KEY_D) {
+					panel.handleDuplicateLine();
+				} else if(panel.isFileEditMode() && key == GLFW.GLFW_KEY_TAB) {
+					panel.handleTabIndent(shiftDown);
+				} else if(panel.isFileEditMode() && key == GLFW.GLFW_KEY_ENTER) {
+					panel.handleAutoIndentEnter();
+				} else if(!panel.isFileEditMode() && key == GLFW.GLFW_KEY_TAB) {
+					panel.handleTabAutocomplete();
+					// still forward to InputApi below
+				} else if(!panel.isFileEditMode() && (key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_DOWN || key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT || key == GLFW.GLFW_KEY_HOME || key == GLFW.GLFW_KEY_END)) {
+					panel.handleNavigationKey(key);
+					// still forward to InputApi below
 				}
+			}
 
-				// ---- forward every key event (press + release) over the network to the server-side InputApi ----
-				if(session != null) {
-					// NOTE: the per-computer "forward Enter while masked" preference used
-					// to gate this and isn't synced client-side in this pass (a narrow,
-					// rarely-toggled setting) — Enter is always forwarded now.
-					session.sendKeyEvent(key, typedChar, event.isKeyDown(), shiftDown, ctrlDown, altDown);
-				}
+			// ---- forward every key event (press + release) over the network to the server-side InputApi ----
+			if(session != null) {
+				// NOTE: the per-computer "forward Enter while masked" preference used
+				// to gate this and isn't synced client-side in this pass (a narrow,
+				// rarely-toggled setting) — Enter is always forwarded now.
+				session.sendKeyEvent(key, typedChar, event.isPressed(), shiftDown, ctrlDown, altDown);
 			}
 		}, instance);
 
-		StarLoader.registerListener(MousePressEvent.class, new Listener<MousePressEvent>() {
-			@Override
-			public void onEvent(MousePressEvent event) {
-				// Forward mouse events to ComputerDialog if it's active
-				ComputerDialog.ComputerPanel panel = ComputerDialog.getActivePanel();
-				if(panel != null) {
-					panel.pushMouseEvent(event.getRawEvent());
-				}
-			}
-		}, instance);
+		// No MousePressListener: ComputerDialog.handleMouseEvent already forwards mouse input, and the
+		// old MousePressEvent never fired, so registering one now would double every click.
 
 		BlockPublicPermissionListener.register(instance);
 		JumpTargetListener.register(instance);
 		luamade.listener.CombatEventListener.register(instance);
 
-		StarLoader.registerListener(ManagerContainerRegisterEvent.class, new Listener<ManagerContainerRegisterEvent>() {
-			@Override
-			public void onEvent(ManagerContainerRegisterEvent event) {
-				event.addModMCModule(new ComputerModuleContainer(event.getSegmentController(), event.getContainer()));
-				event.addModMCModule(new AccessPointModuleContainer(event.getSegmentController(), event.getContainer()));
-				event.addModMCModule(new DataStoreModuleContainer(event.getSegmentController(), event.getContainer()));
-				event.addModMCModule(new PasswordPermissionModuleContainer(event.getSegmentController(), event.getContainer()));
-				event.addModMCModule(new VaultModuleContainer(event.getSegmentController(), event.getContainer()));
-				event.addModMCModule(new ProjectorModuleContainer(event.getSegmentController(), event.getContainer()));
-			}
+		ManagerContainerRegisterListener.TYPE.register((event, isServer) -> {
+			event.addModMCModule(new ComputerModuleContainer(event.getSegmentController(), event.getContainer()));
+			event.addModMCModule(new AccessPointModuleContainer(event.getSegmentController(), event.getContainer()));
+			event.addModMCModule(new DataStoreModuleContainer(event.getSegmentController(), event.getContainer()));
+			event.addModMCModule(new PasswordPermissionModuleContainer(event.getSegmentController(), event.getContainer()));
+			event.addModMCModule(new VaultModuleContainer(event.getSegmentController(), event.getContainer()));
+			event.addModMCModule(new ProjectorModuleContainer(event.getSegmentController(), event.getContainer()));
 		}, instance);
 
 		// Render every projector's synced frame in world space each client frame.
-		StarLoader.registerListener(RegisterWorldDrawersEvent.class, new Listener<RegisterWorldDrawersEvent>() {
-			@Override
-			public void onEvent(RegisterWorldDrawersEvent event) {
-				event.getModDrawables().add(new ProjectorWorldDrawer());
-			}
-		}, instance);
+		RegisterWorldDrawersListener.TYPE.register((drawer, drawers, isServer) -> drawers.add(new ProjectorWorldDrawer()), instance);
 
 		// Scripts execute server-side now, streaming console/gfx output to whoever
 		// is viewing; a disconnected player's viewer entry would otherwise linger
 		// forever (only ever cleaned up if the entity itself unloads).
-		StarLoader.registerListener(PlayerLeaveWorldEvent.class, new Listener<PlayerLeaveWorldEvent>() {
-			@Override
-			public void onEvent(PlayerLeaveWorldEvent event) {
-				ComputerModuleContainer.removeViewerByPlayerName(event.getPlayerName());
-			}
-		}, instance);
+		PlayerLeaveWorldListener.TYPE.register((playerName, factionId, sector, isServer) -> ComputerModuleContainer.removeViewerByPlayerName(playerName), instance);
 	}
 
 	private static boolean isControlDown() {
-		return Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_CONTROL) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_CONTROL) || Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RCONTROL);
+		return Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_CONTROL) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_CONTROL);
 	}
 
 	private static boolean isShiftDown() {
-		return Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_SHIFT) || Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RSHIFT);
+		return Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_SHIFT);
 	}
 
 	private static boolean isAltDown() {
-		return Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_ALT) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_ALT) || Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LMENU) || Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RMENU);
+		return Keyboard.isKeyDown(GLFW.GLFW_KEY_LEFT_ALT) || Keyboard.isKeyDown(GLFW.GLFW_KEY_RIGHT_ALT);
 	}
 
-	private static boolean isCtrlCPress(KeyPressEvent event, boolean ctrlDown) {
-		return ctrlDown && (event.getKey() == GLFW.GLFW_KEY_C || event.getKey() == org.lwjgl.input.Keyboard.KEY_C) && event.isKeyDown();
+	private static boolean isCtrlCPress(KeyboardEvent event, boolean ctrlDown) {
+		return ctrlDown && (event.getKey() == GLFW.GLFW_KEY_C) && event.isPressed();
 	}
 }

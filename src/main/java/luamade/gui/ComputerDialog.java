@@ -1,7 +1,7 @@
 package luamade.gui;
 
 import api.common.GameClient;
-import api.utils.gui.GUIInputDialogPanel;
+import api.gui.GUIInputDialogPanel;
 import luamade.lua.gfx.Gfx2d;
 import luamade.manager.ConfigManager;
 import luamade.system.module.ComputerModule;
@@ -319,8 +319,8 @@ public class ComputerDialog extends PlayerInput {
 				return;
 			}
 
-			int button = mouseEvent.button;
-			boolean pressed = mouseEvent.state;
+			int button = mouseEvent.key;
+			boolean pressed = mouseEvent.isPressed();
 			boolean hasMovement = mouseEvent.dx != 0 || mouseEvent.dy != 0;
 			if(button < 0 && mouseEvent.dWheel == 0 && !hasMovement) {
 				return;

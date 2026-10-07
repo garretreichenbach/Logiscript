@@ -1,7 +1,7 @@
 package luamade.lua.entity;
 
 import api.common.GameServer;
-import api.utils.game.SegmentControllerUtils;
+import api.entity.SegmentControllerUtils;
 import com.bulletphysics.linearmath.Transform;
 import luamade.LuaMade;
 import luamade.lua.data.BoundingBox;
@@ -549,7 +549,7 @@ public class Entity extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public Shop asShop() {
 		if(!isShop()) return null;
-		return new Shop((ShopInterface) segmentController);
+		return new Shop((ShopInterface) segmentController, true);
 	}
 
 	@LuaMadeCallable

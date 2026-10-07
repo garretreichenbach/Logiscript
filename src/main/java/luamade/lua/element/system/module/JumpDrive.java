@@ -96,8 +96,8 @@ public class JumpDrive extends Module {
 		Collection<JumpDriveCollectionManager> cms = getCollectionManagers();
 		if(cms == null) return false;
 		for(JumpDriveCollectionManager cm : cms) {
-			if(cm.isCharged()) {
-				cm.jump();
+			if(cm.getChargeManager().getChargesCount() > 0) {
+				cm.attemptJump();
 				return true;
 			}
 		}
@@ -116,7 +116,7 @@ public class JumpDrive extends Module {
 		Collection<JumpDriveCollectionManager> cms = getCollectionManagers();
 		if(cms == null) return false;
 		for(JumpDriveCollectionManager cm : cms) {
-			if(cm.isCharged()) return true;
+			if(cm.getChargeManager().getChargesCount() > 0) return true;
 		}
 		return false;
 	}
@@ -130,7 +130,7 @@ public class JumpDrive extends Module {
 		if(cms == null) return 0f;
 		float max = 0f;
 		for(JumpDriveCollectionManager cm : cms) {
-			if(cm.getCharge() > max) max = cm.getCharge();
+			if(cm.getChargeManager().getCharge() > max) max = cm.getChargeManager().getCharge();
 		}
 		return max;
 	}
@@ -145,8 +145,8 @@ public class JumpDrive extends Module {
 		float maxCharge = -1f;
 		float needed = 0f;
 		for(JumpDriveCollectionManager cm : cms) {
-			if(cm.getCharge() > maxCharge) {
-				maxCharge = cm.getCharge();
+			if(cm.getChargeManager().getCharge() > maxCharge) {
+				maxCharge = cm.getChargeManager().getCharge();
 				needed = cm.getChargeNeededForJump();
 			}
 		}

@@ -4,12 +4,12 @@ import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.elements.ElementCollectionManager;
-import org.schema.game.common.controller.elements.weapon.WeaponCollectionManager;
-import org.schema.game.common.controller.elements.weapon.WeaponUnit;
+import org.schema.game.common.controller.elements.cannon.CannonCollectionManager;
+import org.schema.game.common.controller.elements.cannon.CannonUnit;
 import org.schema.game.common.controller.elements.beam.damageBeam.DamageBeamCollectionManager;
 import org.schema.game.common.controller.elements.beam.damageBeam.DamageBeamUnit;
-import org.schema.game.common.controller.elements.missile.dumb.DumbMissileCollectionManager;
-import org.schema.game.common.controller.elements.missile.dumb.DumbMissileUnit;
+import org.schema.game.common.controller.elements.missile.combinable.CombinableMissileCollectionManager;
+import org.schema.game.common.controller.elements.missile.combinable.CombinableMissileUnit;
 
 import java.util.ArrayList;
 
@@ -42,20 +42,20 @@ public class WeaponGroup extends LuaMadeUserdata {
 	public WeaponStats[] getUnits() {
 		ArrayList<WeaponStats> stats = new ArrayList<>();
 		try {
-			if(collectionManager instanceof WeaponCollectionManager) {
-				WeaponCollectionManager cm = (WeaponCollectionManager) collectionManager;
+			if(collectionManager instanceof CannonCollectionManager) {
+				CannonCollectionManager cm = (CannonCollectionManager) collectionManager;
 				for(Object unit : cm.getElementCollections()) {
-					stats.add(new WeaponStats((WeaponUnit) unit, "CANNON"));
+					stats.add(new WeaponStats((CannonUnit) unit, "CANNON"));
 				}
 			} else if(collectionManager instanceof DamageBeamCollectionManager) {
 				DamageBeamCollectionManager cm = (DamageBeamCollectionManager) collectionManager;
 				for(Object unit : cm.getElementCollections()) {
 					stats.add(new WeaponStats((DamageBeamUnit) unit, "BEAM"));
 				}
-			} else if(collectionManager instanceof DumbMissileCollectionManager) {
-				DumbMissileCollectionManager cm = (DumbMissileCollectionManager) collectionManager;
+			} else if(collectionManager instanceof CombinableMissileCollectionManager) {
+				CombinableMissileCollectionManager cm = (CombinableMissileCollectionManager) collectionManager;
 				for(Object unit : cm.getElementCollections()) {
-					stats.add(new WeaponStats((DumbMissileUnit) unit, "MISSILE"));
+					stats.add(new WeaponStats((CombinableMissileUnit) unit, "MISSILE"));
 				}
 			}
 		} catch(Exception ignored) {

@@ -1,13 +1,13 @@
 package luamade.gui;
 
 import api.common.GameClient;
-import api.utils.gui.GUIInputDialogPanel;
+import api.gui.GUIInputDialogPanel;
 import org.schema.game.client.view.gui.inventory.SingleInventorySlotIcon;
 import org.schema.game.client.controller.PlayerInput;
 import org.schema.game.client.data.GameClientState;
 import org.schema.game.common.data.player.inventory.Inventory;
 import org.schema.schine.graphicsengine.core.MouseEvent;
-import org.schema.schine.graphicsengine.forms.gui.GUIAncor;
+import org.schema.schine.graphicsengine.forms.gui.GUIAnchor;
 import org.schema.schine.graphicsengine.forms.gui.GUICallback;
 import org.schema.schine.graphicsengine.forms.gui.GUIElement;
 import org.schema.schine.graphicsengine.forms.gui.GUITextOverlay;
@@ -78,14 +78,14 @@ public class DiskDriveDialog extends PlayerInput {
 		public void onInit() {
 			super.onInit();
 			GUIContentPane mainContentPane = ((GUIDialogWindow) background).getMainContentPane();
-			GUIAncor root = mainContentPane.getContent(0);
+			GUIAnchor root = mainContentPane.getContent(0);
 
 			if(!attachSingleSlotWidget(root)) {
 				attachFallbackMessage(root, "SingleInventorySlotIcon unavailable in this runtime.");
 			}
 		}
 
-		private boolean attachSingleSlotWidget(GUIAncor root) {
+		private boolean attachSingleSlotWidget(GUIAnchor root) {
 			if(inventory == null) {
 				attachFallbackMessage(root, "No backing inventory found for this disk drive block.");
 				return false;
@@ -105,7 +105,7 @@ public class DiskDriveDialog extends PlayerInput {
 			}
 		}
 
-		private void attachHint(GUIAncor root, String text) {
+		private void attachHint(GUIAnchor root, String text) {
 			GUITextOverlay overlay = new GUITextOverlay(320, 20, org.schema.schine.graphicsengine.forms.font.FontLibrary.FontSize.MEDIUM, getState());
 			overlay.setTextSimple(text);
 			overlay.setPos(48, 128, 0);
@@ -113,7 +113,7 @@ public class DiskDriveDialog extends PlayerInput {
 			root.attach(overlay);
 		}
 
-		private void attachFallbackMessage(GUIAncor root, String message) {
+		private void attachFallbackMessage(GUIAnchor root, String message) {
 			GUITextOverlay overlay = new GUITextOverlay(430, 80, org.schema.schine.graphicsengine.forms.font.FontLibrary.FontSize.MEDIUM, getState());
 			overlay.setTextSimple(message + "\nUse the default inventory window as a fallback.");
 			overlay.setPos(24, 72, 0);

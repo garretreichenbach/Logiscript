@@ -1,9 +1,9 @@
 package luamade.lua.entity;
 
-import api.utils.game.SegmentControllerUtils;
+import api.entity.SegmentControllerUtils;
 import luamade.luawrap.LuaMadeCallable;
 import org.schema.game.common.controller.SegmentController;
-import org.schema.game.common.controller.elements.cloaking.StealthAddOn;
+import org.schema.game.common.controller.elements.stealth.StealthAddOn;
 
 /**
  * Entity subtype for player ships. Provides access to ship-specific systems

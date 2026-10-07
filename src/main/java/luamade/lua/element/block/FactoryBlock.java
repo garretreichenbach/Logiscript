@@ -44,19 +44,14 @@ public class FactoryBlock extends Block {
 	}
 
 	/**
-	 * Returns the factory sub-type: "basic", "standard", "advanced", "micro_assembler", or "capsule_assembler".
+	 * Returns the factory block's name in snake_case (e.g. "standard_factory"), or "unknown"
+	 * if this block is not a factory. Factory types are config-defined, so the set is open.
 	 */
 	@LuaMadeCallable
 	public String getFactoryType() {
 		short type = requireLiveSegmentPiece().getType();
-		switch(type) {
-			case ElementKeyMap.FACTORY_BASIC_ID: return "basic";
-			case ElementKeyMap.FACTORY_STANDARD_ID: return "standard";
-			case ElementKeyMap.FACTORY_ADVANCED_ID: return "advanced";
-			case ElementKeyMap.FACTORY_MICRO_ASSEMBLER_ID: return "micro_assembler";
-			case ElementKeyMap.FACTORY_CAPSULE_ASSEMBLER_ID: return "capsule_assembler";
-			default: return "unknown";
-		}
+		if(!ElementKeyMap.isValidType(type) || ElementKeyMap.getInfo(type).getFactory() == null) return "unknown";
+		return ElementKeyMap.getInfo(type).getName().trim().toLowerCase(java.util.Locale.ENGLISH).replaceAll("[^a-z0-9]+", "_");
 	}
 
 	/**

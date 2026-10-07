@@ -43,7 +43,7 @@ The terminal is the command shell and script runner for each computer.
 - `kill [-TERM|-KILL|-INT|-HUP|-15|-9|-2|-1] <job-id>` to stop a background job.
 - `nano <file>` to open the in-game editor pane.
 - `edit <file>` to open a file in the Swing GUI editor (syntax highlighting, line numbers, bracket matching).
-- `httpget <url> [output-file]` to fetch web content (if enabled by server config).
+- `httpget <url> [output-file]` to fetch web content (needs an attached Network Module; if enabled by server config).
 - `httpput [--content-type <mime>] <url> <payload|@file> [output-file]` to send web content via HTTP PUT.
 - `pkg <search|info|fetch|install|list|remove> ...` to use the trusted package manager.
 - `reboot` to re-run startup flow and reset prompt behavior.
@@ -126,10 +126,10 @@ Executes a command line from Lua.
 Returns true while scripts are running.
 
 - `httpGet(url)`
-Fetches HTTP(S) response body as text, subject to server web-fetch settings.
+Fetches HTTP(S) response body as text, subject to server web-fetch settings. Requires a Network Module adjacent to the computer.
 
 - `httpPut(url, body)` / `httpPut(url, body, contentType)`
-  Sends HTTP(S) PUT request body and returns response text, subject to server web-put settings.
+  Sends HTTP(S) PUT request body and returns response text, subject to server web-put settings. Requires a Network Module adjacent to the computer.
 
 - `setPromptTemplate(template)`
 Sets the shell prompt format.

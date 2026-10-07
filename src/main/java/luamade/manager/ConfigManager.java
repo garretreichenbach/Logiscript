@@ -1,9 +1,9 @@
 package luamade.manager;
 
-import api.utils.simpleconfig.SimpleConfigBool;
-import api.utils.simpleconfig.SimpleConfigContainer;
-import api.utils.simpleconfig.SimpleConfigDouble;
-import api.utils.simpleconfig.SimpleConfigInt;
+import api.config.simpleconfig.SimpleConfigBool;
+import api.config.simpleconfig.SimpleConfigContainer;
+import api.config.simpleconfig.SimpleConfigDouble;
+import api.config.simpleconfig.SimpleConfigInt;
 import luamade.LuaMade;
 
 import java.io.IOException;

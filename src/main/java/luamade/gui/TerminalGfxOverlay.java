@@ -1,10 +1,9 @@
 package luamade.gui;
 
 import luamade.lua.gfx.Gfx2d;
-import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
-import org.newdawn.slick.UnicodeFont;
-import org.schema.schine.graphicsengine.core.Controller;
+import org.schema.schine.graphicsengine.forms.font.unicode.UnicodeFont;
+import org.schema.schine.graphicsengine.texture.Texture;
 import org.schema.schine.graphicsengine.core.GlUtil;
 import org.schema.schine.graphicsengine.forms.Sprite;
 import org.schema.schine.graphicsengine.forms.font.FontLibrary;
@@ -24,7 +23,7 @@ import java.util.List;
  */
 public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 	private final ComputerSessionView sessionView;
-	private int lastTextureId = -1;
+	private Texture lastTexture;
 	private boolean canvasEnabled = true;
 	private int canvasWidth;
 	private int canvasHeight;
@@ -150,7 +149,7 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		}
 		releaseTrackedTexture();
 		super.onInit();
-		trackTextureId();
+		trackTexture();
 		textureResizePending = false;
 	}
 
@@ -488,44 +487,26 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		}
 	}
 
-	private void trackTextureId() {
-		lastTextureId = extractTextureId();
-	}
-
-	private int extractTextureId() {
-		if(sprite == null || sprite.getMaterial() == null || sprite.getMaterial().getTexture() == null) {
-			return -1;
-		}
-		return sprite.getMaterial().getTexture().getTextureId();
+	private void trackTexture() {
+		lastTexture = (sprite == null || sprite.getMaterial() == null) ? null : sprite.getMaterial().getTexture();
 	}
 
 	private void releaseTrackedTexture() {
-		if(lastTextureId > 0) {
+		if(lastTexture != null) {
 			try {
 				if(canDeleteTextureNow()) {
-					releaseTexture(lastTextureId);
+					lastTexture.cleanUp();
 				}
 			} catch(Exception ignored) {
 				// OpenGL context may be lost, texture release can fail safely
 			}
-			lastTextureId = -1;
-		}
-	}
-
-	private void releaseTexture(int textureId) {
-		try {
-			GL11.glDeleteTextures(textureId);
-			if(Controller.loadedTextures != null) {
-				Controller.loadedTextures.remove((Integer) textureId);
-			}
-		} catch(Exception ignored) {
-			// OpenGL context may be lost, texture release can fail safely
+			lastTexture = null;
 		}
 	}
 
 	private boolean canDeleteTextureNow() {
 		try {
-			return Display.isCreated() && Display.isCurrent();
+			return org.lwjgl.glfw.GLFW.glfwGetCurrentContext() != 0L;
 		} catch(Throwable ignored) {
 			return false;
 		}

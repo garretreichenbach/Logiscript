@@ -7,3 +7,7 @@
 .ci
 /.vscode/
 *.DS_Store
+# Krita backup files
+*.kra~
+# Blender backup files
+*.blend1

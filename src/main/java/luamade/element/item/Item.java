@@ -1,6 +1,6 @@
 package luamade.element.item;
 
-import api.config.BlockConfig;
+import api.block.BlockConfig;
 import luamade.LuaMade;
 import luamade.element.ElementInterface;
 import org.schema.game.common.data.element.ElementInformation;

@@ -1,6 +1,6 @@
 package luamade.lua.element.system.reactor;
 
-import api.utils.game.SegmentControllerUtils;
+import api.entity.SegmentControllerUtils;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
