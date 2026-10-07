@@ -23,6 +23,19 @@ public class PeripheralRegistry {
 	 */
 	public static void register(PeripheralProvider provider) {
 		providers.add(provider);
+		indexNames(provider);
+	}
+
+	/**
+	 * Like {@link #register}, but tried before every provider registered so far. For mods whose
+	 * blocks a broader built-in (e.g. Inventory) would otherwise claim during auto-detection.
+	 */
+	public static void registerFirst(PeripheralProvider provider) {
+		providers.add(0, provider);
+		indexNames(provider);
+	}
+
+	private static void indexNames(PeripheralProvider provider) {
 		for(String name : provider.getTypeNames()) {
 			byName.put(name.toLowerCase(Locale.ROOT), provider);
 		}
