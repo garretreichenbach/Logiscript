@@ -61,36 +61,6 @@ public class WeaponSystem extends LuaMadeUserdata {
 		return getMissiles().length;
 	}
 
-	@LuaMadeCallable
-	public Float getMissileCapacity() {
-		if(segmentController instanceof Ship) {
-			return ((Ship) segmentController).getManagerContainer().getMissileCapacity();
-		} else if(segmentController instanceof SpaceStation) {
-			return ((SpaceStation) segmentController).getManagerContainer().getMissileCapacity();
-		}
-		return 0f;
-	}
-
-	@LuaMadeCallable
-	public Float getMissileCapacityMax() {
-		if(segmentController instanceof Ship) {
-			return ((Ship) segmentController).getManagerContainer().getMissileCapacityMax();
-		} else if(segmentController instanceof SpaceStation) {
-			return ((SpaceStation) segmentController).getManagerContainer().getMissileCapacityMax();
-		}
-		return 0f;
-	}
-
-	@LuaMadeCallable
-	public Float getMissileReloadTime() {
-		if(segmentController instanceof Ship) {
-			return ((Ship) segmentController).getManagerContainer().getMissileCapacityReloadTime();
-		} else if(segmentController instanceof SpaceStation) {
-			return ((SpaceStation) segmentController).getManagerContainer().getMissileCapacityReloadTime();
-		}
-		return 0f;
-	}
-
 	private WeaponGroup[] getGroups(String typeName) {
 		ArrayList<WeaponGroup> groups = new ArrayList<>();
 		try {
