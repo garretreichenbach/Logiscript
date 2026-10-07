@@ -48,6 +48,14 @@ Returns `TradeOffer[]` in both directions, unsorted.
 - `getMarketSnapshot()`
 One-pass aggregate across every node and every item type. Returns `MarketEntry[]`. Far cheaper than calling `findBuyOffers` / `findSellOffers` per type when you want broad market data.
 
+- `getActiveTrades()`
+Returns `ActiveTrade[]` for every Trading Guild shipment currently in flight (see `shop.md`).
+
+- `getActiveTradesFor(nodeDbId: Long)`
+Same, filtered to shipments to or from one trade node.
+
+To place an order, use `shop.createOrder(...)` on the computer's own shop — see `shop.md`.
+
 ## TradeNodeInfo
 
 A lightweight, read-only snapshot of one trade node. Data reflects the network's most recent cache — not live.
