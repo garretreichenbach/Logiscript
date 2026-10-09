@@ -11,3 +11,4 @@
 *.kra~
 # Blender backup files
 *.blend1
+/scripts/
