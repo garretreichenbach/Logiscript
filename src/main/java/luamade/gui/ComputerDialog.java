@@ -6,6 +6,7 @@ import luamade.lua.gfx.Gfx2d;
 import luamade.manager.ConfigManager;
 import luamade.system.module.ComputerModule;
 import org.schema.game.client.controller.PlayerInput;
+import org.schema.game.client.view.mainmenu.GuidesViewerDialog;
 import org.schema.schine.common.TabCallback;
 import org.schema.schine.common.TextAreaInput;
 import org.schema.schine.common.TextCallback;
@@ -116,7 +117,7 @@ public class ComputerDialog extends PlayerInput {
 
 	private void openDocumentationPanel() {
 		deactivate();
-		new DocsViewerDialog(sessionView).activate();
+		new GuidesViewerDialog(GameClient.getClientState(), "LuaMade API Overview").activate();
 	}
 
 	private void resetComputerRuntime() {

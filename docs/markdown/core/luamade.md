@@ -4,6 +4,32 @@ LuaMade lets you run sandboxed Lua scripts on Computer Blocks.
 
 Use it to automate ship behavior, build status dashboards, and coordinate multiple computers through network messaging.
 
+## Setup
+
+```scene
+{
+  "height": 260,
+  "blocks": [
+    { "block": "videogoose.luamade~Computer", "at": [1, 0, 1] }
+  ],
+  "steps": [
+    { "text": "Place a Computer Block. Your scripts run on it." },
+    {
+      "text": "Blocks touching the computer become peripherals. A Display Module shows text from scripts.",
+      "blocks": [{ "block": "DISPLAY_MODULE", "at": [2, 0, 1] }]
+    },
+    {
+      "text": "A Disk Drive holds a disk for moving files between computers.",
+      "blocks": [{ "block": "videogoose.luamade~Disk Drive", "at": [1, 1, 1] }]
+    },
+    {
+      "text": "A Network Module lets the computer message other computers and make web requests.",
+      "blocks": [{ "block": "videogoose.luamade~Network Module", "at": [0, 0, 1] }]
+    }
+  ]
+}
+```
+
 ## Quick start
 
 1. Place and activate a Computer Block.

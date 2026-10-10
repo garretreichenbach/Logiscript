@@ -9,6 +9,29 @@ local nm  = peripheral.wrapRelative("front", "networkmodule")
 local net = nm.getNet()
 ```
 
+```scene
+{
+  "height": 240,
+  "blocks": [
+    { "block": "SHIP_CORE", "at": [1, 0, 1] },
+    { "block": "videogoose.luamade~Computer", "at": [1, 1, 1] },
+    { "block": "videogoose.luamade~Network Module", "at": [2, 1, 1] }
+  ],
+  "steps": [
+    { "text": "Each computer needs its own Network Module touching it." },
+    {
+      "text": "A second ship sets up the same way. The ships don't need to be docked or touching.",
+      "blocks": [
+        { "block": "SHIP_CORE", "at": [7, 0, 1] },
+        { "block": "videogoose.luamade~Computer", "at": [7, 1, 1] },
+        { "block": "videogoose.luamade~Network Module", "at": [6, 1, 1] }
+      ]
+    },
+    { "text": "Give each computer a hostname with net.setHostname, then they can message each other with net.send." }
+  ]
+}
+```
+
 ## Typical usage
 
 ```lua

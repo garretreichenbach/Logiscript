@@ -3,6 +3,8 @@ package luamade;
 import api.block.BlockConfig;
 import api.mod.StarMod;
 import api.network.Packet;
+import luamade.docs.DocTopic;
+import luamade.docs.DocsRepository;
 import luamade.element.ElementRegistry;
 import luamade.network.PacketCSClipboardImport;
 import luamade.network.PacketCSComputerInput;
@@ -35,6 +37,7 @@ import luamade.manager.ConfigManager;
 import luamade.manager.EventManager;
 import luamade.manager.ResourceManager;
 import luamade.system.module.ComputerModuleContainer;
+import org.schema.game.client.view.mainmenu.GuidesRegistry;
 import org.schema.schine.resource.ResourceLoader;
 
 import java.util.Set;
@@ -90,6 +93,13 @@ public class LuaMade extends StarMod {
 			logException("Failed to save vault ledger on disable", exception);
 		}
 		super.onDisable();
+	}
+
+	@Override
+	public void onRegisterGuides(GuidesRegistry.ModGuideRegistrar registrar) {
+		for(DocTopic topic : DocsRepository.getTopics()) {
+			registrar.register("luamade-" + topic.getSectionKey(), "LuaMade: " + topic.getSectionLabel(), topic.getTitle(), topic.getMarkdown());
+		}
 	}
 
 	@Override

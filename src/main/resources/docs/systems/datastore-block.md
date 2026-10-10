@@ -13,6 +13,27 @@ Access is controlled by physically placing permission module blocks adjacent to 
 | `PUBLIC_PERMISSION_MODULE` (ID 346) | **Any** computer, regardless of faction |
 | `PASSWORD_PERMISSION_MODULE` (Logiscript) | Any computer whose faction has called `auth(password)` successfully |
 
+```scene
+{
+  "height": 240,
+  "blocks": [
+    { "block": "videogoose.luamade~Computer", "at": [0, 0, 1] },
+    { "block": "videogoose.luamade~Data Store", "at": [1, 0, 1] }
+  ],
+  "steps": [
+    { "text": "With nothing attached, only computers on the same entity can use the DataStore." },
+    {
+      "text": "A Faction Permission Module touching it opens access to the whole faction.",
+      "blocks": [{ "block": "FACTION_PERMISSION_MODULE", "at": [1, 1, 1] }]
+    },
+    {
+      "text": "Add a Public Permission Module and any computer can use it. The most permissive module wins.",
+      "blocks": [{ "block": "PUBLIC_PERMISSION_MODULE", "at": [2, 0, 1] }]
+    }
+  ]
+}
+```
+
 Multiple permission modules can coexist. The most permissive adjacent module wins. Access is checked on every call — changing adjacent blocks takes effect immediately without restarting the script.
 
 ## Typical usage

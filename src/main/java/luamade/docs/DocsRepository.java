@@ -211,6 +211,10 @@ public final class DocsRepository {
 			if(builder.length() > 0) {
 				builder.append(' ');
 			}
+			if(word.length() <= 2) { // acronyms like "io"
+				builder.append(word.toUpperCase(Locale.ROOT));
+				continue;
+			}
 			builder.append(Character.toUpperCase(word.charAt(0)));
 			if(word.length() > 1) {
 				builder.append(word.substring(1).toLowerCase(Locale.ROOT));
