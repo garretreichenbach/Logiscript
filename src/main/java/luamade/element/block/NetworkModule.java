@@ -25,6 +25,7 @@ public class NetworkModule extends Block {
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price * 4);
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(true);
+		blockInfo.inventoryGroup = "Networking";
 		blockInfo.volume = 0.1f;
 	}
 

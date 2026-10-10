@@ -1,16 +1,15 @@
 package luamade.element.block;
 
 import api.block.BlockConfig;
+import api.block.Blocks;
 import api.event.block.SegmentPieceKilledListener;
 import api.event.block.SegmentPiecePlayerInteractListener;
 import api.event.block.SegmentPieceRemoveListener;
-import api.block.Blocks;
 import api.network.packets.PacketUtil;
 import luamade.element.ElementRegistry;
 import luamade.manager.ResourceManager;
 import luamade.network.PacketCSRequestDataStoreContents;
 import luamade.system.module.NetworkedDataStoreModuleContainer;
-import javax.annotation.Nullable;
 import org.schema.game.client.controller.manager.ingame.PlayerInteractionControlManager;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
 import org.schema.game.common.controller.SendableSegmentController;
@@ -21,6 +20,8 @@ import org.schema.game.common.data.element.ElementKeyMap;
 import org.schema.game.common.data.element.FactoryResource;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.world.Segment;
+
+import javax.annotation.Nullable;
 
 /**
  * Element block definition for the Networked Data Store.
@@ -48,6 +49,7 @@ public class NetworkedDataStore extends Block implements SegmentPieceRemoveListe
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price * 4);
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(true);
+		blockInfo.inventoryGroup = "Data Storage";
 		blockInfo.volume = 0.2f;
 	}
 

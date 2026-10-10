@@ -24,6 +24,18 @@ public class InventoryBlock extends Block {
 	}
 
 	@LuaMadeCallable
+	public String getSlotData(Integer slot) {
+		Inventory inventory = getInventory();
+		return inventory == null ? null : inventory.getSlotData(slot);
+	}
+
+	@LuaMadeCallable
+	public Boolean setSlotData(Integer slot, String json) {
+		Inventory inventory = getInventory();
+		return inventory != null && inventory.setSlotData(slot, json);
+	}
+
+	@LuaMadeCallable
 	public Double getInventoryVolume() {
 		Inventory inventory = getInventory();
 		return inventory == null ? 0.0 : inventory.getVolume();

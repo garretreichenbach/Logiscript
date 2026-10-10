@@ -2,9 +2,8 @@ package luamade.gui;
 
 import api.common.GameClient;
 import api.gui.GUIInputDialogPanel;
-import org.schema.game.client.view.gui.inventory.SingleInventorySlotIcon;
 import org.schema.game.client.controller.PlayerInput;
-import org.schema.game.client.data.GameClientState;
+import org.schema.game.client.view.gui.inventory.SingleInventorySlotIcon;
 import org.schema.game.common.data.player.inventory.Inventory;
 import org.schema.schine.graphicsengine.core.MouseEvent;
 import org.schema.schine.graphicsengine.forms.gui.GUIAnchor;
@@ -14,8 +13,6 @@ import org.schema.schine.graphicsengine.forms.gui.GUITextOverlay;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIContentPane;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIDialogWindow;
 import org.schema.schine.input.InputState;
-
-import java.lang.reflect.Constructor;
 
 public class DiskDriveDialog extends PlayerInput {
 
@@ -49,18 +46,6 @@ public class DiskDriveDialog extends PlayerInput {
 
 	@Override
 	public void onDeactivate() {
-	}
-
-	public static boolean isSingleSlotUiAvailable() {
-		for(Constructor<?> constructor : SingleInventorySlotIcon.class.getConstructors()) {
-			Class<?>[] parameterTypes = constructor.getParameterTypes();
-			if(parameterTypes.length >= 3
-				&& GameClientState.class.isAssignableFrom(parameterTypes[0])
-				&& Inventory.class.isAssignableFrom(parameterTypes[1])) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	private static final class DiskDrivePanel extends GUIInputDialogPanel {

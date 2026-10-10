@@ -13,6 +13,9 @@ if drive == nil or not drive.hasDisk() then
   return
 end
 
+-- Label the disk (shows in inventories)
+drive.setDiskName("Chat Installer")
+
 -- Save local script onto disk
 print("Saved:", drive.saveProgram("/bin/chat.lua", "chat"))
 
@@ -42,6 +45,12 @@ Returns the inserted `ItemStack`, or `nil`.
 
 - `getDiskKey()`
 Returns internal disk identity key, or `nil`.
+
+- `getDiskName()` / `setDiskName(name)`
+Reads or sets the inserted disk's display name (the vanilla `name` custom data key). Pass `nil` or `""` to reset it to "Disk".
+
+- `getDiskData()` / `setDiskData(json)`
+Reads or replaces the inserted disk's item custom data as a JSON string. The disk's `luamadeDiskId` is always kept, so its files stay with it.
 
 - `listPrograms()`
 Returns program names stored on disk under `/programs/*.lua`.

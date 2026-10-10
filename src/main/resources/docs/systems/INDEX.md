@@ -12,6 +12,7 @@ Game systems including blocks, modules, inventories, and specialized mechanics.
 - **item-stack.md** - Item stack object reference
 - **peripheral.md** - Peripheral block wrapper
 - **shop.md** - Shop access (credits, stock, prices, buy/sell)
+- **vault.md** - Vault credit bank (`vault` global and peripheral)
 - **trade-network.md** - Galaxy-wide trade-node queries and market snapshots
 
 ### Block & Module Wrappers

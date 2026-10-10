@@ -6,8 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Client-side registry of pending file read/write requests against a
- * computer's server-side {@link FileSystem}. Mirrors
- * {@link luamade.lua.vault.VaultScriptRequests} — a caller allocates a future,
+ * computer's server-side {@link FileSystem}. A caller allocates a future,
  * sends the request packet, and blocks on the future; the response packet
  * completes it by request id.
  */

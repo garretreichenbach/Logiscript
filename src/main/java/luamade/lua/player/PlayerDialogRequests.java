@@ -5,9 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Server-side registry of pending player dialog requests. Mirrors
- * {@link luamade.lua.vault.VaultScriptRequests}, but lives on the server
- * (unlike Vault's client-side registry) since {@code player.confirm()} /
+ * Server-side registry of pending player dialog requests. {@code player.confirm()} /
  * {@code player.message()} now originate from a server-hosted script and
  * must round-trip to whichever client is meant to see the dialog.
  */

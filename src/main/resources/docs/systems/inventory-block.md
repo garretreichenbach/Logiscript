@@ -10,6 +10,9 @@ Returns the inventory's custom label as a `String`.
 - `getItems()`
 Returns `ItemStack[]` for all stored stacks, or `nil` when the inventory is empty.
 
+- `getSlotData(slot)` / `setSlotData(slot, json)`
+Same as `Inventory.getSlotData` / `Inventory.setSlotData`.
+
 - `getInventoryVolume()`
 Returns the current volume used by stored items as a `Double`.
 

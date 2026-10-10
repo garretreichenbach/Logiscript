@@ -5,6 +5,7 @@ core/luamade.md
 core/package-manager.md
 core/terminal-api.md
 core/terminal.md
+core/player.md
 core/util.md
 entities/INDEX.md
 entities/entity-ai.md
@@ -51,6 +52,7 @@ systems/shop.md
 systems/thrust.md
 systems/trade-network.md
 systems/usable-chamber.md
+systems/vault.md
 systems/weapon-group.md
 systems/weapon-stats.md
 systems/weapon-system.md

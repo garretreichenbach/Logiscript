@@ -27,3 +27,6 @@ Returns `BlockInfo` metadata for the item type.
 
 - `getCount()`
 Returns stack quantity.
+
+- `getSlot()`
+Returns the inventory slot the stack was read from, or `nil` for stacks a script built. Use with `Inventory.getSlotData(slot)`.

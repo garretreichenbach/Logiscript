@@ -15,8 +15,7 @@ import javax.vecmath.Vector3f;
 
 /**
  * Shared server-side resolution helpers for the computer-session packets
- * (input forwarding, file I/O). Mirrors the resolve-then-validate pattern
- * already used by {@link PacketCSVaultScriptOp}.
+ * (input forwarding, file I/O).
  */
 final class ComputerPacketUtil {
 

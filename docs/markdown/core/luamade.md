@@ -10,7 +10,7 @@ Use it to automate ship behavior, build status dashboards, and coordinate multip
 {
   "height": 260,
   "blocks": [
-    { "block": "videogoose.luamade~Computer", "at": [1, 0, 1] }
+    { "block": "videogoose.luamade~Computer", "at": [1, 0, 1], "orient": 19 }
   ],
   "steps": [
     { "text": "Place a Computer Block. Your scripts run on it." },
@@ -24,7 +24,7 @@ Use it to automate ship behavior, build status dashboards, and coordinate multip
     },
     {
       "text": "A Network Module lets the computer message other computers and make web requests.",
-      "blocks": [{ "block": "videogoose.luamade~Network Module", "at": [0, 0, 1] }]
+      "blocks": [{ "block": "videogoose.luamade~Network Module", "at": [0, 0, 1], "orient": 3 }]
     }
   ]
 }

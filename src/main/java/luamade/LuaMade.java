@@ -14,7 +14,6 @@ import luamade.network.PacketCSPlayerDialogResponse;
 import luamade.network.PacketCSRequestDataStoreContents;
 import luamade.network.PacketCSRequestVaultView;
 import luamade.network.PacketCSVaultDeposit;
-import luamade.network.PacketCSVaultScriptOp;
 import luamade.network.PacketCSVaultWithdraw;
 import luamade.network.PacketSCComputerConnectAck;
 import luamade.network.PacketSCConsoleSnapshot;
@@ -26,7 +25,6 @@ import luamade.network.PacketSCOpenSwingEditor;
 import luamade.network.PacketSCPlayerDialogRequest;
 import luamade.network.PacketCSTerminalQuery;
 import luamade.network.PacketSCTerminalQueryResult;
-import luamade.network.PacketSCVaultScriptResponse;
 import luamade.network.PacketSCVaultView;
 import luamade.lua.peripheral.PeripheralRegistry;
 import luamade.lua.datastore.NetworkedDataStoreRegistry;
@@ -125,8 +123,6 @@ public class LuaMade extends StarMod {
 		Packet.registerPacket(this, PacketSCVaultView.class);
 		Packet.registerPacket(this, PacketCSVaultDeposit.class);
 		Packet.registerPacket(this, PacketCSVaultWithdraw.class);
-		Packet.registerPacket(this, PacketCSVaultScriptOp.class);
-		Packet.registerPacket(this, PacketSCVaultScriptResponse.class);
 
 		// Computer session (scripts execute server-side; these carry input to
 		// the server and stream console/gfx output back to viewers).

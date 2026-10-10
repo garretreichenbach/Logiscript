@@ -23,6 +23,12 @@ end
 - `getItems()`
 Returns array of `ItemStack` values.
 
+- `getSlotData(slot)`
+Returns the item custom data in `slot` as a JSON string (`"{}"` when none), or `nil` if the slot is empty. Get slot numbers from `ItemStack.getSlot()`.
+
+- `setSlotData(slot, json)`
+Replaces the item custom data in `slot`. Vanilla reads `name`, `description` and `icon` keys for display. Pass `"{}"` to clear. Keys starting with `luamade` are reserved by the mod (disk IDs, remote links): reads include them, writes keep them, and scripts can't change them.
+
 - `getVolume()`
 Returns current volume used by stored items.
 

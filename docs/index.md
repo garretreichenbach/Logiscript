@@ -10,6 +10,7 @@ markdown/core/luamade
 markdown/core/console
 markdown/core/terminal
 markdown/core/terminal-api
+markdown/core/player
 markdown/core/util
 markdown/core/json
 ```
@@ -79,4 +80,5 @@ markdown/systems/shield-system
 markdown/systems/shipyard
 markdown/systems/thrust
 markdown/systems/usable-chamber
+markdown/systems/vault
 ```

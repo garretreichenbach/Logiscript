@@ -243,6 +243,23 @@ public class PeripheralRegistry {
 		register(new PeripheralProvider() {
 			@Override
 			public String[] getTypeNames() {
+				return new String[]{"vault"};
+			}
+
+			@Override
+			public boolean canWrap(SegmentPiece piece) {
+				return piece.getType() == ElementRegistry.VAULT.getId();
+			}
+
+			@Override
+			public Block wrap(SegmentPiece piece, ComputerModule module) {
+				return new VaultBlock(piece, module);
+			}
+		});
+
+		register(new PeripheralProvider() {
+			@Override
+			public String[] getTypeNames() {
 				return new String[]{"inventory"};
 			}
 

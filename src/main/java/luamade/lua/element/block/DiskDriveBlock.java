@@ -7,6 +7,8 @@ import luamade.lua.element.inventory.ItemStack;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeClass;
 import luamade.system.module.ComputerModule;
+import luamade.utils.CustomDataUtils;
+import org.json.JSONObject;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.player.inventory.InventorySlot;
 
@@ -45,6 +47,44 @@ public class DiskDriveBlock extends InventoryBlock {
 		}
 		SegmentPiece piece = getSegmentPiece();
 		return DiskDataStore.resolveDiskKey(slot, piece);
+	}
+
+	@LuaMadeCallable
+	public String getDiskData() {
+		Integer index = getInsertedDiskSlotIndex();
+		return index == null ? null : getInventory().getSlotData(index);
+	}
+
+	@LuaMadeCallable
+	public Boolean setDiskData(String json) {
+		Integer index = getInsertedDiskSlotIndex();
+		return index != null && getInventory().setSlotData(index, json);
+	}
+
+	/** Vanilla shows the custom data "name" key as the item's display name. */
+	@LuaMadeCallable
+	public String getDiskName() {
+		InventorySlot slot = getInsertedDiskSlot();
+		if(slot == null || !slot.hasCustomData()) {
+			return null;
+		}
+		return slot.getCustomData().optString("name", null);
+	}
+
+	@LuaMadeCallable
+	public Boolean setDiskName(String name) {
+		Integer index = getInsertedDiskSlotIndex();
+		if(index == null) {
+			return false;
+		}
+		InventorySlot slot = getInventory().getSlotAt(index);
+		JSONObject data = CustomDataUtils.copy(slot.hasCustomData() ? slot.getCustomData() : null);
+		if(name == null || name.trim().isEmpty()) {
+			data.remove("name");
+		} else {
+			data.put("name", name.trim());
+		}
+		return getInventory().setSlotData(index, data.toString());
 	}
 
 	@LuaMadeCallable
@@ -150,16 +190,20 @@ public class DiskDriveBlock extends InventoryBlock {
 	}
 
 	private InventorySlot getInsertedDiskSlot() {
+		Integer index = getInsertedDiskSlotIndex();
+		return index == null ? null : getInventory().getSlotAt(index);
+	}
+
+	private Integer getInsertedDiskSlotIndex() {
 		Inventory inventory = getInventory();
 		if(inventory == null || inventory.getBackingInventory() == null) {
 			return null;
 		}
 
-		org.schema.game.common.data.player.inventory.Inventory nativeInventory = inventory.getBackingInventory();
-		for(int i = 0; i < nativeInventory.getCountFilledSlots(); i++) {
+		for(int i : inventory.getBackingInventory().getSlots()) {
 			InventorySlot slot = inventory.getSlotAt(i);
 			if(slot != null && slot.count() > 0 && slot.getType() == ElementRegistry.DISK.getId()) {
-				return slot;
+				return i;
 			}
 		}
 		return null;

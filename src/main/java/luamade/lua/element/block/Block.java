@@ -10,6 +10,8 @@ import luamade.lua.peripheral.PeripheralRegistry;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.system.module.ComputerModule;
+import luamade.utils.CustomDataUtils;
+import org.json.JSONObject;
 import org.luaj.vm2.LuaError;
 import org.schema.game.client.controller.element.world.ClientSegmentProvider;
 import org.schema.game.common.controller.SendableSegmentProvider;
@@ -116,6 +118,20 @@ public class Block extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public Boolean isDisplayModule() {
 		return requireLiveSegmentPiece().getType() == ElementKeyMap.TEXT_BOX;
+	}
+
+	@LuaMadeCallable
+	public String getCustomData() {
+		SegmentPiece livePiece = requireLiveSegmentPiece();
+		return CustomDataUtils.toJson(livePiece.getSegmentController().getBlockCustomData(livePiece.getAbsoluteIndex()));
+	}
+
+	@LuaMadeCallable
+	public Boolean setCustomData(String json) {
+		SegmentPiece livePiece = requireLiveSegmentPiece();
+		JSONObject existing = livePiece.getSegmentController().getBlockCustomData(livePiece.getAbsoluteIndex());
+		livePiece.setCustomData(CustomDataUtils.fromScript(json, existing));
+		return true;
 	}
 
 	@LuaMadeCallable

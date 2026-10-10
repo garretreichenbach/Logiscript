@@ -18,8 +18,7 @@ import java.io.IOException;
  * and submitted command line here, and renders whatever the server streams
  * back via {@link PacketSCConsoleSnapshot} / {@link PacketSCGfxSnapshot}.
  *
- * <p>All event kinds share one packet shape (mirrors {@link PacketCSVaultScriptOp}'s
- * approach): irrelevant fields for a given {@link Kind} are simply ignored.
+ * <p>All event kinds share one packet shape: irrelevant fields for a given {@link Kind} are simply ignored.
  *
  * <p>{@link Kind#CONNECT} is the only kind that gets an explicit reply
  * ({@link PacketSCComputerConnectAck}) and the only one that does not require

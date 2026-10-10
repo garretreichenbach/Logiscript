@@ -9,10 +9,22 @@ public class ItemStack extends LuaMadeUserdata {
 
 	private short id;
 	private int count;
+	private final Integer slot;
 
 	public ItemStack(short id, int count) {
+		this(id, count, null);
+	}
+
+	public ItemStack(short id, int count, Integer slot) {
 		this.id = id;
 		this.count = count;
+		this.slot = slot;
+	}
+
+	/** Inventory slot this stack was read from, or nil for stacks built by scripts. */
+	@LuaMadeCallable
+	public Integer getSlot() {
+		return slot;
 	}
 
 	@LuaMadeCallable

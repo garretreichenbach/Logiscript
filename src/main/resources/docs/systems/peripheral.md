@@ -66,12 +66,13 @@ Returns supported side names.
 - Relative sides are resolved from the current computer block position.
 - `front`/`back`/`left`/`right`/`top`/`bottom` are resolved relative to the computer block's facing/orientation.
 - If no block exists at a location/side, methods return `nil` (or `false` for `hasRelative`).
-- `wrap(..., asType)` supports: `display`, `inventory`, `diskdrive`, `accesspoint`, `networkmodule`, `datastore`, `networkeddatastore`, `block`/`base`, and `auto`. Other mods may register additional type names.
+- `wrap(..., asType)` supports: `display`, `inventory`, `diskdrive`, `accesspoint`, `factory`, `passwordmodule`, `networkmodule`, `datastore`, `networkeddatastore`, `projector`, `vault`, `block`/`base`, and `auto`. Other mods may register additional type names.
 - `display` exposes display helpers like `setText()`/`getText()`.
 - `inventory` exposes helpers like `getItems()` and `getInventoryName()`.
 - `diskdrive` exposes disk methods like `saveProgram()`, `installProgram()`, and `listPrograms()`.
 - `networkmodule` exposes networking and FTP access — see [Network Module wrapper](#network-module-wrapper) below.
 - `accesspoint` exposes remote access methods described below.
+- `vault` exposes balance and payment methods — see [Vault API](vault.md).
 
 ## Network Module wrapper
 

@@ -4,7 +4,12 @@ import api.inventory.InventoryUtils;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.schema.game.common.data.SegmentPiece;
+import luamade.utils.CustomDataUtils;
+import org.json.JSONObject;
 import org.schema.game.common.data.player.inventory.InventorySlot;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Inventory extends LuaMadeUserdata {
 
@@ -25,15 +30,40 @@ public class Inventory extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public ItemStack[] getItems() {
 		if(isInventory()) {
-			ItemStack[] itemStacks = new ItemStack[inventory.getCountFilledSlots()];
-			for(int i = 0; i < inventory.getCountFilledSlots(); i ++) {
-				InventorySlot slot = inventory.getSlot(i);
+			List<ItemStack> itemStacks = new ArrayList<>();
+			for(int s : inventory.getSlots()) {
+				InventorySlot slot = inventory.getSlot(s);
 				if(slot != null && slot.count() > 0) {
-					itemStacks[i] = new ItemStack(slot.getType(), slot.count());
+					itemStacks.add(new ItemStack(slot.getType(), slot.count(), s));
 				}
 			}
-			return itemStacks;
+			return itemStacks.toArray(new ItemStack[0]);
 		} else return null;
+	}
+
+	@LuaMadeCallable
+	public String getSlotData(Integer slot) {
+		InventorySlot inventorySlot = slot == null ? null : getSlotAt(slot);
+		if(inventorySlot == null || !inventorySlot.hasCustomData()) {
+			return inventorySlot == null ? null : "{}";
+		}
+		return CustomDataUtils.toJson(inventorySlot.getCustomData());
+	}
+
+	@LuaMadeCallable
+	public Boolean setSlotData(Integer slot, String json) {
+		InventorySlot inventorySlot = slot == null ? null : getSlotAt(slot);
+		if(inventorySlot == null || inventorySlot.count() <= 0) {
+			return false;
+		}
+		JSONObject data = CustomDataUtils.fromScript(json, inventorySlot.hasCustomData() ? inventorySlot.getCustomData() : null);
+		if(data.length() == 0) {
+			inventorySlot.clearCustomData();
+		} else {
+			inventorySlot.setCustomData(data);
+		}
+		inventory.sendInventoryModification(slot);
+		return true;
 	}
 
 	@LuaMadeCallable

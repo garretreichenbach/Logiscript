@@ -11,7 +11,7 @@ import luamade.manager.ResourceManager;
 import luamade.system.module.AccessPointModuleContainer;
 import luamade.system.module.ComputerModule;
 import luamade.system.module.ComputerModuleContainer;
-import javax.annotation.Nullable;
+import org.json.JSONObject;
 import org.schema.game.client.controller.manager.ingame.PlayerInteractionControlManager;
 import org.schema.game.client.view.cubes.shapes.BlockStyle;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
@@ -23,10 +23,9 @@ import org.schema.game.common.data.element.FactoryResource;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.inventory.InventorySlot;
 import org.schema.game.common.data.world.Segment;
-import org.json.JSONObject;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 
 public class RemoteAccessPoint extends Block implements SegmentPiecePlayerInteractListener, SegmentPieceRemoveListener, SegmentPieceKilledListener {
 
@@ -48,6 +47,7 @@ public class RemoteAccessPoint extends Block implements SegmentPiecePlayerIntera
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.TEXT_BOX).price);
 		blockInfo.setOrientatable(true);
 		blockInfo.setCanActivate(true);
+		blockInfo.inventoryGroup = "Networking";
 		blockInfo.volume = 0.1f;
 	}
 

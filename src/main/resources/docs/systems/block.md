@@ -53,6 +53,12 @@ Returns true if an inventory exists at this block position.
 - `getInventory()`
 Returns `Inventory` or `nil` when no inventory is present.
 
+- `getCustomData()`
+Returns the block's vanilla custom data as a JSON string (`"{}"` when none). Decode with `json.decode`.
+
+- `setCustomData(json<String>)`
+Replaces the block's custom data with the given JSON object string. Pass `"{}"` to clear. Persists with the entity. Keys starting with `luamade` are reserved by the mod (disk IDs, remote links): reads include them, writes keep them, and scripts can't change them.
+
 - `isDisplayModule()`
 Returns true when the block is a text display module.
 

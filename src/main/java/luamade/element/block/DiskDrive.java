@@ -53,9 +53,6 @@ public class DiskDrive extends Block implements SegmentPiecePlayerInteractListen
 		if(segmentPiece.getType() != ElementRegistry.DISK_DRIVE.getId()) {
 			return;
 		}
-		if(!DiskDriveDialog.isSingleSlotUiAvailable()) {
-			return;
-		}
 		if(!(segmentPiece.getSegmentController() instanceof ManagedUsableSegmentController<?> controller)) {
 			return;
 		}
