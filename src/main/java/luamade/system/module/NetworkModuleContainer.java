@@ -6,6 +6,7 @@ import api.entity.module.util.SystemModule;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import luamade.element.ElementRegistry;
 import luamade.lua.networking.NetworkInterface;
+import luamade.utils.BlockOwnership;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.elements.ManagerContainer;
 import org.schema.game.common.data.SegmentPiece;
@@ -48,7 +49,7 @@ public class NetworkModuleContainer extends SystemModule {
 	public String getOrAssignUuid(long absIndex) {
 		String uuid = blockUuids.get(absIndex);
 		if(uuid == null) {
-			uuid = UUID.randomUUID().toString();
+			uuid = BlockOwnership.claim(segmentController, "networkmodule", UUID.randomUUID().toString(), absIndex);
 			blockUuids.put(absIndex, uuid);
 			flagUpdatedData();
 		}
@@ -165,7 +166,13 @@ public class NetworkModuleContainer extends SystemModule {
 			String uuid = buffer.readString();
 			String hostname = buffer.readString();
 			if(uuid != null && !uuid.isEmpty()) {
-				blockUuids.put(abs, uuid);
+				// A blueprint copy gets its own network identity; the hostname stays with the original.
+				String claimed = BlockOwnership.claim(segmentController, "networkmodule", uuid, abs);
+				if(!claimed.equals(uuid)) {
+					hostname = null;
+					flagUpdatedData();
+				}
+				blockUuids.put(abs, claimed);
 			}
 			if(hostname != null && !hostname.isEmpty()) {
 				pendingHostnames.put(abs, hostname);

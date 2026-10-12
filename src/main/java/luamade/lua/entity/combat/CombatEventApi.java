@@ -1,5 +1,6 @@
 package luamade.lua.entity.combat;
 
+import luamade.lua.terminal.ScriptClock;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.luaj.vm2.LuaTable;
@@ -67,7 +68,9 @@ public class CombatEventApi extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public LuaTable waitFor(Integer timeoutMs) {
 		try {
-			return eventQueue.poll(Math.max(0, timeoutMs), TimeUnit.MILLISECONDS);
+			try(ScriptClock.Blocked ignored = ScriptClock.blocked()) {
+				return eventQueue.poll(Math.max(0, timeoutMs), TimeUnit.MILLISECONDS);
+			}
 		} catch(InterruptedException e) {
 			Thread.currentThread().interrupt();
 			return null;

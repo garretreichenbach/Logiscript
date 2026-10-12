@@ -1,0 +1,50 @@
+{
+  "id": "luamade/core_libs",
+  "entity": "station",
+  "blocks": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "block": "videogoose.luamade~Computer"
+    },
+    {
+      "from": [
+        6,
+        0,
+        0
+      ],
+      "to": [
+        7,
+        0,
+        1
+      ],
+      "block": "REACTOR_POWER"
+    }
+  ],
+  "luamade": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "script": "local function check(c, m) if not c then print(\"FAIL \" .. m) error(m) end end\nlocal p = console.getBlock().getPos()\nlocal function at(dx, dy, dz) return vec3i(p.getX() + dx, p.getY() + dy, p.getZ() + dz) end\n\nlocal t = json.decode(json.encode({a = 1, b = {\"x\", \"y\"}, c = true}))\ncheck(t.a == 1 and t.b[2] == \"y\" and t.c == true, \"json roundtrip\")\ncheck(json.decode(\"null\") == json.null, \"json null\")\ncheck(require(\"json\") == json, \"require json\")\n\nlocal v = vec3i(1, 2, 3).add(vec3i(1, 1, 1)).scale(2)\ncheck(v.getX() == 4 and v.getY() == 6 and v.getZ() == 8, \"vec3i math\")\nlocal f = vec3f(-1.5, 0, 0)\ncheck(f.floorToVec3i().getX() == -2 and f.toVec3i().getX() == -1, \"vec3f rounding\")\ncheck(math.abs(vec3f(3, 4, 0).size() - 5) < 1e-6, \"vec3f size\")\n\nlocal t0 = console.getTime()\nutil.sleep(50)\ncheck(console.getTime() - t0 >= 40, \"util.sleep\")\ncheck(util.now() > 0, \"util.now\")\n\ncheck(load(\"return 1 + 2\")() == 3, \"load\")\nlocal co = coroutine.create(function(x) local y = coroutine.yield(x + 1) return y * 2 end)\nlocal _, a = coroutine.resume(co, 1)\nlocal _, b = coroutine.resume(co, 5)\ncheck(a == 2 and b == 10, \"coroutine\")\nprint(\"PASS core_libs\")\n"
+    }
+  ],
+  "expect": [
+    {
+      "luamade": [
+        0,
+        0,
+        0
+      ],
+      "measure": "console",
+      "text": "PASS core_libs",
+      "count": 1,
+      "by": 300
+    }
+  ]
+}

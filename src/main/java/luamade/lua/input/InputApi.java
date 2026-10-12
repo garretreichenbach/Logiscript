@@ -1,5 +1,6 @@
 package luamade.lua.input;
 
+import luamade.lua.terminal.ScriptClock;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.luaj.vm2.LuaTable;
@@ -113,8 +114,6 @@ public class InputApi extends LuaMadeUserdata {
 	 * @param dx       delta x since last event
 	 * @param dy       delta y since last event
 	 * @param wheel    scroll wheel delta
-	 * @param cellX    mapped canvas cell X (1-based), or -1 when unavailable
-	 * @param cellY    mapped canvas cell Y (1-based), or -1 when unavailable
 	 * @param uiX      x position relative to terminal gfx2d canvas, or -1 when unavailable
 	 * @param uiY      y position relative to terminal gfx2d canvas, or -1 when unavailable
 	 * @param insideCanvas true when the pointer is inside the terminal gfx2d canvas bounds
@@ -124,7 +123,7 @@ public class InputApi extends LuaMadeUserdata {
 	 * Mouse event tables also include optional UI origin coordinates:
 	 * windowX/windowY and canvasX/canvasY (nil when unavailable).
 	 */
-	public void pushMouseEvent(int button, boolean pressed, int x, int y, int dx, int dy, int wheel, int cellX, int cellY, int uiX, int uiY, boolean insideCanvas, boolean dragging, String dragButton) {
+	public void pushMouseEvent(int button, boolean pressed, int x, int y, int dx, int dy, int wheel, int uiX, int uiY, boolean insideCanvas, boolean dragging, String dragButton) {
 		if(!enabled) return;
 		LuaTable t = new LuaTable();
 		t.set("type", valueOf("mouse"));
@@ -136,8 +135,6 @@ public class InputApi extends LuaMadeUserdata {
 		t.set("dx", valueOf(dx));
 		t.set("dy", valueOf(dy));
 		t.set("wheel", valueOf(wheel));
-		t.set("cellX", cellX > 0 ? valueOf(cellX) : NIL);
-		t.set("cellY", cellY > 0 ? valueOf(cellY) : NIL);
 		t.set("uiX", uiX >= 0 ? valueOf(uiX) : NIL);
 		t.set("uiY", uiY >= 0 ? valueOf(uiY) : NIL);
 		t.set("insideCanvas", valueOf(insideCanvas));
@@ -191,7 +188,10 @@ public class InputApi extends LuaMadeUserdata {
 			return poll();
 		}
 		try {
-			LuaTable event = eventQueue.poll(timeoutMs, TimeUnit.MILLISECONDS);
+			LuaTable event;
+			try(ScriptClock.Blocked ignored = ScriptClock.blocked()) {
+				event = eventQueue.poll(timeoutMs, TimeUnit.MILLISECONDS);
+			}
 			return event != null ? event : NIL;
 		} catch(InterruptedException e) {
 			Thread.currentThread().interrupt();

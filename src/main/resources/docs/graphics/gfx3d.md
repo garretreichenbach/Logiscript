@@ -70,6 +70,10 @@ Layers work like `gfx2d`: they group commands and control draw order (lower `ord
 Positions come first, then `r,g,b,a`, then shape args, with optional trailing `thickness` / `filled` overloads —
 matching `gfx2d` conventions.
 
+> **Note:** projections render through the engine's backend-neutral batch renderer, which works on both the
+> OpenGL and Vulkan backends. Wide lines and large points are not available there, so `thickness` is accepted
+> for compatibility but every stroke and point renders at 1 pixel.
+
 - `frame.point3d(ox,oy,oz, r,g,b,a)`
   A single point.
 

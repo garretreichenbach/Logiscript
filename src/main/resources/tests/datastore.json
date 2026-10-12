@@ -1,0 +1,58 @@
+{
+  "id": "luamade/datastore",
+  "entity": "station",
+  "blocks": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "block": "videogoose.luamade~Computer"
+    },
+    {
+      "at": [
+        1,
+        0,
+        0
+      ],
+      "block": "videogoose.luamade~Data Store"
+    },
+    {
+      "from": [
+        6,
+        0,
+        0
+      ],
+      "to": [
+        7,
+        0,
+        1
+      ],
+      "block": "REACTOR_POWER"
+    }
+  ],
+  "luamade": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "script": "local function check(c, m) if not c then print(\"FAIL \" .. m) error(m) end end\nlocal p = console.getBlock().getPos()\nlocal function at(dx, dy, dz) return vec3i(p.getX() + dx, p.getY() + dy, p.getZ() + dz) end\n\nlocal ds = peripheral.wrapAt(at(1, 0, 0), \"datastore\")\ncheck(ds ~= nil, \"wrap datastore\")\ncheck(ds.getAccessLevel() == \"entity\", \"access level\")\ncheck(ds.getStoreId() ~= nil, \"store id\")\nfor _, k in ipairs(ds.keys()) do ds.delete(k) end\nds.set(\"sensor/a\", \"1\")\nds.set(\"sensor/b\", \"2\")\nds.set(\"other\", \"3\")\ncheck(ds.getValue(\"sensor/b\") == \"2\", \"getValue\")\ncheck(ds.has(\"other\") and not ds.has(\"missing\"), \"has\")\ncheck(#ds.keys(\"sensor/\") == 2 and ds.size() == 3, \"keys/size\")\ncheck(ds.delete(\"other\") and not ds.delete(\"other\"), \"delete\")\nds.set(\"sensor/a\", nil)\ncheck(not ds.has(\"sensor/a\"), \"set nil deletes\")\nprint(\"PASS datastore\")\n"
+    }
+  ],
+  "expect": [
+    {
+      "luamade": [
+        0,
+        0,
+        0
+      ],
+      "measure": "console",
+      "text": "PASS datastore",
+      "count": 1,
+      "by": 300
+    }
+  ]
+}

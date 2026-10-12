@@ -1,5 +1,6 @@
 package luamade.lua.player;
 
+import luamade.lua.terminal.ScriptClock;
 import api.network.packets.PacketUtil;
 import luamade.lua.terminal.ScriptInvoker;
 import luamade.luawrap.LuaMadeCallable;
@@ -99,7 +100,9 @@ public class Player extends LuaMadeUserdata {
 		}
 
 		try {
-			return result.get(DIALOG_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+			try(ScriptClock.Blocked ignored = ScriptClock.blocked()) {
+				return result.get(DIALOG_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+			}
 		} catch(InterruptedException e) {
 			Thread.currentThread().interrupt();
 			PlayerDialogRequests.cancel(requestId);

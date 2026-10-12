@@ -1,0 +1,79 @@
+{
+  "id": "luamade/disk_drive",
+  "entity": "station",
+  "blocks": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "block": "videogoose.luamade~Computer"
+    },
+    {
+      "at": [
+        1,
+        0,
+        0
+      ],
+      "block": "videogoose.luamade~Disk Drive"
+    },
+    {
+      "from": [
+        6,
+        0,
+        0
+      ],
+      "to": [
+        7,
+        0,
+        1
+      ],
+      "block": "REACTOR_POWER"
+    }
+  ],
+  "inventories": [
+    {
+      "at": [
+        1,
+        0,
+        0
+      ],
+      "item": "videogoose.luamade~Disk",
+      "count": 1
+    }
+  ],
+  "luamade": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "script": "local function check(c, m) if not c then print(\"FAIL \" .. m) error(m) end end\nlocal p = console.getBlock().getPos()\nlocal function at(dx, dy, dz) return vec3i(p.getX() + dx, p.getY() + dy, p.getZ() + dz) end\n\nlocal drive = peripheral.wrapAt(at(1, 0, 0), \"diskdrive\")\ncheck(drive ~= nil, \"wrap diskdrive\")\ncheck(drive.hasDisk() and drive.getDisk().getCount() == 1, \"hasDisk\")\nlocal key = drive.getDiskKey()\ncheck(key ~= nil, \"disk key\")\n\ncheck(drive.setDiskName(\"WT Disk\") and drive.getDiskName() == \"WT Disk\", \"disk name\")\nlocal data = json.decode(drive.getDiskData())\ncheck(data.name == \"WT Disk\" and data.luamadeDiskId ~= nil, \"disk data\")\ncheck(drive.setDiskData(\"{}\"), \"setDiskData\")\ncheck(json.decode(drive.getDiskData()).luamadeDiskId ~= nil and drive.getDiskKey() == key, \"disk id kept\")\ncheck(drive.getDiskName() == nil, \"name cleared\")\n\nfs.write(\"/home/wt_prog.lua\", \"print('hi from disk')\")\ncheck(drive.saveProgram(\"/home/wt_prog.lua\", \"wtprog\"), \"saveProgram\")\nlocal found = false\nfor _, n in ipairs(drive.listPrograms()) do if n == \"wtprog\" then found = true end end\ncheck(found, \"listPrograms\")\ncheck(drive.installProgram(\"wtprog\", \"/home/installed.lua\"), \"installProgram\")\ncheck(fs.read(\"/home/installed.lua\") == \"print('hi from disk')\", \"installed content\")\ncheck(not drive.installProgram(\"missing\", \"/home/x.lua\"), \"missing program refused\")\n\ncheck(drive.sellProgram(\"/home/wt_prog.lua\", \"wtpaid\", 500), \"sellProgram\")\ncheck(drive.getProgramPrice(\"wtpaid\") == 500, \"getProgramPrice\")\ncheck(drive.buyProgram(\"wtprog\", \"/home/bought.lua\") == 0, \"buy free program\")\ncheck(fs.read(\"/home/bought.lua\") == \"print('hi from disk')\", \"bought content\")\ncheck(not pcall(drive.buyProgram, \"wtpaid\", \"/home/paid.lua\"), \"priced program needs vault\")\ncheck(drive.buyProgram(\"missing\", \"/home/x.lua\") == nil, \"buy missing is nil\")\n\ncheck(drive.write(\"/notes/a.txt\", \"on disk\"), \"disk write\")\ncheck(drive.read(\"/notes/a.txt\") == \"on disk\", \"disk read\")\nprint(\"PASS disk_drive\")\n"
+    }
+  ],
+  "expect": [
+    {
+      "luamade": [
+        0,
+        0,
+        0
+      ],
+      "measure": "console",
+      "text": "PASS disk_drive",
+      "count": 1,
+      "by": 300
+    },
+    {
+      "inventory": [
+        1,
+        0,
+        0
+      ],
+      "item": "videogoose.luamade~Disk",
+      "count": 1,
+      "by": 300
+    }
+  ]
+}

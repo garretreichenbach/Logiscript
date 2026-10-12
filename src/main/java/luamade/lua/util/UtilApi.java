@@ -1,5 +1,6 @@
 package luamade.lua.util;
 
+import luamade.lua.terminal.ScriptClock;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import org.luaj.vm2.LuaError;
@@ -36,7 +37,7 @@ public class UtilApi extends LuaMadeUserdata {
 	public int sleep(int millis) {
 		int clamped = Math.max(0, millis);
 		int slept = 0;
-		try {
+		try(ScriptClock.Blocked ignored = ScriptClock.blocked()) {
 			while(slept < clamped) {
 				checkCancellation();
 				int remaining = clamped - slept;

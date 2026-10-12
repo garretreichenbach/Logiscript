@@ -6,7 +6,9 @@ import luamade.lua.element.inventory.Inventory;
 import luamade.lua.element.inventory.ItemStack;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeClass;
+import luamade.lua.vault.Vault;
 import luamade.system.module.ComputerModule;
+import org.luaj.vm2.LuaError;
 import luamade.utils.CustomDataUtils;
 import org.json.JSONObject;
 import org.schema.game.common.data.SegmentPiece;
@@ -41,12 +43,7 @@ public class DiskDriveBlock extends InventoryBlock {
 
 	@LuaMadeCallable
 	public String getDiskKey() {
-		InventorySlot slot = getInsertedDiskSlot();
-		if(slot == null) {
-			return null;
-		}
-		SegmentPiece piece = getSegmentPiece();
-		return DiskDataStore.resolveDiskKey(slot, piece);
+		return resolveDiskKey();
 	}
 
 	@LuaMadeCallable
@@ -162,13 +159,39 @@ public class DiskDriveBlock extends InventoryBlock {
 		return DiskDataStore.getProgramPrice(diskKey, programName);
 	}
 
+	/**
+	 * Charges the invoking player the program's price into {@code vault}, then installs it. Free programs need no vault.
+	 * Returns the price paid, or nil if the player cancelled or the program couldn't be installed (any payment is refunded).
+	 */
 	@LuaMadeCallable
 	public Integer buyProgram(String programName, String destinationPath) {
-		if(!installProgram(programName, destinationPath)) {
+		return buyProgram(programName, destinationPath, null);
+	}
+
+	@LuaMadeCallable
+	public Integer buyProgram(String programName, String destinationPath, VaultBlock vault) {
+		String diskKey = resolveDiskKey();
+		if(diskKey == null || DiskDataStore.loadProgram(diskKey, programName) == null) {
 			return null;
 		}
 		Integer price = getProgramPrice(programName);
-		return price == null ? 0 : price;
+		int amount = price == null ? 0 : price;
+		if(amount == 0) {
+			return installProgram(programName, destinationPath) ? 0 : null;
+		}
+		if(vault == null) {
+			throw new LuaError("Program costs " + amount + " credits; pass a vault to receive payment");
+		}
+		SegmentPiece vaultPiece = vault.requireLiveSegmentPiece();
+		String reason = "Buy program '" + programName + "'";
+		if(!Vault.requestPayment(vaultPiece, (long) amount, reason)) {
+			return null;
+		}
+		if(!installProgram(programName, destinationPath)) {
+			Vault.refund(vaultPiece, amount, reason + " (install failed)");
+			return null;
+		}
+		return amount;
 	}
 
 	@LuaMadeCallable
@@ -210,12 +233,18 @@ public class DiskDriveBlock extends InventoryBlock {
 	}
 
 	private String resolveDiskKey() {
-		InventorySlot slot = getInsertedDiskSlot();
-		if(slot == null) {
+		Integer index = getInsertedDiskSlotIndex();
+		if(index == null) {
 			return null;
 		}
-		SegmentPiece piece = getSegmentPiece();
-		return DiskDataStore.resolveDiskKey(slot, piece);
+		InventorySlot slot = getInventory().getSlotAt(index);
+		String before = slot.hasCustomData() ? slot.getCustomData().toString() : null;
+		String key = DiskDataStore.resolveDiskKey(slot, getSegmentPiece());
+		if(slot.hasCustomData() && !slot.getCustomData().toString().equals(before)) {
+			// a fresh disk just got its ID; sync it so clients keep it when the disk is moved
+			getInventory().getBackingInventory().sendInventoryModification(index);
+		}
+		return key;
 	}
 
 	private String deriveProgramName(String explicitProgramName, String sourcePath) {

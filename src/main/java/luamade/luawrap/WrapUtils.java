@@ -6,6 +6,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class WrapUtils {
@@ -38,11 +39,23 @@ public class WrapUtils {
 
 	public static Varargs wrap(Object o) {
 		if(o != null && o.getClass().isArray()) return wrapArray(o);
-		else return wrapSingle(o);
+		if(o instanceof List) return wrapArray(((List<?>) o).toArray());
+		return wrapSingle(o);
 	}
 
 	public static Object unwrapSingle(LuaValue o, Class<?> clazz) {
 		if(clazz.isArray()) throw new LuaError("No arrays.");
+
+		// Allow @LuaMadeCallable methods to accept another userdata object as a
+		// parameter (e.g. projector.publish(gfx3dFrame)). Userdata returns already
+		// work because a LuaMadeUserdata is itself a LuaValue; this is the matching
+		// inbound coercion. A nil argument maps to a null Java reference. Checked
+		// before Varargs, which LuaMadeUserdata also is.
+		if(LuaMadeUserdata.class.isAssignableFrom(clazz)) {
+			if(o.isnil()) return null;
+			if(clazz.isInstance(o)) return o;
+			throw new LuaError(String.format("Expected %s, got %s.", clazz.getSimpleName(), o.typename()));
+		}
 
 		if(Varargs.class.isAssignableFrom(clazz)) {
 			if(clazz.isInstance(o)) return o;
@@ -50,7 +63,7 @@ public class WrapUtils {
 			throw new LuaError(String.format("No automated Lua->Lua coercions (%s -> %s).", o.getClass(), clazz));
 		}
 
-		if(clazz == String.class) return o.checkstring().tojstring();
+		if(clazz == String.class) return o.isnil() ? null : o.checkstring().tojstring();
 
 		else if(clazz == boolean.class || clazz == Boolean.class) return o.toboolean();
 
@@ -64,17 +77,7 @@ public class WrapUtils {
 
 		else if(clazz == byte.class || clazz == Byte.class) return (byte) o.checkint();
 
-		else if(clazz == long.class || clazz == Long.class) return o.checkint();
-
-		// Allow @LuaMadeCallable methods to accept another userdata object as a
-		// parameter (e.g. projector.publish(gfx3dFrame)). Userdata returns already
-		// work because a LuaMadeUserdata is itself a LuaValue; this is the matching
-		// inbound coercion. A nil argument maps to a null Java reference.
-		else if(LuaMadeUserdata.class.isAssignableFrom(clazz)) {
-			if(o.isnil()) return null;
-			if(clazz.isInstance(o)) return o;
-			throw new LuaError(String.format("Expected %s, got %s.", clazz.getSimpleName(), o.typename()));
-		}
+		else if(clazz == long.class || clazz == Long.class) return o.checklong();
 
 		throw new LuaError(String.format("Cannot unwrap %s to %s.", o.getClass(), clazz));
 	}

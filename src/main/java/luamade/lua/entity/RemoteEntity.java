@@ -119,6 +119,12 @@ public class RemoteEntity extends LuaMadeUserdata {
 		return segmentController.getTypeString();
 	}
 
+	/** True when this entity is docked to another (rails, turrets, docked ships). */
+	@LuaMadeCallable
+	public Boolean isDocked() {
+		return segmentController.railController != null && segmentController.railController.isDocked();
+	}
+
 	@LuaMadeCallable
 	public Boolean isShop() {
 		return segmentController instanceof ShopInterface && ((ShopInterface) segmentController).isValidShop();

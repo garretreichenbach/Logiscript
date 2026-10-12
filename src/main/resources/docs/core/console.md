@@ -22,6 +22,18 @@ Returns current time in milliseconds.
 - `getBlock()`
 Returns the computer `Block` currently running the script.
 
+- `setCamera(cameraBlock)`
+Shows players in Remote Control controller mode the view from a vanilla Camera block (ID 47), with a CCTV overlay. The camera must be on this computer's entity or on something docked in the same rail tree, such as a turret; other entities are refused. Pass `nil` to clear. See [Remote Control](../io/input.md#remote-control).
+
+- `clearCamera()`
+Stops showing a camera feed; controller mode goes back to the normal view.
+
+- `getCamera()`
+Returns the current camera `Block`, or `nil`.
+
+- `getTurret(entity)`
+Returns a [TurretControl](../entities/turret-control.md) for free-aiming a turret docked in this computer's rail tree. Turrets anywhere else are refused.
+
 - `print(value)`
 Prints a value to terminal output (appends newline).
 

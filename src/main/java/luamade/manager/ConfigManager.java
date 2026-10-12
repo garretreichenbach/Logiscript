@@ -21,6 +21,7 @@ public final class ConfigManager {
 
 	private static SimpleConfigBool debugMode;
 	private static SimpleConfigInt consoleCharacterLimit;
+	private static SimpleConfigInt computerMaxStorageBytes;
 	private static SimpleConfigInt consoleLineLimit;
 	private static SimpleConfigInt scriptMaxParallel;
 	private static SimpleConfigInt scriptQueueWaitMs;
@@ -88,10 +89,11 @@ public final class ConfigManager {
 		debugMode = new SimpleConfigBool(config, "debug_mode", false, "If true, enables debug logging and features.");
 		consoleCharacterLimit = new SimpleConfigInt(config, "console_character_limit", 30000, "Maximum number of characters retained in the computer terminal UI.");
 		consoleLineLimit = new SimpleConfigInt(config, "console_line_limit", 1000, "Maximum number of lines retained in the computer terminal UI.");
+		computerMaxStorageBytes = new SimpleConfigInt(config, "computer_max_storage_bytes", 2097152, "Maximum total size in bytes of the files on one computer. Writes that would exceed it fail.");
 		scriptMaxParallel = new SimpleConfigInt(config, "script_max_parallel", 2, "Maximum number of Lua scripts that may run at once per computer.");
 		scriptQueueWaitMs = new SimpleConfigInt(config, "script_queue_wait_ms", 250, "Queue wait budget in milliseconds used by hybrid overload mode.");
 		scriptOverloadMode = new SimpleConfigInt(config, "script_overload_mode", 2, "Script overload policy: 0=hard-stop, 1=stall, 2=hybrid.");
-		scriptMaxWallClockMs = new SimpleConfigInt(config, "script_max_wall_clock_ms", 20000, "Maximum wall-clock runtime in milliseconds for a single script before the server force-cancels it. Now that scripts execute on the server, a runaway script is a shared resource, not just one player's problem.");
+		scriptMaxWallClockMs = new SimpleConfigInt(config, "script_max_wall_clock_ms", 20000, "Maximum running time in milliseconds for a single script before the server force-cancels it. Time spent waiting (util.sleep, input.waitFor, dialogs, read prompts) does not count, so idle loops can run indefinitely; this only stops scripts that keep the CPU busy.");
 		webFetchEnabled = new SimpleConfigBool(config, "web_fetch_enabled", true, "If true, allows terminal/scripts to fetch HTTP(S) data from the web.");
 		webFetchTrustedDomainsOnly = new SimpleConfigBool(config, "web_fetch_trusted_domains_only", true, "If true, web fetch is limited to a built-in trusted domain allowlist.");
 		webFetchTimeoutMs = new SimpleConfigInt(config, "web_fetch_timeout_ms", 4000, "Web fetch connect/read timeout in milliseconds.");
@@ -154,6 +156,10 @@ public final class ConfigManager {
 
 	public static int getConsoleLineLimit() {
 		return clampInt(intOrDefault(consoleLineLimit, 1000), 100, 10000);
+	}
+
+	public static int getComputerMaxStorageBytes() {
+		return clampInt(intOrDefault(computerMaxStorageBytes, 2097152), 65536, 67108864);
 	}
 
 	public static int getScriptMaxParallel() {

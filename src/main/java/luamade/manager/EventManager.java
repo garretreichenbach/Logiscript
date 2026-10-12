@@ -1,21 +1,30 @@
 package luamade.manager;
 
 import api.event.input.KeyPressListener;
+import api.event.input.MousePressListener;
 import api.event.lifecycle.ManagerContainerRegisterListener;
 import api.event.player.PlayerLeaveWorldListener;
 import api.event.render.RegisterWorldDrawersListener;
+import api.network.packets.PacketUtil;
 import luamade.LuaMade;
+import luamade.element.ElementRegistry;
 import luamade.gui.ComputerDialog;
 import luamade.gui.ComputerSessionView;
 import luamade.gui.ProjectorWorldDrawer;
+import luamade.gui.RemoteControllerDialog;
 import luamade.listener.BlockPublicPermissionListener;
 import luamade.listener.JumpTargetListener;
+import luamade.network.PacketCSRemoteControl;
 import luamade.system.module.AccessPointModuleContainer;
 import luamade.system.module.ComputerModuleContainer;
 import luamade.system.module.DataStoreModuleContainer;
+import luamade.system.module.NetworkModuleContainer;
+import luamade.system.module.NetworkedDataStoreModuleContainer;
 import luamade.system.module.PasswordPermissionModuleContainer;
 import luamade.system.module.ProjectorModuleContainer;
 import luamade.system.module.VaultModuleContainer;
+import org.schema.game.client.data.GameClientState;
+import org.schema.game.common.data.player.inventory.InventorySlot;
 import org.schema.schine.graphicsengine.core.GLFW;
 import org.schema.schine.input.Keyboard;
 import org.schema.schine.input.KeyboardEvent;
@@ -35,6 +44,16 @@ public class EventManager {
 			boolean ctrlDown = isControlDown();
 			boolean shiftDown = isShiftDown();
 			boolean altDown = isAltDown();
+
+			RemoteControllerDialog controller = RemoteControllerDialog.getActive();
+			if(controller != null) {
+				if(event.isPressed() && key == GLFW.GLFW_KEY_ESCAPE) {
+					controller.deactivate();
+				} else {
+					controller.forwardKey(key, typedChar, event.isPressed(), shiftDown, ctrlDown, altDown);
+				}
+				return;
+			}
 
 			ComputerDialog.ComputerPanel panel = ComputerDialog.getActivePanel();
 			if(panel == null) return;
@@ -60,9 +79,9 @@ public class EventManager {
 			boolean keyboardConsumed = session != null && session.isKeyboardConsumed();
 
 			if(keyboardConsumed) {
-				// Script has exclusive keyboard control: cancel the event so
-				// the terminal text bar never receives the keystroke but still
-				// forward it to the Lua input queue below.
+				// Script has exclusive keyboard control: skip terminal shortcuts and just forward
+				// the key to the Lua input queue below. This event can't be cancelled; the text
+				// bar is kept clean by ComputerPanel's input masking (isTerminalInputMaskingActive).
 			} else if(event.isPressed()) {
 				// Normal mode: intercept editor shortcuts and navigation keys.
 				if(panel.isFileEditMode() && ctrlDown && (key == GLFW.GLFW_KEY_S || key == GLFW.GLFW_KEY_X || key == GLFW.GLFW_KEY_R)) {
@@ -96,8 +115,18 @@ public class EventManager {
 			}
 		}, instance);
 
-		// No MousePressListener: ComputerDialog.handleMouseEvent already forwards mouse input, and the
-		// old MousePressEvent never fired, so registering one now would double every click.
+		// Mouse input for open dialogs arrives through their handleMouseEvent; this listener only catches a right-click
+		// with a Remote Control in hand while no dialog is open (right-click = terminal, shift+right-click = controller).
+		MousePressListener.TYPE.register((event, isServer) -> {
+			if(isServer || !event.pressedRightMouse()) return;
+			GameClientState client = GameClientState.instance;
+			if(client == null || client.getShip() != null || !client.getController().getPlayerInputs().isEmpty()) return;
+			int slot = client.getGlobalGameControlManager().getIngameControlManager().getPlayerGameControlManager().getPlayerIntercationManager().getSelectedSlot();
+			InventorySlot held = slot < 0 ? null : client.getPlayer().getInventory().getSlot(slot);
+			if(held != null && held.getType() == ElementRegistry.REMOTE_CONTROL.getId()) {
+				PacketUtil.sendPacketToServer(PacketCSRemoteControl.use(slot, isShiftDown()));
+			}
+		}, instance);
 
 		BlockPublicPermissionListener.register(instance);
 		JumpTargetListener.register(instance);
@@ -107,6 +136,8 @@ public class EventManager {
 			event.addModMCModule(new ComputerModuleContainer(event.getSegmentController(), event.getContainer()));
 			event.addModMCModule(new AccessPointModuleContainer(event.getSegmentController(), event.getContainer()));
 			event.addModMCModule(new DataStoreModuleContainer(event.getSegmentController(), event.getContainer()));
+			event.addModMCModule(new NetworkModuleContainer(event.getSegmentController(), event.getContainer()));
+			event.addModMCModule(new NetworkedDataStoreModuleContainer(event.getSegmentController(), event.getContainer()));
 			event.addModMCModule(new PasswordPermissionModuleContainer(event.getSegmentController(), event.getContainer()));
 			event.addModMCModule(new VaultModuleContainer(event.getSegmentController(), event.getContainer()));
 			event.addModMCModule(new ProjectorModuleContainer(event.getSegmentController(), event.getContainer()));

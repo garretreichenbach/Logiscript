@@ -1,0 +1,214 @@
+{
+  "id": "luamade/turret_ai_alone_misses_target",
+  "timeout": 900,
+  "entity": "station",
+  "blocks": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "block": "RAIL_TURRET_AXIS",
+      "orient": 12
+    },
+    {
+      "from": [
+        0,
+        0,
+        14
+      ],
+      "to": [
+        0,
+        8,
+        14
+      ],
+      "block": "GREY_HULL"
+    },
+    {
+      "at": [
+        0,
+        9,
+        14
+      ],
+      "block": "RAIL_BASIC",
+      "orient": 12
+    },
+    {
+      "from": [
+        6,
+        0,
+        0
+      ],
+      "to": [
+        7,
+        0,
+        1
+      ],
+      "block": "REACTOR_POWER"
+    }
+  ],
+  "docked": [
+    {
+      "rail": [
+        0,
+        0,
+        0
+      ],
+      "blocks": [
+        {
+          "at": [
+            0,
+            0,
+            0
+          ],
+          "block": "RAIL_DOCKER",
+          "orient": 8
+        },
+        {
+          "at": [
+            0,
+            1,
+            0
+          ],
+          "block": "GREY_HULL"
+        },
+        {
+          "at": [
+            0,
+            2,
+            0
+          ],
+          "block": "RAIL_TURRET_AXIS",
+          "orient": 16
+        }
+      ]
+    },
+    {
+      "on": 0,
+      "rail": [
+        0,
+        2,
+        0
+      ],
+      "blocks": [
+        {
+          "at": [
+            3,
+            1,
+            0
+          ],
+          "block": "RAIL_DOCKER",
+          "orient": 20
+        },
+        {
+          "from": [
+            1,
+            1,
+            0
+          ],
+          "to": [
+            2,
+            1,
+            1
+          ],
+          "block": "REACTOR_POWER"
+        },
+        {
+          "at": [
+            1,
+            2,
+            0
+          ],
+          "block": "CANNON_COMPUTER"
+        },
+        {
+          "at": [
+            1,
+            2,
+            1
+          ],
+          "block": "CANNON_BARREL",
+          "controller": [
+            1,
+            2,
+            0
+          ]
+        },
+        {
+          "at": [
+            2,
+            2,
+            0
+          ],
+          "block": "BOBBY_AI_MODULE"
+        }
+      ],
+      "turretAI": [
+        {
+          "at": [
+            1,
+            2,
+            0
+          ],
+          "aimAt": "Missiles",
+          "target": "t"
+        }
+      ]
+    },
+    {
+      "rail": [
+        0,
+        9,
+        14
+      ],
+      "blocks": [
+        {
+          "at": [
+            0,
+            0,
+            0
+          ],
+          "block": "RAIL_DOCKER",
+          "orient": 8
+        },
+        {
+          "from": [
+            0,
+            1,
+            0
+          ],
+          "to": [
+            2,
+            3,
+            2
+          ],
+          "block": "GREY_HULL"
+        }
+      ],
+      "turretAI": [
+        {
+          "at": [
+            0,
+            0,
+            0
+          ],
+          "id": "t"
+        }
+      ]
+    }
+  ],
+  "expect": [
+    {
+      "docked": 1,
+      "turret": [
+        1,
+        2,
+        0
+      ],
+      "measure": "target_damage",
+      "max": 0,
+      "by": 900
+    }
+  ]
+}

@@ -121,6 +121,13 @@ public final class SharedDataStore {
 		}
 	}
 
+	/** Copies every key of one store into another, replacing its contents (a blueprint copy of a DataStore block). */
+	public static void copyStore(String fromUuid, String toUuid) {
+		ConcurrentHashMap<String, String> copy = new ConcurrentHashMap<>(store(fromUuid));
+		stores.put(toUuid, copy);
+		persist(toUuid, copy);
+	}
+
 	/**
 	 * Removes a store entirely — deletes the in-memory map and the backing
 	 * JSON file on disk. Used when a Networked Data Store block is destroyed.

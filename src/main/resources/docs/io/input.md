@@ -39,8 +39,6 @@ Events are captured only while the computer's terminal dialog is open and are au
   insideCanvas = true, -- true when pointer is currently inside terminal gfx2d bounds
   dragging = false, -- true while any mouse button is held
   dragButton = "none", -- active drag button: left|right|middle|none
-  cellX = nil, -- reserved for future text-cell mapping
-  cellY = nil, -- reserved for future text-cell mapping
     dx = 0, -- delta x since last event
     dy = 0, -- delta y since last event
     wheel = 0, -- scroll wheel delta (positive = up)
@@ -111,15 +109,25 @@ Events are captured only while the computer's terminal dialog is open and are au
 - `input.isMouseConsumed()`
   Returns `true` while a script has signalled exclusive mouse ownership.
 
-## Remote sessions
+## Remote Control
 
-When a player links a `Remote Control` item to a bound remote access point and activates that access point, key and mouse button input is forwarded into the target computer's `input` queue even while its UI is closed.
+A `Remote Control` item lets a player use a computer from anywhere, at any distance, as long as the computer's entity is loaded on the server.
 
-Remote sessions also forward mouse movement deltas (`dx`/`dy`) for cursor-driven overlays.
+1. Link a Remote Access Point to the computer from a script with `connect()` (see [Peripheral API](../systems/peripheral.md#remote-access-point-wrapper)).
+2. Hold a Remote Control and activate the access point. This links the remote, renames it after the computer and opens the terminal.
+3. From then on, while holding the remote:
+   - **Right-click** opens the computer's terminal.
+   - **Shift+right-click** starts **controller mode**: a small status window opens, the player stops moving, and every key and mouse event goes into the computer's `input` queue while its UI stays closed. Mouse events include movement deltas (`dx`/`dy`) and the wheel; `uiX`/`uiY` are `nil` because there's no canvas.
 
-Players receive immediate status feedback when a remote session links or disconnects.
+`Escape` is reserved for safety: in controller mode it ends the session instead of reaching Lua.
 
-`Escape` is always reserved for safety: pressing it disconnects the active remote session instead of forwarding the key to Lua.
+### Camera feed
+
+A script can show controller-mode players the view from a vanilla Camera block with `console.setCamera(block)`, for example a camera mounted on a turret so it turns with the barrel. The view gets a CCTV look (tint, scanlines, grain, REC marker, clock). The client can only render entities it has loaded, roughly its own and neighbouring sectors, so a camera farther away shows **NO SIGNAL** while keyboard and mouse input keep working at any range.
+
+Combined with [`console.getTurret`](../entities/turret-control.md), this lets a player steer a turret through its own camera with the mouse; see the TurretControl page for a full example.
+
+A remote follows its access point. Relinking the access point with `connect()` redirects every remote paired with it, and breaking the access point unlinks them.
 
 ## Common key codes
 

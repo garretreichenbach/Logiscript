@@ -1,0 +1,97 @@
+{
+  "id": "luamade/inventory",
+  "entity": "station",
+  "blocks": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "block": "videogoose.luamade~Computer"
+    },
+    {
+      "at": [
+        1,
+        0,
+        0
+      ],
+      "block": "STORAGE"
+    },
+    {
+      "at": [
+        3,
+        0,
+        0
+      ],
+      "block": "STORAGE"
+    },
+    {
+      "from": [
+        6,
+        0,
+        0
+      ],
+      "to": [
+        7,
+        0,
+        1
+      ],
+      "block": "REACTOR_POWER"
+    }
+  ],
+  "inventories": [
+    {
+      "at": [
+        1,
+        0,
+        0
+      ],
+      "item": "GREY_HULL",
+      "count": 50
+    }
+  ],
+  "luamade": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "script": "local function check(c, m) if not c then print(\"FAIL \" .. m) error(m) end end\nlocal p = console.getBlock().getPos()\nlocal function at(dx, dy, dz) return vec3i(p.getX() + dx, p.getY() + dy, p.getZ() + dz) end\n\nlocal wrapped = peripheral.wrapAt(at(1, 0, 0), \"inventory\")\ncheck(wrapped ~= nil and wrapped.hasItems(), \"wrap inventory\")\ncheck(wrapped.getInventoryVolume() > 0, \"inventory volume\")\nlocal a = peripheral.getAt(at(1, 0, 0)).getInventory()\nlocal b = peripheral.getAt(at(3, 0, 0)).getInventory()\ncheck(a ~= nil and b ~= nil, \"getInventory\")\ncheck(b.isEmpty() and b.hasFreeSlot() and not b.isFull(), \"empty target\")\n\nlocal stacks = a.getItems()\ncheck(#stacks == 1 and stacks[1].getCount() == 50, \"getItems\")\ncheck(stacks[1].getInfo().getName() ~= nil, \"stack info\")\nlocal id = stacks[1].getId()\ncheck(a.getItemCount(id) == 50 and a.getTotalItemCount() == 50, \"counts\")\n\nlocal slot = stacks[1].getSlot()\ncheck(a.setSlotData(slot, json.encode({name = \"wt\"})), \"setSlotData\")\ncheck(json.decode(a.getSlotData(slot)).name == \"wt\", \"getSlotData\")\na.setSlotData(slot, \"{}\")\n\ncheck(a.transferTo(b, stacks), \"transferTo\")\ncheck(a.isEmpty() and b.getItemCount(id) == 50, \"after transfer\")\ncheck(not a.transferTo(b, stacks), \"transfer with nothing left refused\")\ncheck(b.addItems(b.getItems()) and b.getItemCount(id) == 100, \"addItems\")\ncheck(b.removeItems(stacks) and b.getItemCount(id) == 50, \"removeItems\")\ncheck(not b.removeItems({stacks[1], stacks[1]}) and b.getItemCount(id) == 50, \"duplicate stacks need the combined count\")\ncheck(not b.transferTo(a, {stacks[1], stacks[1]}) and a.isEmpty() and b.getItemCount(id) == 50, \"transfer needs the combined count\")\ncheck(a.clearItems() and a.isEmpty(), \"clearItems\")\nprint(\"PASS inventory\")\n"
+    }
+  ],
+  "expect": [
+    {
+      "luamade": [
+        0,
+        0,
+        0
+      ],
+      "measure": "console",
+      "text": "PASS inventory",
+      "count": 1,
+      "by": 300
+    },
+    {
+      "inventory": [
+        1,
+        0,
+        0
+      ],
+      "item": "GREY_HULL",
+      "count": 0,
+      "by": 300
+    },
+    {
+      "inventory": [
+        3,
+        0,
+        0
+      ],
+      "item": "GREY_HULL",
+      "count": 50,
+      "by": 300
+    }
+  ]
+}

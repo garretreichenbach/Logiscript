@@ -3,9 +3,9 @@ core/console.md
 core/json.md
 core/luamade.md
 core/package-manager.md
+core/player.md
 core/terminal-api.md
 core/terminal.md
-core/player.md
 core/util.md
 entities/INDEX.md
 entities/entity-ai.md
@@ -14,6 +14,7 @@ entities/faction.md
 entities/fleet-command.md
 entities/fleet.md
 entities/remote-entity.md
+entities/turret-control.md
 graphics/INDEX.md
 graphics/gfx2d.md
 graphics/gfx3d.md

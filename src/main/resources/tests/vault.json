@@ -1,0 +1,58 @@
+{
+  "id": "luamade/vault",
+  "entity": "station",
+  "blocks": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "block": "videogoose.luamade~Computer"
+    },
+    {
+      "at": [
+        1,
+        0,
+        0
+      ],
+      "block": "videogoose.luamade~Vault"
+    },
+    {
+      "from": [
+        6,
+        0,
+        0
+      ],
+      "to": [
+        7,
+        0,
+        1
+      ],
+      "block": "REACTOR_POWER"
+    }
+  ],
+  "luamade": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "script": "local function check(c, m) if not c then print(\"FAIL \" .. m) error(m) end end\nlocal p = console.getBlock().getPos()\nlocal function at(dx, dy, dz) return vec3i(p.getX() + dx, p.getY() + dy, p.getZ() + dz) end\n\nlocal bank = peripheral.wrapAt(at(1, 0, 0), \"vault\")\ncheck(bank ~= nil, \"wrap vault\")\nlocal id = bank.getUuid()\ncheck(id ~= nil, \"uuid\")\ncheck(bank.getBalance() == 0, \"new vault is empty\")\nlocal found = false\nfor _, v in ipairs(vault.list()) do if v == id then found = true end end\ncheck(found, \"vault.list has it\")\ncheck(vault.getBalance(id) == 0, \"vault.getBalance\")\ncheck(not pcall(bank.payout, 1), \"payout without player refused\")\nprint(\"PASS vault\")\n"
+    }
+  ],
+  "expect": [
+    {
+      "luamade": [
+        0,
+        0,
+        0
+      ],
+      "measure": "console",
+      "text": "PASS vault",
+      "count": 1,
+      "by": 300
+    }
+  ]
+}

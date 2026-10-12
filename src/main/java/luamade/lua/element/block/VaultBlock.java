@@ -29,12 +29,22 @@ public class VaultBlock extends Block {
 	}
 
 	@LuaMadeCallable
+	public Boolean requestPayment(Long amount) {
+		return requestPayment(amount, null);
+	}
+
+	@LuaMadeCallable
 	public Boolean requestPayment(Long amount, String reason) {
 		return Vault.requestPayment(requireLiveSegmentPiece(), amount, reason);
 	}
 
 	@LuaMadeCallable
+	public Boolean payout(Long amount) {
+		return payout(amount, null);
+	}
+
+	@LuaMadeCallable
 	public Boolean payout(Long amount, String reason) {
-		return Vault.payout(requireLiveSegmentPiece(), amount);
+		return Vault.payout(requireLiveSegmentPiece(), amount, reason);
 	}
 }

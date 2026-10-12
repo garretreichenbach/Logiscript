@@ -1,5 +1,6 @@
 package luamade.lua.vault;
 
+import luamade.LuaMade;
 import luamade.element.ElementRegistry;
 import luamade.lua.player.Player;
 import luamade.lua.terminal.ScriptInvoker;
@@ -36,13 +37,23 @@ public class Vault extends LuaMadeUserdata {
 	}
 
 	@LuaMadeCallable
+	public Boolean requestPayment(String uuid, Long amount) {
+		return requestPayment(uuid, amount, null);
+	}
+
+	@LuaMadeCallable
 	public Boolean requestPayment(String uuid, Long amount, String reason) {
 		return requestPayment(resolve(uuid), amount, reason);
 	}
 
 	@LuaMadeCallable
+	public Boolean payoutToPlayer(String uuid, Long amount) {
+		return payoutToPlayer(uuid, amount, null);
+	}
+
+	@LuaMadeCallable
 	public Boolean payoutToPlayer(String uuid, Long amount, String reason) {
-		return payout(resolve(uuid), amount);
+		return payout(resolve(uuid), amount, reason);
 	}
 
 	/** Returns the UUIDs of every Vault block on this computer's entity. Does not check access. */
@@ -89,23 +100,39 @@ public class Vault extends LuaMadeUserdata {
 				throw new LuaError("Deposit failed: " + exception.getMessage());
 			}
 		}
+		audit("deposit", player, uuid, amount, reason);
 		return true;
 	}
 
 	/** Pays {@code amount} credits from the vault to the invoking player, if they could withdraw through the UI. */
-	public static boolean payout(SegmentPiece vault, Long amount) {
+	public static boolean payout(SegmentPiece vault, Long amount, String reason) {
 		requirePositive(amount);
 		PlayerState player = requireInvoker();
 		if(!VaultAccessManager.canAccess(vault, player, VaultAccessManager.Op.WITHDRAW)) {
 			throw new LuaError("Access denied");
 		}
+		String uuid = uuidOf(vault);
 		try {
-			SharedVaultLedger.withdraw(uuidOf(vault), amount);
+			SharedVaultLedger.withdraw(uuid, amount);
 		} catch(Exception exception) {
 			throw new LuaError("Payout failed: " + exception.getMessage());
 		}
 		player.modCreditsServer(amount);
+		audit("payout", player, uuid, amount, reason);
 		return true;
+	}
+
+	/** Returns a payment the invoking player just made, e.g. when the purchase it paid for then fails. No access check. */
+	public static void refund(SegmentPiece vault, long amount, String reason) {
+		PlayerState player = requireInvoker();
+		String uuid = uuidOf(vault);
+		SharedVaultLedger.withdraw(uuid, amount);
+		player.modCreditsServer(amount);
+		audit("refund", player, uuid, amount, reason);
+	}
+
+	private static void audit(String op, PlayerState player, String uuid, long amount, String reason) {
+		LuaMade.getInstance().logInfo("[Vault] " + op + " " + amount + " credits, player=" + player.getName() + ", vault=" + uuid + (reason == null || reason.isEmpty() ? "" : ", reason=" + reason));
 	}
 
 	public static String accessLevelOf(SegmentPiece vault) {

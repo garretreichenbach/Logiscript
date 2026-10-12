@@ -1,0 +1,68 @@
+{
+  "id": "luamade/camera_feed_set",
+  "entity": "station",
+  "blocks": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "block": "videogoose.luamade~Computer"
+    },
+    {
+      "at": [
+        0,
+        1,
+        0
+      ],
+      "block": "CAMERA"
+    },
+    {
+      "from": [
+        2,
+        0,
+        0
+      ],
+      "to": [
+        3,
+        0,
+        1
+      ],
+      "block": "REACTOR_POWER"
+    }
+  ],
+  "luamade": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "script": "for _, side in ipairs(peripheral.getSides()) do\n  local b = peripheral.getRelative(side)\n  if b ~= nil and b.getId() == 47 then\n    console.setCamera(b)\n    print(\"camera set\")\n  end\nend\n"
+    }
+  ],
+  "expect": [
+    {
+      "luamade": [
+        0,
+        0,
+        0
+      ],
+      "measure": "console",
+      "text": "camera set",
+      "count": 1,
+      "by": 300
+    },
+    {
+      "luamade": [
+        0,
+        0,
+        0
+      ],
+      "measure": "camera",
+      "count": 1,
+      "by": 300
+    }
+  ]
+}

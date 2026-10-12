@@ -59,6 +59,13 @@ public final class ComputerSessionRegistry {
 		}
 	}
 
+	public static void handleCameraFeed(int entityId, long absIndex, int cameraEntityId, long cameraAbsIndex) {
+		ComputerSessionView view = sessions.get(key(entityId, absIndex));
+		if(view != null) {
+			view.applyCameraFeed(cameraEntityId, cameraAbsIndex);
+		}
+	}
+
 	public static void handleGfxSnapshot(PacketSCGfxSnapshot packet) {
 		ComputerSessionView view = sessions.get(key(packet.getEntityId(), packet.getAbsIndex()));
 		if(view != null) {

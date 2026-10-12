@@ -55,7 +55,7 @@ Returns the strongest access the script's player has: `OWNER`, `FACTION`, `PASSW
 Shows the player an OK/Cancel dialog, with `reason` in the body. If they press OK, moves `amount` credits from them into the vault. Returns `false` if they cancel. Throws if access is denied or they can't afford it.
 
 - `payout(amount, [reason])`
-Pays `amount` credits from the vault to the player. Throws if access is denied or the balance is too low. `reason` isn't recorded yet.
+Pays `amount` credits from the vault to the player. Throws if access is denied or the balance is too low.
 
 The peripheral also has every [Block](block.md) method.
 
@@ -72,4 +72,5 @@ Same as the peripheral methods above, for the vault with that UUID. They throw i
 ## Notes
 
 - The `vault` global only reaches vaults on the computer's own entity. Wrap a block to use a vault you can reach as a peripheral.
+- Every deposit, payout and refund is written to the server log with the player, vault, amount and `reason`.
 - Every call throws a Lua error on failure, so wrap calls in `pcall` when you want to recover.

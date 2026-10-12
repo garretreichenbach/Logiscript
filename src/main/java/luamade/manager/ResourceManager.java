@@ -111,7 +111,7 @@ public class ResourceManager {
 
 	/** Item icons in icons/items_0.png (64px tiles), in slot order, packed with no empty slots. */
 	public enum ItemIcons {
-		HOLO_DISK;
+		HOLO_DISK, REMOTE_CONTROL;
 
 		public boolean apply(ElementInformation info) {
 			return applyIcon(itemIcons, ordinal(), info);

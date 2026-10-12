@@ -1,12 +1,15 @@
 package luamade.lua;
 
 import luamade.lua.element.block.Block;
+import luamade.lua.entity.Entity;
+import luamade.lua.entity.TurretControl;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.manager.ConfigManager;
 import luamade.system.module.ComputerModule;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.Varargs;
+import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.data.SegmentPiece;
 
 public class Console extends LuaMadeUserdata {
@@ -42,6 +45,80 @@ public class Console extends LuaMadeUserdata {
 	@LuaMadeCallable
 	public Block getBlock() {
 		return Block.wrap(requireLiveComputerPiece());
+	}
+
+	/**
+	 * Shows players in Remote Control controller mode the view from {@code camera}, a vanilla Camera block on this
+	 * computer's entity or anything docked in the same rail tree (e.g. a turret). Other entities are refused so scripts
+	 * can't spy through someone else's cameras.
+	 */
+	@LuaMadeCallable
+	public Boolean setCamera(Block camera) {
+		if(camera == null) {
+			clearCamera();
+			return true;
+		}
+		SegmentPiece piece = camera.getSegmentPiece();
+		SegmentPiece live = piece == null || piece.getSegmentController() == null ? null : piece.getSegmentController().getSegmentBuffer().getPointUnsave(piece.getAbsoluteIndex());
+		if(live == null || live.getType() != ComputerModule.CAMERA_BLOCK_ID) {
+			throw new LuaError("Not a Camera block");
+		}
+		SegmentController computerEntity = requireLiveComputerPiece().getSegmentController();
+		if(!sameRailTree(computerEntity, live.getSegmentController())) {
+			throw new LuaError("Camera must be on this computer's entity or something docked to it");
+		}
+		module.setCameraFeed(live);
+		return true;
+	}
+
+	@LuaMadeCallable
+	public void clearCamera() {
+		module.setCameraFeed(null);
+	}
+
+	@LuaMadeCallable
+	public Block getCamera() {
+		SegmentPiece feed = module.getCameraFeed();
+		return feed == null ? null : Block.wrap(feed);
+	}
+
+	/**
+	 * Free-aim control of a turret docked in this computer's rail tree. Turrets anywhere else are refused, so scripts
+	 * can't take over someone else's guns.
+	 */
+	@LuaMadeCallable
+	public TurretControl getTurret(Entity turret) {
+		if(turret == null || !(turret.getSegmentController() instanceof org.schema.game.common.controller.Ship ship) || ship.railController == null || !ship.railController.isTurretDocked()) {
+			throw new LuaError("Not a docked turret");
+		}
+		if(!sameRailTree(requireLiveComputerPiece().getSegmentController(), ship)) {
+			throw new LuaError("Turret must be docked in this computer's rail tree");
+		}
+		return new TurretControl(lastTurretAxis(ship));
+	}
+
+	/** A two-axis turret is a base with a barrel docked on it; the AI that aims both runs on the last axis. */
+	private static org.schema.game.common.controller.Ship lastTurretAxis(org.schema.game.common.controller.Ship turret) {
+		org.schema.game.common.controller.Ship current = turret;
+		while(!current.railController.isTurretDockLastAxis()) {
+			org.schema.game.common.controller.Ship next = null;
+			for(org.schema.game.common.controller.rails.RailRelation relation : current.railController.next) {
+				if(relation.docked.getSegmentController() instanceof org.schema.game.common.controller.Ship child && child.railController.isTurretDocked()) {
+					next = child;
+					break;
+				}
+			}
+			if(next == null) {
+				break;
+			}
+			current = next;
+		}
+		return current;
+	}
+
+	private static boolean sameRailTree(SegmentController a, SegmentController b) {
+		if(a == b) return true;
+		return a.railController != null && b.railController != null && a.railController.getRoot() == b.railController.getRoot();
 	}
 
 	public synchronized void appendInline(Varargs vargs) {

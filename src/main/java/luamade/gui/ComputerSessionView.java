@@ -175,6 +175,23 @@ public final class ComputerSessionView {
 		this.savedTerminalInput = savedTerminalInput == null ? "" : savedTerminalInput;
 	}
 
+	private volatile int cameraEntityId = -1;
+	private volatile long cameraAbsIndex;
+
+	/** Entity id of the Camera block the computer's scripts chose for remote controllers, or -1 for none. */
+	public int getCameraEntityId() {
+		return cameraEntityId;
+	}
+
+	public long getCameraAbsIndex() {
+		return cameraAbsIndex;
+	}
+
+	void applyCameraFeed(int cameraEntityId, long cameraAbsIndex) {
+		this.cameraAbsIndex = cameraAbsIndex;
+		this.cameraEntityId = cameraEntityId;
+	}
+
 	void applyGfxSnapshot(Gfx2d.FrameSnapshot snapshot) {
 		gfxSnapshot = snapshot;
 	}

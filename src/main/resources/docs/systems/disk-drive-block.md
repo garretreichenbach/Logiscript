@@ -30,9 +30,10 @@ print("Installed:", drive.installProgram("chat", "/home/chat.lua"))
 -- Publish program for sale
 print("For sale:", drive.sellProgram("/home/chat.lua", "chat_pro", 5000))
 
--- Buy/install and get listed price
-local paid = drive.buyProgram("chat_pro", "/home/chat_pro.lua")
-print("Paid:", paid)
+-- Charge the player into an adjacent vault, then install
+local till = peripheral.wrapRelative("left", "vault")
+local paid = drive.buyProgram("chat_pro", "/home/chat_pro.lua", till)
+print(paid and ("Paid: " .. paid) or "Purchase cancelled")
 ```
 
 ## Reference
@@ -67,8 +68,8 @@ Saves program and records an integer sale price.
 - `getProgramPrice(programName)`
 Returns recorded program price or `nil`.
 
-- `buyProgram(programName, destinationPath)`
-Installs the program and returns price (defaults to `0` if unpriced).
+- `buyProgram(programName, destinationPath, [vault])`
+Charges the player who ran the script the program's price into `vault` (a [Vault](vault.md) peripheral), then installs it. They see an OK/Cancel dialog first. Returns the price paid (`0` for free programs, which need no vault), or `nil` if they cancelled or the program doesn't exist. If installing fails after payment, the payment is refunded. Throws if a priced program has no vault, or the payment is refused.
 
 - `write(path, content)`
 Writes arbitrary UTF-8 text directly to disk path.
@@ -78,6 +79,5 @@ Reads arbitrary text from disk path.
 
 ## Notes
 
-- Program sale price storage is metadata only; credit transfer/economy integration is not automatic yet.
-- Disk identity persistence uses StarMade inventory metadata APIs when available at runtime.
-- If metadata APIs are unavailable, data falls back to drive-slot scoped storage.
+- Prices are stored on the disk. Payment only happens through `buyProgram` with a vault; `installProgram` is always free.
+- A disk's files are tied to an ID stored in its item data, so they follow the disk between drives.

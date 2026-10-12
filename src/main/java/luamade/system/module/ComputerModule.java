@@ -51,23 +51,32 @@ public class ComputerModule {
 		combatEventApi = new CombatEventApi();
 	}
 
-	public static String generateComputerUUID(long absIndex) {
-		return UUID.nameUUIDFromBytes((String.valueOf(absIndex)).getBytes(StandardCharsets.UTF_8)).toString();
+	/** A new computer's ID. Random, so computers at the same position on different entities don't share files; it's saved with the computer. */
+	public static String generateComputerUUID() {
+		return UUID.randomUUID().toString();
 	}
 
+	/** The ID computers saved before IDs were stored (tag version < 5) used: derived from the block index alone. */
 	public static String generateLegacyComputerUUID(long absIndex) {
-		return generateComputerUUID(absIndex);
-	}
-
-	public static String generateComputerUUID(SegmentPiece segmentPiece) {
-		if(segmentPiece == null) {
-			return generateComputerUUID(0L);
-		}
-		return generateComputerUUID(segmentPiece.getAbsoluteIndex());
+		return UUID.nameUUIDFromBytes((String.valueOf(absIndex)).getBytes(StandardCharsets.UTF_8)).toString();
 	}
 
 	public SegmentPiece getSegmentPiece() {
 		return segmentPiece;
+	}
+
+	/** Vanilla Camera block id (BlockTypes.properties: CAMERA=47); ElementKeyMap has no constant for it. */
+	public static final short CAMERA_BLOCK_ID = 47;
+
+	/** Camera block remote controllers see through, set by scripts via console.setCamera; runtime only, not saved. */
+	private volatile SegmentPiece cameraFeed;
+
+	public SegmentPiece getCameraFeed() {
+		return cameraFeed;
+	}
+
+	public void setCameraFeed(SegmentPiece cameraFeed) {
+		this.cameraFeed = cameraFeed;
 	}
 
 	public String getUUID() {

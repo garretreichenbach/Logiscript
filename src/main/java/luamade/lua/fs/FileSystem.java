@@ -1,6 +1,7 @@
 package luamade.lua.fs;
 
 import luamade.LuaMade;
+import luamade.manager.ConfigManager;
 import luamade.luawrap.LuaMadeCallable;
 import luamade.luawrap.LuaMadeUserdata;
 import luamade.system.module.ComputerModule;
@@ -25,9 +26,6 @@ import java.util.*;
  * <br/>When a computer is in this state, it is marked as IDLE and has to be loaded back into memory when a player interacts with it again.
  */
 public class FileSystem extends LuaMadeUserdata {
-
-	//Todo: This might be too generous idk
-	public static int MAX_FS_SIZE = 2 * 1024 * 1024; //2MB
 
 	private static final File computerStorage = resolveComputerStorage();
 	private static volatile boolean storagePathLogged;
@@ -507,7 +505,7 @@ public class FileSystem extends LuaMadeUserdata {
 	 * Lists files in the specified directory
 	 */
 	@LuaMadeCallable
-	public List<String> list(String path, String... args) {
+	public List<String> list(String path) {
 		if(path == null || path.isEmpty()) path = getCurrentDir();
 
 		// Normalize path
@@ -990,10 +988,15 @@ public class FileSystem extends LuaMadeUserdata {
 			// Make sure parent directory exists
 			file.getInternalFile().getParentFile().mkdirs();
 
-			// Write content to file
-			OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(file.getInternalFile()), StandardCharsets.UTF_8);
-			writer.write(content);
-			writer.close();
+			byte[] bytes = content == null ? new byte[0] : content.getBytes(StandardCharsets.UTF_8);
+			File target = file.getInternalFile();
+			long used = sizeOf(rootDirectory.getInternalFile()) - (target.isFile() ? target.length() : 0);
+			long limit = ConfigManager.getComputerMaxStorageBytes();
+			if(used + bytes.length > limit) {
+				setLastError("Not enough space: " + (used + bytes.length) + " of " + limit + " bytes");
+				return false;
+			}
+			Files.write(target.toPath(), bytes);
 			clearLastError();
 			return true;
 		} catch(Exception e) {
@@ -1001,6 +1004,18 @@ public class FileSystem extends LuaMadeUserdata {
 			e.printStackTrace();
 			return false;
 		}
+	}
+
+	// ponytail: walks the whole tree on every write; cache a running total if computers ever hold many files
+	private static long sizeOf(File file) {
+		if(file == null) return 0;
+		if(file.isFile()) return file.length();
+		long total = 0;
+		File[] children = file.listFiles();
+		if(children != null) {
+			for(File child : children) total += sizeOf(child);
+		}
+		return total;
 	}
 
 	/**
@@ -1490,6 +1505,21 @@ public class FileSystem extends LuaMadeUserdata {
 		}
 		if(!file.delete()) {
 			LuaMade.getInstance().logWarning("Failed to delete file: " + file.getAbsolutePath());
+		}
+	}
+
+	/** Copies a computer's saved files to another ID. Returns false if there was nothing saved to copy. */
+	public static boolean copyArchive(String fromUUID, String toUUID) {
+		File from = new File(computerStorage, "computer_" + fromUUID + "_fs.smdat");
+		if(!from.isFile()) {
+			return false;
+		}
+		try {
+			Files.copy(from.toPath(), new File(computerStorage, "computer_" + toUUID + "_fs.smdat").toPath(), StandardCopyOption.REPLACE_EXISTING);
+			return true;
+		} catch(IOException exception) {
+			LuaMade.getInstance().logException("Failed to copy files of computer " + fromUUID + " to " + toUUID, exception);
+			return false;
 		}
 	}
 }

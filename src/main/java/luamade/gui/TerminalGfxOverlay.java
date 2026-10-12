@@ -9,6 +9,7 @@ import org.schema.schine.graphicsengine.forms.Sprite;
 import org.schema.schine.graphicsengine.forms.font.FontLibrary;
 import org.schema.schine.graphicsengine.forms.gui.GUIDrawToTextureOverlay;
 import org.schema.schine.graphicsengine.forms.gui.GUITextOverlay;
+import org.schema.schine.graphicsengine.forms.gui.newgui.vbogui.GuiBatchRenderer;
 import org.schema.schine.network.client.ClientState;
 import org.schema.schine.network.client.ClientStateInterface;
 
@@ -20,6 +21,9 @@ import java.util.List;
  * and text via GUITextOverlay instances. The gfx2d buffer itself lives
  * server-side (scripts execute there); this renders whatever
  * {@link ComputerSessionView} last received via {@code PacketSCGfxSnapshot}.
+ *
+ * <p>Geometry goes through the engine's {@link GuiBatchRenderer}, never raw GL: on the Vulkan backend (no GL
+ * context) or a core-profile context any {@code GL11} draw call aborts the JVM.
  */
 public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 	private final ComputerSessionView sessionView;
@@ -179,7 +183,9 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 	@Override
 	public void updateGUI(ClientStateInterface state) {
 		updateVisibility();
-		if(isInvisible()) {
+		// The base render-to-texture pass calls raw GL11.glCopyTexImage2D; draw() already renders
+		// directly, so skip the pass where there is no GL context.
+		if(isInvisible() || GlUtil.isVulkan()) {
 			return;
 		}
 		// Protect against OpenGL context loss (alt-tab, window focus loss, etc.)
@@ -214,24 +220,14 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 			return;
 		}
 
-		if(command.filled) {
-			GL11.glBegin(GL11.GL_TRIANGLE_FAN);
-			GL11.glVertex3f(cx, cy, 0.0F);
-			for(int i = 0; i <= segments; i++) {
-				double angle = (Math.PI * 2.0 * i) / segments;
-				GL11.glVertex3f(cx + (float) Math.cos(angle) * radiusX, cy + (float) Math.sin(angle) * radiusY, 0.0F);
-			}
-			GL11.glEnd();
-		} else {
-			applyLineWidth(command.lineWidth * 0.5f * (scaleX + scaleY));
-			GL11.glBegin(GL11.GL_LINE_LOOP);
-			for(int i = 0; i < segments; i++) {
-				double angle = (Math.PI * 2.0 * i) / segments;
-				GL11.glVertex3f(cx + (float) Math.cos(angle) * radiusX, cy + (float) Math.sin(angle) * radiusY, 0.0F);
-			}
-			GL11.glEnd();
-			resetLineWidth();
+		float[] xs = new float[segments];
+		float[] ys = new float[segments];
+		for(int i = 0; i < segments; i++) {
+			double angle = (Math.PI * 2.0 * i) / segments;
+			xs[i] = cx + (float) Math.cos(angle) * radiusX;
+			ys[i] = cy + (float) Math.sin(angle) * radiusY;
 		}
+		drawShape(xs, ys, command.filled, lineWidth(command, scaleX, scaleY));
 	}
 
 	private void drawPolygon(Gfx2d.DrawCommand command, float scaleX, float scaleY) {
@@ -239,18 +235,26 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 			return;
 		}
 
-		if(!command.filled) {
-			applyLineWidth(command.lineWidth * 0.5f * (scaleX + scaleY));
+		int n = command.points.length / 2;
+		float[] xs = new float[n];
+		float[] ys = new float[n];
+		for(int i = 0; i < n; i++) {
+			xs[i] = command.points[i * 2] * scaleX;
+			ys[i] = command.points[i * 2 + 1] * scaleY;
 		}
+		drawShape(xs, ys, command.filled, lineWidth(command, scaleX, scaleY));
+	}
 
-		GL11.glBegin(command.filled ? GL11.GL_POLYGON : GL11.GL_LINE_LOOP);
-		for(int i = 0; i < command.points.length; i += 2) {
-			GL11.glVertex3f(command.points[i] * scaleX, command.points[i + 1] * scaleY, 0.0F);
+	/** Filled: fan from the first vertex (the same convex contract GL_POLYGON had). Outline: closed loop. */
+	private void drawShape(float[] xs, float[] ys, boolean filled, float width) {
+		GuiBatchRenderer batch = GuiBatchRenderer.get();
+		if(filled) {
+			batch.polygon(xs, ys, xs.length);
+			return;
 		}
-		GL11.glEnd();
-
-		if(!command.filled) {
-			resetLineWidth();
+		for(int i = 0; i < xs.length; i++) {
+			int j = (i + 1) % xs.length;
+			batch.line(xs[i], ys[i], xs[j], ys[j], width);
 		}
 	}
 
@@ -285,19 +289,20 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 			GlUtil.glEnable(GL11.GL_BLEND);
 			GlUtil.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
-			GlUtil.glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
-			GL11.glBegin(GL11.GL_QUADS);
-			GL11.glVertex3f(0.0f, 0.0f, 0.0F);
-			GL11.glVertex3f(frame.viewportWidth, 0.0f, 0.0F);
-			GL11.glVertex3f(frame.viewportWidth, frame.viewportHeight, 0.0F);
-			GL11.glVertex3f(0.0f, frame.viewportHeight, 0.0F);
-			GL11.glEnd();
+			GuiBatchRenderer batch = GuiBatchRenderer.get();
+			batch.begin();
+			try {
+				batch.setColor(0.0f, 0.0f, 0.0f, 1.0f);
+				batch.quadColored(0.0f, 0.0f, frame.viewportWidth, frame.viewportHeight);
 
-			for(Gfx2d.LayerSnapshot layer : frame.layers) {
-				if(!layer.visible || layer.commands.isEmpty()) {
-					continue;
+				for(Gfx2d.LayerSnapshot layer : frame.layers) {
+					if(!layer.visible || layer.commands.isEmpty()) {
+						continue;
+					}
+					drawLayer(layer, textOverlays, frame.scaleX, frame.scaleY);
 				}
-				drawLayer(layer, textOverlays, frame.scaleX, frame.scaleY);
+			} finally {
+				batch.end();
 			}
 
 			GlUtil.glDisable(GL11.GL_BLEND);
@@ -327,7 +332,7 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 			return;
 		}
 
-		GL11.glBegin(GL11.GL_QUADS);
+		GuiBatchRenderer batch = GuiBatchRenderer.get();
 		for(int y = 0; y < command.bitmapHeight; y++) {
 			for(int x = 0; x < command.bitmapWidth; x++) {
 				int packed = command.bitmapPixels[(y * command.bitmapWidth) + x];
@@ -339,50 +344,38 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 					continue;
 				}
 
-				GlUtil.glColor4f(red, green, blue, alpha);
+				batch.setColor(red, green, blue, alpha);
 				float px = command.x1 + x;
 				float py = command.y1 + y;
-				addQuad(px * scaleX, py * scaleY, (px + 1.0f) * scaleX, (py + 1.0f) * scaleY);
+				batch.quadColored(px * scaleX, py * scaleY, scaleX, scaleY);
 			}
 		}
-		GL11.glEnd();
 	}
 
 	private void drawLayer(Gfx2d.LayerSnapshot layer, List<TextOverlaySpec> textOverlays, float scaleX, float scaleY) {
+		GuiBatchRenderer batch = GuiBatchRenderer.get();
 		try {
 			for(Gfx2d.DrawCommand command : layer.commands) {
-				GlUtil.glColor4f(command.r, command.g, command.b, command.a);
+				batch.setColor(command.r, command.g, command.b, command.a);
 				switch(command.kind) {
 					case POINT:
-						GL11.glBegin(GL11.GL_POINTS);
-						GL11.glVertex3f(command.x1 * scaleX, command.y1 * scaleY, 0.0F);
-						GL11.glEnd();
+						// 1px, as GL_POINTS drew at the default point size.
+						batch.quadColored(command.x1 * scaleX - 0.5f, command.y1 * scaleY - 0.5f, 1.0f, 1.0f);
 						break;
 					case LINE:
-						applyLineWidth(command.lineWidth * 0.5f * (scaleX + scaleY));
-						GL11.glBegin(GL11.GL_LINES);
-						GL11.glVertex3f(command.x1 * scaleX, command.y1 * scaleY, 0.0F);
-						GL11.glVertex3f(command.x2 * scaleX, command.y2 * scaleY, 0.0F);
-						GL11.glEnd();
-						resetLineWidth();
+						batch.line(command.x1 * scaleX, command.y1 * scaleY, command.x2 * scaleX, command.y2 * scaleY, lineWidth(command, scaleX, scaleY));
 						break;
-					case RECT:
+					case RECT: {
+						float x1 = command.x1 * scaleX, y1 = command.y1 * scaleY;
+						float x2 = command.x2 * scaleX, y2 = command.y2 * scaleY;
 						if(command.filled) {
-							GL11.glBegin(GL11.GL_QUADS);
-							GL11.glVertex3f(command.x1 * scaleX, command.y1 * scaleY, 0.0F);
-							GL11.glVertex3f(command.x2 * scaleX, command.y1 * scaleY, 0.0F);
-							GL11.glVertex3f(command.x2 * scaleX, command.y2 * scaleY, 0.0F);
-							GL11.glVertex3f(command.x1 * scaleX, command.y2 * scaleY, 0.0F);
-							GL11.glEnd();
+							batch.polygon(new float[] {x1, x2, x2, x1}, new float[] {y1, y1, y2, y2}, 4);
 						} else {
-							GL11.glBegin(GL11.GL_LINE_LOOP);
-							GL11.glVertex3f(command.x1 * scaleX, command.y1 * scaleY, 0.0F);
-							GL11.glVertex3f(command.x2 * scaleX, command.y1 * scaleY, 0.0F);
-							GL11.glVertex3f(command.x2 * scaleX, command.y2 * scaleY, 0.0F);
-							GL11.glVertex3f(command.x1 * scaleX, command.y2 * scaleY, 0.0F);
-							GL11.glEnd();
+							// Outline stayed at the default 1px line width before; keep it.
+							drawShape(new float[] {x1, x2, x2, x1}, new float[] {y1, y1, y2, y2}, false, 1.0f);
 						}
 						break;
+					}
 					case CIRCLE:
 						drawCircle(command, scaleX, scaleY);
 						break;
@@ -461,19 +454,8 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 		}
 	}
 
-	private void applyLineWidth(float width) {
-		GL11.glLineWidth(Math.max(1.0f, width));
-	}
-
-	private void resetLineWidth() {
-		GL11.glLineWidth(1.0f);
-	}
-
-	private void addQuad(float x1, float y1, float x2, float y2) {
-		GL11.glVertex3f(x1, y1, 0.0F);
-		GL11.glVertex3f(x2, y1, 0.0F);
-		GL11.glVertex3f(x2, y2, 0.0F);
-		GL11.glVertex3f(x1, y2, 0.0F);
+	private static float lineWidth(Gfx2d.DrawCommand command, float scaleX, float scaleY) {
+		return Math.max(1.0f, command.lineWidth * 0.5f * (scaleX + scaleY));
 	}
 
 	private void updateVisibility() {
@@ -505,6 +487,9 @@ public class TerminalGfxOverlay extends GUIDrawToTextureOverlay {
 	}
 
 	private boolean canDeleteTextureNow() {
+		if(GlUtil.isVulkan()) {
+			return true; // no GL context to lose; GLFW reports none current
+		}
 		try {
 			return org.lwjgl.glfw.GLFW.glfwGetCurrentContext() != 0L;
 		} catch(Throwable ignored) {

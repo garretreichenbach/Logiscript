@@ -10,6 +10,7 @@ import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.Ship;
+import org.schema.game.common.controller.database.tables.SystemTable;
 import org.schema.game.common.data.world.FTLConnection;
 import org.schema.game.common.data.world.SectorInformation;
 import org.schema.game.common.data.world.StellarSystem;
@@ -271,6 +272,111 @@ public class Galaxy extends LuaMadeUserdata {
 		} catch(Exception exception) {
 			return new FtlConnection[0];
 		}
+	}
+
+	/** Systems-per-axis in one galaxy (StarMade's fixed galaxy size). */
+	@LuaMadeCallable
+	public Integer getGalaxySize() {
+		return org.schema.game.server.data.Galaxy.size;
+	}
+
+	/**
+	 * Absolute <b>system</b> position of the core of the galaxy containing the given
+	 * <b>system</b> position, as a {@code Vec3i}. Pure coordinate math.
+	 */
+	@LuaMadeCallable
+	public Vec3i getGalaxyCenter(Vec3i systemPos) {
+		Vector3i g = org.schema.game.server.data.Galaxy.getContainingGalaxyFromSystemPos(toVector(systemPos), new Vector3i());
+		int size = org.schema.game.server.data.Galaxy.size;
+		return new Vec3i(new Vector3i(g.x * size, g.y * size, g.z * size));
+	}
+
+	/**
+	 * Every star within {@code radius} systems (euclidean, clamped to the galaxy size) of the
+	 * given <b>system</b> position, in the galaxy containing it, as a {@code StarInfo[]}. Read
+	 * from the galaxy's generation data — no systems are loaded — but a whole-galaxy query can
+	 * return tens of thousands of entries, so keep the radius modest when polling. Black holes
+	 * are not included (they appear as wormhole endpoints in {@link #getWarpGates()}).
+	 */
+	@LuaMadeCallable
+	public StarInfo[] getStars(Vec3i systemPos, Integer radius) {
+		Universe universe = universe();
+		if(universe == null || systemPos == null) return new StarInfo[0];
+		try {
+			Vector3i center = toVector(systemPos);
+			org.schema.game.server.data.Galaxy galaxy = universe.getGalaxyFromSystemPos(center);
+			if(galaxy == null) return new StarInfo[0];
+			int size = org.schema.game.server.data.Galaxy.size;
+			int half = org.schema.game.server.data.Galaxy.halfSize;
+			int r = radius == null ? 0 : Math.clamp(radius, 0, size);
+			long r2 = (long) r * r;
+			Vector3i n = new Vector3i();
+			ArrayList<StarInfo> out = new ArrayList<>();
+			for(int index : galaxy.getStarIndices().toIntArray()) {
+				galaxy.getNormalizedPosFromIndex(index, n);
+				int ax = galaxy.galaxyPos.x * size + n.x, ay = galaxy.galaxyPos.y * size + n.y, az = galaxy.galaxyPos.z * size + n.z;
+				long dx = ax - center.x, dy = ay - center.y, dz = az - center.z;
+				if(dx * dx + dy * dy + dz * dz > r2) continue;
+				int lx = n.x + half, ly = n.y + half, lz = n.z + half;
+				out.add(new StarInfo(new Vector3i(ax, ay, az), starType(galaxy.getSystemType(lx, ly, lz)), color(galaxy.getSunColor(lx, ly, lz))));
+			}
+			return out.toArray(new StarInfo[0]);
+		} catch(Exception exception) {
+			return new StarInfo[0];
+		}
+	}
+
+	/**
+	 * Every faction-claimed system within {@code radius} systems (euclidean, clamped to the galaxy
+	 * size) of the given <b>system</b> position, as a {@code SystemClaim[]}. Reads persisted
+	 * ownership with one database query per faction, so it is far cheaper than calling
+	 * {@link #getSystemAt(Vec3i)} per star — but still poll it every few seconds, not every frame.
+	 */
+	@LuaMadeCallable
+	public SystemClaim[] getClaimedSystems(Vec3i systemPos, Integer radius) {
+		if(systemPos == null) return new SystemClaim[0];
+		try {
+			GameServerState state = GameServer.getServerState();
+			if(state == null) return new SystemClaim[0];
+			Vector3i center = toVector(systemPos);
+			int r = radius == null ? 0 : Math.clamp(radius, 0, org.schema.game.server.data.Galaxy.size);
+			long r2 = (long) r * r;
+			SystemTable table = state.getDatabaseIndex().getTableManager().getSystemTable();
+			ArrayList<SystemClaim> out = new ArrayList<>();
+			ArrayList<Vector3i> systems = new ArrayList<>();
+			for(org.schema.game.common.data.player.faction.Faction faction : state.getFactionManager().getFactionCollection()) {
+				int id = faction.getIdFaction();
+				if(id == 0) continue;
+				systems.clear();
+				table.getSystemsByFaction(id, systems);
+				for(Vector3i s : systems) {
+					long dx = s.x - center.x, dy = s.y - center.y, dz = s.z - center.z;
+					if(dx * dx + dy * dy + dz * dz <= r2) out.add(new SystemClaim(s, id));
+				}
+			}
+			return out.toArray(new SystemClaim[0]);
+		} catch(Exception exception) {
+			return new SystemClaim[0];
+		}
+	}
+
+	private static String starType(int type) {
+		return switch(type) {
+			case org.schema.game.server.data.Galaxy.TYPE_GIANT -> "GIANT";
+			case org.schema.game.server.data.Galaxy.TYPE_DOUBLE_STAR -> "DOUBLE_STAR";
+			case org.schema.game.server.data.Galaxy.TYPE_BLACK_HOLE -> "BLACK_HOLE";
+			default -> "SUN";
+		};
+	}
+
+	/** Galaxy-local coordinate (what the generator's per-system lookups take) for an absolute system position. */
+	static Vector3i relPos(Vector3i systemPos) {
+		return org.schema.game.server.data.Galaxy.getRelPosInGalaxyFromAbsSystem(systemPos, new Vector3i());
+	}
+
+	static Double[] color(javax.vecmath.Vector4f c) {
+		if(c == null) return new Double[] {1.0, 1.0, 1.0, 1.0};
+		return new Double[] {(double) c.x, (double) c.y, (double) c.z, (double) c.w};
 	}
 
 	private static Universe universe() {

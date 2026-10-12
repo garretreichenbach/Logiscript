@@ -1,5 +1,6 @@
 package luamade.network;
 
+import com.bulletphysics.linearmath.Transform;
 import api.common.GameServer;
 import luamade.element.ElementRegistry;
 import luamade.system.module.ComputerModuleContainer;
@@ -52,9 +53,12 @@ final class ComputerPacketUtil {
 				return true;
 			}
 
+			// Measure to the block, not the entity origin: on a big ship the block can be far from the centre.
 			Vector3f playerPos = controlled.getWorldTransform().origin;
-			Vector3f entityPos = computerEntity.getWorldTransform().origin;
-			float distance = Vector3fTools.distance(playerPos.x, playerPos.y, playerPos.z, entityPos.x, entityPos.y, entityPos.z);
+			Transform blockTransform = new Transform();
+			piece.getTransform(blockTransform);
+			Vector3f blockPos = blockTransform.origin;
+			float distance = Vector3fTools.distance(playerPos.x, playerPos.y, playerPos.z, blockPos.x, blockPos.y, blockPos.z);
 			return distance <= MAX_CONNECT_DISTANCE_BLOCKS;
 		} catch(Exception ex) {
 			return false;
@@ -63,13 +67,18 @@ final class ComputerPacketUtil {
 
 	/** Resolves a live Computer block by entity + absolute index, or null if it no longer exists / isn't a Computer. */
 	static SegmentPiece resolveComputerPiece(int entityId, long absIndex) {
+		return resolvePiece(entityId, absIndex, ElementRegistry.COMPUTER.getId());
+	}
+
+	/** Resolves a live block of {@code type} by entity + absolute index, or null. */
+	static SegmentPiece resolvePiece(int entityId, long absIndex, short type) {
 		try {
 			Sendable sendable = GameServer.getServerState().getLocalAndRemoteObjectContainer().getLocalObjects().get(entityId);
 			if(!(sendable instanceof ManagedUsableSegmentController<?> sc)) {
 				return null;
 			}
 			SegmentPiece piece = sc.getSegmentBuffer().getPointUnsave(absIndex);
-			if(piece == null || piece.getType() != ElementRegistry.COMPUTER.getId()) {
+			if(piece == null || piece.getType() != type) {
 				return null;
 			}
 			return piece;

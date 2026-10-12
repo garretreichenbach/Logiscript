@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"minVersion": "0.8.7",
+	"package": "luamade.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"target": "@env(DEFAULT)",
+	"mixins": [
+		"TurretManualAimMixin"
+	],
+	"server": [],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

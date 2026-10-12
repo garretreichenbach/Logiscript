@@ -4,6 +4,7 @@ import api.block.BlockConfig;
 import luamade.LuaMade;
 import luamade.element.ElementInterface;
 import luamade.element.ElementRegistry;
+import luamade.manager.ResourceManager;
 import org.schema.game.common.data.element.ElementInformation;
 import org.schema.game.common.data.element.ElementKeyMap;
 import org.schema.game.common.data.element.FactoryResource;
@@ -26,7 +27,7 @@ public class RemoteControl implements ElementInterface {
 	public void initData() {
 		itemInfo = BlockConfig.newElement(LuaMade.getInstance(), "Remote Control", new short[6]);
 		itemInfo.placable = false;
-		itemInfo.setDescription("Portable controller that can link to LuaMade remote access points and forward player inputs.");
+		itemInfo.setDescription("Link it at a Remote Access Point, then right-click to open the linked computer from anywhere, or shift+right-click to send your keyboard and mouse to it (Esc to stop).");
 		itemInfo.setDeprecated(false);
 		itemInfo.setInRecipe(true);
 		itemInfo.setShoppable(true);
@@ -41,7 +42,9 @@ public class RemoteControl implements ElementInterface {
 
 	@Override
 	public void initResources() {
-		itemInfo.setBuildIconNum(ElementKeyMap.getInfo(6).getBuildIconNum());
+		if(!ResourceManager.ItemIcons.REMOTE_CONTROL.apply(itemInfo)) {
+			itemInfo.setBuildIconNum(ElementKeyMap.getInfo(6).getBuildIconNum());
+		}
 		itemInfo.setTextureId(ElementKeyMap.getInfo(6).getTextureIds());
 		itemInfo.controlling.add(ElementRegistry.REMOTE_ACCESS_POINT.getId());
 	}

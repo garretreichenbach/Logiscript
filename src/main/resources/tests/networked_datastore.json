@@ -1,0 +1,66 @@
+{
+  "id": "luamade/networked_datastore",
+  "entity": "station",
+  "blocks": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "block": "videogoose.luamade~Computer"
+    },
+    {
+      "at": [
+        1,
+        0,
+        0
+      ],
+      "block": "videogoose.luamade~Networked Data Store"
+    },
+    {
+      "at": [
+        0,
+        1,
+        0
+      ],
+      "block": "videogoose.luamade~Network Module"
+    },
+    {
+      "from": [
+        6,
+        0,
+        0
+      ],
+      "to": [
+        7,
+        0,
+        1
+      ],
+      "block": "REACTOR_POWER"
+    }
+  ],
+  "luamade": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "script": "local function check(c, m) if not c then print(\"FAIL \" .. m) error(m) end end\nlocal p = console.getBlock().getPos()\nlocal function at(dx, dy, dz) return vec3i(p.getX() + dx, p.getY() + dy, p.getZ() + dz) end\n\nlocal nds = peripheral.wrapAt(at(1, 0, 0), \"networkeddatastore\")\ncheck(nds ~= nil, \"wrap nds\")\nif nds.isRegistered() then nds.unregister() end\nlocal name = \"wt-\" .. tostring(util.now())\ncheck(nds.register(name), \"register\")\ncheck(nds.getStoreName() == name, \"store name\")\ncheck(nds.setAccessLevel(\"public\") ~= false and nds.getAccessLevel() == \"public\", \"access level\")\nnds.set(\"k\", \"v1\")\n\nlocal net = peripheral.wrapAt(at(0, 1, 0), \"networkmodule\").getNet()\nlocal remote = net.getDataStore(name)\ncheck(remote ~= nil, \"net.getDataStore\")\ncheck(remote.getValue(\"k\") == \"v1\", \"remote read\")\nremote.set(\"k\", \"v2\")\ncheck(nds.getValue(\"k\") == \"v2\", \"remote write\")\ncheck(net.getDataStore(\"wt-missing-\" .. name) == nil, \"unknown name is nil\")\ncheck(nds.unregister() and not nds.isRegistered(), \"unregister\")\nprint(\"PASS networked_datastore\")\n"
+    }
+  ],
+  "expect": [
+    {
+      "luamade": [
+        0,
+        0,
+        0
+      ],
+      "measure": "console",
+      "text": "PASS networked_datastore",
+      "count": 1,
+      "by": 300
+    }
+  ]
+}

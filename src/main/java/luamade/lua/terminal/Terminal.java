@@ -332,7 +332,10 @@ public class Terminal extends LuaMadeUserdata {
 					context.throwIfCancellationRequested();
 				}
 				try {
-					String line = readLineQueue.poll(100, TimeUnit.MILLISECONDS);
+					String line;
+					try(ScriptClock.Blocked ignored = ScriptClock.blocked()) {
+						line = readLineQueue.poll(100, TimeUnit.MILLISECONDS);
+					}
 					if(line != null) {
 						return valueOf(line);
 					}
@@ -594,6 +597,7 @@ public class Terminal extends LuaMadeUserdata {
 	private Future<Boolean> submitScriptTask(String scriptPath, String script, List<String> args, ScriptExecutionContext context) {
 		return scriptExecutor.submit(() -> {
 			scriptContextThreadLocal.set(context);
+			ScriptClock.bind(context.clock);
 			context.bindToCurrentThread();
 			runningScriptContexts.add(context);
 			WrapMethod.setCancellationChecker(context::throwIfCancellationRequested);
@@ -604,6 +608,7 @@ public class Terminal extends LuaMadeUserdata {
 			} finally {
 				WrapMethod.setCancellationChecker(null);
 				scriptContextThreadLocal.remove();
+				ScriptClock.unbind();
 				runningScriptContexts.remove(context);
 				activeScripts.decrementAndGet();
 				context.tryReleaseSlot(scriptSlots);
@@ -1661,7 +1666,7 @@ public class Terminal extends LuaMadeUserdata {
 		long now = System.currentTimeMillis();
 		int timedOutCount = 0;
 		for(ScriptExecutionContext context : runningScriptContexts) {
-			if(context == null || (now - context.startTimeMs) < maxWallClockMs) {
+			if(context == null || context.clock.activeMs(now) < maxWallClockMs) {
 				continue;
 			}
 			if(!context.markTimedOutOnce()) {
@@ -4637,7 +4642,7 @@ public class Terminal extends LuaMadeUserdata {
 		private final AtomicBoolean cancellationRequested = new AtomicBoolean(false);
 		private final AtomicBoolean slotReleased = new AtomicBoolean(false);
 		private final AtomicBoolean timedOut = new AtomicBoolean(false);
-		private final long startTimeMs = System.currentTimeMillis();
+		private final ScriptClock clock = new ScriptClock();
 		/** The player (if any) whose input started this specific script run. May be null (e.g. the startup script). */
 		private final PlayerState invokingPlayer;
 		private volatile Thread workerThread;

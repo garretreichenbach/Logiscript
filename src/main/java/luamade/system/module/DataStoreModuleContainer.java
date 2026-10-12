@@ -5,6 +5,8 @@ import api.network.PacketWriteBuffer;
 import api.entity.module.util.SystemModule;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import luamade.element.ElementRegistry;
+import luamade.lua.datastore.SharedDataStore;
+import luamade.utils.BlockOwnership;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.elements.ManagerContainer;
 import org.schema.schine.graphicsengine.core.Timer;
@@ -47,7 +49,7 @@ public class DataStoreModuleContainer extends SystemModule {
 	public String getOrAssignUuid(long absIndex) {
 		String uuid = blockUuids.get(absIndex);
 		if(uuid == null) {
-			uuid = UUID.randomUUID().toString();
+			uuid = BlockOwnership.claim(segmentController, "datastore", UUID.randomUUID().toString(), absIndex);
 			blockUuids.put(absIndex, uuid);
 			flagUpdatedData();
 		}
@@ -120,7 +122,13 @@ public class DataStoreModuleContainer extends SystemModule {
 			long abs = buffer.readLong();
 			String uuid = buffer.readString();
 			if(uuid != null && !uuid.isEmpty()) {
-				blockUuids.put(abs, uuid);
+				// A blueprint copy gets its own store, starting from a copy of the original's data.
+				String claimed = BlockOwnership.claim(segmentController, "datastore", uuid, abs);
+				if(!claimed.equals(uuid)) {
+					SharedDataStore.copyStore(uuid, claimed);
+					flagUpdatedData();
+				}
+				blockUuids.put(abs, claimed);
 			}
 		}
 	}

@@ -273,7 +273,7 @@ public class PacketCSComputerInput extends Packet {
 		}
 
 		if(parsedKind == Kind.CONNECT) {
-			if(!ComputerPacketUtil.isWithinConnectRange(sender, piece)) {
+			if(!ComputerPacketUtil.isWithinConnectRange(sender, piece) && !RemoteControlLinks.hasRemoteFor(sender, piece)) {
 				PacketUtil.sendPacket(sender, PacketSCComputerConnectAck.failure(requestId, entityId, absIndex, "Too far from the computer"));
 				return;
 			}
@@ -316,7 +316,7 @@ public class PacketCSComputerInput extends Packet {
 				module.getInputApi().pushKeyEvent(key, (char) charCode, down, shift, ctrl, alt);
 				break;
 			case MOUSE_EVENT:
-				module.getInputApi().pushMouseEvent(mouseButton, mousePressed, mouseX, mouseY, mouseDx, mouseDy, mouseWheel, -1, -1, uiX, uiY, insideCanvas, dragging, dragButton);
+				module.getInputApi().pushMouseEvent(mouseButton, mousePressed, mouseX, mouseY, mouseDx, mouseDy, mouseWheel, uiX, uiY, insideCanvas, dragging, dragButton);
 				break;
 			case INTERRUPT:
 				module.getTerminal().interruptForeground();

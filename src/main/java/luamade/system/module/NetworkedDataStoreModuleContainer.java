@@ -6,6 +6,8 @@ import api.entity.module.util.SystemModule;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import luamade.element.ElementRegistry;
 import luamade.lua.datastore.NetworkedDataStoreRegistry;
+import luamade.lua.datastore.SharedDataStore;
+import luamade.utils.BlockOwnership;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.elements.ManagerContainer;
 import org.schema.schine.graphicsengine.core.Timer;
@@ -49,7 +51,7 @@ public class NetworkedDataStoreModuleContainer extends SystemModule {
 	public String getOrAssignUuid(long absIndex) {
 		String uuid = blockUuids.get(absIndex);
 		if(uuid == null) {
-			uuid = UUID.randomUUID().toString();
+			uuid = BlockOwnership.claim(segmentController, "networkeddatastore", UUID.randomUUID().toString(), absIndex);
 			blockUuids.put(absIndex, uuid);
 			flagUpdatedData();
 		}
@@ -150,7 +152,15 @@ public class NetworkedDataStoreModuleContainer extends SystemModule {
 			String uuid = buffer.readString();
 			String name = buffer.readString();
 			if(uuid != null && !uuid.isEmpty()) {
-				blockUuids.put(abs, uuid);
+				// A blueprint copy gets its own store, starting from a copy of the original's data, but unregistered: names
+				// are global, so the name stays with the original (and removing the copy can't unregister it).
+				String claimed = BlockOwnership.claim(segmentController, "networkeddatastore", uuid, abs);
+				if(!claimed.equals(uuid)) {
+					SharedDataStore.copyStore(uuid, claimed);
+					name = null;
+					flagUpdatedData();
+				}
+				blockUuids.put(abs, claimed);
 				if(name != null && !name.isEmpty()) {
 					blockNames.put(abs, name);
 				}

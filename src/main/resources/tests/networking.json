@@ -1,0 +1,93 @@
+{
+  "id": "luamade/networking",
+  "entity": "station",
+  "blocks": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "block": "videogoose.luamade~Computer"
+    },
+    {
+      "at": [
+        0,
+        0,
+        3
+      ],
+      "block": "videogoose.luamade~Computer"
+    },
+    {
+      "at": [
+        1,
+        0,
+        0
+      ],
+      "block": "videogoose.luamade~Network Module"
+    },
+    {
+      "at": [
+        1,
+        0,
+        3
+      ],
+      "block": "videogoose.luamade~Network Module"
+    },
+    {
+      "from": [
+        6,
+        0,
+        0
+      ],
+      "to": [
+        7,
+        0,
+        1
+      ],
+      "block": "REACTOR_POWER"
+    }
+  ],
+  "luamade": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "script": "local function check(c, m) if not c then print(\"FAIL \" .. m) error(m) end end\nlocal p = console.getBlock().getPos()\nlocal function at(dx, dy, dz) return vec3i(p.getX() + dx, p.getY() + dy, p.getZ() + dz) end\n\nlocal net = peripheral.wrapAt(at(1, 0, 0), \"networkmodule\").getNet()\ncheck(net.getHostname() ~= nil, \"hostname\")\n\ncheck(net.sendComputer(\"self\", \"ping\"), \"sendComputer\")\ncheck(net.hasComputerMessage(\"self\"), \"hasComputerMessage\")\ncheck(net.receiveComputer(\"self\").getContent() == \"ping\", \"receiveComputer\")\nlocal stop = console.getTime() + 10000\nlocal sent = false\nwhile not sent and console.getTime() < stop do\n  sent = net.sendEntity(\"wt\", \"hello\")\n  util.sleep(200)\nend\ncheck(sent, \"sendEntity delivered\")\nprint(\"PASS networking sender\")\n"
+    },
+    {
+      "at": [
+        0,
+        0,
+        3
+      ],
+      "script": "local function check(c, m) if not c then print(\"FAIL \" .. m) error(m) end end\nlocal p = console.getBlock().getPos()\nlocal function at(dx, dy, dz) return vec3i(p.getX() + dx, p.getY() + dy, p.getZ() + dz) end\n\nlocal net = peripheral.wrapAt(at(1, 0, 0), \"networkmodule\").getNet()\ncheck(net.getHostname() ~= nil, \"hostname\")\n\nlocal stop = console.getTime() + 15000\nwhile not net.hasEntityMessage(\"wt\") and console.getTime() < stop do util.sleep(100) end\nlocal msg = net.receiveEntity(\"wt\")\ncheck(msg ~= nil and msg.getContent() == \"hello\", \"receiveEntity\")\ncheck(msg.getTransport() == \"entity\", \"transport\")\nprint(\"PASS networking receiver\")\n"
+    }
+  ],
+  "expect": [
+    {
+      "luamade": [
+        0,
+        0,
+        0
+      ],
+      "measure": "console",
+      "text": "PASS networking sender",
+      "count": 1,
+      "by": 600
+    },
+    {
+      "luamade": [
+        0,
+        0,
+        3
+      ],
+      "measure": "console",
+      "text": "PASS networking receiver",
+      "count": 1,
+      "by": 600
+    }
+  ]
+}

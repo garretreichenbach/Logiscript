@@ -105,6 +105,18 @@ Loaded entities (ships, stations, asteroids, …) currently in the given **secto
 - `getWarpGates()`
 Every warp gate / wormhole / race-way link known to the galaxy, as an `FtlConnection[]`. Empty when no server universe is available.
 
+- `getGalaxySize()`
+Systems-per-axis in one galaxy, as an `Integer` (StarMade uses `128`).
+
+- `getGalaxyCenter(systemPos: Vec3i)`
+Absolute **system** position of the core of the galaxy containing the given **system** position, as a `Vec3i`. Pure coordinate math.
+
+- `getStars(systemPos: Vec3i, radius: Integer)`
+Every star within `radius` systems (euclidean, clamped to the galaxy size) of the given **system** position, as a `StarInfo[]`. Read from galaxy generation data, so nothing is loaded, but a whole-galaxy query can return tens of thousands of entries — keep the radius modest when polling. Black holes are not listed; they appear as wormhole endpoints in `getWarpGates()`.
+
+- `getClaimedSystems(systemPos: Vec3i, radius: Integer)`
+Every faction-claimed system within `radius` systems (euclidean, clamped to the galaxy size) of the given **system** position, as a `SystemClaim[]`. One database query per faction — far cheaper than `getSystemAt()` per star, but poll it every few seconds rather than every frame.
+
 ## StarSystem
 
 Read-only snapshot of one star system (a `getSystemSize()`³ cube of sectors).
@@ -133,6 +145,65 @@ Sector-type name for a specific absolute sector position inside this system, or 
 
 - `getPlanetType(sectorPos: Vec3i)`
 Planet-type config id (`"terrestrial"`, `"barren"`, `"crystalline"`, `"corrupted"`, or a server-defined type) for a sector that holds a planet, or `nil` otherwise.
+
+- `getSunSector()`
+Absolute sector position of the system's star, as a `Vec3i` — the sector every orbit is centred on. Legacy (non-galaxy) universes return the middle sector.
+
+- `getSunColor()`
+Star colour as `{r, g, b, a}` normalized floats, or `nil` when unavailable.
+
+- `getAxis()`
+Normal of the system's orbital plane (unit vector in galactic axes), as a `Vec3f`.
+
+- `getOrbits()`
+The system's populated orbit rings, innermost first, as an `Orbit[]` — the same rings the vanilla galaxy map draws. Empty for void / black-hole systems.
+
+```lua
+local sys  = galaxy.getSystem(entity.getSector())
+local sun  = sys.getSunSector()
+local axis = sys.getAxis()
+for _, o in ipairs(sys.getOrbits()) do
+    print(o.getType(), "orbit at", o.getRadius(), "sectors")  -- ring centred on `sun`, normal `axis`
+end
+```
+
+## Orbit
+
+One orbit ring of a star system. A ring is a circle of `getRadius()` sectors centred on the
+centre of `StarSystem.getSunSector()`, lying in the plane whose normal is `StarSystem.getAxis()`.
+
+- `getIndex()`
+Orbit slot, `0` (innermost) to `7`.
+
+- `getRadius()`
+Ring radius in sectors (`index + 1.5`).
+
+- `getType()`
+`"PLANET"` for a planet orbit, `"BELT"` for an asteroid belt.
+
+## SystemClaim
+
+One faction-claimed system, from `galaxy.getClaimedSystems()`.
+
+- `getSystemPos()`
+Absolute system position, as a `Vec3i`.
+
+- `getFactionId()` / `getFaction()`
+Owning faction id `Integer` / `Faction`.
+
+## StarInfo
+
+Lightweight snapshot of one star from `galaxy.getStars()`. Use `galaxy.getSystemAt(info.getSystemPos())`
+for name and ownership.
+
+- `getSystemPos()`
+Absolute system position, as a `Vec3i`.
+
+- `getType()`
+`"SUN"`, `"GIANT"` or `"DOUBLE_STAR"`.
+
+- `getColor()`
+Star colour as `{r, g, b, a}` normalized floats.
 
 ## SectorInfo
 

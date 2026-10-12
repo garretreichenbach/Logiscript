@@ -1,0 +1,264 @@
+{
+  "id": "luamade/turret_free_aim_hits_target",
+  "timeout": 1500,
+  "entity": "station",
+  "blocks": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "block": "RAIL_TURRET_AXIS",
+      "orient": 12
+    },
+    {
+      "from": [
+        0,
+        0,
+        14
+      ],
+      "to": [
+        0,
+        8,
+        14
+      ],
+      "block": "GREY_HULL"
+    },
+    {
+      "at": [
+        0,
+        9,
+        14
+      ],
+      "block": "RAIL_BASIC",
+      "orient": 12
+    },
+    {
+      "from": [
+        6,
+        0,
+        0
+      ],
+      "to": [
+        7,
+        0,
+        1
+      ],
+      "block": "REACTOR_POWER"
+    },
+    {
+      "at": [
+        3,
+        0,
+        0
+      ],
+      "block": "videogoose.luamade~Computer"
+    }
+  ],
+  "docked": [
+    {
+      "rail": [
+        0,
+        0,
+        0
+      ],
+      "blocks": [
+        {
+          "at": [
+            0,
+            0,
+            0
+          ],
+          "block": "RAIL_DOCKER",
+          "orient": 8
+        },
+        {
+          "at": [
+            0,
+            1,
+            0
+          ],
+          "block": "GREY_HULL"
+        },
+        {
+          "at": [
+            0,
+            2,
+            0
+          ],
+          "block": "RAIL_TURRET_AXIS",
+          "orient": 16
+        }
+      ]
+    },
+    {
+      "on": 0,
+      "rail": [
+        0,
+        2,
+        0
+      ],
+      "blocks": [
+        {
+          "at": [
+            3,
+            1,
+            0
+          ],
+          "block": "RAIL_DOCKER",
+          "orient": 20
+        },
+        {
+          "from": [
+            1,
+            1,
+            0
+          ],
+          "to": [
+            2,
+            1,
+            1
+          ],
+          "block": "REACTOR_POWER"
+        },
+        {
+          "at": [
+            1,
+            2,
+            0
+          ],
+          "block": "CANNON_COMPUTER"
+        },
+        {
+          "at": [
+            1,
+            2,
+            1
+          ],
+          "block": "CANNON_BARREL",
+          "controller": [
+            1,
+            2,
+            0
+          ]
+        },
+        {
+          "at": [
+            2,
+            2,
+            0
+          ],
+          "block": "BOBBY_AI_MODULE"
+        }
+      ],
+      "turretAI": [
+        {
+          "at": [
+            1,
+            2,
+            0
+          ],
+          "aimAt": "Missiles",
+          "target": "t"
+        }
+      ]
+    },
+    {
+      "rail": [
+        0,
+        9,
+        14
+      ],
+      "blocks": [
+        {
+          "at": [
+            0,
+            0,
+            0
+          ],
+          "block": "RAIL_DOCKER",
+          "orient": 8
+        },
+        {
+          "from": [
+            0,
+            1,
+            0
+          ],
+          "to": [
+            2,
+            3,
+            2
+          ],
+          "block": "GREY_HULL"
+        }
+      ],
+      "turretAI": [
+        {
+          "at": [
+            0,
+            0,
+            0
+          ],
+          "id": "t"
+        }
+      ]
+    }
+  ],
+  "luamade": [
+    {
+      "at": [
+        3,
+        0,
+        0
+      ],
+      "script": "local ship = console.getBlock().getEntity()\nlocal turret = console.getTurret(ship.getTurrets()[1])\nlocal me = ship.getPos()\nlocal target, best\nfor _, e in ipairs(ship.getNearbyEntities()) do\n  local p = e.getPos()\n  local d = (p.getX() - me.getX())^2 + (p.getY() - me.getY())^2 + (p.getZ() - me.getZ())^2\n  if best == nil or d < best then target, best = e, d end\nend\nprint(\"target found: \" .. tostring(target ~= nil))\nlocal stop = console.getTime() + 15000\nwhile console.getTime() < stop do\n  turret.aimAt(target.getPos())\n  turret.fire(true)\n  util.sleep(100)\nend\nturret.release()\nprint(\"aim done\")\n"
+    }
+  ],
+  "expect": [
+    {
+      "luamade": [
+        3,
+        0,
+        0
+      ],
+      "measure": "console",
+      "text": "target found: true",
+      "count": 1,
+      "by": 300
+    },
+    {
+      "luamade": [
+        3,
+        0,
+        0
+      ],
+      "measure": "manual_turrets",
+      "count": 1,
+      "by": 300
+    },
+    {
+      "docked": 1,
+      "turret": [
+        1,
+        2,
+        0
+      ],
+      "measure": "target_damage",
+      "min": 1,
+      "by": 1200
+    },
+    {
+      "luamade": [
+        3,
+        0,
+        0
+      ],
+      "measure": "console",
+      "text": "aim done",
+      "count": 1,
+      "by": 1200
+    }
+  ]
+}

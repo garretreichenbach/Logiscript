@@ -259,6 +259,9 @@ public class ComputerDialog extends PlayerInput {
 		private int lastSentCanvasY = Integer.MIN_VALUE;
 		private int lastSentCanvasWidth = Integer.MIN_VALUE;
 		private int lastSentCanvasHeight = Integer.MIN_VALUE;
+		// GUIActivatableTextBar only sizes its scroll panel to the anchor inside draw(),
+		// so its height is a small placeholder until the first draw has run.
+		private boolean consoleLaidOut;
 		private int selectedSuggestionIndex = -1;
 		private String suggestionSeedInput = "";
 		private boolean pathCompletionMode;
@@ -620,8 +623,7 @@ public class ComputerDialog extends PlayerInput {
 				return;
 			}
 
-			boolean overlayActive = terminalGfxOverlay != null && terminalGfxOverlay.isOverlayActive();
-			if(overlayActive) {
+			if(isTerminalInputMaskingActive()) {
 				if(!terminalInputMaskedByGfx) {
 					maskedTerminalInputSnapshot = currentInputLine == null ? "" : currentInputLine;
 					terminalInputMaskedByGfx = true;
@@ -673,7 +675,8 @@ public class ComputerDialog extends PlayerInput {
 		}
 
 		private boolean isTerminalInputMaskingActive() {
-			return !isFileEditMode() && terminalGfxOverlay != null && terminalGfxOverlay.isOverlayActive();
+			// Mask while a gfx2d overlay is up or a script holds the keyboard (input.consumeKeyboard()).
+			return !isFileEditMode() && ((terminalGfxOverlay != null && terminalGfxOverlay.isOverlayActive()) || (sessionView != null && sessionView.isKeyboardConsumed()));
 		}
 
 		public boolean isTerminalInputMaskedByGfx() {
@@ -1276,7 +1279,7 @@ public class ComputerDialog extends PlayerInput {
 				sessionView.sendUiLayout(currentWindowX, currentWindowY, currentWindowWidth, currentWindowHeight, currentCanvasX, currentCanvasY, currentCanvasWidth, currentCanvasHeight);
 			}
 
-			if(consolePane == null || terminalGfxOverlay == null) {
+			if(consolePane == null || terminalGfxOverlay == null || !consoleLaidOut) {
 				return;
 			}
 
@@ -1714,6 +1717,7 @@ public class ComputerDialog extends PlayerInput {
 			mainContentPane = contentPane;
 
 			consolePanel = new GUIScrollablePanel(850, 650, contentPane.getContent(0), getState());
+			consoleLaidOut = false;
 			consolePane = new GUIActivatableTextBar(getState(), FontLibrary.FontSize.MEDIUM, ConfigManager.getConsoleCharacterLimit(), ConfigManager.getConsoleLineLimit(), "", contentPane.getContent(0), new TextCallback() {
 				@Override
 				public String[] getCommandPrefixes() {
@@ -2006,6 +2010,10 @@ public class ComputerDialog extends PlayerInput {
 		public void draw() {
 			updateGfxOverlayBounds();
 			super.draw();
+			if(!consoleLaidOut && consolePane != null) {
+				consoleLaidOut = true;
+				updateGfxOverlayBounds();
+			}
 			clampCaretToEditableRegion();
 			scrollPaneToCursor();
 			updateActionButtonPositions();

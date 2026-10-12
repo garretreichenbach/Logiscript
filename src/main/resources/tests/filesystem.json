@@ -1,0 +1,50 @@
+{
+  "id": "luamade/filesystem",
+  "entity": "station",
+  "blocks": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "block": "videogoose.luamade~Computer"
+    },
+    {
+      "from": [
+        6,
+        0,
+        0
+      ],
+      "to": [
+        7,
+        0,
+        1
+      ],
+      "block": "REACTOR_POWER"
+    }
+  ],
+  "luamade": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "script": "local function check(c, m) if not c then print(\"FAIL \" .. m) error(m) end end\nlocal p = console.getBlock().getPos()\nlocal function at(dx, dy, dz) return vec3i(p.getX() + dx, p.getY() + dy, p.getZ() + dz) end\n\ncheck(fs.makeDir(\"/home/wt/sub\"), \"makeDir\")\ncheck(fs.isDir(\"/home/wt/sub\"), \"isDir\")\ncheck(fs.write(\"/home/wt/a.txt\", \"hello\"), \"write\")\ncheck(fs.read(\"/home/wt/a.txt\") == \"hello\", \"read\")\nfs.touch(\"/home/wt/a.txt\")\ncheck(fs.read(\"/home/wt/a.txt\") == \"hello\", \"touch keeps content\")\nlocal names = {}\nfor _, n in ipairs(fs.list(\"/home/wt\")) do names[n] = true end\ncheck(names[\"a.txt\"] and names[\"sub\"], \"list\")\ncheck(fs.normalizePath(\"/home/wt/sub/../a.txt\") == \"/home/wt/a.txt\", \"normalizePath\")\ncheck(not fs.delete(\"/home/wt\"), \"delete non-empty dir refused\")\n\ncheck(fs.protect(\"/home/wt\", \"pw\", \"write\"), \"protect\")\ncheck(not fs.write(\"/home/wt/a.txt\", \"x\"), \"protected write denied\")\ncheck(fs.auth(\"pw\"), \"auth\")\ncheck(fs.write(\"/home/wt/a.txt\", \"x\"), \"authed write\")\ncheck(fs.unprotect(\"/home/wt\", \"pw\"), \"unprotect\")\nfs.clearAuth()\n\ncheck(fs.delete(\"/home/wt/a.txt\") and fs.delete(\"/home/wt/sub\") and fs.delete(\"/home/wt\"), \"cleanup\")\ncheck(not fs.exists(\"/home/wt\"), \"deleted\")\nprint(\"PASS filesystem\")\n"
+    }
+  ],
+  "expect": [
+    {
+      "luamade": [
+        0,
+        0,
+        0
+      ],
+      "measure": "console",
+      "text": "PASS filesystem",
+      "count": 1,
+      "by": 300
+    }
+  ]
+}

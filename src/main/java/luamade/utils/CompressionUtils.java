@@ -1,14 +1,15 @@
 package luamade.utils;
 
 import luamade.LuaMade;
-import luamade.lua.fs.FileSystem;
 import net.jpountz.lz4.LZ4Compressor;
 import net.jpountz.lz4.LZ4Factory;
 import net.jpountz.lz4.LZ4FastDecompressor;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.nio.Buffer;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -25,15 +26,13 @@ public class CompressionUtils {
 	private static final byte DIRECTORY = -3;
 	private static final byte FILE = -4;
 
-	private static final ByteBuffer writeBuffer = ByteBuffer.allocate(FileSystem.MAX_FS_SIZE);
-
 	/**
 	 * Decompresses a file system from a compressed file.
 	 * @param source The compressed file to read from
 	 * @param destination The folder to write the decompressed data to
 	 * @throws Exception If an error occurs during decompression
 	 */
-	public static synchronized void decompressFS(File source, File destination) throws Exception {
+	public static void decompressFS(File source, File destination) throws Exception {
 		if(!source.exists() || source.length() == 0) {
 			// Empty file, nothing to decompress
 			destination.mkdirs();
@@ -53,10 +52,7 @@ public class CompressionUtils {
 		decompressor.decompress(compressedData, 4, decompressedData, 0, uncompressedSize);
 
 		// Read the decompressed data and recreate the file system
-		clearBuffer(writeBuffer);
-		writeBuffer.put(decompressedData);
-		flipBuffer(writeBuffer);
-		readFromBufferRecursive(destination, writeBuffer);
+		readFromBufferRecursive(destination, ByteBuffer.wrap(decompressedData));
 	}
 
 	/**
@@ -65,17 +61,16 @@ public class CompressionUtils {
 	 * @param destination The file to write the compressed data to
 	 * @throws Exception If an error occurs during compression
 	 */
-	public static synchronized void compressFS(File source, File destination) throws Exception {
-		//First, we combine all the files in the folder into a single buffer
-		clearBuffer(writeBuffer);
-		writeToBufferRecursive(source);
-		writeBuffer.put(END_OF_STREAM);
-		
-		// Get the uncompressed data size
-		int uncompressedSize = writeBuffer.position();
-		byte[] uncompressedData = new byte[uncompressedSize];
-		flipBuffer(writeBuffer);
-		writeBuffer.get(uncompressedData);
+	public static void compressFS(File source, File destination) throws Exception {
+		//First, we combine all the files in the folder into a single growable buffer
+		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+		DataOutputStream out = new DataOutputStream(bytes);
+		writeToBufferRecursive(source, out);
+		out.writeByte(END_OF_STREAM);
+		out.flush();
+
+		byte[] uncompressedData = bytes.toByteArray();
+		int uncompressedSize = uncompressedData.length;
 
 		//Now compress the data
 		LZ4Compressor compressor = LZ4Factory.fastestInstance().fastCompressor();
@@ -100,29 +95,31 @@ public class CompressionUtils {
 	 * Recursively writes files and directories to the buffer.
 	 * @param file The file or directory to write
 	 */
-	private static void writeToBufferRecursive(File file) {
+	private static void writeToBufferRecursive(File file, DataOutputStream out) throws IOException {
 		if(file.isDirectory()) {
 			File[] children = file.listFiles();
 			if(children != null) {
 				for(File child : children) {
 					if(child.isDirectory()) {
 						//Write the directory marker and name
-						writeBuffer.put(DIRECTORY);
-						writeString(child.getName());
-						writeToBufferRecursive(child);
-						writeBuffer.put(END_DIRECTORY);
+						out.writeByte(DIRECTORY);
+						writeString(out, child.getName());
+						writeToBufferRecursive(child, out);
+						out.writeByte(END_DIRECTORY);
 					} else {
 						//Write the file marker and name
-						writeBuffer.put(FILE);
-						writeString(child.getName());
-						//Read the file data and write it
+						//Read the file first so a failed read never leaves a half-written entry
+						byte[] data;
 						try {
-							byte[] data = Files.readAllBytes(child.toPath());
-							writeBuffer.putInt(data.length);
-							writeBuffer.put(data);
+							data = Files.readAllBytes(child.toPath());
 						} catch(Exception exception) {
 							LuaMade.getInstance().logException("Error writing file to buffer", exception);
+							continue;
 						}
+						out.writeByte(FILE);
+						writeString(out, child.getName());
+						out.writeInt(data.length);
+						out.write(data);
 					}
 				}
 			}
@@ -169,20 +166,10 @@ public class CompressionUtils {
 	 * Writes a string to the buffer with a length prefix.
 	 * @param str The string to write
 	 */
-	private static void writeString(String str) {
+	private static void writeString(DataOutputStream out, String str) throws IOException {
 		byte[] bytes = str.getBytes(StandardCharsets.UTF_8);
-		writeBuffer.putInt(bytes.length);
-		writeBuffer.put(bytes);
-	}
-
-	private static void clearBuffer(ByteBuffer buffer) {
-		Buffer bufferView = buffer;
-		bufferView.clear();
-	}
-
-	private static void flipBuffer(ByteBuffer buffer) {
-		Buffer bufferView = buffer;
-		bufferView.flip();
+		out.writeInt(bytes.length);
+		out.write(bytes);
 	}
 
 	/**

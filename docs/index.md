@@ -50,6 +50,7 @@ markdown/graphics/gui
 markdown/entities/entity
 markdown/entities/entity-ai
 markdown/entities/remote-entity
+markdown/entities/turret-control
 markdown/entities/faction
 markdown/entities/fleet
 markdown/entities/fleet-command

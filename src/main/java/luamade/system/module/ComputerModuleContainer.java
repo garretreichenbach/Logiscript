@@ -7,10 +7,13 @@ import api.entity.module.util.SystemModule;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import luamade.LuaMade;
 import luamade.element.ElementRegistry;
+import luamade.lua.fs.FileSystem;
 import luamade.lua.gfx.Gfx2d;
 import luamade.manager.ConfigManager;
+import luamade.network.PacketSCCameraFeed;
 import luamade.network.PacketSCConsoleSnapshot;
 import luamade.network.PacketSCGfxSnapshot;
+import luamade.utils.BlockOwnership;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.elements.ManagerContainer;
 import org.schema.game.common.data.SegmentPiece;
@@ -274,6 +277,8 @@ public class ComputerModuleContainer extends SystemModule {
 		boolean passwordInputMode = module.getTerminal() != null && module.getTerminal().isPasswordInputMode();
 		byte scrollModeOrdinal = (byte) module.getScrollMode().ordinal();
 		String savedTerminalInput = module.getSavedTerminalInput();
+		SegmentPiece camera = liveCameraFeed(module);
+		String cameraKey = camera == null ? "" : camera.getSegmentController().getId() + ":" + camera.getAbsoluteIndex();
 
 		// Serialize per-module so the immediate push (network thread) and the
 		// periodic sweep (game-loop thread) can't interleave their read-diff-send
@@ -297,12 +302,31 @@ public class ComputerModuleContainer extends SystemModule {
 					PacketUtil.sendPacket(player, new PacketSCConsoleSnapshot(entityId, absIndex, consoleText, keyboardConsumed, mouseConsumed, modeOrdinal, lastOpenFile, passwordInputMode, scrollModeOrdinal, savedTerminalInput));
 				}
 
+				if(!cameraKey.equals(state.lastCameraFeed)) {
+					state.lastCameraFeed = cameraKey;
+					PacketUtil.sendPacket(player, new PacketSCCameraFeed(entityId, absIndex, camera == null ? -1 : camera.getSegmentController().getId(), camera == null ? 0L : camera.getAbsoluteIndex()));
+				}
+
 				if(gfxSnapshot.revision != state.lastGfxRevision) {
 					state.lastGfxRevision = gfxSnapshot.revision;
 					PacketUtil.sendPacket(player, new PacketSCGfxSnapshot(entityId, absIndex, gfxSnapshot));
 				}
 			}
 		}
+	}
+
+	/** The module's camera feed if that Camera block still exists, else clears it. */
+	private static SegmentPiece liveCameraFeed(ComputerModule module) {
+		SegmentPiece feed = module.getCameraFeed();
+		if(feed == null) {
+			return null;
+		}
+		SegmentPiece live = feed.getSegmentController() == null ? null : feed.getSegmentController().getSegmentBuffer().getPointUnsave(feed.getAbsoluteIndex());
+		if(live == null || live.getType() != ComputerModule.CAMERA_BLOCK_ID) {
+			module.setCameraFeed(null);
+			return null;
+		}
+		return live;
 	}
 
 	private void saveIdleModules() {
@@ -425,8 +449,8 @@ public class ComputerModuleContainer extends SystemModule {
 
 	public void addModule(SegmentPiece segmentPiece) {
 		if(!computerModules.containsKey(segmentPiece.getAbsoluteIndex())) {
-			String stableUUID = ComputerModule.generateComputerUUID(segmentPiece);
-			ComputerModule module = new ComputerModule(segmentPiece, stableUUID);
+			String stableUUID = pendingUUID(segmentPiece.getAbsoluteIndex());
+			ComputerModule module = new ComputerModule(segmentPiece, claimUUID(stableUUID != null ? stableUUID : ComputerModule.generateComputerUUID(), segmentPiece.getAbsoluteIndex()));
 			applyPendingState(segmentPiece.getAbsoluteIndex(), module);
 			computerModules.put(segmentPiece.getAbsoluteIndex(), module);
 			flagUpdatedData();
@@ -530,12 +554,47 @@ public class ComputerModuleContainer extends SystemModule {
 
 			if(!computerModules.containsKey(abs)) {
 				String stableUUID = state.stableUUID == null || state.stableUUID.isEmpty()
-					? ComputerModule.generateComputerUUID(piece)
+					? ComputerModule.generateLegacyComputerUUID(abs)
 					: state.stableUUID;
-				ComputerModule module = new ComputerModule(piece, stableUUID);
+				ComputerModule module = new ComputerModule(piece, claimUUID(stableUUID, abs));
 				applyStateToModule(module, state);
 				computerModules.put(abs, module);
 			}
+		}
+	}
+
+	/**
+	 * The ID the computer at {@code abs} should use. A blueprint copy arrives with its original's ID; it gets a fresh
+	 * one, starting from a copy of the original's files, so the two don't share a filesystem.
+	 */
+	private String claimUUID(String uuid, long abs) {
+		String claimed = BlockOwnership.claim(segmentController, "computer", uuid, abs);
+		if(!claimed.equals(uuid)) {
+			ComputerModule original = findLiveModule(uuid);
+			if(original != null) {
+				original.getFileSystem().saveToDisk();
+			}
+			FileSystem.copyArchive(uuid, claimed);
+			flagUpdatedData();
+		}
+		return claimed;
+	}
+
+	private static ComputerModule findLiveModule(String uuid) {
+		for(ComputerModuleContainer container : ACTIVE_CONTAINERS) {
+			ComputerModule module = container.getModuleByUUID(uuid);
+			if(module != null) {
+				return module;
+			}
+		}
+		return null;
+	}
+
+	/** The saved ID of a computer still waiting to be restored, so creating it early keeps its files. */
+	private String pendingUUID(long abs) {
+		synchronized(pendingLock) {
+			PendingModuleState state = pendingModuleStates.get(abs);
+			return state == null || state.stableUUID == null || state.stableUUID.isEmpty() ? null : state.stableUUID;
 		}
 	}
 
@@ -577,6 +636,7 @@ public class ComputerModuleContainer extends SystemModule {
 		private boolean lastPasswordInputMode;
 		private byte lastScrollModeOrdinal = -1;
 		private String lastSavedTerminalInput;
+		private String lastCameraFeed = "";
 	}
 
 	private static final class PendingModuleState {

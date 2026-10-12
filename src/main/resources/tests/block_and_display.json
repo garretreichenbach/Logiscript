@@ -1,0 +1,58 @@
+{
+  "id": "luamade/block_and_display",
+  "entity": "station",
+  "blocks": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "block": "videogoose.luamade~Computer"
+    },
+    {
+      "at": [
+        1,
+        0,
+        0
+      ],
+      "block": "DISPLAY_MODULE"
+    },
+    {
+      "from": [
+        6,
+        0,
+        0
+      ],
+      "to": [
+        7,
+        0,
+        1
+      ],
+      "block": "REACTOR_POWER"
+    }
+  ],
+  "luamade": [
+    {
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "script": "local function check(c, m) if not c then print(\"FAIL \" .. m) error(m) end end\nlocal p = console.getBlock().getPos()\nlocal function at(dx, dy, dz) return vec3i(p.getX() + dx, p.getY() + dy, p.getZ() + dz) end\n\nlocal me = console.getBlock()\ncheck(me.getInfo().getName():find(\"Computer\") ~= nil, \"computer info\")\ncheck(peripheral.getCurrentBlock().getId() == me.getId(), \"current block\")\n\ncheck(me.setCustomData(json.encode({mode = \"test\"})) ~= false, \"setCustomData\")\ncheck(json.decode(me.getCustomData()).mode == \"test\", \"getCustomData\")\nme.setCustomData(\"{}\")\n\nlocal entity = me.getEntity()\ncheck(entity.getName() ~= nil, \"entity name\")\ncheck(entity.getBlockAt(p).getId() == me.getId(), \"entity.getBlockAt\")\n\nlocal disp = peripheral.wrapAt(at(1, 0, 0), \"display\")\ncheck(disp ~= nil, \"wrap display\")\ndisp.setText(\"world test\")\ncheck(disp.getText() == \"world test\", \"display text\")\ncheck(peripheral.wrapAt(at(1, 0, 0), \"vault\") == nil, \"wrong wrap type is nil\")\nprint(\"PASS block_and_display\")\n"
+    }
+  ],
+  "expect": [
+    {
+      "luamade": [
+        0,
+        0,
+        0
+      ],
+      "measure": "console",
+      "text": "PASS block_and_display",
+      "count": 1,
+      "by": 300
+    }
+  ]
+}

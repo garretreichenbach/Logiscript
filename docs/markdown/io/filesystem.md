@@ -86,6 +86,7 @@ Returns canonical virtual path (resolves `.`, `..`, and relative paths).
 
 - Paths are sandboxed to this computer's virtual root.
 - Escaping the sandbox via traversal is blocked.
+- Each computer's files share a size limit, 2 MB by default (`computer_max_storage_bytes` in the server config). A `write` that would go over it returns `false`, and `getLastError()` says how much space it needed.
 - `delete` will not remove non-empty directories.
 - `makeDir` returns `false` when the path already exists.
 - Protection rules are path-scoped and inherited by child paths (longest matching scope wins).

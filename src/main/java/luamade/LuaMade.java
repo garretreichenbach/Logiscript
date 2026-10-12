@@ -14,7 +14,10 @@ import luamade.network.PacketCSPlayerDialogResponse;
 import luamade.network.PacketCSRequestDataStoreContents;
 import luamade.network.PacketCSRequestVaultView;
 import luamade.network.PacketCSVaultDeposit;
+import luamade.network.PacketCSRemoteControl;
 import luamade.network.PacketCSVaultWithdraw;
+import luamade.network.PacketSCCameraFeed;
+import luamade.network.PacketSCRemoteOpen;
 import luamade.network.PacketSCComputerConnectAck;
 import luamade.network.PacketSCConsoleSnapshot;
 import luamade.network.PacketSCDataStoreContents;
@@ -32,6 +35,8 @@ import luamade.lua.datastore.SharedDataStore;
 import luamade.lua.vault.SharedVaultLedger;
 import luamade.manager.ComputerDataCleanupManager;
 import luamade.manager.ConfigManager;
+import luamade.system.LuaMadeWorldTests;
+import org.schema.game.server.test.world.WorldTests;
 import luamade.manager.EventManager;
 import luamade.manager.ResourceManager;
 import luamade.system.module.ComputerModuleContainer;
@@ -64,6 +69,7 @@ public class LuaMade extends StarMod {
 		EventManager.registerEvents(this);
 		NetworkedDataStoreRegistry.load();
 		registerPackets();
+		WorldTests.addExtension(new LuaMadeWorldTests());
 	}
 
 	@Override
@@ -123,6 +129,9 @@ public class LuaMade extends StarMod {
 		Packet.registerPacket(this, PacketSCVaultView.class);
 		Packet.registerPacket(this, PacketCSVaultDeposit.class);
 		Packet.registerPacket(this, PacketCSVaultWithdraw.class);
+		Packet.registerPacket(this, PacketCSRemoteControl.class);
+		Packet.registerPacket(this, PacketSCRemoteOpen.class);
+		Packet.registerPacket(this, PacketSCCameraFeed.class);
 
 		// Computer session (scripts execute server-side; these carry input to
 		// the server and stream console/gfx output back to viewers).

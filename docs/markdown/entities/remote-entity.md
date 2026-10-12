@@ -64,6 +64,9 @@ Returns the entity type string: `"SHIP"` or `"SPACE_STATION"`.
 - `getPilot()`
 Returns the pilot's player name, or `nil` when unoccupied.
 
+- `isDocked()`
+Returns `true` when this entity is docked to another entity (turrets, rail-docked ships).
+
 - `isShop()`
 Returns `true` when this entity is a valid shop station.
 

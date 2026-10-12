@@ -1,5 +1,7 @@
 package luamade.lua.galaxy;
 
+import api.common.GameServer;
+import luamade.lua.data.Vec3f;
 import luamade.lua.data.Vec3i;
 import luamade.lua.faction.Faction;
 import luamade.luawrap.LuaMadeCallable;
@@ -7,6 +9,10 @@ import luamade.luawrap.LuaMadeUserdata;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.data.world.SectorInformation;
 import org.schema.game.common.data.world.StellarSystem;
+import org.schema.game.common.data.world.VoidSystem;
+
+import javax.vecmath.Vector3f;
+import java.util.ArrayList;
 
 /**
  * Read-only wrapper over a StarMade {@link StellarSystem}. Represents one star
@@ -100,6 +106,64 @@ public class StarSystem extends LuaMadeUserdata {
 			Vector3i pos = toVector(sectorPos);
 			if(system.getSectorType(pos) != SectorInformation.SectorType.PLANET) return null;
 			return system.getPlanetTypeId(pos);
+		} catch(Exception exception) {
+			return null;
+		}
+	}
+
+	/**
+	 * Absolute sector position of the system's star — the sector every orbit is centred on. Without
+	 * the galaxy generator (legacy universes) this is the system's middle sector.
+	 */
+	@LuaMadeCallable
+	public Vec3i getSunSector() {
+		Vector3i sys = system.getPos();
+		Vector3i offset = new Vector3i();
+		org.schema.game.server.data.Galaxy galaxy = galaxy();
+		if(galaxy != null) galaxy.getSunPositionOffset(Galaxy.relPos(sys), offset);
+		int half = VoidSystem.SYSTEM_SIZE / 2;
+		return new Vec3i(new Vector3i(
+				sys.x * VoidSystem.SYSTEM_SIZE + half + offset.x,
+				sys.y * VoidSystem.SYSTEM_SIZE + half + offset.y,
+				sys.z * VoidSystem.SYSTEM_SIZE + half + offset.z));
+	}
+
+	/** Normal of the system's orbital plane (unit vector, galactic axes), as a {@code Vec3f}. */
+	@LuaMadeCallable
+	public Vec3f getAxis() {
+		org.schema.game.server.data.Galaxy galaxy = galaxy();
+		if(galaxy == null) return new Vec3f(0, 1, 0);
+		return new Vec3f(galaxy.getSystemAxis(Galaxy.relPos(system.getPos()), new Vector3f()));
+	}
+
+	/** Star colour as {@code {r, g, b, a}} normalized floats, or {@code nil} without a galaxy. */
+	@LuaMadeCallable
+	public Double[] getSunColor() {
+		org.schema.game.server.data.Galaxy galaxy = galaxy();
+		return galaxy == null ? null : Galaxy.color(galaxy.getSunColor(Galaxy.relPos(system.getPos())));
+	}
+
+	/**
+	 * The system's populated orbit rings as an {@code Orbit[]}, innermost first. Empty for void /
+	 * black-hole systems and legacy universes, matching what the vanilla galaxy map draws.
+	 */
+	@LuaMadeCallable
+	public Orbit[] getOrbits() {
+		org.schema.game.server.data.Galaxy galaxy = galaxy();
+		if(galaxy == null || !org.schema.game.server.data.Galaxy.USE_GALAXY) return new Orbit[0];
+		Vector3i rel = Galaxy.relPos(system.getPos());
+		if(!galaxy.isStellarSystem(rel)) return new Orbit[0];
+		int[] slots = galaxy.getSystemOrbits(rel, new int[8]);
+		ArrayList<Orbit> out = new ArrayList<>();
+		for(int i = 0; i < slots.length; i++) {
+			if(slots[i] > 0) out.add(new Orbit(i, org.schema.game.server.data.Galaxy.isPlanetOrbit(slots[i])));
+		}
+		return out.toArray(new Orbit[0]);
+	}
+
+	private org.schema.game.server.data.Galaxy galaxy() {
+		try {
+			return GameServer.getUniverse().getGalaxyFromSystemPos(system.getPos());
 		} catch(Exception exception) {
 			return null;
 		}

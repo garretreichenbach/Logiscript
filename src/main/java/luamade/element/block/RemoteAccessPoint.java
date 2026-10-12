@@ -4,14 +4,12 @@ import api.block.BlockConfig;
 import api.event.block.SegmentPieceKilledListener;
 import api.event.block.SegmentPiecePlayerInteractListener;
 import api.event.block.SegmentPieceRemoveListener;
+import api.network.packets.PacketUtil;
 import luamade.LuaMade;
 import luamade.element.ElementRegistry;
-import luamade.gui.ComputerDialog;
 import luamade.manager.ResourceManager;
+import luamade.network.PacketCSRemoteControl;
 import luamade.system.module.AccessPointModuleContainer;
-import luamade.system.module.ComputerModule;
-import luamade.system.module.ComputerModuleContainer;
-import org.json.JSONObject;
 import org.schema.game.client.controller.manager.ingame.PlayerInteractionControlManager;
 import org.schema.game.client.view.cubes.shapes.BlockStyle;
 import org.schema.game.common.controller.ManagedUsableSegmentController;
@@ -21,17 +19,11 @@ import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementKeyMap;
 import org.schema.game.common.data.element.FactoryResource;
 import org.schema.game.common.data.player.PlayerState;
-import org.schema.game.common.data.player.inventory.InventorySlot;
 import org.schema.game.common.data.world.Segment;
 
 import javax.annotation.Nullable;
-import java.lang.reflect.Field;
 
 public class RemoteAccessPoint extends Block implements SegmentPiecePlayerInteractListener, SegmentPieceRemoveListener, SegmentPieceKilledListener {
-
-	private static final String REMOTE_COMPUTER_UUID_KEY = "luamadeRemoteComputerUuid";
-	private static final String REMOTE_ACCESS_POINT_INDEX_KEY = "luamadeRemoteAccessPointIndex";
-	private static final Field SELECTED_SLOT_FIELD = resolveSelectedSlotField();
 
 	public RemoteAccessPoint() {
 		super("Remote Access Point");
@@ -40,7 +32,7 @@ public class RemoteAccessPoint extends Block implements SegmentPiecePlayerIntera
 	@Override
 	public void initData() {
 		super.initData();
-		blockInfo.setDescription("Lets linked remote control items forward input to a LuaMade computer without opening its UI.");
+		blockInfo.setDescription("Pairs Remote Control items with the computer this access point is linked to. Activate it while holding a remote to link it; the remote then works from anywhere.");
 		blockInfo.setDeprecated(false);
 		blockInfo.setInRecipe(true);
 		blockInfo.setShoppable(true);
@@ -67,44 +59,12 @@ public class RemoteAccessPoint extends Block implements SegmentPiecePlayerIntera
 
 	@Override
 	public void onInteract(SegmentPiece segmentPiece, PlayerState playerState, PlayerInteractionControlManager interactionManager) {
-		if(segmentPiece.getType() != ElementRegistry.REMOTE_ACCESS_POINT.getId()) {
+		if(segmentPiece.getType() != ElementRegistry.REMOTE_ACCESS_POINT.getId() || interactionManager == null) {
 			return;
 		}
-		if(!(segmentPiece.getSegmentController() instanceof ManagedUsableSegmentController<?> controller)) {
-			return;
-		}
-
-        InventorySlot heldSlot = getHeldSlot(playerState, interactionManager);
-		if(heldSlot == null || heldSlot.getType() != ElementRegistry.REMOTE_CONTROL.getId()) {
-			notifyPlayer(playerState, "Hold a Remote Controller to connect.");
-			return;
-		}
-
-		AccessPointModuleContainer accessPointContainer = AccessPointModuleContainer.getContainer(controller.getManagerContainer());
-		ComputerModuleContainer computerContainer = ComputerModuleContainer.getContainer(controller.getManagerContainer());
-		if(accessPointContainer == null || computerContainer == null) {
-			notifyPlayer(playerState, "Remote connection unavailable on this structure.");
-			return;
-		}
-
-		String computerUuid = accessPointContainer.getLinkedComputerUUID(segmentPiece);
-		if(computerUuid == null || computerUuid.trim().isEmpty()) {
-			notifyPlayer(playerState, "Access point is not linked to a computer.");
-			return;
-		}
-
-		ComputerModule module = computerContainer.getModuleByUUID(computerUuid);
-		if(module == null || module.getSegmentPiece() == null) {
-			notifyPlayer(playerState, "Linked computer is offline or missing.");
-			return;
-		}
-
-		storeRemoteLinkMetadata(heldSlot, segmentPiece, module);
-		// Opens the exact same networked session direct interaction would — once
-		// access is validated (right item, valid link, computer resolved above),
-		// there's no separate "remote mode" left to maintain; it's a normal
-		// ComputerDialog session against the linked computer's (entityId, absIndex).
-		ComputerDialog.open(controller.getId(), module.getSegmentPiece().getAbsoluteIndex());
+		// The server validates the held item and the access point's link, stores the link on the remote, then answers
+		// with PacketSCRemoteOpen to open the linked computer's terminal.
+		PacketUtil.sendPacketToServer(PacketCSRemoteControl.link(interactionManager.getSelectedSlot(), segmentPiece.getSegmentController().getId(), segmentPiece.getAbsoluteIndex()));
 	}
 
 	@Override
@@ -141,49 +101,6 @@ public class RemoteAccessPoint extends Block implements SegmentPiecePlayerIntera
         AccessPointModuleContainer container = AccessPointModuleContainer.getContainer(controller.getManagerContainer());
 		if(container != null) {
 			container.removeAccessPoint(segmentPiece.getAbsoluteIndex());
-		}
-	}
-
-	private static void notifyPlayer(PlayerState playerState, String message) {
-		if(playerState == null || message == null || message.isEmpty()) {
-			return;
-		}
-		playerState.sendServerMessagePlayerInfo(new Object[] {message});
-	}
-
-	private static InventorySlot getHeldSlot(PlayerState playerState, PlayerInteractionControlManager interactionManager) {
-		if(playerState == null || interactionManager == null || SELECTED_SLOT_FIELD == null) {
-			return null;
-		}
-		try {
-			int selectedSlot = SELECTED_SLOT_FIELD.getInt(interactionManager);
-			if(selectedSlot < 0) {
-				return null;
-			}
-			return playerState.getInventory().getSlot(selectedSlot);
-		} catch(IllegalAccessException exception) {
-			return null;
-		}
-	}
-
-	private static void storeRemoteLinkMetadata(InventorySlot slot, SegmentPiece accessPoint, ComputerModule module) {
-		if(slot == null || accessPoint == null || module == null) {
-			return;
-		}
-
-		JSONObject customData = slot.getOrCreateCustomData();
-		customData.put(REMOTE_COMPUTER_UUID_KEY, module.getUUID());
-		customData.put(REMOTE_ACCESS_POINT_INDEX_KEY, accessPoint.getAbsoluteIndex());
-		slot.setCustomData(customData);
-	}
-
-	private static Field resolveSelectedSlotField() {
-		try {
-			Field field = PlayerInteractionControlManager.class.getDeclaredField("selectedSlot");
-			field.setAccessible(true);
-			return field;
-		} catch(Exception exception) {
-			return null;
 		}
 	}
 }

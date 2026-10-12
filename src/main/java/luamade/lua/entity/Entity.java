@@ -203,7 +203,7 @@ public class Entity extends LuaMadeUserdata {
 		ArrayList<SegmentController> docked = new ArrayList<>();
 		segmentController.railController.getDockedRecusive(docked);
 		for(SegmentController controller : docked) {
-			if(controller.railController.isChildDock(segmentController) && controller.railController.isTurretDocked()) {
+			if(segmentController.railController.isChildDock(controller) && controller.railController.isTurretDocked()) {
 				turrets.add(wrap(controller));
 			}
 		}
@@ -216,7 +216,7 @@ public class Entity extends LuaMadeUserdata {
 		ArrayList<SegmentController> dockedControllers = new ArrayList<>();
 		segmentController.railController.getDockedRecusive(dockedControllers);
 		for(SegmentController controller : dockedControllers) {
-			if(controller.railController.isChildDock(segmentController)) {
+			if(segmentController.railController.isChildDock(controller)) {
 				docked.add(wrap(controller));
 			}
 		}
@@ -230,16 +230,8 @@ public class Entity extends LuaMadeUserdata {
 
 	@LuaMadeCallable
 	public Entity getParent() {
-		if(segmentController.railController == null) return null;
-		for(Sendable sendable : segmentController.getState().getLocalAndRemoteObjectContainer().getLocalObjects().values()) {
-			if(sendable instanceof SegmentController) {
-				SegmentController controller = (SegmentController) sendable;
-				if(controller.getId() != segmentController.getId() && segmentController.railController.isChildDock(controller)) {
-					return wrap(controller);
-				}
-			}
-		}
-		return null;
+		if(segmentController.railController == null || segmentController.railController.previous == null) return null;
+		return wrap(segmentController.railController.previous.rail.getSegmentController());
 	}
 
 	@LuaMadeCallable
@@ -253,7 +245,7 @@ public class Entity extends LuaMadeUserdata {
 		ArrayList<SegmentController> docked = new ArrayList<>();
 		segmentController.railController.getDockedRecusive(docked);
 		for(SegmentController controller : docked) {
-			if(controller.railController.isChildDock(segmentController) && controller.getId() == entity.getId()) {
+			if(segmentController.railController.isChildDock(controller) && controller.getId() == entity.getId()) {
 				return true;
 			}
 		}
@@ -265,7 +257,7 @@ public class Entity extends LuaMadeUserdata {
 		ArrayList<SegmentController> docked = new ArrayList<>();
 		segmentController.railController.getDockedRecusive(docked);
 		for(SegmentController controller : docked) {
-			if(controller.railController.isChildDock(segmentController) && controller.getId() == entity.getId()) {
+			if(segmentController.railController.isChildDock(controller) && controller.getId() == entity.getId()) {
 				controller.railController.disconnect();
 				return;
 			}
@@ -277,7 +269,7 @@ public class Entity extends LuaMadeUserdata {
 		ArrayList<SegmentController> docked = new ArrayList<>();
 		segmentController.railController.getDockedRecusive(docked);
 		for(SegmentController controller : docked) {
-			if(controller.railController.isChildDock(segmentController)) controller.railController.disconnect();
+			if(segmentController.railController.isChildDock(controller)) controller.railController.disconnect();
 		}
 	}
 

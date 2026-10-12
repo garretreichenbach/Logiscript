@@ -10,6 +10,7 @@ import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.schine.graphicsengine.core.GlUtil;
 import org.schema.schine.graphicsengine.core.Timer;
+import org.schema.schine.graphicsengine.forms.debug.DebugLineRenderer;
 
 import java.util.List;
 
@@ -27,6 +28,13 @@ import java.util.List;
  *
  * <p>Unlike the terminal overlay, depth testing is left <em>enabled</em> so
  * holograms z-sort against hull and terrain; blending is enabled for alpha.
+ *
+ * <p>All geometry goes through the engine's {@link DebugLineRenderer} rather than
+ * raw GL: the engine may run on its Vulkan backend (no GL context at all, so any
+ * {@code GL11} call aborts the JVM) or a core-profile GL context (no immediate
+ * mode). The batcher works on every backend and picks up the {@code GlUtil}
+ * modelview when it flushes. Consequence: wide lines and large points are not
+ * available there, so every stroke renders 1px regardless of {@code thickness}.
  */
 public class ProjectorWorldDrawer extends ModWorldDrawer {
 
@@ -36,6 +44,16 @@ public class ProjectorWorldDrawer extends ModWorldDrawer {
 	private final float[] right = new float[3];
 	private final float[] down = new float[3];
 	private final float[] worldA = new float[3];
+	private final float[] worldB = new float[3];
+	private final float[] worldC = new float[3];
+	private DebugLineRenderer dlr;
+	private float cr, cg, cb, ca;
+	// DebugLineRenderer silently drops geometry past its buffer (32768 line
+	// vertices; 32768 shared by triangles and points), so we count what we've
+	// queued and flush into a fresh batch before it fills.
+	private static final int LINE_VERTS = 32768;
+	private static final int TRI_POINT_VERTS = 32768;
+	private int lineVerts, triPointVerts;
 
 	@Override
 	public void update(Timer timer) {
@@ -49,7 +67,7 @@ public class ProjectorWorldDrawer extends ModWorldDrawer {
 
 	@Override
 	public void cleanUp() {
-		// No GL resources are retained between frames.
+		// No GPU resources are retained; DebugLineRenderer is engine-owned.
 	}
 
 	@Override
@@ -94,7 +112,7 @@ public class ProjectorWorldDrawer extends ModWorldDrawer {
 				}
 			}
 		} catch(Exception e) {
-			// OpenGL context may be lost during alt-tab / focus loss — bail cleanly.
+			// Graphics context may be lost during alt-tab / focus loss — bail cleanly.
 		} finally {
 			if(stateSet) {
 				endState();
@@ -103,7 +121,7 @@ public class ProjectorWorldDrawer extends ModWorldDrawer {
 	}
 
 	// -------------------------------------------------------------------------
-	// GL state
+	// Render state (GlUtil routes these through whichever backend is active)
 	// -------------------------------------------------------------------------
 
 	private void beginState() {
@@ -117,8 +135,6 @@ public class ProjectorWorldDrawer extends ModWorldDrawer {
 	}
 
 	private void endState() {
-		GL11.glLineWidth(1.0f);
-		GL11.glPointSize(1.0f);
 		GlUtil.glDisable(GL11.GL_BLEND);
 		GlUtil.glEnable(GL11.GL_CULL_FACE);
 		GlUtil.glEnable(GL11.GL_TEXTURE_2D);
@@ -131,36 +147,77 @@ public class ProjectorWorldDrawer extends ModWorldDrawer {
 	// -------------------------------------------------------------------------
 
 	private void drawFrame(ProjectorFrame frame) {
-		for(ProjectorFrame.Layer layer : frame.layers) {
-			if(!layer.visible) {
-				continue;
+		dlr = DebugLineRenderer.get();
+		if(dlr.isDrawing()) {
+			return; // someone else's batch is open this frame; skip rather than corrupt it
+		}
+		dlr.begin();
+		lineVerts = 0;
+		triPointVerts = 0;
+		try {
+			for(ProjectorFrame.Layer layer : frame.layers) {
+				if(!layer.visible) {
+					continue;
+				}
+				for(ProjectorFrame.Command3d command : layer.commands) {
+					drawCommand3d(command);
+				}
+				for(ProjectorFrame.Surface surface : layer.surfaces) {
+					drawSurface(surface);
+				}
 			}
-			for(ProjectorFrame.Command3d command : layer.commands) {
-				drawCommand3d(command);
-			}
-			for(ProjectorFrame.Surface surface : layer.surfaces) {
-				drawSurface(surface);
-			}
+		} finally {
+			dlr.end();
 		}
 	}
 
+	private void color(float r, float g, float b, float a) {
+		cr = r;
+		cg = g;
+		cb = b;
+		ca = a;
+	}
+
+	private void reserve(int lines, int trisPoints) {
+		if(lineVerts + lines > LINE_VERTS || triPointVerts + trisPoints > TRI_POINT_VERTS) {
+			dlr.end();
+			dlr.begin();
+			lineVerts = 0;
+			triPointVerts = 0;
+		}
+		lineVerts += lines;
+		triPointVerts += trisPoints;
+	}
+
+	private void line(float ax, float ay, float az, float bx, float by, float bz) {
+		reserve(2, 0);
+		dlr.line(ax, ay, az, bx, by, bz, cr, cg, cb, ca);
+	}
+
+	private void tri(float ax, float ay, float az, float bx, float by, float bz, float cx, float cy, float cz) {
+		reserve(0, 3);
+		dlr.tri(ax, ay, az, bx, by, bz, cx, cy, cz, cr, cg, cb, ca);
+	}
+
+	private void quad(float ax, float ay, float az, float bx, float by, float bz,
+	                  float cx, float cy, float cz, float dx, float dy, float dz) {
+		reserve(0, 6);
+		dlr.quad(ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, cr, cg, cb, ca);
+	}
+
+	private void point(float x, float y, float z) {
+		reserve(0, 1);
+		dlr.point(x, y, z, cr, cg, cb, ca);
+	}
+
 	private void drawCommand3d(ProjectorFrame.Command3d c) {
-		GlUtil.glColor4f(c.r, c.g, c.b, c.a);
+		color(c.r, c.g, c.b, c.a);
 		switch(c.kind) {
 			case POINT:
-				GL11.glPointSize(Math.max(1.0f, c.thickness * 2.0f));
-				GL11.glBegin(GL11.GL_POINTS);
-				GL11.glVertex3f(c.x1, c.y1, c.z1);
-				GL11.glEnd();
-				GL11.glPointSize(1.0f);
+				point(c.x1, c.y1, c.z1);
 				break;
 			case LINE:
-				GL11.glLineWidth(Math.max(1.0f, c.thickness));
-				GL11.glBegin(GL11.GL_LINES);
-				GL11.glVertex3f(c.x1, c.y1, c.z1);
-				GL11.glVertex3f(c.x2, c.y2, c.z2);
-				GL11.glEnd();
-				GL11.glLineWidth(1.0f);
+				line(c.x1, c.y1, c.z1, c.x2, c.y2, c.z2);
 				break;
 			case BOX_WIRE:
 				drawBoxWire(c);
@@ -173,17 +230,11 @@ public class ProjectorWorldDrawer extends ModWorldDrawer {
 				break;
 			case TRIANGLE:
 				if(c.filled) {
-					GL11.glBegin(GL11.GL_TRIANGLES);
+					tri(c.x1, c.y1, c.z1, c.x2, c.y2, c.z2, c.x3, c.y3, c.z3);
 				} else {
-					GL11.glLineWidth(Math.max(1.0f, c.thickness));
-					GL11.glBegin(GL11.GL_LINE_LOOP);
-				}
-				GL11.glVertex3f(c.x1, c.y1, c.z1);
-				GL11.glVertex3f(c.x2, c.y2, c.z2);
-				GL11.glVertex3f(c.x3, c.y3, c.z3);
-				GL11.glEnd();
-				if(!c.filled) {
-					GL11.glLineWidth(1.0f);
+					line(c.x1, c.y1, c.z1, c.x2, c.y2, c.z2);
+					line(c.x2, c.y2, c.z2, c.x3, c.y3, c.z3);
+					line(c.x3, c.y3, c.z3, c.x1, c.y1, c.z1);
 				}
 				break;
 		}
@@ -192,31 +243,26 @@ public class ProjectorWorldDrawer extends ModWorldDrawer {
 	private void drawBoxWire(ProjectorFrame.Command3d c) {
 		float ox = c.x1, oy = c.y1, oz = c.z1;
 		float fx = c.x1 + c.x2, fy = c.y1 + c.y2, fz = c.z1 + c.z2;
-		GL11.glLineWidth(Math.max(1.0f, c.thickness));
-		GL11.glBegin(GL11.GL_LINES);
 		// bottom rectangle (z = oz)
-		edge(ox, oy, oz, fx, oy, oz);
-		edge(fx, oy, oz, fx, fy, oz);
-		edge(fx, fy, oz, ox, fy, oz);
-		edge(ox, fy, oz, ox, oy, oz);
+		line(ox, oy, oz, fx, oy, oz);
+		line(fx, oy, oz, fx, fy, oz);
+		line(fx, fy, oz, ox, fy, oz);
+		line(ox, fy, oz, ox, oy, oz);
 		// top rectangle (z = fz)
-		edge(ox, oy, fz, fx, oy, fz);
-		edge(fx, oy, fz, fx, fy, fz);
-		edge(fx, fy, fz, ox, fy, fz);
-		edge(ox, fy, fz, ox, oy, fz);
+		line(ox, oy, fz, fx, oy, fz);
+		line(fx, oy, fz, fx, fy, fz);
+		line(fx, fy, fz, ox, fy, fz);
+		line(ox, fy, fz, ox, oy, fz);
 		// vertical struts
-		edge(ox, oy, oz, ox, oy, fz);
-		edge(fx, oy, oz, fx, oy, fz);
-		edge(fx, fy, oz, fx, fy, fz);
-		edge(ox, fy, oz, ox, fy, fz);
-		GL11.glEnd();
-		GL11.glLineWidth(1.0f);
+		line(ox, oy, oz, ox, oy, fz);
+		line(fx, oy, oz, fx, oy, fz);
+		line(fx, fy, oz, fx, fy, fz);
+		line(ox, fy, oz, ox, fy, fz);
 	}
 
 	private void drawBoxFilled(ProjectorFrame.Command3d c) {
 		float ox = c.x1, oy = c.y1, oz = c.z1;
 		float fx = c.x1 + c.x2, fy = c.y1 + c.y2, fz = c.z1 + c.z2;
-		GL11.glBegin(GL11.GL_QUADS);
 		// -z / +z
 		quad(ox, oy, oz, fx, oy, oz, fx, fy, oz, ox, fy, oz);
 		quad(ox, oy, fz, fx, oy, fz, fx, fy, fz, ox, fy, fz);
@@ -226,33 +272,22 @@ public class ProjectorWorldDrawer extends ModWorldDrawer {
 		// -x / +x
 		quad(ox, oy, oz, ox, fy, oz, ox, fy, fz, ox, oy, fz);
 		quad(fx, oy, oz, fx, fy, oz, fx, fy, fz, fx, oy, fz);
-		GL11.glEnd();
 	}
 
 	private void drawPolyline(ProjectorFrame.Command3d c) {
-		if(c.points == null || c.points.length < 6) {
+		float[] p = c.points;
+		if(p == null || p.length < 6) {
 			return;
 		}
-		GL11.glLineWidth(Math.max(1.0f, c.thickness));
-		GL11.glBegin(c.closed ? GL11.GL_LINE_LOOP : GL11.GL_LINE_STRIP);
-		for(int i = 0; i + 2 < c.points.length; i += 3) {
-			GL11.glVertex3f(c.points[i], c.points[i + 1], c.points[i + 2]);
+		int n = p.length / 3;
+		for(int i = 0; i + 1 < n; i++) {
+			int a = i * 3;
+			line(p[a], p[a + 1], p[a + 2], p[a + 3], p[a + 4], p[a + 5]);
 		}
-		GL11.glEnd();
-		GL11.glLineWidth(1.0f);
-	}
-
-	private void edge(float ax, float ay, float az, float bx, float by, float bz) {
-		GL11.glVertex3f(ax, ay, az);
-		GL11.glVertex3f(bx, by, bz);
-	}
-
-	private void quad(float ax, float ay, float az, float bx, float by, float bz,
-	                  float cx, float cy, float cz, float dx, float dy, float dz) {
-		GL11.glVertex3f(ax, ay, az);
-		GL11.glVertex3f(bx, by, bz);
-		GL11.glVertex3f(cx, cy, cz);
-		GL11.glVertex3f(dx, dy, dz);
+		if(c.closed && n > 2) {
+			int last = (n - 1) * 3;
+			line(p[last], p[last + 1], p[last + 2], p[0], p[1], p[2]);
+		}
 	}
 
 	// -------------------------------------------------------------------------
@@ -307,44 +342,43 @@ public class ProjectorWorldDrawer extends ModWorldDrawer {
 		out[2] = s.oz + u * right[2] + v * down[2];
 	}
 
-	private void vertex(ProjectorFrame.Surface s, float cx, float cy) {
-		toWorld(s, cx, cy, worldA);
-		GL11.glVertex3f(worldA[0], worldA[1], worldA[2]);
+	private void line2d(ProjectorFrame.Surface s, float x1, float y1, float x2, float y2) {
+		toWorld(s, x1, y1, worldA);
+		toWorld(s, x2, y2, worldB);
+		line(worldA[0], worldA[1], worldA[2], worldB[0], worldB[1], worldB[2]);
+	}
+
+	private void tri2d(ProjectorFrame.Surface s, float x1, float y1, float x2, float y2, float x3, float y3) {
+		toWorld(s, x1, y1, worldA);
+		toWorld(s, x2, y2, worldB);
+		toWorld(s, x3, y3, worldC);
+		tri(worldA[0], worldA[1], worldA[2], worldB[0], worldB[1], worldB[2], worldC[0], worldC[1], worldC[2]);
+	}
+
+	private void rect2d(ProjectorFrame.Surface s, float x0, float y0, float x1, float y1) {
+		tri2d(s, x0, y0, x1, y0, x1, y1);
+		tri2d(s, x0, y0, x1, y1, x0, y1);
 	}
 
 	private void drawCommand2d(ProjectorFrame.Surface s, ProjectorFrame.Command2d c) {
-		GlUtil.glColor4f(c.r, c.g, c.b, c.a);
+		color(c.r, c.g, c.b, c.a);
 		switch(c.kind) {
 			case POINT:
-				GL11.glPointSize(2.0f);
-				GL11.glBegin(GL11.GL_POINTS);
-				vertex(s, c.x1, c.y1);
-				GL11.glEnd();
-				GL11.glPointSize(1.0f);
+				toWorld(s, c.x1, c.y1, worldA);
+				point(worldA[0], worldA[1], worldA[2]);
 				break;
 			case LINE:
-				GL11.glLineWidth(Math.max(1.0f, c.thickness));
-				GL11.glBegin(GL11.GL_LINES);
-				vertex(s, c.x1, c.y1);
-				vertex(s, c.x2, c.y2);
-				GL11.glEnd();
-				GL11.glLineWidth(1.0f);
+				line2d(s, c.x1, c.y1, c.x2, c.y2);
 				break;
 			case RECT: {
 				float x0 = c.x1, y0 = c.y1, x1 = c.x1 + c.x2, y1 = c.y1 + c.y2;
 				if(c.filled) {
-					GL11.glBegin(GL11.GL_QUADS);
+					rect2d(s, x0, y0, x1, y1);
 				} else {
-					GL11.glLineWidth(Math.max(1.0f, c.thickness));
-					GL11.glBegin(GL11.GL_LINE_LOOP);
-				}
-				vertex(s, x0, y0);
-				vertex(s, x1, y0);
-				vertex(s, x1, y1);
-				vertex(s, x0, y1);
-				GL11.glEnd();
-				if(!c.filled) {
-					GL11.glLineWidth(1.0f);
+					line2d(s, x0, y0, x1, y0);
+					line2d(s, x1, y0, x1, y1);
+					line2d(s, x1, y1, x0, y1);
+					line2d(s, x0, y1, x0, y0);
 				}
 				break;
 			}
@@ -366,42 +400,37 @@ public class ProjectorWorldDrawer extends ModWorldDrawer {
 		if(radius <= 0.0f) {
 			return;
 		}
-		if(c.filled) {
-			GL11.glBegin(GL11.GL_TRIANGLE_FAN);
-			vertex(s, c.x1, c.y1);
-			for(int i = 0; i <= segments; i++) {
-				double angle = (Math.PI * 2.0 * i) / segments;
-				vertex(s, c.x1 + (float) Math.cos(angle) * radius, c.y1 + (float) Math.sin(angle) * radius);
+		float px = c.x1 + radius, py = c.y1;
+		for(int i = 1; i <= segments; i++) {
+			double angle = (Math.PI * 2.0 * i) / segments;
+			float x = c.x1 + (float) Math.cos(angle) * radius;
+			float y = c.y1 + (float) Math.sin(angle) * radius;
+			if(c.filled) {
+				tri2d(s, c.x1, c.y1, px, py, x, y);
+			} else {
+				line2d(s, px, py, x, y);
 			}
-			GL11.glEnd();
-		} else {
-			GL11.glLineWidth(Math.max(1.0f, c.thickness));
-			GL11.glBegin(GL11.GL_LINE_LOOP);
-			for(int i = 0; i < segments; i++) {
-				double angle = (Math.PI * 2.0 * i) / segments;
-				vertex(s, c.x1 + (float) Math.cos(angle) * radius, c.y1 + (float) Math.sin(angle) * radius);
-			}
-			GL11.glEnd();
-			GL11.glLineWidth(1.0f);
+			px = x;
+			py = y;
 		}
 	}
 
 	private void drawSurfacePolygon(ProjectorFrame.Surface s, ProjectorFrame.Command2d c) {
-		if(c.points == null || c.points.length < 6 || (c.points.length % 2) != 0) {
+		float[] p = c.points;
+		if(p == null || p.length < 6 || (p.length % 2) != 0) {
 			return;
 		}
+		int n = p.length / 2;
 		if(c.filled) {
-			GL11.glBegin(GL11.GL_POLYGON);
+			// Fan from the first vertex: the same convex-polygon contract GL_POLYGON had.
+			for(int i = 1; i + 1 < n; i++) {
+				tri2d(s, p[0], p[1], p[i * 2], p[i * 2 + 1], p[i * 2 + 2], p[i * 2 + 3]);
+			}
 		} else {
-			GL11.glLineWidth(Math.max(1.0f, c.thickness));
-			GL11.glBegin(GL11.GL_LINE_LOOP);
-		}
-		for(int i = 0; i + 1 < c.points.length; i += 2) {
-			vertex(s, c.points[i], c.points[i + 1]);
-		}
-		GL11.glEnd();
-		if(!c.filled) {
-			GL11.glLineWidth(1.0f);
+			for(int i = 0; i < n; i++) {
+				int j = (i + 1) % n;
+				line2d(s, p[i * 2], p[i * 2 + 1], p[j * 2], p[j * 2 + 1]);
+			}
 		}
 	}
 
@@ -412,7 +441,6 @@ public class ProjectorWorldDrawer extends ModWorldDrawer {
 		float pixel = Math.max(1, c.textScale);
 		float cursorX = c.x1;
 		float cursorY = c.y1;
-		GL11.glBegin(GL11.GL_QUADS);
 		for(int i = 0; i < c.text.length(); i++) {
 			char ch = c.text.charAt(i);
 			if(ch == '\n') {
@@ -422,21 +450,24 @@ public class ProjectorWorldDrawer extends ModWorldDrawer {
 			}
 			int[] glyph = HoloFont.glyph(ch);
 			for(int row = 0; row < HoloFont.GLYPH_HEIGHT; row++) {
-				for(int col = 0; col < HoloFont.GLYPH_WIDTH; col++) {
+				// One quad per horizontal run of lit pixels rather than per pixel.
+				int col = 0;
+				while(col < HoloFont.GLYPH_WIDTH) {
 					if(!HoloFont.pixel(glyph, col, row)) {
+						col++;
 						continue;
 					}
-					float px = cursorX + col * pixel;
+					int end = col;
+					while(end < HoloFont.GLYPH_WIDTH && HoloFont.pixel(glyph, end, row)) {
+						end++;
+					}
 					float py = cursorY + row * pixel;
-					vertex(s, px, py);
-					vertex(s, px + pixel, py);
-					vertex(s, px + pixel, py + pixel);
-					vertex(s, px, py + pixel);
+					rect2d(s, cursorX + col * pixel, py, cursorX + end * pixel, py + pixel);
+					col = end;
 				}
 			}
 			cursorX += HoloFont.ADVANCE * pixel;
 		}
-		GL11.glEnd();
 	}
 
 	private static float length(float x, float y, float z) {

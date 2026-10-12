@@ -28,6 +28,9 @@ public class Gfx2d extends LuaMadeUserdata {
 	private boolean autoScaleEnabled = true;
 	private boolean canvasSizeExplicit;
 	private boolean canvasSizeInitialized;
+	// Until something is drawn, viewport reports keep re-seeding the auto-scale canvas,
+	// so a pre-layout size from a just-opened terminal does not stick for the session.
+	private boolean canvasDrawnSinceInit;
 	private long revision;
 	private boolean batching;
 	private boolean batchClearAll;
@@ -307,7 +310,7 @@ public class Gfx2d extends LuaMadeUserdata {
 			viewportWidth = normalizedWidth;
 			viewportHeight = normalizedHeight;
 			if(!canvasSizeExplicit) {
-				if(!autoScaleEnabled || !canvasSizeInitialized) {
+				if(!autoScaleEnabled || !canvasSizeInitialized || !canvasDrawnSinceInit) {
 					canvasWidth = normalizedWidth;
 					canvasHeight = normalizedHeight;
 					canvasSizeInitialized = true;
@@ -322,6 +325,7 @@ public class Gfx2d extends LuaMadeUserdata {
 		synchronized(lock) {
 			canvasSizeExplicit = false;
 			canvasSizeInitialized = false;
+			canvasDrawnSinceInit = false;
 			if(!autoScaleEnabled) {
 				canvasWidth = viewportWidth;
 				canvasHeight = viewportHeight;
@@ -637,6 +641,9 @@ public class Gfx2d extends LuaMadeUserdata {
 	private Boolean appendCommand(DrawCommand command) {
 		throwIfCanceled();
 		synchronized(lock) {
+			if(canvasSizeInitialized) {
+				canvasDrawnSinceInit = true;
+			}
 			if(batching) {
 				if(!layers.containsKey(activeLayer)) {
 					if(layers.size() >= maxLayers()) {

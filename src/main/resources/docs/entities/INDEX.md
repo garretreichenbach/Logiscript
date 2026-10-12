@@ -8,6 +8,7 @@ Entity, faction, and fleet wrapper objects for game interaction.
 - **entity-ai.md** - Entity AI and command handling
 - **remote-entity.md** - Remote/read-only entity wrapper
 - **faction.md** - Faction diplomacy API
+- **turret-control.md** - Free-aim turret control (`console.getTurret`)
 - **fleet.md** - Fleet management API
 - **fleet-command.md** - Fleet command reference
 

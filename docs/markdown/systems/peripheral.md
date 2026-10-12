@@ -117,7 +117,7 @@ Returns the UUID of the linked computer, or `nil` when unbound.
 Returns the linked computer display name, or `nil` when unavailable.
 
 - `isSessionActive()`
-Returns `true` when this access point currently has an active remote control session.
+Returns `true` when anyone is using the linked computer, whether at the computer, through a remote, or in controller mode.
 
 ```lua
 local access = peripheral.wrapRelative("front", "accesspoint")

@@ -9,7 +9,9 @@ import org.json.JSONObject;
 import org.schema.game.common.data.player.inventory.InventorySlot;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Inventory extends LuaMadeUserdata {
 
@@ -142,30 +144,43 @@ public class Inventory extends LuaMadeUserdata {
 		if(!isInventory() || items == null) {
 			return false;
 		}
-		for(ItemStack itemStack : items) {
-			if(!isMutableRequestValid(itemStack)) {
-				return false;
-			}
-			if(InventoryUtils.getItemAmount(inventory, itemStack.getId()) < itemStack.getCount()) {
-				return false;
-			}
+		if(!hasAll(items)) {
+			return false;
 		}
 		for(ItemStack itemStack : items) {
-			if(itemStack != null) {
-				InventoryUtils.consumeItems(inventory, itemStack.getId(), itemStack.getCount());
-			}
+			consume(itemStack.getId(), itemStack.getCount());
 		}
 		inventory.sendAll();
 		return true;
 	}
 
+	/** True when every stack is valid and the inventory holds the combined count per item, so stacks of the same item can't each pass on the same items. */
+	private boolean hasAll(ItemStack[] items) {
+		if(items == null) {
+			return false;
+		}
+		Map<Short, Long> needed = new HashMap<>();
+		for(ItemStack itemStack : items) {
+			if(!isMutableRequestValid(itemStack)) {
+				return false;
+			}
+			needed.merge(itemStack.getId(), (long) itemStack.getCount(), Long::sum);
+		}
+		for(Map.Entry<Short, Long> entry : needed.entrySet()) {
+			if(InventoryUtils.getItemAmount(inventory, entry.getKey()) < entry.getValue()) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	@LuaMadeCallable
 	public Boolean transferTo(Inventory to, ItemStack[] items) {
-		if(isInventory() && to != null && to.isInventory() && !inventory.equals(to.inventory) && !isSameBackingInventory(to)) {
+		if(isInventory() && to != null && to.isInventory() && !inventory.equals(to.inventory) && !isSameBackingInventory(to) && hasAll(items)) {
 			for(ItemStack itemStack : items) {
 				if(itemStack != null) {
 					if(InventoryUtils.getItemAmount(inventory, itemStack.getId()) >= itemStack.getCount() && to.inventory.hasFreeSlot()) {
-						InventoryUtils.consumeItems(inventory, itemStack.getId(), itemStack.getCount());
+						consume(itemStack.getId(), itemStack.getCount());
 						InventoryUtils.addItem(to.inventory, itemStack.getId(), itemStack.getCount());
 					} else {
 						return false;
@@ -193,6 +208,17 @@ public class Inventory extends LuaMadeUserdata {
 		inventory.clear();
 		inventory.sendAll();
 		return true;
+	}
+
+	/** InventoryUtils.consumeItems leaves an exactly-emptied slot at count 0 with its type set, so it still counts as filled; remove those. */
+	private void consume(short id, int count) {
+		InventoryUtils.consumeItems(inventory, id, count);
+		for(int slot : new ArrayList<>(inventory.getSlots())) {
+			InventorySlot inventorySlot = inventory.getSlot(slot);
+			if(inventorySlot != null && inventorySlot.getType() == id && !inventorySlot.isMultiSlot() && inventorySlot.count() <= 0) {
+				inventory.removeSlot(slot, true);
+			}
+		}
 	}
 
 	private boolean isMutableRequestValid(ItemStack itemStack) {
