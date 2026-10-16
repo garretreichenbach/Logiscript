@@ -4,7 +4,7 @@
 	"author": "VideoGoose, LupoCani",
 	"description": "Adds Lua scriptable computers to StarMade.",
 	"version": "3.0.0",
-	"starmade_version": "0.4.508",
+	"starmade_version": "0.4.515",
 	"starloader_version": "2.0",
 	"client_mod": true,
 	"server_mod": true,
